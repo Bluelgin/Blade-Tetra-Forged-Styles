@@ -1,0 +1,35 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "durability": 3,
+    "integrity": -2
+  },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/construction/kobuse"
+        }
+      },
+      {
+        "type": "tetra:accepts_improvement",
+        "improvement": "blade_tetra/construction/kobuse"
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "countFactor": 2,
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/construction/kobuse": 1 }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "key": "ghost_ingot",
+  "category": "metal",
+  "primary": 7.6,
+  "secondary": 2.4,
+  "tertiary": 5.5,
+  "durability": 3000,
+  "integrityCost": 2,
+  "integrityGain": 7,
+  "magicCapacity": 220,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 10,
+  "tints": {
+    "glyph": "E4FFF2",
+    "texture": "78E7CF"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "blade_tetra:materials/ghost_ingot"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:diamond"
+  }
+}

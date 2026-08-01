@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [ "PAP", "ASA", "PAP" ],
+  "key": {
+    "P": { "item": "minecraft:pink_petals" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "S": { "item": "slashblade:proudsoul_sphere" }
+  },
+  "result": { "item": "blade_tetra:sakura_soul_crystal" }
+}

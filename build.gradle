@@ -1,0 +1,154 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'info'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile',
+                    "${projectDir}/build/createSrgToMcp/output.srg"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            def quickPlayWorld = System.getenv('BLADE_TETRA_QUICKPLAY_WORLD')
+            if (quickPlayWorld) {
+                args '--quickPlaySingleplayer', quickPlayWorld
+            }
+        }
+
+        server {
+            args '--nogui'
+        }
+
+        gameTestServer {
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/'),
+                    '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+}
+
+repositories {
+    // Optional sibling workspace used only by -PcontractBladeTest launches.
+    // Keeping this repository declaration inert preserves normal release builds.
+    flatDir {
+        dirs '../Little maid/libs', '../Little maid/build/libs'
+    }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com'
+    }
+    maven {
+        name = "KosmX's maven"
+        url = 'https://maven.kosmx.dev/'
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    implementation fg.deobf("curse.maven:tetra-289712:${tetra_file_id}")
+    implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
+    implementation fg.deobf(
+            "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+    runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
+
+    // Local combat testing only. These are remapped for the userdev runtime and
+    // are not bundled into Blade Tetra or declared as release dependencies.
+    runtimeOnly fg.deobf("curse.maven:selene-499980:8261419")
+    // 2.0.9 is the newest 1.20.1 build whose common mixin ships a refmap,
+    // which is required by Forge's named userdev runtime.
+    runtimeOnly fg.deobf("curse.maven:mmmmmmmmmmmm-225738:6860192")
+
+    // Full Blade Tetra + Contract Blade integration test profile. ForgeGradle
+    // remaps both production jars into the named userdev runtime, which avoids
+    // the mixin field-name failure caused by copying them directly into run/mods.
+    if (project.hasProperty('contractBladeTest')) {
+        runtimeOnly fg.deobf("local:touhoulittlemaid:1.5.3-forge+mc1.20.1")
+        runtimeOnly fg.deobf("local:contract-blade-forge-1.20.1:0.1.0-beta.8")
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_version          : forge_version,
+            forge_version_range    : forge_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    from('LICENSE')
+    from('THIRD_PARTY_NOTICES.md')
+    from('CONFIGURATION.md')
+
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : 'blade_tetra.mixins.json'
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

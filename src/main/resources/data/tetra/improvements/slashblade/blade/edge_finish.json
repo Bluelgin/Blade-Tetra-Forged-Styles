@@ -1,0 +1,38 @@
+[
+  {
+    "key": "blade_tetra/edge/hamaguri",
+    "group": "blade_tetra/edge_finish",
+    "level": 1,
+    "integrity": -1,
+    "durabilityMultiplier": 1.05,
+    "attributes": {
+      "generic.attack_speed": -0.03
+    }
+  },
+  {
+    "key": "blade_tetra/edge/hira",
+    "group": "blade_tetra/edge_finish",
+    "level": 1,
+    "integrity": -1,
+    "durabilityMultiplier": 0.96,
+    "attributes": {
+      "generic.attack_damage": 0.15
+    }
+  },
+  {
+    "key": "blade_tetra/edge/usuba",
+    "group": "blade_tetra/edge_finish",
+    "level": 1,
+    "integrity": -2,
+    "durabilityMultiplier": 0.9,
+    "attributes": {
+      "generic.attack_damage": 0.2,
+      "generic.attack_speed": 0.06
+    }
+  },
+  {
+    "key": "blade_tetra/edge/normalized",
+    "group": "blade_tetra/edge_finish",
+    "level": 1
+  }
+]

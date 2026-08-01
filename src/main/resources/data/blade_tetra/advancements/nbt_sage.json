@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "item": "blade_tetra:smithing_journal" },
+    "title": { "translate": "advancement.blade_tetra.nbt_sage.title" },
+    "description": { "translate": "advancement.blade_tetra.nbt_sage.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": { "unlocked": { "trigger": "minecraft:impossible" } }
+}

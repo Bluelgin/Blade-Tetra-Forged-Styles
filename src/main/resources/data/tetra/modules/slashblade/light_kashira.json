@@ -1,0 +1,18 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/kashira" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "key": "light_kashira/",
+      "attributes": {
+        "generic.attack_speed": 0.08
+      },
+      "extract": {
+        "durability": 0.02,
+        "glyph": { "textureX": 16, "textureY": 112 }
+      }
+    }
+  ]
+}

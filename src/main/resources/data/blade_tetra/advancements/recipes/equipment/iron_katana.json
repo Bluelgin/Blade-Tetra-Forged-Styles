@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_wooden_puppet": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "slashblade:slashblade_wood"
+            ]
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "blade_tetra:iron_katana"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_wooden_puppet",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "blade_tetra:iron_katana"
+    ]
+  },
+  "sends_telemetry_event": false
+}

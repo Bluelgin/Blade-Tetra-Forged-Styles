@@ -1,0 +1,24 @@
+{
+  "key": "electrum",
+  "category": "metal",
+  "primary": 4.8,
+  "secondary": 3,
+  "tertiary": 4.3,
+  "durability": 430,
+  "integrityCost": 2,
+  "integrityGain": 5,
+  "magicCapacity": 126,
+  "toolLevel": "minecraft:iron",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "FFF09B",
+    "texture": "E8CD70"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/electrum"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:stone"
+  }
+}

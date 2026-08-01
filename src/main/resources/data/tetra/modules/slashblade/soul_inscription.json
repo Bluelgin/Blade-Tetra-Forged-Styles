@@ -1,0 +1,17 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/inscription" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "key": "soul_inscription/proudsoul_ingot",
+      "durability": 5,
+      "magicCapacity": 2,
+      "glyph": {
+        "textureX": 40,
+        "textureY": 112,
+        "tint": "A98BD4"
+      }
+    }
+  ]
+}

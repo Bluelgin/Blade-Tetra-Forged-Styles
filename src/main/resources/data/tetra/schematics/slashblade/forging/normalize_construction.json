@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/construction/normalized"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:charcoal" ] },
+      "requiredTools": { "hammer_dig": "minecraft:stone" },
+      "improvements": { "blade_tetra/construction/normalized": 1 }
+    }
+  ]
+}

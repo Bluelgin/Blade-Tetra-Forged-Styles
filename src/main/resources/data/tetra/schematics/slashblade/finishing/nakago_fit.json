@@ -1,0 +1,26 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuka" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": 1 },
+    "durability": 1,
+    "integrity": -1
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/assembly/nakago_fit"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:iron_nugget" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/assembly/nakago_fit": 1 }
+    }
+  ]
+}

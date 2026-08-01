@@ -1,0 +1,18 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/kashira" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 16, "textureY": 112 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -2 },
+    "durability": 3
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "moduleKey": "slashblade/heavy_kashira",
+      "moduleVariant": "heavy_kashira/"
+    }
+  ]
+}

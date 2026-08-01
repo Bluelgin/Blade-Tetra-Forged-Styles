@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "blade_tetra:item/smithing_clue_shoshin"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 2 }, "model": "blade_tetra:item/smithing_clue_bairen" },
+    { "predicate": { "custom_model_data": 3 }, "model": "blade_tetra:item/smithing_clue_bansho" },
+    { "predicate": { "custom_model_data": 4 }, "model": "blade_tetra:item/smithing_clue_raikiri" },
+    { "predicate": { "custom_model_data": 5 }, "model": "blade_tetra:item/smithing_clue_akatsuki" },
+    { "predicate": { "custom_model_data": 6 }, "model": "blade_tetra:item/smithing_clue_kyouka" },
+    { "predicate": { "custom_model_data": 7 }, "model": "blade_tetra:item/smithing_clue_senbonzakura" }
+  ]
+}

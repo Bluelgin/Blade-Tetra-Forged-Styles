@@ -1,0 +1,24 @@
+{
+  "key": "manasteel",
+  "category": "metal",
+  "primary": 6,
+  "secondary": 3.8,
+  "tertiary": 4.3,
+  "durability": 650,
+  "integrityCost": 2,
+  "integrityGain": 7,
+  "magicCapacity": 180,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "91D8F2",
+    "texture": "5CA9D8"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/manasteel"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

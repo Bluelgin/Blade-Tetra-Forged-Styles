@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/saya" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 24, "textureY": 112 },
+  "translation": {
+    "durability": 1,
+    "integrity": -2,
+    "magicCapacity": 4
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "moduleKey": "slashblade/spirit_saya",
+      "moduleVariant": "spirit_saya/"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/edge/normalized"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:flint" ] },
+      "requiredTools": { "hammer_dig": "minecraft:stone" },
+      "improvements": { "blade_tetra/edge/normalized": 1 }
+    }
+  ]
+}

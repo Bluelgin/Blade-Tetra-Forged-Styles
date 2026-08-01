@@ -1,0 +1,26 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuka" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -1 },
+    "durability": 2,
+    "integrity": -1
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/assembly/rigid"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:iron_ingot" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/assembly/rigid": 1 }
+    }
+  ]
+}

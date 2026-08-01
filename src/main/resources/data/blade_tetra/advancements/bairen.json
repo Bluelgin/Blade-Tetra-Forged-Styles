@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "item": "blade_tetra:modular_slashblade" },
+    "title": { "translate": "advancement.blade_tetra.bairen.title" },
+    "description": { "translate": "advancement.blade_tetra.bairen.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": { "unlocked": { "trigger": "minecraft:impossible" } }
+}

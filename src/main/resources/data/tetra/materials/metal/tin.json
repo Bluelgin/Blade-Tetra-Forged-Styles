@@ -1,0 +1,24 @@
+{
+  "key": "tin",
+  "category": "metal",
+  "primary": 3.2,
+  "secondary": 3,
+  "tertiary": 4.2,
+  "durability": 220,
+  "integrityCost": 1,
+  "integrityGain": 5,
+  "magicCapacity": 102,
+  "toolLevel": "minecraft:iron",
+  "toolEfficiency": 5,
+  "tints": {
+    "glyph": "E0E9E8",
+    "texture": "C2CED0"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/tin"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:stone"
+  }
+}

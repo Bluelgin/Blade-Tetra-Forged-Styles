@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuba" ],
+  "type": "tetra:basic_module",
+  "renderLayer": "higher",
+  "variants": [
+    {
+      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "key": "guard_tsuba/",
+      "attributes": {
+        "generic.attack_speed": -0.12
+      },
+      "durability": 20,
+      "integrity": 1,
+      "extract": {
+        "durability": 0.12,
+        "glyph": { "textureX": 8, "textureY": 112 }
+      }
+    }
+  ]
+}

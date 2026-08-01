@@ -1,0 +1,24 @@
+{
+  "key": "lead",
+  "category": "metal",
+  "primary": 3.8,
+  "secondary": 6.5,
+  "tertiary": 1.5,
+  "durability": 460,
+  "integrityCost": 3,
+  "integrityGain": 5,
+  "magicCapacity": 110,
+  "toolLevel": "minecraft:iron",
+  "toolEfficiency": 5,
+  "tints": {
+    "glyph": "858CA3",
+    "texture": "62687D"
+  },
+  "textures": [ "heavy", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/lead"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:stone"
+  }
+}

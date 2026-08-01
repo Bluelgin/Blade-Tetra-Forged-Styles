@@ -1,0 +1,26 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -1 },
+    "durability": 1,
+    "integrity": -1
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/edge/hamaguri"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:quartz" ] },
+      "requiredTools": { "hammer_dig": "minecraft:stone" },
+      "improvements": { "blade_tetra/edge/hamaguri": 1 }
+    }
+  ]
+}

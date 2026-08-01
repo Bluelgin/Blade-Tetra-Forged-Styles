@@ -1,0 +1,24 @@
+{
+  "key": "zinc",
+  "category": "metal",
+  "primary": 4,
+  "secondary": 3.2,
+  "tertiary": 3.8,
+  "durability": 350,
+  "integrityCost": 2,
+  "integrityGain": 5,
+  "magicCapacity": 94,
+  "toolLevel": "minecraft:iron",
+  "toolEfficiency": 6,
+  "tints": {
+    "glyph": "CEDBD2",
+    "texture": "A9B8AD"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/zinc"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:stone"
+  }
+}

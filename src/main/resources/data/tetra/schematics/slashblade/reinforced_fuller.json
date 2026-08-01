@@ -1,0 +1,17 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/fuller" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": {
+    "textureX": 72,
+    "textureY": 112
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/", "tetra:misc/forged_beam" ],
+      "moduleKey": "slashblade/reinforced_fuller",
+      "moduleVariant": "reinforced_fuller/"
+    }
+  ]
+}

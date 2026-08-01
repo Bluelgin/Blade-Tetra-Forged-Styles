@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "iceandfire:ghost_ingot",
+      "required": false
+    }
+  ]
+}

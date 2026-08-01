@@ -1,0 +1,36 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "primaryAttributes": { "generic.attack_damage": 1 },
+    "durability": 2,
+    "integrity": -3
+  },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/construction/sanmai"
+        }
+      },
+      {
+        "type": "tetra:accepts_improvement",
+        "improvement": "blade_tetra/construction/sanmai"
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "countFactor": 3,
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/construction/sanmai": 1 }
+    }
+  ]
+}

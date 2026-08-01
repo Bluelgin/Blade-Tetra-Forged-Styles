@@ -1,0 +1,37 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "primaryAttributes": { "generic.attack_damage": 1 },
+    "secondaryAttributes": { "generic.attack_speed": -1 },
+    "durability": 4,
+    "integrity": -4
+  },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/construction/shihozume"
+        }
+      },
+      {
+        "type": "tetra:accepts_improvement",
+        "improvement": "blade_tetra/construction/shihozume"
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "countFactor": 4,
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/construction/shihozume": 1 }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "localizationKey": "sword/basic_hilt/hone_damage_5",
+  "slots": [ "slashblade/tsuka" ],
+  "materialSlotCount": 0,
+  "hone": true,
+  "rarity": "hone",
+  "displayType": "major",
+  "glyph": { "textureX": 32, "textureY": 240 },
+  "requirement": {
+    "type": "tetra:improvement",
+    "improvement": "hilt_hone/damage",
+    "level": 4
+  },
+  "outcomes": [
+    {
+      "requiredTools": { "hammer_dig": "minecraft:stone" },
+      "improvements": { "hilt_hone/damage": 5 }
+    }
+  ]
+}

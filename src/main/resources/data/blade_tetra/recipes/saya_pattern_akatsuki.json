@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:paper" },
+    { "item": "blade_tetra:blood_crystal" },
+    { "item": "minecraft:gold_nugget" }
+  ],
+  "result": { "item": "blade_tetra:saya_pattern_akatsuki" }
+}

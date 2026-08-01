@@ -1,0 +1,27 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "primaryAttributes": { "generic.attack_damage": 1 },
+    "secondaryAttributes": { "generic.attack_speed": 2 },
+    "durability": -3,
+    "integrity": -2
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/edge/usuba"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:amethyst_shard" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/edge/usuba": 1 }
+    }
+  ]
+}

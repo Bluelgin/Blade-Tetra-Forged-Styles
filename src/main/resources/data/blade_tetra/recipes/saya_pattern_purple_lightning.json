@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:paper" },
+    { "item": "minecraft:purple_dye" },
+    { "item": "minecraft:amethyst_shard" }
+  ],
+  "result": {
+    "item": "blade_tetra:saya_pattern_purple_lightning"
+  }
+}

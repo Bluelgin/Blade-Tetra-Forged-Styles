@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/habaki" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 32, "textureY": 112 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -1 },
+    "durability": 4,
+    "integrity": 1
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "moduleKey": "slashblade/reinforced_habaki",
+      "moduleVariant": "reinforced_habaki/"
+    }
+  ]
+}

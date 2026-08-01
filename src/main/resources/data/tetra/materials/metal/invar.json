@@ -1,0 +1,24 @@
+{
+  "key": "invar",
+  "category": "metal",
+  "primary": 6.1,
+  "secondary": 5,
+  "tertiary": 2.5,
+  "durability": 760,
+  "integrityCost": 2,
+  "integrityGain": 7,
+  "magicCapacity": 80,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "C5C5AA",
+    "texture": "A7A98E"
+  },
+  "textures": [ "heavy", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/invar"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

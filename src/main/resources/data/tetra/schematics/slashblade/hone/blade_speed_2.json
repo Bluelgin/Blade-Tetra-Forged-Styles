@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "localizationKey": "sword/shared_blade/hone_speed_2",
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 0,
+  "hone": true,
+  "rarity": "hone",
+  "displayType": "major",
+  "glyph": { "textureX": 16, "textureY": 240 },
+  "requirement": {
+    "type": "tetra:improvement",
+    "improvement": "blade_hone/speed",
+    "level": 1
+  },
+  "outcomes": [
+    {
+      "requiredTools": { "hammer_dig": "minecraft:gold" },
+      "improvements": { "blade_hone/speed": 2 }
+    }
+  ]
+}

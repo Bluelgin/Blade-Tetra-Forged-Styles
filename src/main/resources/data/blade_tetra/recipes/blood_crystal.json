@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [ " R ", "ANA", " R " ],
+  "key": {
+    "R": { "item": "minecraft:redstone" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "N": { "item": "minecraft:nether_wart" }
+  },
+  "result": { "item": "blade_tetra:blood_crystal" }
+}

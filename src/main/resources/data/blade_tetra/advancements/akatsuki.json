@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "item": "blade_tetra:blood_crystal" },
+    "title": { "translate": "advancement.blade_tetra.akatsuki.title" },
+    "description": { "translate": "advancement.blade_tetra.akatsuki.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": {
+    "awakened": { "trigger": "minecraft:impossible" }
+  }
+}

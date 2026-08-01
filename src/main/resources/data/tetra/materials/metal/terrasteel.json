@@ -1,0 +1,24 @@
+{
+  "key": "terrasteel",
+  "category": "metal",
+  "primary": 7.2,
+  "secondary": 5.2,
+  "tertiary": 4.2,
+  "durability": 1500,
+  "integrityCost": 3,
+  "integrityGain": 9,
+  "magicCapacity": 240,
+  "toolLevel": "minecraft:netherite",
+  "toolEfficiency": 10,
+  "tints": {
+    "glyph": "8CD58F",
+    "texture": "58A35B"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "forge:ingots/terrasteel"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:diamond"
+  }
+}

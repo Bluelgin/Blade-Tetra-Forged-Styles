@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/saya" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 24, "textureY": 112 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": 2 },
+    "durability": 1,
+    "magicCapacity": 1
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/" ],
+      "moduleKey": "slashblade/quickdraw_saya",
+      "moduleVariant": "quickdraw_saya/"
+    }
+  ]
+}

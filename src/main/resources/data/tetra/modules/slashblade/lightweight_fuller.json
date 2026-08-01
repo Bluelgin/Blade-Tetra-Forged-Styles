@@ -1,0 +1,24 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/fuller" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "materials": [ "tetra:metal/", "tetra:wood/", "tetra:bone/", "tetra:misc/forged_beam" ],
+      "key": "lightweight_fuller/",
+      "attributes": {
+        "generic.attack_speed": 0.15
+      },
+      "durability": -50,
+      "durabilityMultiplier": 0.9,
+      "integrity": -1,
+      "extract": {
+        "secondaryAttributes": {
+          "generic.attack_speed": 0.1
+        },
+        "durability": 0.05,
+        "glyph": { "textureX": 72, "textureY": 112 }
+      }
+    }
+  ]
+}

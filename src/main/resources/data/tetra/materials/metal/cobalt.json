@@ -1,0 +1,24 @@
+{
+  "key": "cobalt",
+  "category": "metal",
+  "primary": 7,
+  "secondary": 4.8,
+  "tertiary": 3.4,
+  "durability": 1000,
+  "integrityCost": 3,
+  "integrityGain": 7,
+  "magicCapacity": 100,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 9,
+  "tints": {
+    "glyph": "63A2E8",
+    "texture": "3D76BF"
+  },
+  "textures": [ "shiny", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/cobalt"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

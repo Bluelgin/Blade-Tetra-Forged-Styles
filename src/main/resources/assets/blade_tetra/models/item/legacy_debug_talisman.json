@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "blade_tetra:item/legacy_debug_talisman" }
+}

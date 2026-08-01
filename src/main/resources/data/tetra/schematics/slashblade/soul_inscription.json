@@ -1,0 +1,58 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/inscription" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": {
+    "textureX": 40,
+    "textureY": 112,
+    "tint": "C684F5"
+  },
+  "translation": {
+    "durability": 1,
+    "integrity": -1,
+    "magicCapacity": 4
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [ "slashblade:proudsoul_ingot" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:iron"
+      },
+      "moduleKey": "slashblade/soul_inscription",
+      "moduleVariant": "soul_inscription/proudsoul_ingot"
+    },
+    {
+      "material": {
+        "items": [ "slashblade:proudsoul_sphere" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:diamond"
+      },
+      "moduleKey": "slashblade/awakened_soul_inscription",
+      "moduleVariant": "awakened_soul_inscription/proudsoul_sphere"
+    },
+    {
+      "material": {
+        "items": [ "blade_tetra:blood_crystal" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:diamond"
+      },
+      "moduleKey": "slashblade/awakened_soul_inscription",
+      "moduleVariant": "awakened_soul_inscription/blood_crystal"
+    },
+    {
+      "material": {
+        "items": [ "blade_tetra:sakura_soul_crystal" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:diamond"
+      },
+      "moduleKey": "slashblade/awakened_soul_inscription",
+      "moduleVariant": "awakened_soul_inscription/sakura_crystal"
+    }
+  ]
+}

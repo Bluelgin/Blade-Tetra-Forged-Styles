@@ -1,0 +1,20 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/habaki" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "key": "precision_habaki/",
+      "attributes": {
+        "generic.attack_speed": 0.03
+      },
+      "durability": 5,
+      "extract": {
+        "durability": 0.06,
+        "magicCapacity": 1,
+        "glyph": { "textureX": 32, "textureY": 112 }
+      }
+    }
+  ]
+}

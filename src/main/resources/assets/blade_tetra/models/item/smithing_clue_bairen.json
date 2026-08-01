@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "blade_tetra:item/smithing_clue_bairen" }
+}

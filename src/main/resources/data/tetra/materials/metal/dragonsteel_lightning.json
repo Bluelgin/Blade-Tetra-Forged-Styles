@@ -1,0 +1,24 @@
+{
+  "key": "dragonsteel_lightning",
+  "category": "metal",
+  "primary": 10,
+  "secondary": 4.8,
+  "tertiary": 4.2,
+  "durability": 8000,
+  "integrityCost": 3,
+  "integrityGain": 10,
+  "magicCapacity": 160,
+  "toolLevel": "minecraft:netherite",
+  "toolEfficiency": 12,
+  "tints": {
+    "glyph": "C8C1FF",
+    "texture": "594DA6"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/dragonsteel_lightning"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:netherite"
+  }
+}

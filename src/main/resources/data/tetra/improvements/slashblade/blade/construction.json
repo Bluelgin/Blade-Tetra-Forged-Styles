@@ -1,0 +1,35 @@
+[
+  {
+    "key": "blade_tetra/construction/kobuse",
+    "group": "blade_tetra/blade_construction",
+    "level": 1,
+    "integrity": -2,
+    "durabilityMultiplier": 1.12
+  },
+  {
+    "key": "blade_tetra/construction/sanmai",
+    "group": "blade_tetra/blade_construction",
+    "level": 1,
+    "integrity": -3,
+    "durabilityMultiplier": 1.08,
+    "attributes": {
+      "generic.attack_damage": 0.25
+    }
+  },
+  {
+    "key": "blade_tetra/construction/shihozume",
+    "group": "blade_tetra/blade_construction",
+    "level": 1,
+    "integrity": -4,
+    "durabilityMultiplier": 1.18,
+    "attributes": {
+      "generic.attack_damage": 0.2,
+      "generic.attack_speed": -0.05
+    }
+  },
+  {
+    "key": "blade_tetra/construction/normalized",
+    "group": "blade_tetra/blade_construction",
+    "level": 1
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:paper" },
+    { "item": "minecraft:pink_petals" }
+  ],
+  "result": {
+    "item": "blade_tetra:saya_pattern_sakura"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "key": "dragonsteel_fire",
+  "category": "metal",
+  "primary": 10.2,
+  "secondary": 5.6,
+  "tertiary": 3,
+  "durability": 8000,
+  "integrityCost": 3,
+  "integrityGain": 10,
+  "magicCapacity": 130,
+  "toolLevel": "minecraft:netherite",
+  "toolEfficiency": 12,
+  "tints": {
+    "glyph": "E7B7B5",
+    "texture": "863B49"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/dragonsteel_fire"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:netherite"
+  }
+}

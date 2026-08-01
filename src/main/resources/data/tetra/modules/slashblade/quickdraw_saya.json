@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/saya" ],
+  "type": "tetra:basic_module",
+  "renderLayer": "lower",
+  "variants": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/" ],
+      "key": "quickdraw_saya/",
+      "attributes": {
+        "generic.attack_speed": 0.08
+      },
+      "durability": 5,
+      "extract": {
+        "durability": 0.15,
+        "magicCapacity": 0.5,
+        "glyph": { "textureX": 24, "textureY": 112 }
+      }
+    }
+  ]
+}

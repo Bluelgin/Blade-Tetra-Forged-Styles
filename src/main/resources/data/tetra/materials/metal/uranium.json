@@ -1,0 +1,24 @@
+{
+  "key": "uranium",
+  "category": "metal",
+  "primary": 6.2,
+  "secondary": 6.2,
+  "tertiary": 1.8,
+  "durability": 850,
+  "integrityCost": 3,
+  "integrityGain": 7,
+  "magicCapacity": 135,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "A9C970",
+    "texture": "7C9B4E"
+  },
+  "textures": [ "heavy", "metal", "default" ],
+  "material": {
+    "tag": "forge:ingots/uranium"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

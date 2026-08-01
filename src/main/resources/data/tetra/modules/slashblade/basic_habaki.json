@@ -1,0 +1,20 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/habaki" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "key": "basic_habaki/",
+      "durability": 10,
+      "integrity": 1,
+      "extract": {
+        "durability": 0.08,
+        "glyph": {
+          "textureX": 32,
+          "textureY": 112
+        }
+      }
+    }
+  ]
+}

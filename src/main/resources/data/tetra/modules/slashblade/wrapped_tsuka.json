@@ -1,0 +1,39 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuka" ],
+  "type": "tetra:basic_major_module",
+  "renderLayer": "lower",
+  "improvements": [
+    "tetra:sword/basic_hilt/",
+    "tetra:sword/shared_hilt/",
+    "tetra:sword/shared/",
+    "tetra:shared/",
+    "tetra:slashblade/tsuka/"
+  ],
+  "variants": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:rod/" ],
+      "key": "wrapped_tsuka/",
+      "attributes": {
+        "generic.attack_speed": -0.35
+      },
+      "aspects": {
+        "edged_weapon": 2,
+        "breakable": 2
+      },
+      "durability": 8,
+      "integrity": 1,
+      "extract": {
+        "secondaryAttributes": {
+          "generic.attack_speed": -0.1
+        },
+        "durability": 0.3,
+        "integrity": 1,
+        "magicCapacity": 1,
+        "glyph": {
+          "textureX": 16
+        }
+      }
+    }
+  ]
+}

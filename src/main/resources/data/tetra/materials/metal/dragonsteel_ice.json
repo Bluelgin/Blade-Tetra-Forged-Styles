@@ -1,0 +1,24 @@
+{
+  "key": "dragonsteel_ice",
+  "category": "metal",
+  "primary": 9.8,
+  "secondary": 5.2,
+  "tertiary": 3.8,
+  "durability": 8000,
+  "integrityCost": 3,
+  "integrityGain": 10,
+  "magicCapacity": 150,
+  "toolLevel": "minecraft:netherite",
+  "toolEfficiency": 12,
+  "tints": {
+    "glyph": "C8F6FF",
+    "texture": "3FA9C7"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/dragonsteel_ice"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:netherite"
+  }
+}

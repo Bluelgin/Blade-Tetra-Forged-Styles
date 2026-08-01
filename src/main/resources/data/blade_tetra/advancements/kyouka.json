@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "item": "minecraft:amethyst_shard" },
+    "title": { "translate": "advancement.blade_tetra.kyouka.title" },
+    "description": { "translate": "advancement.blade_tetra.kyouka.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": {
+    "awakened": { "trigger": "minecraft:impossible" }
+  }
+}

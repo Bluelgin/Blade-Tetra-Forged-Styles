@@ -1,0 +1,29 @@
+.gradle/
+build/
+out/
+run/
+run-data/
+.idea/
+*.iml
+*.ipr
+*.iws
+eclipse/
+bin/
+logs/
+crash-reports/
+
+# Local release and handoff material
+release/
+optional-model-packs/
+HANDOFF.md
+META-INF/
+
+# Working art and local asset-generation tools are not build inputs
+art/
+tools/
+
+# Generated and local files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

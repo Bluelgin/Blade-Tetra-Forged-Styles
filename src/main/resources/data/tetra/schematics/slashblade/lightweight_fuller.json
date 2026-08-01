@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/fuller" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 72, "textureY": 112 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": 4 },
+    "durability": -4,
+    "integrity": -1
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "moduleKey": "slashblade/lightweight_fuller",
+      "moduleVariant": "lightweight_fuller/"
+    }
+  ]
+}

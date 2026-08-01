@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "item": "minecraft:iron_sword" },
+    "title": { "translate": "advancement.blade_tetra.shoshin.title" },
+    "description": { "translate": "advancement.blade_tetra.shoshin.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": { "unlocked": { "trigger": "minecraft:impossible" } }
+}

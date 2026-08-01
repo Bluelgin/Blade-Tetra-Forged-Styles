@@ -1,0 +1,20 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuka" ],
+  "materialSlotCount": 1,
+  "displayType": "major",
+  "glyph": { "textureX": 16 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -2 },
+    "durability": 3,
+    "integrity": 3,
+    "magicCapacity": 2
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:rod/" ],
+      "moduleKey": "slashblade/stable_tsuka",
+      "moduleVariant": "stable_tsuka/"
+    }
+  ]
+}

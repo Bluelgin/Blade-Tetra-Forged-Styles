@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "item": "blade_tetra:sakura_soul_crystal" },
+    "title": { "translate": "advancement.blade_tetra.senbonzakura.title" },
+    "description": { "translate": "advancement.blade_tetra.senbonzakura.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "parent": "minecraft:adventure/root",
+  "criteria": {
+    "awakened": { "trigger": "minecraft:impossible" }
+  }
+}

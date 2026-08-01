@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:paper" },
+    { "item": "minecraft:blue_dye" },
+    { "item": "minecraft:prismarine_shard" }
+  ],
+  "result": {
+    "item": "blade_tetra:saya_pattern_seigaiha"
+  }
+}

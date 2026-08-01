@@ -1,0 +1,21 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/habaki" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": {
+    "textureX": 32,
+    "textureY": 112
+  },
+  "translation": {
+    "durability": 1,
+    "integrity": 1
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:metal/" ],
+      "moduleKey": "slashblade/basic_habaki",
+      "moduleVariant": "basic_habaki/"
+    }
+  ]
+}

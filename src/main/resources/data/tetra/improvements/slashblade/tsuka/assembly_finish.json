@@ -1,0 +1,27 @@
+[
+  {
+    "key": "blade_tetra/assembly/nakago_fit",
+    "group": "blade_tetra/assembly_finish",
+    "level": 1,
+    "integrity": -1,
+    "durability": 8,
+    "attributes": {
+      "generic.attack_speed": 0.04
+    }
+  },
+  {
+    "key": "blade_tetra/assembly/rigid",
+    "group": "blade_tetra/assembly_finish",
+    "level": 1,
+    "integrity": -1,
+    "durabilityMultiplier": 1.05,
+    "attributes": {
+      "generic.attack_speed": -0.03
+    }
+  },
+  {
+    "key": "blade_tetra/assembly/normalized",
+    "group": "blade_tetra/assembly_finish",
+    "level": 1
+  }
+]

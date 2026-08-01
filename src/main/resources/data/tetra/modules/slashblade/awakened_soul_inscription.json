@@ -1,0 +1,40 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/inscription" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "key": "awakened_soul_inscription/proudsoul_sphere",
+      "durability": 10,
+      "integrity": -1,
+      "magicCapacity": 4,
+      "glyph": {
+        "textureX": 40,
+        "textureY": 112,
+        "tint": "E781FF"
+      }
+    },
+    {
+      "key": "awakened_soul_inscription/blood_crystal",
+      "durability": 14,
+      "integrity": -1,
+      "magicCapacity": 5,
+      "glyph": {
+        "textureX": 40,
+        "textureY": 112,
+        "tint": "B5142C"
+      }
+    },
+    {
+      "key": "awakened_soul_inscription/sakura_crystal",
+      "durability": 12,
+      "integrity": -1,
+      "magicCapacity": 5,
+      "glyph": {
+        "textureX": 40,
+        "textureY": 112,
+        "tint": "FF9DC4"
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuba" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 8, "textureY": 112 },
+  "translation": {
+    "secondaryAttributes": { "generic.attack_speed": -2 },
+    "durability": 3,
+    "integrity": 1
+  },
+  "outcomes": [
+    {
+      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "moduleKey": "slashblade/guard_tsuba",
+      "moduleVariant": "guard_tsuba/"
+    }
+  ]
+}

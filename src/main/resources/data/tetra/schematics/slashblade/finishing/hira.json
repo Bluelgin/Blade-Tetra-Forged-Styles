@@ -1,0 +1,26 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "translation": {
+    "primaryAttributes": { "generic.attack_damage": 1 },
+    "durability": -1,
+    "integrity": -1
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:improvement",
+      "improvement": "blade_tetra/edge/hira"
+    }
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:flint" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/edge/hira": 1 }
+    }
+  ]
+}
