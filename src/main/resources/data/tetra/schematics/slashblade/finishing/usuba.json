@@ -11,11 +11,20 @@
     "integrity": -2
   },
   "requirement": {
-    "type": "tetra:not",
-    "requirement": {
-      "type": "tetra:improvement",
-      "improvement": "blade_tetra/edge/usuba"
-    }
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/finishing/usuba"
+      },
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/edge/usuba"
+        }
+      }
+    ]
   },
   "outcomes": [
     {

@@ -1,0 +1,20 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuba" ],
+  "type": "tetra:basic_module",
+  "renderLayer": "higher",
+  "variants": [
+    {
+      "key": "tsubaless/none",
+      "attributes": {
+        "generic.attack_speed": 0.12
+      },
+      "integrity": -1,
+      "glyph": {
+        "textureX": 8,
+        "textureY": 112,
+        "tint": "9A8F83"
+      }
+    }
+  ]
+}

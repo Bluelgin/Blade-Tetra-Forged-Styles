@@ -5,11 +5,20 @@
   "displayType": "improvement",
   "preview": "applicable",
   "requirement": {
-    "type": "tetra:not",
-    "requirement": {
-      "type": "tetra:improvement",
-      "improvement": "blade_tetra/edge/normalized"
-    }
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/finishing/normalize_edge"
+      },
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/edge/normalized"
+        }
+      }
+    ]
   },
   "outcomes": [
     {

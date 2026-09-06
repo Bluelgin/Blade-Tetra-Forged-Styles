@@ -12,6 +12,10 @@
     "type": "tetra:and",
     "requirements": [
       {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/forging/kobuse"
+      },
+      {
         "type": "tetra:not",
         "requirement": {
           "type": "tetra:improvement",

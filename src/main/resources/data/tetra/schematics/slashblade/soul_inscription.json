@@ -53,6 +53,16 @@
       },
       "moduleKey": "slashblade/awakened_soul_inscription",
       "moduleVariant": "awakened_soul_inscription/sakura_crystal"
+    },
+    {
+      "material": {
+        "items": [ "minecraft:lightning_rod" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:diamond"
+      },
+      "moduleKey": "slashblade/awakened_soul_inscription",
+      "moduleVariant": "awakened_soul_inscription/raikiri"
     }
   ]
 }

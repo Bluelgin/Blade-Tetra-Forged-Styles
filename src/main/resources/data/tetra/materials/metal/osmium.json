@@ -1,6 +1,8 @@
 {
   "key": "osmium",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.8,
   "secondary": 5.6,
   "tertiary": 2.4,

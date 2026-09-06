@@ -1,6 +1,8 @@
 {
   "key": "dragonsteel_lightning",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 10,
   "secondary": 4.8,
   "tertiary": 4.2,

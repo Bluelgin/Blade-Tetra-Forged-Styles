@@ -285,6 +285,8 @@ public final class LegacyDebugTalismanItem extends Item {
             case RAIKIRI -> {
                 install(blade, ModularSlashBladeItem.TSUBA_SLOT,
                         ModularSlashBladeItem.TSUBA_MODULE, "simple_tsuba/copper");
+                installAwakenedInscription(blade,
+                        dev.bladetetra.easteregg.SoulLegacyState.RAIKIRI_VARIANT);
                 SayaPresetSkin.apply(blade, SayaPresetSkin.PURPLE_LIGHTNING);
             }
             case AKATSUKI -> {
@@ -339,6 +341,7 @@ public final class LegacyDebugTalismanItem extends Item {
         return switch (target) {
             case RAIKIRI -> {
                 give(player, new ItemStack(ModItems.SAYA_PATTERN_PURPLE_LIGHTNING.get()));
+                give(player, new ItemStack(Items.LIGHTNING_ROD, 2));
                 yield true;
             }
             case AKATSUKI -> {

@@ -13,6 +13,10 @@
     "type": "tetra:and",
     "requirements": [
       {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/forging/sanmai"
+      },
+      {
         "type": "tetra:not",
         "requirement": {
           "type": "tetra:improvement",

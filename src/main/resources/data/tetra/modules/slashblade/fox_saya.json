@@ -1,0 +1,12 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/saya" ],
+  "type": "tetra:basic_module",
+  "renderLayer": "lower",
+  "variants": [
+    { "key": "fox_saya/black", "durability": 24, "integrity": 1,
+      "glyph": { "textureX": 24, "textureY": 112, "tint": "3B303B" } },
+    { "key": "fox_saya/white", "durability": 24, "integrity": 1,
+      "glyph": { "textureX": 24, "textureY": 112, "tint": "E7D9D0" } }
+  ]
+}

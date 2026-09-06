@@ -13,7 +13,7 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:metal/" ],
+      "materials": [ "tetra:metal/", "tetra:wood/potato" ],
       "moduleKey": "slashblade/basic_habaki",
       "moduleVariant": "basic_habaki/"
     }

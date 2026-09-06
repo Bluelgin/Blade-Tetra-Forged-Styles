@@ -1,0 +1,9 @@
+{
+  "models": [
+    "yakumoblade:model/relicofpaseone/green_inflammation.obj"
+  ],
+  "blade_groups": ["blade_luminous"],
+  "hilt_groups": [],
+  "saya_groups": ["sheath_luminous"],
+  "axis": "x"
+}

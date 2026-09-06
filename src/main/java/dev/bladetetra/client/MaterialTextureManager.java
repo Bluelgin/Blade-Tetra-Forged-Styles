@@ -6,12 +6,18 @@ import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.easteregg.AkatsukiAwakening;
+import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.KyoukaAwakening;
+import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.SenbonzakuraAwakening;
+import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.visual.MaterialAppearance;
+import dev.bladetetra.forging.FoxLegacyParts;
 import dev.bladetetra.visual.SayaBannerSkin;
 import dev.bladetetra.visual.SayaPresetSkin;
+import dev.bladetetra.visual.TetraMaterialVisualResolver;
+import dev.bladetetra.visual.TsukaWrapColor;
 import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
@@ -57,15 +63,17 @@ public final class MaterialTextureManager {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final ResourceLocation TEMPLATE =
             ResourceLocation.fromNamespaceAndPath(
-                    BladeTetra.MOD_ID, "model/modular/standard.png");
+                    BladeTetra.MOD_ID, "model/modular/standard_256.png");
     private static final ResourceLocation DURABILITY_MODEL =
             ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID, "model/util/durability_filled.obj");
     private static final int LOGICAL_ATLAS_SIZE = 128;
+    private static final int GENERATED_ATLAS_SIZE = 256;
+    private static final String ART_REVISION = "blade-art-2.0-v6-native-item-icons";
     /**
-     * A 512px RGBA atlas consumes roughly 1 MiB of texture memory. Keeping the
-     * LRU bounded at 48 preserves material variety without retaining hundreds
-     * of high-resolution combinations in long modpack sessions.
+     * A 256px RGBA atlas consumes roughly 256 KiB of texture memory. Keeping
+     * the LRU bounded at 48 preserves material variety without retaining
+     * hundreds of generated combinations in long modpack sessions.
      */
     private static final int MAX_CACHE_SIZE = 48;
 
@@ -76,7 +84,7 @@ public final class MaterialTextureManager {
     /**
      * Signatures whose generated emission mask contains no visible pixels.
      * Without this negative cache, an ordinary non-luminous blade would load,
-     * recolor, and scan the complete 512px atlas again on every render pass.
+     * recolor, and scan the complete generated atlas on every render pass.
      */
     private static final Set<String> NO_EMISSIVE_CACHE =
             new LinkedHashSet<>(24);
@@ -99,6 +107,11 @@ public final class MaterialTextureManager {
 
         MaterialAppearance appearance =
                 MaterialAppearance.fromStack(event.getStack());
+        if (appearance.physicalComponentsMatch("potato")
+                && "sheath".equals(event.getOriginalTarget())) {
+            event.setCanceled(true);
+            return;
+        }
         if (DefaultResources.resourceDurabilityTexture.equals(
                 event.getOriginalTexture())) {
             // Resharped's durability "base" group is only a hollow frame.
@@ -142,13 +155,29 @@ public final class MaterialTextureManager {
             return;
         }
 
-        ResourceLocation texture = ensureTexture(appearance);
+        GlowState glowState = GlowState.fromStack(event.getStack());
+        TextureLayout textureLayout = TextureLayout.fromTarget(
+                event.getOriginalTarget());
+        ResourceLocation texture = ensureTexture(
+                appearance, glowState, textureLayout);
         if (texture == null) {
             return;
         }
 
         ResourceLocation emissive = ensureEmissiveTexture(
-                event.getStack(), appearance);
+                event.getStack(), appearance, textureLayout);
+        if (dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack()).present()
+                && LegacyModelPartRenderer.supports(event.getOriginalTarget())) {
+            RENDERING_INTERNAL_PASS.set(true);
+            try {
+                LegacyModelPartRenderer.render(event, dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack()),
+                        texture, emissive);
+            } finally {
+                RENDERING_INTERNAL_PASS.set(false);
+                BladeRenderState.resetCol();
+            }
+            return;
+        }
         if (emissive == null) {
             event.setTexture(texture);
             return;
@@ -187,7 +216,8 @@ public final class MaterialTextureManager {
 
     private static synchronized ResourceLocation ensureEmissiveTexture(
             net.minecraft.world.item.ItemStack stack,
-            MaterialAppearance appearance) {
+            MaterialAppearance appearance,
+            TextureLayout textureLayout) {
         if (!ClientVisualConfig.ENABLE_EMISSIVE_TEXTURES.get()) {
             return null;
         }
@@ -201,7 +231,11 @@ public final class MaterialTextureManager {
         }
 
         String signature = appearance.signature()
-                + "|emissive-v1|"
+                + "|tetra-material-revision="
+                + TetraMaterialVisualResolver.revision()
+                + "|" + ART_REVISION
+                + "|emissive-v2|"
+                + textureLayout.serializedName + "|"
                 + glowState.signature()
                 + "|" + Math.round(materialIntensity * 100.0D)
                 + "|" + Math.round(soulIntensity * 100.0D);
@@ -217,17 +251,20 @@ public final class MaterialTextureManager {
         try {
             Resource resource = minecraft.getResourceManager()
                     .getResourceOrThrow(TEMPLATE);
-            NativeImage image;
-            try (InputStream stream = resource.open()) {
-                image = NativeImage.read(stream);
-            }
-            recolor(image, appearance, minecraft.getResourceManager());
+            NativeImage image = loadGeneratedAtlas(resource);
+            recolor(
+                    image,
+                    appearance,
+                    minecraft.getResourceManager(),
+                    textureLayout);
+            applyLegacyBaseArt(image, glowState, textureLayout);
             boolean visible = applyEmissionMask(
                     image,
                     appearance,
                     glowState,
                     (float) materialIntensity,
-                    (float) soulIntensity);
+                    (float) soulIntensity,
+                    textureLayout);
             if (!visible) {
                 image.close();
                 NO_EMISSIVE_CACHE.add(signature);
@@ -260,7 +297,8 @@ public final class MaterialTextureManager {
             MaterialAppearance appearance,
             GlowState glowState,
             float materialIntensity,
-            float soulIntensity) {
+            float soulIntensity,
+            TextureLayout textureLayout) {
         boolean visible = false;
         float dormantScale = glowState.broken() ? 0.24F : 1.0F;
         for (int y = 0; y < image.getHeight(); y++) {
@@ -272,20 +310,36 @@ public final class MaterialTextureManager {
 
                 float atlasX = logicalCoordinate(x, image.getWidth());
                 float atlasY = logicalCoordinate(y, image.getHeight());
+                BladeCoordinateMap.Coordinates bladeCoordinates =
+                        bladeCoordinates(
+                                textureLayout,
+                                x,
+                                y,
+                                image.getWidth(),
+                                image.getHeight(),
+                                atlasX,
+                                atlasY);
+                float effectX = bladeCoordinates.valid()
+                        ? bladeCoordinates.bladeX()
+                        : atlasX;
+                float effectY = bladeCoordinates.valid()
+                        ? bladeCoordinates.bladeY()
+                        : atlasY;
                 MaterialStyle style = emissionStyleAt(
                         appearance, atlasX, atlasY);
                 int materialAlpha = style == null
                         ? 0
                         : Math.round(style.emissionAlpha(
-                                x, y, atlasX, atlasY)
+                                x, y, effectX, effectY,
+                                bladeCoordinates.valid())
                                 * materialIntensity * dormantScale);
 
                 int soulAlpha = 0;
                 int soulColor = 0;
-                if (inside(atlasX, atlasY, 1, 1, 63, 31)
+                if (bladeCoordinates.valid()
                         && glowState.soul() != SoulGlow.NONE) {
                     soulAlpha = Math.round(soulPatternAlpha(
-                            glowState.soul(), atlasX, atlasY)
+                            glowState.soul(), effectX, effectY)
                             * soulIntensity * dormantScale);
                     soulColor = glowState.soul().colorAt(x, y);
                 }
@@ -377,13 +431,57 @@ public final class MaterialTextureManager {
                         && Math.abs(atlasY - spineY) < 0.25D
                         ? 150 : 0;
             }
+            case NBT_SAGE -> {
+                int column = Math.floorMod((int) Math.floor(atlasX * 2.0F), 13);
+                int row = Math.floorMod((int) Math.floor(atlasY * 2.0F), 11);
+                boolean rune = (column == 0 && row < 5)
+                        || (row == 0 && column < 5)
+                        || (column == row && column < 4);
+                yield rune && atlasY > 7.0F && atlasY < 20.0F ? 178 : 0;
+            }
+            case RAIKIRI -> {
+                double bolt = 14.2D
+                        + Math.sin(progress * Math.PI * 5.0D) * 1.15D;
+                double fork = bolt + Math.sin(progress * Math.PI * 11.0D) * 0.64D;
+                boolean main = Math.abs(atlasY - bolt) < 0.26D;
+                boolean branch = progress > 0.30F
+                        && progress < 0.82F
+                        && Math.abs(atlasY - fork) < 0.20D;
+                yield main || branch ? 205 : 0;
+            }
+            case BANSHO -> {
+                double wave = 14.8D
+                        + Math.sin(progress * Math.PI * 3.0D) * 0.72D;
+                yield Math.abs(atlasY - wave) < 0.27D ? 165 : 0;
+            }
+            case BAIREN -> {
+                double foldA = 12.3D
+                        + Math.sin(progress * Math.PI * 6.0D) * 0.42D;
+                double foldB = 17.1D
+                        - Math.sin(progress * Math.PI * 6.0D) * 0.42D;
+                yield Math.min(
+                        Math.abs(atlasY - foldA),
+                        Math.abs(atlasY - foldB)) < 0.22D ? 142 : 0;
+            }
+            case SHOSHIN -> {
+                double origin = 15.6D
+                        + Math.sin(progress * Math.PI) * 0.22D;
+                yield progress > 0.10F
+                        && progress < 0.88F
+                        && Math.abs(atlasY - origin) < 0.22D
+                        ? 125 : 0;
+            }
             case NONE -> 0;
         };
     }
 
     private static synchronized ResourceLocation ensureDurabilityBaseTexture(
             String bladeMaterial) {
-        RegisteredTexture cached = DURABILITY_BASE_CACHE.get(bladeMaterial);
+        long materialRevision = TetraMaterialVisualResolver.revision();
+        String cacheKey = bladeMaterial
+                + "|tetra-material-revision="
+                + materialRevision;
+        RegisteredTexture cached = DURABILITY_BASE_CACHE.get(cacheKey);
         if (cached != null) {
             return cached.location();
         }
@@ -401,10 +499,10 @@ public final class MaterialTextureManager {
             recolorDurabilityBase(image, bladeMaterial);
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location =
-                    durabilityBaseLocation(bladeMaterial);
+                    durabilityBaseLocation(bladeMaterial, materialRevision);
             minecraft.getTextureManager().register(location, dynamicTexture);
             DURABILITY_BASE_CACHE.put(
-                    bladeMaterial,
+                    cacheKey,
                     new RegisteredTexture(location, dynamicTexture));
             trimDurabilityCache(minecraft);
             return location;
@@ -451,18 +549,29 @@ public final class MaterialTextureManager {
     }
 
     private static ResourceLocation durabilityBaseLocation(
-            String bladeMaterial) {
+            String bladeMaterial,
+            long materialRevision) {
         return ResourceLocation.fromNamespaceAndPath(
                 BladeTetra.MOD_ID,
                 "generated/durability_base_"
                         + Integer.toUnsignedString(
-                                bladeMaterial.hashCode(),
+                                (bladeMaterial
+                                        + "|"
+                                        + materialRevision).hashCode(),
                                 16));
     }
 
     private static synchronized ResourceLocation ensureTexture(
-            MaterialAppearance appearance) {
-        String signature = appearance.signature();
+            MaterialAppearance appearance,
+            GlowState glowState,
+            TextureLayout textureLayout) {
+        long materialRevision = TetraMaterialVisualResolver.revision();
+        String signature = appearance.signature()
+                + "|tetra-material-revision="
+                + materialRevision
+                + "|" + ART_REVISION
+                + "|" + textureLayout.serializedName
+                + "|" + glowState.signature();
         RegisteredTexture cached = CACHE.get(signature);
         if (cached != null) {
             return cached.location();
@@ -473,17 +582,19 @@ public final class MaterialTextureManager {
         try {
             Resource resource = minecraft.getResourceManager()
                     .getResourceOrThrow(TEMPLATE);
-            NativeImage image;
-            try (InputStream stream = resource.open()) {
-                image = NativeImage.read(stream);
-            }
+            NativeImage image = loadGeneratedAtlas(resource);
 
             recolor(
                     image,
                     appearance,
-                    minecraft.getResourceManager());
+                    minecraft.getResourceManager(),
+                    textureLayout);
+            applyLegacyBaseArt(image, glowState, textureLayout);
             DynamicTexture dynamicTexture = new DynamicTexture(image);
-            ResourceLocation location = appearance.textureLocation();
+            ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
+                    BladeTetra.MOD_ID,
+                    "generated/material_"
+                            + stableTextureHash(signature));
             minecraft.getTextureManager().register(location, dynamicTexture);
             CACHE.put(
                     signature,
@@ -509,17 +620,148 @@ public final class MaterialTextureManager {
         }
     }
 
+    /**
+     * Resamples the authored 512px source atlas into the 256px runtime atlas.
+     * UVs remain unchanged because all models use normalized texture
+     * coordinates; the smaller runtime image therefore changes memory cost,
+     * not model compatibility.
+     */
+    private static NativeImage loadGeneratedAtlas(Resource resource)
+            throws IOException {
+        NativeImage source;
+        try (InputStream stream = resource.open()) {
+            source = NativeImage.read(stream);
+        }
+        if (source.getWidth() == GENERATED_ATLAS_SIZE
+                && source.getHeight() == GENERATED_ATLAS_SIZE) {
+            return source;
+        }
+
+        NativeImage target = new NativeImage(
+                GENERATED_ATLAS_SIZE,
+                GENERATED_ATLAS_SIZE,
+                true);
+        try {
+            for (int y = 0; y < GENERATED_ATLAS_SIZE; y++) {
+                int sourceY = Math.min(
+                        source.getHeight() - 1,
+                        Math.round((y + 0.5F)
+                                * source.getHeight()
+                                / GENERATED_ATLAS_SIZE
+                                - 0.5F));
+                for (int x = 0; x < GENERATED_ATLAS_SIZE; x++) {
+                    int sourceX = Math.min(
+                            source.getWidth() - 1,
+                            Math.round((x + 0.5F)
+                                    * source.getWidth()
+                                    / GENERATED_ATLAS_SIZE
+                                    - 0.5F));
+                    target.setPixelRGBA(
+                            x,
+                            y,
+                            source.getPixelRGBA(sourceX, sourceY));
+                }
+            }
+        } finally {
+            source.close();
+        }
+        return target;
+    }
+
+    private static String stableTextureHash(String signature) {
+        long hash = 0xcbf29ce484222325L;
+        for (int index = 0; index < signature.length(); index++) {
+            hash ^= signature.charAt(index);
+            hash *= 0x100000001b3L;
+        }
+        return Long.toUnsignedString(hash, 16);
+    }
+
+    private static void applyLegacyBaseArt(
+            NativeImage image,
+            GlowState glowState,
+            TextureLayout textureLayout) {
+        if (glowState.soul() == SoulGlow.NONE) {
+            return;
+        }
+        float dormantScale = glowState.broken() ? 0.38F : 1.0F;
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                BladeCoordinateMap.Coordinates bladeCoordinates =
+                        bladeCoordinates(
+                                textureLayout,
+                                x,
+                                y,
+                                image.getWidth(),
+                                image.getHeight(),
+                                logicalCoordinate(x, image.getWidth()),
+                                logicalCoordinate(y, image.getHeight()));
+                if (!bladeCoordinates.valid()) {
+                    continue;
+                }
+                float bladeX = bladeCoordinates.bladeX();
+                float bladeY = bladeCoordinates.bladeY();
+                int source = image.getPixelRGBA(x, y);
+                int sourceAlpha = alpha(source);
+                if (sourceAlpha == 0) {
+                    continue;
+                }
+                int sourceColor = red(source) << 16
+                        | green(source) << 8
+                        | blue(source);
+                int result = sourceColor;
+
+                Palette awakenedPalette = glowState.soul().awakenedPalette();
+                if (awakenedPalette != null) {
+                    int luminance = (red(source) * 30
+                            + green(source) * 59
+                            + blue(source) * 11) / 100;
+                    int awakened = awakenedPalette.sample(
+                            normalize(luminance, 18, 242));
+                    float coverage = glowState.broken() ? 0.38F : 0.84F;
+                    result = Palette.lerp(sourceColor, awakened, coverage);
+                }
+
+                int accentAlpha = soulPatternAlpha(
+                        glowState.soul(), bladeX, bladeY);
+                if (accentAlpha > 0) {
+                    float accent = accentAlpha / 255.0F
+                            * 0.34F * dormantScale;
+                    result = Palette.lerp(
+                            result,
+                            glowState.soul().colorAt(x, y),
+                            accent);
+                }
+                image.setPixelRGBA(x, y, abgr(sourceAlpha, result));
+            }
+        }
+    }
+
     private static void recolor(
             NativeImage image,
             MaterialAppearance appearance,
-            ResourceManager resourceManager) {
-        MaterialStyle blade = styleFor(appearance.blade());
-        MaterialStyle tsuka = styleFor(appearance.tsuka());
-        MaterialStyle tsuba = styleFor(appearance.tsuba());
-        MaterialStyle saya = styleFor(appearance.saya());
-        MaterialStyle habaki = styleFor(appearance.habaki());
-        MaterialStyle kashira = styleFor(appearance.kashira());
+            ResourceManager resourceManager,
+            TextureLayout textureLayout) {
+        boolean completePotato = appearance.physicalComponentsMatch("potato");
+        int potatoYellow = 0xD9AD4F;
+        MaterialStyle blade = componentStyle(appearance.blade(), potatoYellow);
+        MaterialStyle tsuka = componentStyle(
+                appearance.tsuka(), completePotato ? potatoYellow : 0x956033);
+        MaterialStyle tsuba = componentStyle(
+                appearance.tsuba(), completePotato ? potatoYellow : 0xB17A31);
+        MaterialStyle saya = componentStyle(appearance.saya(), 0x9D6635);
+        MaterialStyle habaki = componentStyle(
+                appearance.habaki(), completePotato ? potatoYellow : 0x704222);
+        MaterialStyle kashira = componentStyle(
+                appearance.kashira(), completePotato ? potatoYellow : 0x744525);
         MaterialStyle fuller = styleFor(appearance.fuller());
+        FoxLegacyParts fox = appearance.foxLegacy();
+        blade = foxStyle(blade, fox.blade(), true);
+        saya = foxStyle(saya, fox.saya(), false);
+        tsuba = foxStyle(tsuba, fox.tsuba(), false);
+        tsuka = foxStyle(tsuka, fox.tsuka(), false);
+        DyeColor tsukaWrapColor = TsukaWrapColor.dye(
+                appearance.tsukaWrapColor());
         List<BannerLayer> bannerLayers = loadBannerLayers(
                 resourceManager,
                 appearance.sayaSkin());
@@ -545,34 +787,75 @@ public final class MaterialTextureManager {
                     MaterialStyle style = null;
                     float tone = 0.5F;
 
-                    if (inside(atlasX, atlasY, 1, 1, 63, 31)) {
+                    BladeCoordinateMap.Coordinates bladeCoordinates =
+                            bladeCoordinates(
+                                    textureLayout,
+                                    x,
+                                    y,
+                                    image.getWidth(),
+                                    image.getHeight(),
+                                    atlasX,
+                                    atlasY);
+                    if (bladeCoordinates.valid()) {
+                        float bladeX = bladeCoordinates.bladeX();
+                        float bladeY = bladeCoordinates.bladeY();
                         tone = normalize(luminance, 60, 235);
                         tone = cleanBladeTone(
-                                luminance, atlasX, atlasY);
+                                luminance, bladeX, bladeY);
                         int bladeColor = blade.sampleBlade(
-                                tone, atlasX, atlasY);
-                        int finishedColor = applyFuller(
+                                tone, bladeX, bladeY);
+                        int structuredColor = applyMasterBladePlanes(
                                 bladeColor,
+                                blade.palette(),
+                                bladeX,
+                                bladeY);
+                        structuredColor = applyBladeFormComposition(
+                                structuredColor,
+                                blade.palette(),
+                                appearance.bladeFormProfile(),
+                                bladeX,
+                                bladeY);
+                        structuredColor = applyForgingProfile(
+                                structuredColor,
+                                blade.palette(),
+                                appearance.forgingProfile(),
+                                bladeX,
+                                bladeY);
+                        int finishedColor = applyFuller(
+                                structuredColor,
                                 blade,
                                 fuller,
                                 appearance.fullerProfile(),
-                                atlasX,
-                                atlasY);
+                                bladeX,
+                                bladeY);
                         finishedColor = applyEdgeFinish(
                                 finishedColor,
                                 blade.palette(),
                                 appearance.edgeFinishProfile(),
-                                atlasX,
-                                atlasY);
+                                bladeX,
+                                bladeY);
+                        finishedColor = applyFoxAccent(
+                                finishedColor, fox.blade(), bladeX, bladeY, 0);
                         image.setPixelRGBA(x, y, abgr(alpha, finishedColor));
                         continue;
                     } else if (inside(atlasX, atlasY, 1, 35, 63, 55)) {
                         boolean fittingBand = red > 90 && green > 70;
+                        if (completePotato && !fittingBand) {
+                            image.setPixelRGBA(x, y, abgr(0, 0));
+                            continue;
+                        }
                         style = fittingBand ? habaki : saya;
                         tone = fittingBand
                                 ? normalize(luminance, 85, 190)
                                 : normalize(luminance, 20, 75);
-                        int sayaColor = style.sample(tone, x, y);
+                        int sayaColor = fittingBand
+                                ? habaki.sample(tone, x, y)
+                                : sampleSayaMaterial(
+                                        saya,
+                                        tone,
+                                        atlasX,
+                                        atlasY,
+                                        appearance.sayaProfile());
                         if (!fittingBand && presetSaya != null) {
                             sayaColor = applyPresetSaya(
                                     sayaColor,
@@ -590,6 +873,16 @@ public final class MaterialTextureManager {
                                     appearance.sayaSkin(),
                                     bannerLayers);
                         }
+                        if (!fittingBand) {
+                            sayaColor = applySayaLacquer(
+                                    sayaColor,
+                                    saya.palette(),
+                                    appearance.sayaProfile(),
+                                    atlasX,
+                                    atlasY);
+                            sayaColor = applyFoxAccent(
+                                    sayaColor, fox.saya(), atlasX, atlasY, 1);
+                        }
                         image.setPixelRGBA(
                                 x,
                                 y,
@@ -597,21 +890,30 @@ public final class MaterialTextureManager {
                         continue;
                     } else if (inside(atlasX, atlasY, 1, 59, 47, 81)) {
                         tone = normalize(luminance, 15, 190);
-                        int tsukaColor = applyTsukaProfile(
-                                tsuka,
-                                kashira,
-                                tone,
-                                atlasX,
-                                atlasY,
-                                x,
-                                y,
-                                appearance.tsukaProfile());
+                        int tsukaColor = completePotato
+                                ? tsuka.sample(tone, x, y)
+                                : applyTsukaProfile(
+                                        tsuka,
+                                        kashira,
+                                        tone,
+                                        atlasX,
+                                        atlasY,
+                                        x,
+                                        y,
+                                        appearance.tsukaProfile(),
+                                        tsukaWrapColor);
+                        tsukaColor = applyFoxAccent(
+                                tsukaColor, fox.tsuka(), atlasX, atlasY, 2);
                         image.setPixelRGBA(
                                 x,
                                 y,
                                 abgr(alpha, tsukaColor));
                         continue;
                     } else if (inside(atlasX, atlasY, 52, 58, 76, 82)) {
+                        if (completePotato) {
+                            image.setPixelRGBA(x, y, abgr(0, 0));
+                            continue;
+                        }
                         tone = normalize(luminance, 18, 105);
                         TsubaPixel tsubaPixel = applyTsubaProfile(
                                 tsuba.sample(tone, x, y),
@@ -620,10 +922,12 @@ public final class MaterialTextureManager {
                                 atlasY,
                                 appearance.tsubaProfile(),
                                 tsuba.palette());
+                        int foxTsubaColor = applyFoxAccent(
+                                tsubaPixel.color(), fox.tsuba(), atlasX, atlasY, 3);
                         image.setPixelRGBA(
                                 x,
                                 y,
-                                abgr(tsubaPixel.alpha(), tsubaPixel.color()));
+                                abgr(tsubaPixel.alpha(), foxTsubaColor));
                         continue;
                     } else if (inside(atlasX, atlasY, 80, 58, 96, 82)) {
                         style = habaki;
@@ -710,6 +1014,162 @@ public final class MaterialTextureManager {
         return result;
     }
 
+    /**
+     * Saya are finished objects rather than exposed chunks of their source
+     * material. Rebuild their base from the material palette and keep only a
+     * restrained, lengthwise trace of the underlying material character.
+     */
+    private static int sampleSayaMaterial(
+            MaterialStyle material,
+            float templateTone,
+            float atlasX,
+            float atlasY,
+            MaterialAppearance.SayaProfile profile) {
+        float length = clamp01((atlasX - 1.0F) / 62.0F);
+        float width = clamp01((atlasY - 35.0F) / 20.0F);
+        float crown = (float) Math.sin(width * Math.PI);
+        float endDistance = Math.min(length, 1.0F - length);
+        float endShade = 1.0F - clamp01(endDistance / 0.075F);
+        float cleanTone = clamp01(
+                0.28F
+                        + templateTone * 0.34F
+                        + crown * 0.12F
+                        - endShade * 0.08F);
+        int color = material.palette().sample(cleanTone);
+        float phase = material.seed() * 0.00037F;
+        float detailScale = switch (profile) {
+            case SATIN -> 1.0F;
+            case QUICKDRAW -> 0.42F;
+            case SPIRIT -> 0.72F;
+        };
+
+        switch (material.pattern()) {
+            case WOOD, IRONWOOD -> {
+                double grain = Math.sin(
+                        width * Math.PI * 9.0D
+                                + Math.sin(length * Math.PI * 3.0D + phase)
+                                * 0.72D
+                                + phase);
+                if (grain > 0.78D) {
+                    color = Palette.lerp(
+                            color,
+                            material.palette().highlight(),
+                            0.075F * detailScale);
+                } else if (grain < -0.84D) {
+                    color = Palette.scale(
+                            color,
+                            1.0F - 0.065F * detailScale);
+                }
+            }
+            case CRYSTAL, OBSIDIAN, GHOST, ARCANE, ENDER, DRAGON_ICE -> {
+                double depth = Math.sin(
+                        length * Math.PI * 2.4D
+                                + width * Math.PI * 1.6D
+                                + phase);
+                if (depth > 0.58D) {
+                    color = Palette.lerp(
+                            color,
+                            material.palette().highlight(),
+                            0.09F * detailScale);
+                } else if (depth < -0.72D) {
+                    color = Palette.lerp(
+                            color,
+                            material.palette().shadow(),
+                            0.07F * detailScale);
+                }
+            }
+            case INFINITY -> {
+                int cosmic = material.pattern().decorate(
+                        color,
+                        material.palette(),
+                        Math.round(atlasX * 2.0F),
+                        Math.round(atlasY * 2.0F),
+                        material.seed());
+                color = Palette.lerp(color, cosmic, 0.28F * detailScale);
+            }
+            default -> {
+                double brushing = Math.sin(
+                        width * Math.PI * 13.0D
+                                + length * Math.PI * 0.72D
+                                + phase);
+                if (brushing > 0.90D) {
+                    color = Palette.lerp(
+                            color,
+                            material.palette().highlight(),
+                            0.045F * detailScale);
+                } else if (brushing < -0.93D) {
+                    color = Palette.scale(
+                            color,
+                            1.0F - 0.04F * detailScale);
+                }
+            }
+        }
+        return color;
+    }
+
+    /** Applies the shared urushi depth and the profile-specific clean sheen. */
+    private static int applySayaLacquer(
+            int color,
+            Palette palette,
+            MaterialAppearance.SayaProfile profile,
+            float atlasX,
+            float atlasY) {
+        float length = clamp01((atlasX - 1.0F) / 62.0F);
+        float width = clamp01((atlasY - 35.0F) / 20.0F);
+        float crown = (float) Math.sin(width * Math.PI);
+        float endDistance = Math.min(length, 1.0F - length);
+        float endFade = clamp01(endDistance / 0.085F);
+        color = Palette.scale(color, 0.87F + crown * 0.13F);
+
+        float center;
+        float spread;
+        float strength;
+        switch (profile) {
+            case QUICKDRAW -> {
+                center = 0.27F;
+                spread = 0.060F;
+                strength = 0.34F;
+            }
+            case SPIRIT -> {
+                center = 0.34F;
+                spread = 0.135F;
+                strength = 0.19F;
+            }
+            default -> {
+                center = 0.31F;
+                spread = 0.175F;
+                strength = 0.15F;
+            }
+        }
+
+        float distance = (width - center) / spread;
+        float sheen = (float) Math.exp(-distance * distance)
+                * endFade;
+        color = Palette.lerp(
+                color,
+                palette.highlight(),
+                sheen * strength);
+
+        if (profile == MaterialAppearance.SayaProfile.SPIRIT) {
+            float pearl = (float) Math.sin(
+                    length * Math.PI * 2.5D
+                            + width * Math.PI * 1.2D);
+            if (pearl > 0.42F) {
+                color = Palette.lerp(
+                        color,
+                        palette.highlight(),
+                        (pearl - 0.42F) * 0.085F);
+            }
+        }
+
+        if (endDistance < 0.028F) {
+            color = Palette.lerp(color, palette.shadow(), 0.42F);
+        } else if (endDistance < 0.050F) {
+            color = Palette.lerp(color, palette.highlight(), 0.10F);
+        }
+        return color;
+    }
+
     private static int applySayaSkin(
             int baseColor,
             float tone,
@@ -767,21 +1227,22 @@ public final class MaterialTextureManager {
             float atlasY,
             int pixelX,
             int pixelY,
-            MaterialAppearance.TsukaProfile profile) {
+            MaterialAppearance.TsukaProfile profile,
+            DyeColor wrapColor) {
         float centerY = 70.0F;
         float period = switch (profile) {
-            case STANDARD -> 11.5F;
-            case SWIFT -> 10.0F;
-            case STABLE -> 8.5F;
+            case STANDARD -> 7.6F;
+            case SWIFT -> 6.2F;
+            case STABLE -> 8.8F;
         };
         float halfWidth = switch (profile) {
-            case STANDARD -> 3.05F;
-            case SWIFT -> 3.45F;
-            case STABLE -> 2.15F;
+            case STANDARD -> 2.05F;
+            case SWIFT -> 2.0F;
+            case STABLE -> 2.35F;
         };
         float halfHeight = switch (profile) {
-            case STANDARD -> 5.7F;
-            case SWIFT -> 6.8F;
+            case STANDARD -> 5.5F;
+            case SWIFT -> 6.2F;
             case STABLE -> 4.6F;
         };
 
@@ -818,15 +1279,18 @@ public final class MaterialTextureManager {
                 raySkin = Palette.scale(raySkin, 0.76F);
             }
 
-            // A restrained menuki appears on alternating central openings.
+            // The pale diamonds are exposed samegawa, not menuki. Actual
+            // menuki remain one or two elongated metal ornaments so the
+            // denser wrapping still reads as traditional hishigami work.
             int cell = (int) Math.floor((atlasX - 2.4F) / period);
-            boolean menukiCell = profile == MaterialAppearance.TsukaProfile.STANDARD
-                    ? Math.floorMod(cell, 3) == 1
-                    : profile == MaterialAppearance.TsukaProfile.SWIFT
-                            && Math.floorMod(cell, 5) == 2;
+            boolean menukiCell = switch (profile) {
+                case STANDARD -> cell == 1 || cell == 4;
+                case SWIFT -> cell == 2 || cell == 5;
+                case STABLE -> cell == 2;
+            };
             if (menukiCell
-                    && distanceX < 0.28F
-                    && distanceY < 0.22F) {
+                    && distanceX < 0.48F
+                    && distanceY < 0.12F) {
                 return Palette.lerp(
                         fitting.palette().mid(),
                         fitting.palette().highlight(),
@@ -838,6 +1302,9 @@ public final class MaterialTextureManager {
         float wrapTone = clamp01(
                 templateTone * 0.34F + 0.22F + roundedLight * 0.38F);
         int wrap = wrapping.sample(wrapTone, pixelX, pixelY);
+        if (wrapColor != null) {
+            wrap = shadeDye(wrapColor, 0.64F + wrapTone * 0.52F);
+        }
         if (diamondDistance < 1.24F) {
             // The dark boundary is the shadow cast by the upper strand over
             // the samegawa and is what makes the wrapping read as layered.
@@ -880,6 +1347,7 @@ public final class MaterialTextureManager {
                         + normalizedY * normalizedY);
 
         return switch (profile) {
+            case NONE -> new TsubaPixel(baseColor, 0);
             case MARU -> {
                 int color = baseColor;
                 if (radius > 0.70F) {
@@ -951,6 +1419,183 @@ public final class MaterialTextureManager {
                 | Math.round(channels[1] * 255.0F) << 8
                 | Math.round(channels[2] * 255.0F);
         return Palette.scale(color, 0.48F + tone * 0.74F);
+    }
+
+    /**
+     * Restores the value hierarchy authored into standard_256 after material
+     * tinting. The lines use the material highlight rather than pure white, so
+     * dark alloys remain dark while their mune, shinogi, hamon and kissaki are
+     * still readable in ordinary daylight.
+     */
+    private static int applyMasterBladePlanes(
+            int baseColor,
+            Palette palette,
+            float atlasX,
+            float atlasY) {
+        float progress = clamp01((atlasX - 1.0F) / 62.0F);
+        float sweep = (float) Math.sin(progress * Math.PI);
+        float tip = clamp01((progress - 0.82F) / 0.18F);
+        float shinogi = 10.5F - sweep * 0.38F - tip * 0.60F;
+        float hamon = 22.5F
+                - sweep * 0.28F
+                - tip * 2.5F
+                + (float) Math.sin(atlasX * 0.46F) * 0.28F;
+
+        int result = baseColor;
+        if (atlasY < 3.4F) {
+            result = Palette.lerp(result, palette.shadow(), 0.58F);
+        } else if (atlasY < shinogi) {
+            result = Palette.lerp(result, palette.shadow(), 0.12F);
+        } else if (atlasY < hamon) {
+            result = Palette.lerp(result, palette.mid(), 0.10F);
+        } else {
+            result = Palette.lerp(result, palette.highlight(), 0.24F);
+        }
+
+        if (Math.abs(atlasY - 3.0F) < 0.42F) {
+            result = Palette.lerp(result, palette.shadow(), 0.72F);
+        }
+        if (Math.abs(atlasY - shinogi) < 0.48F) {
+            result = Palette.lerp(result, palette.highlight(), 0.46F);
+        }
+        if (Math.abs(atlasY - hamon) < 0.52F) {
+            int temperedLight = Palette.lerp(
+                    palette.highlight(), 0xF4F7F7, 0.34F);
+            result = Palette.lerp(result, temperedLight, 0.40F);
+        }
+        if (atlasY > 29.3F) {
+            int edgeLight = Palette.lerp(
+                    palette.highlight(), 0xFFFFFF, 0.48F);
+            result = Palette.lerp(result, edgeLight, 0.54F);
+        }
+
+        // Diagonal yokote before the kissaki. At 256px this resolves to a
+        // deliberate one-to-two pixel break rather than a blurry gradient.
+        float yokoteY = 8.5F + (atlasX - 56.0F) * 1.55F;
+        if (atlasX >= 55.5F
+                && atlasX <= 59.5F
+                && atlasY >= 8.0F
+                && atlasY <= 28.5F
+                && Math.abs(atlasY - yokoteY) < 0.52F) {
+            result = Palette.lerp(result, 0xF7FAFA, 0.58F);
+        }
+        return result;
+    }
+
+    /**
+     * Keeps the shared model UV-compatible while giving each blade family a
+     * different visual rhythm. The modulation is intentionally broad so the
+     * material's own surface motif remains readable at normal play distance.
+     */
+    private static int applyBladeFormComposition(
+            int baseColor,
+            Palette palette,
+            MaterialAppearance.BladeFormProfile profile,
+            float atlasX,
+            float atlasY) {
+        float progress = clamp01((atlasX - 1.0F) / 62.0F);
+        return switch (profile) {
+            case ORTHODOX -> {
+                if (atlasY > 20.5F
+                        && Math.sin(progress * Math.PI * 4.0D) > 0.82D) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.08F);
+                }
+                yield baseColor;
+            }
+            case IAIDO -> {
+                double drawLine = 16.2D
+                        + Math.sin(progress * Math.PI) * 0.34D;
+                yield Math.abs(atlasY - drawLine) < 0.30D
+                        ? Palette.lerp(baseColor, palette.highlight(), 0.10F)
+                        : baseColor;
+            }
+            case WAKIZASHI -> {
+                double pulse = Math.sin(progress * Math.PI * 8.0D);
+                if (atlasY > 18.5F && pulse > 0.72D) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.14F);
+                }
+                yield baseColor;
+            }
+            case NODACHI -> {
+                double massLine = 8.0D
+                        + Math.sin(progress * Math.PI) * 0.50D;
+                if (Math.abs(atlasY - massLine) < 0.46D) {
+                    yield Palette.scale(baseColor, 0.72F);
+                }
+                if (atlasY > 24.0F) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.07F);
+                }
+                yield baseColor;
+            }
+        };
+    }
+
+    private static int applyForgingProfile(
+            int baseColor,
+            Palette palette,
+            MaterialAppearance.ForgingProfile profile,
+            float atlasX,
+            float atlasY) {
+        if (profile == MaterialAppearance.ForgingProfile.PLAIN
+                || atlasX < 4.0F
+                || atlasX > 60.0F) {
+            return baseColor;
+        }
+        float progress = clamp01((atlasX - 4.0F) / 56.0F);
+        float sweep = (float) Math.sin(progress * Math.PI);
+        return switch (profile) {
+            case KOBUSE -> {
+                float coreBoundary = 18.0F + sweep * 0.75F;
+                float distance = Math.abs(atlasY - coreBoundary);
+                if (distance < 0.42F) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.30F);
+                }
+                if (atlasY < coreBoundary) {
+                    yield Palette.scale(baseColor, 0.94F);
+                }
+                yield baseColor;
+            }
+            case SANMAI -> {
+                float upper = 11.2F + sweep * 0.42F;
+                float lower = 21.6F + sweep * 0.58F;
+                float nearest = Math.min(
+                        Math.abs(atlasY - upper),
+                        Math.abs(atlasY - lower));
+                if (nearest < 0.36F) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.27F);
+                }
+                if (atlasY > upper && atlasY < lower) {
+                    yield Palette.scale(baseColor, 0.93F);
+                }
+                yield baseColor;
+            }
+            case SHIHOZUME -> {
+                float upper = 8.0F + sweep * 0.35F;
+                float lower = 23.4F + sweep * 0.50F;
+                boolean seam = Math.abs(atlasY - upper) < 0.34F
+                        || Math.abs(atlasY - lower) < 0.34F;
+                if (seam) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.32F);
+                }
+                if (atlasY > upper && atlasY < lower) {
+                    yield Palette.lerp(baseColor, palette.mid(), 0.12F);
+                }
+                yield Palette.scale(baseColor, 0.91F);
+            }
+            case NORMALIZED -> {
+                double grain = Math.sin(
+                        atlasX * 0.84D
+                                + Math.sin(atlasY * 0.58D) * 0.72D);
+                if (grain > 0.86D) {
+                    yield Palette.lerp(baseColor, palette.highlight(), 0.09F);
+                }
+                if (grain < -0.90D) {
+                    yield Palette.scale(baseColor, 0.94F);
+                }
+                yield baseColor;
+            }
+            case PLAIN -> baseColor;
+        };
     }
 
     private static int applyFuller(
@@ -1094,27 +1739,53 @@ public final class MaterialTextureManager {
             float atlasX,
             float atlasY) {
         float progress = clamp01((atlasX - 1.0F) / 62.0F);
-        if (atlasY < 5.5F) {
-            return 0.23F + normalize((int) (atlasY * 100), 100, 550) * 0.08F;
+        float width = clamp01((atlasY - 1.0F) / 30.0F);
+        float tone;
+        if (width < 0.10F) {
+            tone = 0.16F + width * 0.72F;
+        } else if (width < 0.35F) {
+            tone = 0.28F + (width - 0.10F) * 0.48F;
+        } else if (width < 0.73F) {
+            tone = 0.43F + (width - 0.35F) * 0.40F;
+        } else {
+            tone = 0.66F + (width - 0.73F) * 0.92F;
         }
-        if (atlasY < 22.0F) {
-            float faceHeight = clamp01((atlasY - 5.5F) / 16.5F);
-            float singleSweep = (float) Math.sin(progress * Math.PI) * 0.035F;
-            return clamp01(0.43F + faceHeight * 0.16F + singleSweep);
-        }
-
-        // Preserve the authored hamon/cutting-edge boundary without carrying
-        // the high-frequency pattern from the upper blade face into it.
-        float source = normalize(luminance, 45, 235);
-        float edge = clamp01((atlasY - 22.0F) / 9.0F);
-        float cleanEdge = 0.58F + edge * 0.34F;
-        return clamp01(source * 0.62F + cleanEdge * 0.38F);
+        // One very broad reflection keeps the blade alive without reintroducing
+        // per-texel grain from the source atlas.
+        tone += (float) Math.sin(progress * Math.PI) * 0.018F;
+        return clamp01(tone);
     }
 
     private static float logicalCoordinate(int coordinate, int dimension) {
         return (coordinate + 0.5F)
                 * LOGICAL_ATLAS_SIZE
                 / (float) dimension;
+    }
+
+    /**
+     * The in-world blade and Resharped's native inventory blade use different
+     * UV projections of the same atlas region. The world projection needs the
+     * authored coordinate map, while the inventory projection is deliberately
+     * laid out linearly by the Alpha 9 model builder. Keeping both layouts on
+     * separate generated textures preserves the native icon transforms and
+     * its per-style silhouette without contaminating the in-world blade art.
+     */
+    private static BladeCoordinateMap.Coordinates bladeCoordinates(
+            TextureLayout textureLayout,
+            int x,
+            int y,
+            int imageWidth,
+            int imageHeight,
+            float atlasX,
+            float atlasY) {
+        if (textureLayout == TextureLayout.ITEM
+                && inside(atlasX, atlasY, 1, 1, 63, 31)) {
+            return new BladeCoordinateMap.Coordinates(
+                    clamp01((atlasX - 1.0F) / 62.0F),
+                    clamp01((atlasY - 1.0F) / 30.0F),
+                    true);
+        }
+        return BladeCoordinateMap.sample(x, y, imageWidth, imageHeight);
     }
 
     private static boolean inside(
@@ -1230,8 +1901,85 @@ public final class MaterialTextureManager {
                     new Palette(0x160C08, 0xB33C13, 0xFFD45E),
                     SurfacePattern.APOCALYPTIUM,
                     material);
+            case "infinity", "infinity_ingot" -> style(
+                    new Palette(0x070615, 0x241B54, 0xD9E8FF),
+                    SurfacePattern.INFINITY,
+                    material);
+            case "cursed_metal", "cursed_ingot" -> style(
+                    new Palette(0x081B2B, 0x15536F, 0x6CBED0),
+                    SurfacePattern.CURSED_METAL,
+                    material);
+            case "dark_alloy", "dark_ingot" -> style(
+                    new Palette(0x09080C, 0x28232E, 0xAE83E8),
+                    SurfacePattern.DARK_ALLOY,
+                    material);
+            case "fiery", "fiery_ingot" -> style(
+                    new Palette(0x160B08, 0xB83A0B, 0xFFF0A0),
+                    SurfacePattern.BLAZE,
+                    material);
+            case "ironwood", "ironwood_ingot" -> style(
+                    new Palette(0x403628, 0x8A7246, 0xD7C58A),
+                    SurfacePattern.IRONWOOD,
+                    material);
+            case "knightmetal", "knightmetal_ingot" -> style(
+                    new Palette(0x303735, 0x68716E, 0xD9E0D7),
+                    SurfacePattern.KNIGHTMETAL,
+                    material);
+            case "steeleaf", "steeleaf_ingot" -> style(
+                    new Palette(0x24351E, 0x54733A, 0xBBDD78),
+                    SurfacePattern.STEELEAF,
+                    material);
             default -> externalMaterialStyle(material);
         };
+    }
+
+    private static MaterialStyle foxStyle(MaterialStyle fallback,
+            FoxLegacyParts.Color color, boolean blade) {
+        return switch (color) {
+            case BLACK -> style(
+                    blade
+                            ? new Palette(0x100E16, 0x3B3346, 0x8B788C)
+                            : new Palette(0x151019, 0x44313F, 0x98605D),
+                    blade ? SurfacePattern.DARK_ALLOY : SurfacePattern.FORGED_METAL,
+                    blade ? "fox-black-blade" : "fox-black-fitting");
+            case WHITE -> style(
+                    blade
+                            ? new Palette(0x7D8589, 0xCFD5D4, 0xFFF7EB)
+                            : new Palette(0x786B69, 0xD8CBC3, 0xFFF4E6),
+                    blade ? SurfacePattern.KNIGHTMETAL : SurfacePattern.FORGED_METAL,
+                    blade ? "fox-white-blade" : "fox-white-fitting");
+            case NONE -> fallback;
+        };
+    }
+
+    private static int applyFoxAccent(int base, FoxLegacyParts.Color color,
+            float x, float y, int component) {
+        if (color == FoxLegacyParts.Color.NONE) {
+            return base;
+        }
+        int accent = color == FoxLegacyParts.Color.BLACK ? 0xB22B3B : 0xC8464D;
+        boolean mark = switch (component) {
+            case 0 -> x > 8.0F && x < 55.0F && y > 3.0F && y < 6.0F
+                    && ((int) (x / 7.0F) & 1) == 0;
+            case 1 -> y > 38.0F && y < 52.0F
+                    && Math.abs(((x - 4.0F) % 12.0F) - 6.0F) + Math.abs(y - 45.0F) < 4.0F;
+            case 2 -> ((int) (x + y) % 9) <= 1;
+            case 3 -> Math.abs(x - 64.0F) + Math.abs(y - 70.0F) < 5.5F;
+            default -> false;
+        };
+        return mark ? Palette.lerp(base, accent, component == 0 ? 0.26F : 0.62F) : base;
+    }
+
+    private static MaterialStyle componentStyle(
+            String material,
+            int potatoBaseColor) {
+        if ("potato".equals(material)) {
+            return style(
+                    Palette.fromBase(potatoBaseColor, 0.48F, 1.38F),
+                    SurfacePattern.WOOD,
+                    material + "-" + Integer.toHexString(potatoBaseColor));
+        }
+        return styleFor(material);
     }
 
     private static MaterialStyle style(
@@ -1257,6 +2005,46 @@ public final class MaterialTextureManager {
     }
 
     private static MaterialStyle externalMaterialStyle(String material) {
+        MaterialStyle adventureStyle = curatedAdventureStyle(material);
+        if (adventureStyle != null) {
+            return adventureStyle;
+        }
+        if (containsAny(material, "cursed_ingot", "cursed_metal")) {
+            return style(
+                    new Palette(0x081B2B, 0x15536F, 0x6CBED0),
+                    SurfacePattern.CURSED_METAL,
+                    material);
+        }
+        if (containsAny(material, "dark_ingot", "dark_alloy")) {
+            return style(
+                    new Palette(0x09080C, 0x28232E, 0xAE83E8),
+                    SurfacePattern.DARK_ALLOY,
+                    material);
+        }
+        if (containsAny(material, "ironwood")) {
+            return style(
+                    new Palette(0x403628, 0x8A7246, 0xD7C58A),
+                    SurfacePattern.IRONWOOD,
+                    material);
+        }
+        if (containsAny(material, "knightmetal")) {
+            return style(
+                    new Palette(0x303735, 0x68716E, 0xD9E0D7),
+                    SurfacePattern.KNIGHTMETAL,
+                    material);
+        }
+        if (containsAny(material, "steeleaf")) {
+            return style(
+                    new Palette(0x24351E, 0x54733A, 0xBBDD78),
+                    SurfacePattern.STEELEAF,
+                    material);
+        }
+        if (containsAny(material, "infinity_ingot", "infinity")) {
+            return style(
+                    new Palette(0x070615, 0x241B54, 0xD9E8FF),
+                    SurfacePattern.INFINITY,
+                    material);
+        }
         if (material.contains("dragonsteel_fire")) {
             return style(
                     new Palette(0x2C151B, 0x863B49, 0xF1D5D0),
@@ -1286,6 +2074,10 @@ public final class MaterialTextureManager {
                     new Palette(0x160C08, 0xB33C13, 0xFFD45E),
                     SurfacePattern.APOCALYPTIUM,
                     material);
+        }
+        MaterialStyle tetraMaterial = tetraMaterialStyle(material);
+        if (tetraMaterial != null) {
+            return tetraMaterial;
         }
         if (containsAny(material, "refined_obsidian", "obsidian")) {
             return style(
@@ -1458,6 +2250,156 @@ public final class MaterialTextureManager {
                 material);
     }
 
+    /**
+     * Hand-tuned profiles for recognizable adventure-pack progression
+     * materials. Matching normalized Tetra material keys keeps these profiles
+     * optional: the source mods are never linked or required at runtime.
+     */
+    private static MaterialStyle curatedAdventureStyle(String material) {
+        if (material.contains("pale_steel")) {
+            return style(
+                    new Palette(0x35494C, 0x8BA9AA, 0xE6FFFF),
+                    SurfacePattern.POLISHED_METAL,
+                    material);
+        }
+        if (material.contains("terminum")) {
+            return style(
+                    new Palette(0x260938, 0x8327A8, 0xF28CFF),
+                    SurfacePattern.ARCANE,
+                    material);
+        }
+        if (material.contains("enderite")) {
+            return style(
+                    new Palette(0x09050E, 0x4F0B62, 0xFF43E6),
+                    SurfacePattern.ENDER,
+                    material);
+        }
+        if (containsAny(material, "gobber_end", "gobber2_end")) {
+            return style(
+                    new Palette(0x0A3446, 0x24F2B8, 0xD8FFF5),
+                    SurfacePattern.ENDER,
+                    material);
+        }
+        if (containsAny(material, "gobber_nether", "gobber2_nether")) {
+            return style(
+                    new Palette(0x2A0B08, 0xC93102, 0xFFB35C),
+                    SurfacePattern.BLAZE,
+                    material);
+        }
+        if (containsAny(material, "gobber", "gobber2_ingot")) {
+            return style(
+                    new Palette(0x123C5C, 0x67C4F5, 0xDDFBFF),
+                    SurfacePattern.ARCANE,
+                    material);
+        }
+        if (containsAny(
+                material,
+                "dark_metal_ingot",
+                "armor_plate_from_dark_metal")) {
+            return style(
+                    new Palette(0x080607, 0x302326, 0xE64D43),
+                    SurfacePattern.DARK_ALLOY,
+                    material);
+        }
+        if (material.contains("ghost_steel")) {
+            return style(
+                    new Palette(0x0C3E4B, 0x68C7C4, 0xE8FFF5),
+                    SurfacePattern.GHOST,
+                    material);
+        }
+        if (material.contains("immortal_ingot")) {
+            return style(
+                    new Palette(0x39372B, 0xBDB77E, 0xE8FF9A),
+                    SurfacePattern.TOXIC,
+                    material);
+        }
+        if (material.contains("ignitium")) {
+            return style(
+                    new Palette(0x391109, 0xE06B18, 0xFFE07B),
+                    SurfacePattern.BLAZE,
+                    material);
+        }
+        if (material.contains("witherite")) {
+            return style(
+                    new Palette(0x171B20, 0x59616A, 0xFF4A3D),
+                    SurfacePattern.WITHERITE,
+                    material);
+        }
+        if (material.contains("cursium")) {
+            return style(
+                    new Palette(0x073C3F, 0x14B7A8, 0xA5FFF3),
+                    SurfacePattern.CRYSTAL,
+                    material);
+        }
+        if (containsAny(material, "storm_ingot", "cataclysm_storm")) {
+            return style(
+                    new Palette(0x142942, 0x4A78BC, 0xE6F3FF),
+                    SurfacePattern.DRAGON_LIGHTNING,
+                    material);
+        }
+        if (containsAny(material, "abyssal_ingot", "cataclysm_abyssal")) {
+            return style(
+                    new Palette(0x0B0719, 0x3E168A, 0xA26CFF),
+                    SurfacePattern.OBSIDIAN,
+                    material);
+        }
+        if (containsAny(
+                material,
+                "black_steel_ingot",
+                "cataclysm_black_steel")) {
+            return style(
+                    new Palette(0x0B0D11, 0x303640, 0x7D8794),
+                    SurfacePattern.NETHERITE,
+                    material);
+        }
+        if (containsAny(
+                material,
+                "ancient_metal_ingot",
+                "cataclysm_ancient_metal")) {
+            return style(
+                    new Palette(0x5A2708, 0xC57A1D, 0xFFF0A0),
+                    SurfacePattern.HEAVY_METAL,
+                    material);
+        }
+        return null;
+    }
+
+    private static MaterialStyle tetraMaterialStyle(String material) {
+        TetraMaterialVisualResolver.MaterialVisual visual =
+                TetraMaterialVisualResolver.resolve(material);
+        if (visual == null) {
+            return null;
+        }
+
+        int visibleBase = visual.color() == 0 ? 0x181818 : visual.color();
+        Palette palette = Palette.fromBase(visibleBase, 0.45F, 1.40F);
+        SurfacePattern surfacePattern = switch (visual.kind()) {
+            case GEM -> SurfacePattern.CRYSTAL;
+            case BONE -> SurfacePattern.BONE;
+            case WOOD -> SurfacePattern.WOOD;
+            case STONE -> SurfacePattern.STONE;
+            case METAL -> switch (visual.surface()) {
+                case POLISHED -> SurfacePattern.POLISHED_METAL;
+                case CRUDE -> SurfacePattern.CRUDE_METAL;
+                case HEAVY -> SurfacePattern.HEAVY_METAL;
+                case DEFAULT -> SurfacePattern.FORGED_METAL;
+            };
+        };
+        SurfacePattern pattern = switch (visual.trait()) {
+            case FIRE -> SurfacePattern.BLAZE;
+            case ICE -> SurfacePattern.DRAGON_ICE;
+            case LIGHTNING -> SurfacePattern.DRAGON_LIGHTNING;
+            case SOUL -> SurfacePattern.GHOST;
+            case SHADOW -> SurfacePattern.DARK_ALLOY;
+            case CURSED -> SurfacePattern.CURSED_METAL;
+            case COSMIC -> SurfacePattern.INFINITY;
+            case ARCANE -> SurfacePattern.ARCANE;
+            case TOXIC -> SurfacePattern.TOXIC;
+            case NONE -> surfacePattern;
+        };
+        return style(palette, pattern, material);
+    }
+
     private static Palette externalMetalPalette(String material) {
         int base;
         if (material.contains("silver") || material.contains("tin")) {
@@ -1549,6 +2491,7 @@ public final class MaterialTextureManager {
             minecraft.getTextureManager().release(texture.location());
         }
         DURABILITY_BASE_CACHE.clear();
+        LegacyModelPartRenderer.clear();
     }
 
     private static int alpha(int abgr) {
@@ -1658,8 +2601,9 @@ public final class MaterialTextureManager {
                 int x,
                 int y,
                 float atlasX,
-                float atlasY) {
-            if (inside(atlasX, atlasY, 1, 1, 63, 31)) {
+                float atlasY,
+                boolean bladePixel) {
+            if (bladePixel) {
                 return pattern.bladeEmissionAlpha(
                         atlasX, atlasY, seed);
             }
@@ -1674,15 +2618,23 @@ public final class MaterialTextureManager {
                     .map(state -> state.isBroken())
                     .orElse(false);
             SoulGlow soul = SoulGlow.NONE;
-            if (AkatsukiAwakening.isCandidate(stack)
-                    && AkatsukiAwakening.isUnlocked(stack)) {
+            if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.AKATSUKI)) {
                 soul = SoulGlow.AKATSUKI;
-            } else if (KyoukaAwakening.hasMirrorInscription(stack)
-                    && KyoukaAwakening.isUnlocked(stack)) {
+            } else if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.KYOUKA)) {
                 soul = SoulGlow.KYOUKA;
-            } else if (SenbonzakuraAwakening.hasSakuraInscription(stack)
-                    && SenbonzakuraAwakening.isUnlocked(stack)) {
+            } else if (SoulLegacyState.isActive(
+                    stack, SoulLegacyState.Legacy.SENBONZAKURA)) {
                 soul = SoulGlow.SENBONZAKURA;
+            } else if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.RAIKIRI)) {
+                soul = SoulGlow.RAIKIRI;
+            } else if (NbtSageEasterEgg.isUnlocked(stack)) {
+                soul = SoulGlow.NBT_SAGE;
+            } else if (BladeLegacyEasterEggs.isBanshoUnlocked(stack)) {
+                soul = SoulGlow.BANSHO;
+            } else if (BladeLegacyEasterEggs.isBairenUnlocked(stack)) {
+                soul = SoulGlow.BAIREN;
+            } else if (BladeLegacyEasterEggs.isShoshinUnlocked(stack)) {
+                soul = SoulGlow.SHOSHIN;
             } else {
                 net.minecraft.nbt.CompoundTag tag = stack.getTag();
                 if (tag != null
@@ -1706,7 +2658,12 @@ public final class MaterialTextureManager {
         AWAKENED(0xC8A8FF),
         AKATSUKI(0xFF284D),
         KYOUKA(0x84F5FF),
-        SENBONZAKURA(0xFFB7D5);
+        SENBONZAKURA(0xFFB7D5),
+        NBT_SAGE(0xC69BFF),
+        RAIKIRI(0xA99BFF),
+        BANSHO(0xD8D4FF),
+        BAIREN(0xF4E4B6),
+        SHOSHIN(0xE1B875);
 
         private final int color;
 
@@ -1720,6 +2677,15 @@ public final class MaterialTextureManager {
                 return 0xE9B95F;
             }
             return color;
+        }
+
+        private Palette awakenedPalette() {
+            return switch (this) {
+                case AKATSUKI -> new Palette(0x25090F, 0x98172D, 0xFF6975);
+                case KYOUKA -> new Palette(0x152B35, 0x62C9D5, 0xE0FFFF);
+                case SENBONZAKURA -> new Palette(0x4A243B, 0xD88CAA, 0xFFF0F7);
+                default -> null;
+            };
         }
     }
 
@@ -1744,6 +2710,28 @@ public final class MaterialTextureManager {
         return color;
     }
 
+    private static int cosmicHash(int x, int y, int seed) {
+        int hash = seed ^ x * 0x45d9f3b ^ y * 0x119de1f3;
+        hash ^= hash >>> 16;
+        hash *= 0x45d9f3b;
+        hash ^= hash >>> 16;
+        return hash & Integer.MAX_VALUE;
+    }
+
+    private static int infinityEmissionAlpha(int x, int y, int seed) {
+        int star = cosmicHash(x, y, seed);
+        if (star % 613 == 0) {
+            return 235;
+        }
+        if (star % 257 == 0) {
+            return 165;
+        }
+        double nebula = Math.sin(
+                x * 0.021D
+                        + Math.sin(y * 0.037D + seed * 0.0003D) * 1.65D);
+        return nebula > 0.965D ? 55 : 0;
+    }
+
     private enum SurfacePattern {
         FORGED_METAL {
             @Override
@@ -1761,6 +2749,43 @@ public final class MaterialTextureManager {
                     return Palette.scale(color, 0.82F);
                 }
                 return color;
+            }
+        },
+        HEAVY_METAL {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double band = Math.sin(
+                        x * 0.082D
+                                + Math.sin(y * 0.145D + seed * 0.002D)
+                                * 0.86D);
+                int hammer = cosmicHash(x / 3, y / 3, seed);
+                if (band < -0.76D) {
+                    return Palette.scale(color, 0.72F);
+                }
+                if (band > 0.90D) {
+                    return Palette.lerp(color, palette.highlight(), 0.18F);
+                }
+                if (hammer % 67 == 0) {
+                    return Palette.scale(color, 0.80F);
+                }
+                return Palette.scale(color, 0.94F);
+            }
+        },
+        CRUDE_METAL {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                int pit = cosmicHash(x, y, seed);
+                double scale = Math.sin(
+                        x * 0.29D
+                                + Math.sin(y * 0.41D + seed * 0.006D)
+                                * 1.42D);
+                if (pit % 43 == 0 || scale < -0.965D) {
+                    return Palette.scale(color, 0.66F);
+                }
+                if (pit % 59 == 0 || scale > 0.94D) {
+                    return Palette.lerp(color, palette.highlight(), 0.16F);
+                }
+                return Palette.scale(color, 0.91F);
             }
         },
         POLISHED_METAL {
@@ -1823,6 +2848,91 @@ public final class MaterialTextureManager {
                 return color;
             }
         },
+        CURSED_METAL {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double binding = Math.sin(
+                        x * 0.075D + Math.sin(y * 0.13D + seed * 0.002D));
+                double counter = Math.sin(
+                        x * 0.041D - y * 0.19D + seed * 0.003D);
+                int bound = binding > 0.88D && counter > 0.12D
+                        ? Palette.lerp(color, palette.highlight(), 0.52F)
+                        : binding < -0.91D
+                        ? Palette.scale(color, 0.78F)
+                        : color;
+                return generatedSurface(
+                        bound, palette, MaterialPatternMask.SPECTRAL_CURSE,
+                        x, y, seed, 0.42F);
+            }
+        },
+        WITHERITE {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                int forged = HEAVY_METAL.decorate(color, palette, x, y, seed);
+                return generatedCracks(
+                        forged, palette, MaterialPatternMask.WITHER_CRACKS,
+                        x, y, seed, 0.76F);
+            }
+        },
+        DARK_ALLOY {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double seam = Math.sin(
+                        x * 0.048D + y * 0.16D + seed * 0.002D);
+                int alloy = seam > 0.93D
+                        ? Palette.lerp(color, palette.highlight(), 0.26F)
+                        : seam < -0.84D
+                        ? Palette.scale(color, 0.68F)
+                        : color;
+                return generatedSurface(
+                        alloy, palette, MaterialPatternMask.VOID_RUNES,
+                        x, y, seed, 0.24F);
+            }
+        },
+        IRONWOOD {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double grain = Math.sin(
+                        x * 0.11D + Math.sin(y * 0.08D + seed * 0.002D) * 1.3D);
+                int layered = grain > 0.86D
+                        ? Palette.lerp(color, palette.highlight(), 0.22F)
+                        : grain < -0.88D
+                        ? Palette.scale(color, 0.80F)
+                        : color;
+                return generatedSurface(
+                        layered, palette, MaterialPatternMask.IRONWOOD_LAYERS,
+                        x, y, seed, 0.34F);
+            }
+        },
+        STEELEAF {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double vein = Math.sin(
+                        x * 0.055D + Math.sin(y * 0.18D + seed * 0.002D) * 0.8D);
+                double branch = Math.sin(x * 0.028D - y * 0.24D + seed * 0.004D);
+                int leaf = vein > 0.94D || vein > 0.78D && branch > 0.82D
+                        ? Palette.lerp(color, palette.highlight(), 0.38F)
+                        : vein < -0.94D
+                        ? Palette.scale(color, 0.84F)
+                        : color;
+                return generatedSurface(
+                        leaf, palette, MaterialPatternMask.STEELEAF_VEINS,
+                        x, y, seed, 0.38F);
+            }
+        },
+        KNIGHTMETAL {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                int plate = Math.floorMod(x + seed, 18);
+                double bevel = Math.sin(y * 0.10D + seed * 0.002D);
+                if (plate == 0 || plate == 1) {
+                    return Palette.scale(color, 0.72F);
+                }
+                return bevel > 0.90D
+                        ? Palette.lerp(color, palette.highlight(), 0.20F)
+                        : color;
+            }
+        },
         DRAGON_FIRE {
             @Override
             int decorate(int color, Palette palette, int x, int y, int seed) {
@@ -1876,13 +2986,15 @@ public final class MaterialTextureManager {
             @Override
             int decorate(int color, Palette palette, int x, int y, int seed) {
                 int shimmer = Math.floorMod(x * 2 + y * 5 + seed, 23);
+                int spectral = color;
                 if (shimmer <= 2) {
-                    return Palette.lerp(color, 0xF0FFF8, 0.68F);
+                    spectral = Palette.lerp(color, 0xF0FFF8, 0.68F);
+                } else if (Math.floorMod(x - y + seed, 13) == 0) {
+                    spectral = Palette.scale(color, 0.72F);
                 }
-                if (Math.floorMod(x - y + seed, 13) == 0) {
-                    return Palette.scale(color, 0.72F);
-                }
-                return color;
+                return generatedSurface(
+                        spectral, palette, MaterialPatternMask.SPECTRAL_CURSE,
+                        x, y, seed, 0.28F);
             }
         },
         APOCALYPTIUM {
@@ -1900,6 +3012,33 @@ public final class MaterialTextureManager {
                     return Palette.lerp(color, 0x721B0D, 0.52F);
                 }
                 return Palette.scale(color, 0.78F);
+            }
+        },
+        INFINITY {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double nebula = Math.sin(
+                        x * 0.021D
+                                + Math.sin(y * 0.037D + seed * 0.0003D)
+                                * 1.65D);
+                int cosmic = Palette.scale(color, 0.66F);
+                if (nebula > 0.38D) {
+                    cosmic = Palette.lerp(
+                            cosmic,
+                            nebula > 0.82D ? 0x6245A8 : 0x31256B,
+                            nebula > 0.82D ? 0.34F : 0.18F);
+                } else if (nebula < -0.76D) {
+                    cosmic = Palette.lerp(cosmic, 0x081A3C, 0.26F);
+                }
+
+                int star = cosmicHash(x, y, seed);
+                if (star % 613 == 0) {
+                    return Palette.lerp(cosmic, 0xFFFFFF, 0.92F);
+                }
+                if (star % 257 == 0) {
+                    return Palette.lerp(cosmic, 0x8EC8FF, 0.66F);
+                }
+                return cosmic;
             }
         },
         CRYSTAL {
@@ -1926,7 +3065,9 @@ public final class MaterialTextureManager {
                 } else if (planeA >= 27 && planeB >= 38) {
                     faceted = Palette.scale(faceted, 0.78F);
                 }
-                return faceted;
+                return generatedSurface(
+                        faceted, palette, MaterialPatternMask.CRYSTAL_FACETS,
+                        x, y, seed, 0.34F);
             }
         },
         OBSIDIAN {
@@ -1937,16 +3078,20 @@ public final class MaterialTextureManager {
                 boolean crack = facetA == 0 || facetB == 0;
                 boolean branch = Math.floorMod(y + seed, 23) == 0
                         && facetA <= 8;
+                int obsidian = color;
                 if (crack || branch) {
-                    return Palette.lerp(
+                    obsidian = Palette.lerp(
                             color,
                             palette.highlight(),
                             branch ? 0.48F : 0.82F);
+                } else if (facetA > 29 && facetB > 43) {
+                    obsidian = Palette.lerp(color, palette.mid(), 0.22F);
+                } else {
+                    obsidian = Palette.scale(color, 0.84F);
                 }
-                if (facetA > 29 && facetB > 43) {
-                    return Palette.lerp(color, palette.mid(), 0.22F);
-                }
-                return Palette.scale(color, 0.84F);
+                return generatedSurface(
+                        obsidian, palette, MaterialPatternMask.VOID_RUNES,
+                        x, y, seed, 0.30F);
             }
         },
         STONE {
@@ -1986,10 +3131,12 @@ public final class MaterialTextureManager {
             @Override
             int decorate(int color, Palette palette, int x, int y, int seed) {
                 int heat = Math.floorMod(x * 2 + y + seed, 13);
-                if (heat <= 2) {
-                    return Palette.lerp(color, palette.highlight(), 0.56F);
-                }
-                return Palette.scale(color, heat == 12 ? 0.72F : 1.0F);
+                int heated = heat <= 2
+                        ? Palette.lerp(color, palette.highlight(), 0.56F)
+                        : Palette.scale(color, heat == 12 ? 0.72F : 1.0F);
+                return generatedCracks(
+                        heated, palette, MaterialPatternMask.MOLTEN,
+                        x, y, seed, 0.82F);
             }
         },
         ARCANE {
@@ -1999,26 +3146,53 @@ public final class MaterialTextureManager {
                 int glyph = Math.floorMod(x * 5 + y * 3 + seed, 41);
                 boolean runeStroke = (lane == 8 || lane == 9)
                         && (glyph <= 8 || glyph >= 35);
+                int inscribed = color;
                 if (runeStroke) {
-                    return Palette.lerp(
+                    inscribed = Palette.lerp(
                             color, palette.highlight(), 0.52F);
+                } else {
+                    double underGlow = Math.sin(
+                            x * 0.055D + y * 0.17D + seed * 0.004D);
+                    if (underGlow > 0.92D) {
+                        inscribed = Palette.lerp(color, palette.mid(), 0.22F);
+                    } else {
+                        inscribed = Palette.scale(color, 0.94F);
+                    }
                 }
-                double underGlow = Math.sin(
-                        x * 0.055D + y * 0.17D + seed * 0.004D);
-                if (underGlow > 0.92D) {
-                    return Palette.lerp(color, palette.mid(), 0.22F);
-                }
-                return Palette.scale(color, 0.94F);
+                return generatedCracks(
+                        inscribed, palette, MaterialPatternMask.ARCANE_CIRCUIT,
+                        x, y, seed, 0.58F);
             }
         },
         ENDER {
             @Override
             int decorate(int color, Palette palette, int x, int y, int seed) {
                 int shimmer = Math.floorMod(x * 3 + y * 5 + seed, 29);
-                if (shimmer == 0 || shimmer == 1) {
-                    return Palette.lerp(color, palette.highlight(), 0.62F);
+                int voidMetal = shimmer == 0 || shimmer == 1
+                        ? Palette.lerp(color, palette.highlight(), 0.62F)
+                        : color;
+                return generatedSurface(
+                        voidMetal, palette, MaterialPatternMask.VOID_RUNES,
+                        x, y, seed, 0.34F);
+            }
+        },
+        TOXIC {
+            @Override
+            int decorate(int color, Palette palette, int x, int y, int seed) {
+                double vein = Math.sin(
+                        x * 0.071D
+                                + Math.sin(y * 0.18D + seed * 0.004D)
+                                * 1.28D);
+                int blister = cosmicHash(x, y, seed);
+                if (vein > 0.91D) {
+                    return Palette.lerp(color, 0xB9F25B, 0.48F);
                 }
-                return color;
+                if (blister % 73 == 0) {
+                    return Palette.lerp(color, 0xE4FF8A, 0.38F);
+                }
+                return vein < -0.94D
+                        ? Palette.scale(color, 0.74F)
+                        : Palette.lerp(color, 0x527A38, 0.08F);
             }
         };
 
@@ -2035,16 +3209,30 @@ public final class MaterialTextureManager {
                 int seed) {
             float progress = clamp01((atlasX - 1.0F) / 62.0F);
             int finished = switch (this) {
+                case HEAVY_METAL -> heavyBlade(
+                        color, palette, progress, atlasY, seed);
+                case CRUDE_METAL -> crudeBlade(
+                        color, palette, progress, atlasY, seed);
                 case POLISHED_METAL -> broadPolish(
                         color, palette, progress, atlasY);
                 case PATINA_METAL -> broadPatina(
                         color, progress, atlasY);
                 case NETHERITE -> broadLamination(
                         color, progress, atlasY);
+                case CURSED_METAL, WITHERITE, DARK_ALLOY -> broadLamination(
+                        color, progress, atlasY);
+                case IRONWOOD -> broadLamination(
+                        color, progress, atlasY);
+                case STEELEAF -> broadPatina(
+                        color, progress, atlasY);
+                case KNIGHTMETAL -> broadPolish(
+                        color, palette, progress, atlasY);
                 case CRYSTAL -> largeCrystalFacets(
                         color, palette, progress, atlasY);
                 case OBSIDIAN -> continuousObsidianCrack(
                         color, palette, progress, atlasY, seed);
+                case INFINITY -> cosmicBlade(
+                        color, palette, atlasX, atlasY, seed);
                 case DRAGON_FIRE, DRAGON_ICE, DRAGON_LIGHTNING ->
                         decorateDragonScales(
                                 color,
@@ -2052,18 +3240,56 @@ public final class MaterialTextureManager {
                                 Math.round(atlasX * 2.0F),
                                 Math.round(atlasY * 2.0F),
                                 seed);
+                case TOXIC -> toxicBlade(
+                        color, palette, progress, atlasY, seed);
                 default -> color;
             };
 
-            if (this == OBSIDIAN || this == CRYSTAL) {
-                return finished;
+            int maskX = Math.round(atlasX);
+            int maskY = Math.round(atlasY * 2.0F);
+            int generated = switch (this) {
+                case BLAZE, APOCALYPTIUM -> generatedCracks(
+                        finished, palette, MaterialPatternMask.MOLTEN,
+                        maskX, maskY, seed, 0.68F);
+                case CURSED_METAL, GHOST -> generatedSurface(
+                        finished, palette, MaterialPatternMask.SPECTRAL_CURSE,
+                        maskX, maskY, seed, 0.34F);
+                case WITHERITE -> generatedCracks(
+                        finished, palette, MaterialPatternMask.WITHER_CRACKS,
+                        maskX, maskY, seed, 0.76F);
+                case OBSIDIAN, ENDER -> generatedSurface(
+                        finished, palette, MaterialPatternMask.VOID_RUNES,
+                        maskX, maskY, seed, 0.28F);
+                case DARK_ALLOY -> finished;
+                case IRONWOOD -> generatedSurface(
+                        finished, palette, MaterialPatternMask.IRONWOOD_LAYERS,
+                        maskX, maskY, seed, 0.28F);
+                case STEELEAF -> generatedSurface(
+                        finished, palette, MaterialPatternMask.STEELEAF_VEINS,
+                        maskX, maskY, seed, 0.32F);
+                case CRYSTAL -> finished;
+                case ARCANE -> generatedCracks(
+                        finished, palette, MaterialPatternMask.ARCANE_CIRCUIT,
+                        maskX, maskY, seed, 0.44F);
+                default -> finished;
+            };
+
+            if (this == OBSIDIAN || this == CRYSTAL || this == INFINITY) {
+                return generated;
             }
             return masterFlowLine(
-                    finished, palette, progress, atlasY, seed,
+                    generated, palette, progress, atlasY, seed,
                     switch (this) {
                         case DRAGON_FIRE, DRAGON_ICE, DRAGON_LIGHTNING -> 0.18F;
-                        case PATTERN_WELDED, NETHERITE -> 0.13F;
-                        default -> 0.10F;
+                        case CURSED_METAL -> 0.24F;
+                        case WITHERITE -> 0.17F;
+                        case DARK_ALLOY -> 0.08F;
+                        case IRONWOOD, STEELEAF, KNIGHTMETAL,
+                                PATTERN_WELDED, NETHERITE,
+                                HEAVY_METAL -> 0.13F;
+                        case CRUDE_METAL -> 0.07F;
+                        case TOXIC -> 0.15F;
+                        default -> 0.04F;
                     });
         }
 
@@ -2080,15 +3306,148 @@ public final class MaterialTextureManager {
                 case DRAGON_LIGHTNING -> distance < 0.36D ? 215 : 0;
                 case GHOST -> distance < 0.48D ? 145 : 0;
                 case APOCALYPTIUM -> distance < 0.42D ? 190 : 0;
+                case CURSED_METAL -> distance < 0.40D ? 175 : 0;
+                case WITHERITE -> generatedEmission(
+                        MaterialPatternMask.WITHER_CRACKS,
+                        atlasX, atlasY, seed, 202, 145);
+                case DARK_ALLOY -> distance < 0.28D ? 105 : 0;
+                case INFINITY -> infinityEmissionAlpha(
+                        Math.round(atlasX * 4.0F),
+                        Math.round(atlasY * 4.0F),
+                        seed);
                 case CRYSTAL -> crystalFacetDistance(progress, atlasY) < 0.30D
                         ? 135 : 0;
                 case OBSIDIAN -> obsidianCrackDistance(
                         progress, atlasY, seed) < 0.31D ? 175 : 0;
-                case BLAZE -> distance < 0.48D ? 185 : 0;
-                case ARCANE -> distance < 0.38D ? 155 : 0;
-                case ENDER -> distance < 0.40D ? 160 : 0;
+                case BLAZE -> Math.max(
+                        distance < 0.48D ? 185 : 0,
+                        generatedEmission(
+                                MaterialPatternMask.MOLTEN,
+                                atlasX, atlasY, seed, 208, 180));
+                case ARCANE -> Math.max(
+                        distance < 0.38D ? 155 : 0,
+                        generatedEmission(
+                                MaterialPatternMask.ARCANE_CIRCUIT,
+                                atlasX, atlasY, seed, 218, 135));
+                case ENDER -> Math.max(
+                        distance < 0.40D ? 160 : 0,
+                        generatedEmission(
+                                MaterialPatternMask.VOID_RUNES,
+                                atlasX, atlasY, seed, 226, 110));
+                case TOXIC -> distance < 0.34D ? 105 : 0;
                 default -> 0;
             };
+        }
+
+        private static int generatedSurface(
+                int color,
+                Palette palette,
+                MaterialPatternMask mask,
+                int x,
+                int y,
+                int seed,
+                float strength) {
+            int value = mask.sample(x, y, seed);
+            if (value > 128) {
+                float amount = (value - 128) / 127.0F * strength;
+                return Palette.lerp(color, palette.highlight(), amount);
+            }
+            float shade = (128 - value) / 128.0F * strength * 0.48F;
+            return Palette.scale(color, 1.0F - shade);
+        }
+
+        private static int generatedCracks(
+                int color,
+                Palette palette,
+                MaterialPatternMask mask,
+                int x,
+                int y,
+                int seed,
+                float strength) {
+            int value = mask.sample(x, y, seed);
+            if (value >= 176) {
+                float amount = (value - 176) / 79.0F * strength;
+                return Palette.lerp(color, palette.highlight(), amount);
+            }
+            if (value <= 68) {
+                float shade = (68 - value) / 68.0F * strength * 0.34F;
+                return Palette.scale(color, 1.0F - shade);
+            }
+            return color;
+        }
+
+        private static int generatedEmission(
+                MaterialPatternMask mask,
+                float atlasX,
+                float atlasY,
+                int seed,
+                int threshold,
+                int maximum) {
+            int value = mask.sample(
+                    Math.round(atlasX), Math.round(atlasY * 2.0F), seed);
+            if (value <= threshold) {
+                return 0;
+            }
+            return Math.round(
+                    (value - threshold) / (float) (255 - threshold) * maximum);
+        }
+
+        private static int heavyBlade(
+                int color,
+                Palette palette,
+                float progress,
+                float atlasY,
+                int seed) {
+            int layered = broadLamination(color, progress, atlasY);
+            double lowerBand = Math.abs(
+                    atlasY - (18.3D - Math.sin(progress * Math.PI) * 0.38D));
+            if (lowerBand < 0.72D) {
+                layered = Palette.scale(layered, 0.91F);
+            }
+            int hammer = cosmicHash(
+                    Math.round(progress * 46.0F),
+                    Math.round(atlasY * 0.72F),
+                    seed);
+            return hammer % 97 == 0
+                    ? Palette.scale(layered, 0.86F)
+                    : Palette.lerp(layered, palette.mid(), 0.03F);
+        }
+
+        private static int crudeBlade(
+                int color,
+                Palette palette,
+                float progress,
+                float atlasY,
+                int seed) {
+            int pit = cosmicHash(
+                    Math.round(progress * 84.0F),
+                    Math.round(atlasY * 1.25F),
+                    seed);
+            if (pit % 89 == 0) {
+                return Palette.scale(color, 0.74F);
+            }
+            if (pit % 131 == 0) {
+                return Palette.lerp(color, palette.highlight(), 0.12F);
+            }
+            return Palette.scale(color, 0.97F);
+        }
+
+        private static int toxicBlade(
+                int color,
+                Palette palette,
+                float progress,
+                float atlasY,
+                int seed) {
+            double veinY = masterFlowY(progress, seed)
+                    + Math.sin(progress * Math.PI * 4.0D) * 0.26D;
+            double distance = Math.abs(atlasY - veinY);
+            if (distance < 0.26D) {
+                return Palette.lerp(color, 0xC8FF65, 0.42F);
+            }
+            if (distance < 0.58D) {
+                return Palette.lerp(color, 0x527A38, 0.14F);
+            }
+            return Palette.lerp(color, palette.mid(), 0.03F);
         }
 
         private static int masterFlowLine(
@@ -2172,6 +3531,38 @@ public final class MaterialTextureManager {
             return Palette.scale(color, 0.96F);
         }
 
+        private static int cosmicBlade(
+                int color,
+                Palette palette,
+                float atlasX,
+                float atlasY,
+                int seed) {
+            int x = Math.round(atlasX * 4.0F);
+            int y = Math.round(atlasY * 4.0F);
+            double nebula = Math.sin(
+                    x * 0.021D
+                            + Math.sin(y * 0.037D + seed * 0.0003D)
+                            * 1.65D);
+            int cosmic = Palette.lerp(color, 0x070615, 0.58F);
+            if (nebula > 0.32D) {
+                cosmic = Palette.lerp(
+                        cosmic,
+                        nebula > 0.82D ? 0x6B4CB8 : 0x31256B,
+                        nebula > 0.82D ? 0.38F : 0.20F);
+            } else if (nebula < -0.76D) {
+                cosmic = Palette.lerp(cosmic, 0x081A3C, 0.28F);
+            }
+
+            int star = cosmicHash(x, y, seed);
+            if (star % 613 == 0) {
+                return Palette.lerp(cosmic, 0xFFFFFF, 0.94F);
+            }
+            if (star % 257 == 0) {
+                return Palette.lerp(cosmic, 0x8EC8FF, 0.68F);
+            }
+            return Palette.lerp(cosmic, palette.mid(), 0.06F);
+        }
+
         private static double crystalFacetDistance(
                 float progress,
                 float atlasY) {
@@ -2239,6 +3630,19 @@ public final class MaterialTextureManager {
                             && vein >= 2 && vein <= 7;
                     yield vein <= 1 || branch ? 215 : 0;
                 }
+                case CURSED_METAL -> {
+                    double binding = Math.sin(
+                            x * 0.075D + Math.sin(y * 0.13D + seed * 0.002D));
+                    double counter = Math.sin(
+                            x * 0.041D - y * 0.19D + seed * 0.003D);
+                    yield binding > 0.88D && counter > 0.12D ? 185 : 0;
+                }
+                case DARK_ALLOY -> {
+                    double seam = Math.sin(
+                            x * 0.048D + y * 0.16D + seed * 0.002D);
+                    yield seam > 0.96D ? 95 : 0;
+                }
+                case INFINITY -> infinityEmissionAlpha(x, y, seed);
                 case CRYSTAL -> {
                     int planeA = Math.floorMod(x + y * 2 + seed, 31);
                     int planeB = Math.floorMod(x * 2 - y * 3 + seed, 43);
@@ -2268,6 +3672,13 @@ public final class MaterialTextureManager {
                 case ENDER -> {
                     int shimmer = Math.floorMod(x * 3 + y * 5 + seed, 29);
                     yield shimmer <= 1 ? 150 : 0;
+                }
+                case TOXIC -> {
+                    double vein = Math.sin(
+                            x * 0.071D
+                                    + Math.sin(y * 0.18D + seed * 0.004D)
+                                    * 1.28D);
+                    yield vein > 0.94D ? 115 : 0;
                 }
                 default -> 0;
             };
@@ -2318,6 +3729,25 @@ public final class MaterialTextureManager {
 
         private static int channel(int color, int shift) {
             return color >>> shift & 0xff;
+        }
+    }
+
+    private enum TextureLayout {
+        WORLD("world"),
+        ITEM("item");
+
+        private final String serializedName;
+
+        TextureLayout(String serializedName) {
+            this.serializedName = serializedName;
+        }
+
+        private static TextureLayout fromTarget(String target) {
+            return "item_blade".equals(target)
+                            || "item_bladens".equals(target)
+                            || "item_damaged".equals(target)
+                    ? ITEM
+                    : WORLD;
         }
     }
 

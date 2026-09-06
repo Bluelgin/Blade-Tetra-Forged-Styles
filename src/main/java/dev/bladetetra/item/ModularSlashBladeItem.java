@@ -6,18 +6,20 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.ComponentEffectResolver;
-import dev.bladetetra.combat.ConductiveBladeHandler;
 import dev.bladetetra.combat.ModComboStates;
+import dev.bladetetra.combat.PotatoBladeHandler;
 import dev.bladetetra.combat.StyleInputBuffer;
 import dev.bladetetra.combat.StyleResolver;
+import dev.bladetetra.compat.TetraDurabilityCompat;
 import dev.bladetetra.registry.ModEnchantments;
-import dev.bladetetra.visual.SayaBannerSkin;
-import dev.bladetetra.visual.SayaPresetSkin;
-import dev.bladetetra.easteregg.AkatsukiAwakening;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
-import dev.bladetetra.easteregg.KyoukaAwakening;
 import dev.bladetetra.easteregg.SenbonzakuraAwakening;
+import dev.bladetetra.challenge.BoundaryForging;
+import dev.bladetetra.forging.FoxLegacyParts;
+import dev.bladetetra.forging.LegacyCalibration;
+import dev.bladetetra.forging.ImprintAffinity;
+import dev.bladetetra.forging.NamedLegacyParts;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
@@ -86,6 +88,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String INSCRIPTION_SLOT = "slashblade/inscription";
 
     public static final String BLADE_MODULE = "slashblade/katana_blade";
+    public static final String ORTHODOX_BLADE_MODULE = "slashblade/orthodox_blade";
     public static final String WAKIZASHI_MODULE = "slashblade/wakizashi_blade";
     public static final String NODACHI_MODULE = "slashblade/nodachi_blade";
     public static final String TSUKA_MODULE = "slashblade/wrapped_tsuka";
@@ -94,6 +97,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String TSUBA_MODULE = "slashblade/simple_tsuba";
     public static final String LIGHT_TSUBA_MODULE = "slashblade/light_tsuba";
     public static final String GUARD_TSUBA_MODULE = "slashblade/guard_tsuba";
+    public static final String TSUBALESS_MODULE = "slashblade/tsubaless";
     public static final String SAYA_MODULE = "slashblade/basic_saya";
     public static final String QUICKDRAW_SAYA_MODULE = "slashblade/quickdraw_saya";
     public static final String SPIRIT_SAYA_MODULE = "slashblade/spirit_saya";
@@ -108,6 +112,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String SOUL_INSCRIPTION_MODULE = "slashblade/soul_inscription";
     public static final String AWAKENED_SOUL_INSCRIPTION_MODULE =
             "slashblade/awakened_soul_inscription";
+    public static final String FOX_SAYA_MODULE = "slashblade/fox_saya";
+    public static final String FOX_TSUBA_MODULE = "slashblade/fox_tsuba";
 
     private static final String[] MAJOR_MODULES = { BLADE_SLOT, TSUKA_SLOT };
     private static final String[] MINOR_MODULES = {
@@ -122,7 +128,13 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     private static final GuiModuleOffsets MAJOR_GUI_OFFSETS =
             new GuiModuleOffsets(22, -2, 22, 18);
     private static final GuiModuleOffsets MINOR_GUI_OFFSETS =
-            new GuiModuleOffsets(-21, -19, -21, -6, -21, 7, -21, 20, -21, 33, -21, 46);
+            new GuiModuleOffsets(
+                    -21, -25,
+                    -21, -12,
+                    -21, 1,
+                    -21, 14,
+                    -21, 27,
+                    -21, 40);
     private static final String MODULE_SCHEMA_KEY = "blade_tetra_module_schema";
     private static final String SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY =
             "blade_tetra_soul_contract_previous_default";
@@ -144,6 +156,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     private static final double IAIDO_REACH_AMPLIFIER = 1.0D;
     private static final double DEFAULT_REACH_AMPLIFIER = 2.5D;
     private static final double DANGAKU_REACH_AMPLIFIER = 4.0D;
+    private static final java.util.UUID IMPRINT_AFFINITY_DAMAGE_UUID =
+            java.util.UUID.fromString("1e16e1a0-68f1-4f84-a028-2da67d7055d8");
     private static final String TRANSLATION_KEY = "item.blade_tetra.modular_slashblade";
     private static final ResourceLocation FALLBACK_MODULAR_MODEL =
             Objects.requireNonNull(ResourceLocation.tryParse(
@@ -262,9 +276,36 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     @Override
     public int getMaxDamage(ItemStack stack) {
         migrateLegacyModules(stack);
+        int modularDurability = getModuleMaxDamage(stack);
+        var completeSet = NamedLegacyParts.fromStack(stack).completeSet();
+        if (completeSet == null) {
+            return modularDurability;
+        }
+        ImprintAffinity affinity = ImprintAffinity.calculate(
+                getModuleAttackDamage(stack), modularDurability,
+                completeSet.baseAttack(), completeSet.maxDamage());
+        return modularDurability + affinity.durabilityBonus();
+    }
+
+    private int getModuleMaxDamage(ItemStack stack) {
         ItemProperties properties = getPropertiesCached(stack);
         int calculated = Math.round(properties.durability * properties.durabilityMultiplier);
         return calculated > 1 ? calculated : FALLBACK_DURABILITY;
+    }
+
+    private double getModuleAttackDamage(ItemStack stack) {
+        return AttributeHelper.getMergedAmount(
+                getAttributeModifiersCached(stack).get(Attributes.ATTACK_DAMAGE));
+    }
+
+    public ImprintAffinity getImprintAffinity(ItemStack stack) {
+        var completeSet = NamedLegacyParts.fromStack(stack).completeSet();
+        if (completeSet == null) {
+            return null;
+        }
+        return ImprintAffinity.calculate(
+                getModuleAttackDamage(stack), getModuleMaxDamage(stack),
+                completeSet.baseAttack(), completeSet.maxDamage());
     }
 
     @Override
@@ -293,7 +334,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             int amount,
             T entity,
             Consumer<T> onBroken) {
-        int reducedAmount = damageItemImpl(stack, amount, entity, onBroken);
+        int reducedAmount = TetraDurabilityCompat.preprocessDamage(
+                this, stack, amount, entity, onBroken);
         if (reducedAmount <= 0) {
             return 0;
         }
@@ -409,6 +451,14 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
                             "Blade Tetra style reach",
                             reachAmplifier,
                             AttributeModifier.Operation.ADDITION));
+            ImprintAffinity affinity = getImprintAffinity(stack);
+            if (affinity != null && affinity.attackBonus() > 0.0D) {
+                result.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(
+                        IMPRINT_AFFINITY_DAMAGE_UUID,
+                        "Blade Tetra imprint affinity",
+                        affinity.attackBonus(),
+                        AttributeModifier.Operation.ADDITION));
+            }
         }
         return result;
     }
@@ -421,6 +471,9 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             int slot,
             boolean selected) {
         syncDerivedBladeState(stack);
+        if (!level.isClientSide && entity instanceof Player player) {
+            LegacyCalibration.migrateStack(stack);
+        }
         BladeLegacyEasterEggs.trackInventoryState(stack, level, entity);
         NbtSageEasterEgg.trackInventoryState(stack, level, entity);
         SenbonzakuraAwakening.trackInventoryState(
@@ -429,8 +482,15 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     }
 
     @Override
+    public void verifyTagAfterLoad(CompoundTag tag) {
+        super.verifyTagAfterLoad(tag);
+        LegacyCalibration.migrateStackTag(tag);
+    }
+
+    @Override
     public void onCraftedBy(ItemStack stack, Level level, net.minecraft.world.entity.player.Player player) {
         IModularItem.updateIdentifier(stack);
+        LegacyCalibration.migrateStack(stack);
         syncDerivedBladeState(stack);
         super.onCraftedBy(stack, level, player);
     }
@@ -469,58 +529,16 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             TooltipFlag flag) {
         migrateLegacyModules(stack);
         super.appendHoverText(stack, level, tooltip, flag);
-        AkatsukiAwakening.appendTooltip(stack, tooltip);
-        BladeLegacyEasterEggs.appendTooltip(stack, tooltip);
-        NbtSageEasterEgg.appendTooltip(stack, tooltip);
-        KyoukaAwakening.appendTooltip(stack, tooltip);
-        SenbonzakuraAwakening.appendTooltip(stack, tooltip);
-        BladeStyle style = StyleResolver.resolve(stack);
-        tooltip.add(Component.translatable(
-                        "tooltip.blade_tetra.style",
-                        Component.translatable(style.getTranslationKey()))
-                .withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.translatable(style.getDescriptionTranslationKey())
+        PotatoBladeHandler.appendTooltip(stack, level, tooltip, flag);
+        BoundaryForging.appendTooltip(stack, tooltip);
+        boolean expanded = TooltipKeyState.isAltDown();
+        if (expanded) {
+            BladeDetailTooltip.append(stack, tooltip);
+        }
+        tooltip.add(Component.translatable(expanded
+                        ? "tooltip.blade_tetra.details.collapse"
+                        : "tooltip.blade_tetra.details.expand")
                 .withStyle(ChatFormatting.DARK_GRAY));
-        int conductivity = ConductiveBladeHandler.conductivityScore(stack);
-        if (conductivity > 0) {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.conductivity", conductivity, 6)
-                    .withStyle(ChatFormatting.AQUA));
-        }
-        SayaBannerSkin sayaSkin = SayaBannerSkin.fromStack(stack);
-        SayaPresetSkin sayaPreset = SayaPresetSkin.fromStack(stack);
-        if (sayaPreset.present()) {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.saya_skin.preset",
-                            sayaPreset.displayName())
-                    .withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.saya_skin.remove")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        } else if (sayaSkin.present()) {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.saya_skin",
-                            Component.translatable(
-                                    "color.minecraft."
-                                            + sayaSkin.baseColor().getName()),
-                            sayaSkin.patternCount())
-                    .withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.saya_skin.remove")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        } else {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.saya_skin.apply")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        }
-        if (hasAwakenedSoulInscription(stack)) {
-            tooltip.add(Component.translatable("tooltip.blade_tetra.bewitched.awakened")
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
-        } else if (ComponentEffectResolver.hasModule(
-                stack, INSCRIPTION_SLOT, SOUL_INSCRIPTION_MODULE)) {
-            tooltip.add(Component.translatable("tooltip.blade_tetra.bewitched.dormant")
-                    .withStyle(ChatFormatting.DARK_PURPLE));
-        }
         tooltip.addAll(getTooltip(stack, level, flag));
     }
 
@@ -535,11 +553,11 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         float moduleDamage = (float) AttributeHelper.getMergedAmount(
                 getAttributeModifiersCached(stack).get(Attributes.ATTACK_DAMAGE));
         int moduleMaxDamage = getMaxDamage(stack);
-        boolean awakenedSoulInscription = hasAwakenedSoulInscription(stack);
+        boolean soulInscription = hasBewitchingSoulInscription(stack);
 
         stack.getCapability(BLADESTATE).ifPresent(state -> {
             state.setNonEmpty();
-            syncSoulContract(stack, state, awakenedSoulInscription);
+            syncSoulContract(stack, state, soulInscription);
             ResourceLocation styleRoot = ModComboStates.getRoot(StyleResolver.resolve(stack));
             if (!styleRoot.equals(state.getComboRoot())) {
                 state.setComboRoot(styleRoot);
@@ -575,9 +593,11 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         });
     }
 
-    private static boolean hasAwakenedSoulInscription(ItemStack stack) {
+    private static boolean hasBewitchingSoulInscription(ItemStack stack) {
         return ComponentEffectResolver.hasModule(
-                stack, INSCRIPTION_SLOT, AWAKENED_SOUL_INSCRIPTION_MODULE);
+                        stack, INSCRIPTION_SLOT, SOUL_INSCRIPTION_MODULE)
+                || ComponentEffectResolver.hasModule(
+                        stack, INSCRIPTION_SLOT, AWAKENED_SOUL_INSCRIPTION_MODULE);
     }
 
     private static void syncSoulContract(
@@ -623,7 +643,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         String blade = switch (StyleResolver.resolve(stack)) {
             case RENGEKI -> "wakizashi";
             case DANGAKU -> "nodachi";
-            case IAIDO, STANDARD -> "katana";
+            case IAIDO -> "katana";
+            case STANDARD -> "orthodox";
         };
         String saya;
         if (ComponentEffectResolver.hasModule(stack, SAYA_SLOT, QUICKDRAW_SAYA_MODULE)) {

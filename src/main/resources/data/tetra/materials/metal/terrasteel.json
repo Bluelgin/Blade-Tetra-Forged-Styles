@@ -1,6 +1,8 @@
 {
   "key": "terrasteel",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 7.2,
   "secondary": 5.2,
   "tertiary": 4.2,

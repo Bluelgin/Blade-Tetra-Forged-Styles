@@ -1,0 +1,26 @@
+{
+  "key": "knightmetal",
+  "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
+  "primary": 7.4,
+  "secondary": 5.4,
+  "tertiary": 3,
+  "durability": 1100,
+  "integrityCost": 3,
+  "integrityGain": 8,
+  "magicCapacity": 110,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "D9E0D7",
+    "texture": "68716E"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/knightmetal"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:diamond"
+  }
+}

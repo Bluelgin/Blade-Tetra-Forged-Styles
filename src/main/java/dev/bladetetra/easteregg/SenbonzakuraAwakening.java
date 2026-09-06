@@ -1,13 +1,16 @@
 package dev.bladetetra.easteregg;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.BladeTechniqueHandler;
 import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.RaikiriChainHandler;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.visual.SayaPresetSkin;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
+import mods.flammpfeil.slashblade.entity.IShootable;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.ChatFormatting;
@@ -16,21 +19,31 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 /** Cherry-grove Rengeki ritual and petal-sword legacy. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -58,18 +71,24 @@ public final class SenbonzakuraAwakening {
             "blade_tetra_senbonzakura_sa_window";
     private static final String TAG_COOLDOWN_UNTIL =
             "blade_tetra_senbonzakura_cooldown_until";
+    private static final String TAG_MARKS_EXPIRE =
+            "blade_tetra_senbonzakura_marks_expire";
 
     private static final int REQUIRED_RITUAL_HITS = 16;
     private static final int RITUAL_CHAIN_WINDOW = 40;
     private static final int RITUAL_READY_WINDOW = 1200;
     private static final int SA_KILL_WINDOW = 100;
-    private static final int HITS_PER_MARK = 4;
+    private static final int HITS_PER_MARK = 2;
     private static final int MAX_MARKS = 3;
     private static final int SA_HIT_WINDOW = 30;
     private static final int COOLDOWN_TICKS = 160;
-    private static final double SWORD_DAMAGE = 1.5D;
+    private static final int MARK_LIFETIME_TICKS = 600;
+    private static final int SWORDS_PER_MARK = 4;
+    private static final double DAMAGE_RATIO_PER_MARK = 0.20D;
+    private static final double DAMAGE_CAP_PER_MARK = 10.0D;
     private static final int SWORD_COLOR = 0xFFB7D5;
     private static final ResourceLocation ADVANCEMENT = id("senbonzakura");
+    private static final List<PendingPetalVolley> PENDING_VOLLEYS = new ArrayList<>();
 
     public static boolean isUnlocked(ItemStack stack) {
         CompoundTag tag = stack.getTag();
@@ -97,7 +116,7 @@ public final class SenbonzakuraAwakening {
     }
 
     public static boolean isActive(ItemStack stack) {
-        return isUnlocked(stack) && isCandidate(stack) && !isBroken(stack);
+        return SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.SENBONZAKURA);
     }
 
     public static int petalMarks(ItemStack stack) {
@@ -128,13 +147,14 @@ public final class SenbonzakuraAwakening {
             net.minecraft.world.level.Level level,
             Entity holder,
             boolean selected) {
-        if (level.isClientSide()
-                || selected
-                || !(holder instanceof ServerPlayer)
-                || !isCandidate(stack)
-                || isUnlocked(stack)) {
+        if (level.isClientSide() || !(holder instanceof ServerPlayer)) {
             return;
         }
+        if (isActive(stack)) {
+            expirePetalMarks(stack, level.getGameTime());
+            return;
+        }
+        if (selected || !isCandidate(stack) || isUnlocked(stack)) return;
         CompoundTag tag = stack.getTag();
         if (tag == null || !tag.contains(TAG_RITUAL_HITS, Tag.TAG_INT)) {
             return;
@@ -164,31 +184,15 @@ public final class SenbonzakuraAwakening {
         if (!isActive(blade)) {
             return;
         }
+        expirePetalMarks(blade, now);
         CompoundTag tag = blade.getOrCreateTag();
         if (StyleResolver.resolve(blade) == BladeStyle.RENGEKI) {
             int hits = tag.getInt(TAG_PETAL_HITS) + 1;
             if (hits >= HITS_PER_MARK) {
                 hits = 0;
-                int marks = Math.min(MAX_MARKS, petalMarks(blade) + 1);
-                if (marks != petalMarks(blade)) {
-                    tag.putInt(TAG_PETAL_MARKS, marks);
-                    player.displayClientMessage(Component.translatable(
-                                    "message.blade_tetra.senbonzakura.mark",
-                                    marks, MAX_MARKS)
-                            .withStyle(ChatFormatting.LIGHT_PURPLE), true);
-                }
+                addPetalMark(player, blade, now);
             }
             tag.putInt(TAG_PETAL_HITS, hits);
-        }
-
-        if (tag.getLong(TAG_SA_WINDOW) >= now
-                && tag.getLong(TAG_COOLDOWN_UNTIL) <= now
-                && petalMarks(blade) > 0) {
-            releasePetalSwords(
-                    player,
-                    event.getTarget(),
-                    blade,
-                    petalMarks(blade));
         }
     }
 
@@ -221,10 +225,17 @@ public final class SenbonzakuraAwakening {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!GameplayConfig.ENABLE_EASTER_EGG_UNLOCKS.get()
+                || SoulLegacyDamageGuard.isSecondary(event.getSource())
                 || !(event.getSource().getEntity() instanceof ServerPlayer player)) {
             return;
         }
         ItemStack blade = player.getMainHandItem();
+        if (event.getSource().getDirectEntity() == player && isActive(blade)) {
+            long now = player.level().getGameTime();
+            expirePetalMarks(blade, now);
+            addPetalMark(player, blade, now);
+            return;
+        }
         if (!isCandidate(blade) || isUnlocked(blade) || isBroken(blade)) {
             return;
         }
@@ -238,6 +249,45 @@ public final class SenbonzakuraAwakening {
             return;
         }
         awaken(player, blade);
+    }
+
+    /** Uses the actual post-mitigation Slash Art hit to scale the stored blossom burst. */
+    @SubscribeEvent
+    public static void onLivingDamage(LivingDamageEvent event) {
+        if (BladeTechniqueHandler.isTechniqueDamage(event.getSource())
+                || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
+        Entity direct = event.getSource().getDirectEntity();
+        ServerPlayer player = event.getSource().getEntity() instanceof ServerPlayer sourcePlayer
+                ? sourcePlayer : null;
+        if (direct instanceof IShootable shootable
+                && shootable.getShooter() instanceof ServerPlayer shooter) {
+            player = shooter;
+        }
+        if (player == null || (direct != player && !(direct instanceof IShootable))
+                || event.getAmount() <= 0.0F) return;
+        ItemStack blade = player.getMainHandItem();
+        if (!isActive(blade)) return;
+
+        long now = player.level().getGameTime();
+        expirePetalMarks(blade, now);
+        CompoundTag tag = blade.getOrCreateTag();
+        int marks = petalMarks(blade);
+        if (marks <= 0
+                || tag.getLong(TAG_SA_WINDOW) < now
+                || tag.getLong(TAG_COOLDOWN_UNTIL) > now) return;
+        releasePetalSwords(player, event.getEntity(), blade, marks, event.getAmount());
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || PENDING_VOLLEYS.isEmpty()) return;
+        tickPetalVolleys(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void onLevelUnload(LevelEvent.Unload event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        PENDING_VOLLEYS.removeIf(volley -> volley.dimension.equals(level.dimension().location()));
     }
 
     @SubscribeEvent
@@ -287,6 +337,7 @@ public final class SenbonzakuraAwakening {
         clearRitualProgress(blade);
         blade.getOrCreateTag().putInt(TAG_PETAL_HITS, 0);
         blade.getOrCreateTag().putInt(TAG_PETAL_MARKS, 0);
+        blade.getOrCreateTag().remove(TAG_MARKS_EXPIRE);
         ServerLevel level = player.serverLevel();
         level.sendParticles(
                 ParticleTypes.CHERRY_LEAVES,
@@ -313,42 +364,37 @@ public final class SenbonzakuraAwakening {
             ServerPlayer player,
             LivingEntity target,
             ItemStack blade,
-            int marks) {
+            int marks,
+            float triggeringDamage) {
         CompoundTag tag = blade.getOrCreateTag();
         long now = player.level().getGameTime();
         tag.putInt(TAG_PETAL_MARKS, 0);
         tag.putInt(TAG_PETAL_HITS, 0);
+        tag.remove(TAG_MARKS_EXPIRE);
         tag.remove(TAG_SA_WINDOW);
         tag.putLong(TAG_COOLDOWN_UNTIL, now + COOLDOWN_TICKS);
 
         ServerLevel level = player.serverLevel();
-        int count = marks * 2;
+        int count = marks * SWORDS_PER_MARK;
+        double totalDamage = Math.min(triggeringDamage * DAMAGE_RATIO_PER_MARK * marks,
+                DAMAGE_CAP_PER_MARK * marks);
+        boolean mirrored = SoulResonance.isFormed(blade,
+                SoulResonance.Resonance.MIRROR_BLOSSOM)
+                && StyleResolver.resolve(blade) == BladeStyle.RENGEKI;
+        boolean thunder = SoulResonance.isFormed(blade,
+                SoulResonance.Resonance.THUNDER_BLOSSOM);
+        float lightningBudget = thunder ? (float) (totalDamage * 0.20D) : 0.0F;
+        totalDamage -= lightningBudget;
+        int waves = mirrored ? 2 : 1;
+        double swordDamage = totalDamage / (count * waves);
         Vec3 center = target.getBoundingBox().getCenter();
-        for (int index = 0; index < count; index++) {
-            double angle = Math.PI * 2.0D * index / count;
-            Vec3 start = center.add(
-                    Math.cos(angle) * 2.1D,
-                    3.6D + index * 0.18D,
-                    Math.sin(angle) * 2.1D);
-            Vec3 direction = center.subtract(start).normalize();
-            EntityAbstractSummonedSword sword =
-                    new EntityAbstractSummonedSword(
-                            SlashBlade.RegistryEvents.SummonedSword,
-                            level);
-            sword.setPos(start.x, start.y, start.z);
-            sword.setDamage(SWORD_DAMAGE);
-            sword.setOwner(player);
-            sword.setShooter(player);
-            sword.setColor(SWORD_COLOR);
-            sword.setRoll(index * (360.0F / count));
-            sword.setDelay(index * 2);
-            sword.shoot(
-                    direction.x,
-                    direction.y,
-                    direction.z,
-                    2.35F,
-                    0.0F);
-            level.addFreshEntity(sword);
+        PENDING_VOLLEYS.add(new PendingPetalVolley(level.dimension().location(),
+                player.getUUID(), target.getUUID(), center, count, swordDamage, now,
+                false, lightningBudget));
+        if (mirrored) {
+            PENDING_VOLLEYS.add(new PendingPetalVolley(level.dimension().location(),
+                    player.getUUID(), target.getUUID(), center, count, swordDamage,
+                    now + 12L, true, 0.0F));
         }
         level.sendParticles(
                 ParticleTypes.CHERRY_LEAVES,
@@ -361,6 +407,135 @@ public final class SenbonzakuraAwakening {
                 SoundSource.PLAYERS,
                 0.75F,
                 1.55F);
+    }
+
+    private static void tickPetalVolleys(MinecraftServer server) {
+        Iterator<PendingPetalVolley> iterator = PENDING_VOLLEYS.iterator();
+        while (iterator.hasNext()) {
+            PendingPetalVolley volley = iterator.next();
+            ServerLevel level = null;
+            for (ServerLevel candidate : server.getAllLevels()) {
+                if (candidate.dimension().location().equals(volley.dimension)) {
+                    level = candidate;
+                    break;
+                }
+            }
+            if (level == null) {
+                iterator.remove();
+                continue;
+            }
+            long now = level.getGameTime();
+            if (now < volley.nextTick) continue;
+            ServerPlayer player = server.getPlayerList().getPlayer(volley.attackerId);
+            if (player == null || player.level() != level || volley.nextIndex >= volley.count) {
+                iterator.remove();
+                continue;
+            }
+            LivingEntity target = resolveVolleyTarget(level, player, volley);
+            if (target == null) {
+                iterator.remove();
+                continue;
+            }
+            spawnPetalSword(level, player, target, volley);
+            volley.nextIndex++;
+            volley.nextTick = now + 2L;
+            if (volley.nextIndex >= volley.count) {
+                if (volley.lightningBudget > 0.0F) {
+                    RaikiriChainHandler.resonanceDischarge(level, player, target,
+                            volley.lightningBudget, 3, true);
+                }
+                iterator.remove();
+            }
+        }
+    }
+
+    private static LivingEntity resolveVolleyTarget(ServerLevel level,
+            ServerPlayer player, PendingPetalVolley volley) {
+        Entity original = level.getEntity(volley.originalTargetId);
+        if (original instanceof LivingEntity living && living.isAlive()
+                && !player.isAlliedTo(living)) return living;
+        return level.getEntitiesOfClass(LivingEntity.class,
+                        new AABB(volley.origin, volley.origin).inflate(8.0D),
+                        entity -> entity instanceof Enemy && entity.isAlive()
+                                && !player.isAlliedTo(entity))
+                .stream()
+                .min(Comparator.comparingDouble(entity -> entity.distanceToSqr(volley.origin)))
+                .orElse(null);
+    }
+
+    private static void spawnPetalSword(ServerLevel level, ServerPlayer player,
+            LivingEntity target, PendingPetalVolley volley) {
+        Vec3 center = target.getBoundingBox().getCenter();
+        volley.origin = center;
+        double angle = Math.PI * 2.0D * volley.nextIndex / volley.count;
+        if (volley.mirrored) angle = -angle + Math.PI / volley.count;
+        Vec3 start = center.add(Math.cos(angle) * 2.35D,
+                3.4D + volley.nextIndex % 4 * 0.24D,
+                Math.sin(angle) * 2.35D);
+        Vec3 direction = center.subtract(start).normalize();
+        EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
+                SlashBlade.RegistryEvents.SummonedSword, level);
+        sword.setPos(start.x, start.y, start.z);
+        sword.setDamage(volley.swordDamage);
+        sword.setOwner(player);
+        sword.setShooter(player);
+        SoulLegacyDamageGuard.markSecondary(sword);
+        sword.setColor(volley.mirrored ? 0xC8F1FF : SWORD_COLOR);
+        sword.setRoll(volley.nextIndex * (360.0F / volley.count));
+        sword.setDelay(0);
+        sword.shoot(direction.x, direction.y, direction.z, 2.35F, 0.0F);
+        level.addFreshEntity(sword);
+    }
+
+    /** Uses a share of a reflected cut's damage to express Kyouka's petal echo. */
+    public static void releaseMirrorPetals(ServerPlayer player, LivingEntity target,
+            float damageBudget) {
+        if (damageBudget <= 0.0F || !SoulResonance.isFormed(player.getMainHandItem(),
+                SoulResonance.Resonance.MIRROR_BLOSSOM)) return;
+        ServerLevel level = player.serverLevel();
+        Vec3 center = target.getBoundingBox().getCenter();
+        int count = SWORDS_PER_MARK;
+        PENDING_VOLLEYS.add(new PendingPetalVolley(level.dimension().location(),
+                player.getUUID(), target.getUUID(), center, count,
+                damageBudget / count, level.getGameTime() + 4L,
+                true, 0.0F));
+        level.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                center.x, center.y, center.z, 16, 0.65D, 0.7D, 0.65D, 0.025D);
+    }
+
+    /** Consumes existing marks to shorten, rather than strengthen, Final Moon. */
+    public static int consumeMarksForFinalMoon(ItemStack blade, long now) {
+        int marks = petalMarks(blade);
+        if (marks <= 0) return 0;
+        CompoundTag tag = blade.getOrCreateTag();
+        tag.putInt(TAG_PETAL_MARKS, 0);
+        tag.putInt(TAG_PETAL_HITS, 0);
+        tag.remove(TAG_MARKS_EXPIRE);
+        tag.remove(TAG_SA_WINDOW);
+        tag.putLong(TAG_COOLDOWN_UNTIL, now + COOLDOWN_TICKS);
+        return marks;
+    }
+
+    private static void addPetalMark(ServerPlayer player, ItemStack blade, long now) {
+        CompoundTag tag = blade.getOrCreateTag();
+        int previous = petalMarks(blade);
+        int marks = Math.min(MAX_MARKS, previous + 1);
+        tag.putLong(TAG_MARKS_EXPIRE, now + MARK_LIFETIME_TICKS);
+        if (marks == previous) return;
+        tag.putInt(TAG_PETAL_MARKS, marks);
+        player.displayClientMessage(Component.translatable(
+                        "message.blade_tetra.senbonzakura.mark", marks, MAX_MARKS)
+                .withStyle(ChatFormatting.LIGHT_PURPLE), true);
+    }
+
+    private static void expirePetalMarks(ItemStack blade, long now) {
+        CompoundTag tag = blade.getTag();
+        if (tag == null || petalMarks(blade) <= 0
+                || tag.getLong(TAG_MARKS_EXPIRE) >= now) return;
+        tag.putInt(TAG_PETAL_MARKS, 0);
+        tag.putInt(TAG_PETAL_HITS, 0);
+        tag.remove(TAG_MARKS_EXPIRE);
+        tag.remove(TAG_SA_WINDOW);
     }
 
     private static boolean isRitualEnvironment(ServerPlayer player) {
@@ -391,6 +566,7 @@ public final class SenbonzakuraAwakening {
         }
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         blade.getOrCreateTag().putInt(TAG_PETAL_MARKS, MAX_MARKS);
+        blade.getOrCreateTag().putLong(TAG_MARKS_EXPIRE, Long.MAX_VALUE);
         clearRitualProgress(blade);
         return true;
     }
@@ -403,6 +579,7 @@ public final class SenbonzakuraAwakening {
         tag.remove(TAG_UNLOCKED);
         tag.remove(TAG_PETAL_HITS);
         tag.remove(TAG_PETAL_MARKS);
+        tag.remove(TAG_MARKS_EXPIRE);
         tag.remove(TAG_SA_WINDOW);
         tag.remove(TAG_COOLDOWN_UNTIL);
         clearRitualProgress(blade);
@@ -439,6 +616,34 @@ public final class SenbonzakuraAwakening {
 
     private static ResourceLocation id(String path) {
         return ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID, path);
+    }
+
+    private static final class PendingPetalVolley {
+        final ResourceLocation dimension;
+        final UUID attackerId;
+        final UUID originalTargetId;
+        Vec3 origin;
+        final int count;
+        final double swordDamage;
+        final boolean mirrored;
+        final float lightningBudget;
+        int nextIndex;
+        long nextTick;
+
+        PendingPetalVolley(ResourceLocation dimension, UUID attackerId,
+                UUID originalTargetId, Vec3 origin, int count,
+                double swordDamage, long nextTick, boolean mirrored,
+                float lightningBudget) {
+            this.dimension = dimension;
+            this.attackerId = attackerId;
+            this.originalTargetId = originalTargetId;
+            this.origin = origin;
+            this.count = count;
+            this.swordDamage = swordDamage;
+            this.nextTick = nextTick;
+            this.mirrored = mirrored;
+            this.lightningBudget = lightningBudget;
+        }
     }
 
     private SenbonzakuraAwakening() {

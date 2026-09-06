@@ -1,6 +1,8 @@
 {
   "key": "signalum",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6,
   "secondary": 3.6,
   "tertiary": 4.2,

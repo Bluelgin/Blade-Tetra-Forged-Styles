@@ -1,6 +1,8 @@
 {
   "key": "manasteel",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6,
   "secondary": 3.8,
   "tertiary": 4.3,

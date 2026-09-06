@@ -1,6 +1,8 @@
 {
   "key": "enderium",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 7,
   "secondary": 5.4,
   "tertiary": 3.7,

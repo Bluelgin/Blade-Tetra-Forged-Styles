@@ -1,0 +1,26 @@
+{
+  "key": "ironwood",
+  "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
+  "primary": 5.8,
+  "secondary": 4.2,
+  "tertiary": 2,
+  "durability": 650,
+  "integrityCost": 2,
+  "integrityGain": 6,
+  "magicCapacity": 100,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 7,
+  "tints": {
+    "glyph": "D7C58A",
+    "texture": "8A7246"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/ironwood"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

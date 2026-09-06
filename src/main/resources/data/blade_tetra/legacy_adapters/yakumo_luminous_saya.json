@@ -1,0 +1,9 @@
+{
+  "models": [
+    "yakumoblade:model/maker_sword/dark_raven.obj"
+  ],
+  "blade_groups": ["blade"],
+  "hilt_groups": [],
+  "saya_groups": ["sheath_luminous"],
+  "axis": "x"
+}

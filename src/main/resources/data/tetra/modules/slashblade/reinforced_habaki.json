@@ -4,7 +4,7 @@
   "type": "tetra:basic_module",
   "variants": [
     {
-      "materials": [ "tetra:metal/" ],
+      "materials": [ "tetra:metal/", "tetra:wood/potato" ],
       "key": "reinforced_habaki/",
       "attributes": {
         "generic.attack_speed": -0.03

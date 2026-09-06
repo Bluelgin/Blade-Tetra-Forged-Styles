@@ -1,0 +1,24 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 96, "textureY": 16, "tint": "6388AF" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "tetra:locked", "key": "tetra:slashblade/technique/flying_swallow" },
+      { "type": "tetra:not", "requirement": { "type": "tetra:improvement", "improvement": "blade_tetra/technique/flying_swallow" } },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/technique/flying_swallow" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:phantom_membrane" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/technique/flying_swallow": 1 }
+    }
+  ]
+}

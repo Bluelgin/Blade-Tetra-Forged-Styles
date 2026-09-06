@@ -1,0 +1,9 @@
+{
+  "models": [
+    "slashblade_addon:model/kirisaya/kirisaya.obj"
+  ],
+  "blade_groups": ["blade_luminous"],
+  "hilt_groups": [],
+  "saya_groups": ["sheath", "sheath_luminous"],
+  "axis": "x"
+}

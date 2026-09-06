@@ -1,0 +1,16 @@
+{
+  "type": "blade_tetra:mirror_realm",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "minecraft:plains",
+      "lakes": false,
+      "features": false,
+      "layers": [
+        { "height": 127, "block": "minecraft:air" },
+        { "height": 1, "block": "minecraft:ice" }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

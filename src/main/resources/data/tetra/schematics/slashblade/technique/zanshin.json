@@ -1,0 +1,24 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 128, "textureY": 16, "tint": "796B97" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "tetra:locked", "key": "tetra:slashblade/technique/zanshin" },
+      { "type": "tetra:not", "requirement": { "type": "tetra:improvement", "improvement": "blade_tetra/technique/zanshin" } },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/technique/zanshin" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:amethyst_shard" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/technique/zanshin": 1 }
+    }
+  ]
+}

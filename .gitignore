@@ -4,6 +4,7 @@ out/
 run/
 run-data/
 .idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
@@ -16,11 +17,15 @@ crash-reports/
 release/
 optional-model-packs/
 HANDOFF.md
-META-INF/
+/META-INF/
 
 # Working art and local asset-generation tools are not build inputs
 art/
+art_previews/
+concepts/
 tools/
+tmp/
+audio-pack/
 
 # Generated and local files
 *.log

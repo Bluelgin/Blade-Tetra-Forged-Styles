@@ -1,6 +1,8 @@
 {
   "key": "zinc",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 4,
   "secondary": 3.2,
   "tertiary": 3.8,

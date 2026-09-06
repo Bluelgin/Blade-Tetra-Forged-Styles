@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " SP",
+    "SES",
+    "PS "
+  ],
+  "key": {
+    "S": { "item": "minecraft:paper" },
+    "P": { "item": "slashblade:proudsoul" },
+    "E": { "item": "minecraft:ender_pearl" }
+  },
+  "result": {
+    "item": "blade_tetra:boundary_gate_charm"
+  }
+}

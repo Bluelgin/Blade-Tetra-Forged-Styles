@@ -21,6 +21,15 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('legacySmokeTest')) {
+                def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
+                        ? '-sjap-yakumo'
+                        : project.hasProperty('sjapTest') ? '-sjap'
+                        : project.hasProperty('yakumoTest') ? '-yakumo' : '-base'
+                if (project.hasProperty('mmtTest')) addonSuffix += '-tetra69'
+                workingDirectory project.file("build/legacy-smoke${addonSuffix}")
+                property 'blade_tetra.legacySmoke', 'true'
+            }
             property 'forge.logging.console.level', 'info'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile',
@@ -64,7 +73,7 @@ repositories {
     // Optional sibling workspace used only by -PcontractBladeTest launches.
     // Keeping this repository declaration inert preserves normal release builds.
     flatDir {
-        dirs '../Little maid/libs', '../Little maid/build/libs'
+        dirs '../Little maid/libs', '../Little maid/build/libs', 'run/test-libs', 'build/addon-audit'
     }
     maven {
         name = 'CurseMaven'
@@ -81,16 +90,43 @@ repositories {
         name = "KosmX's maven"
         url = 'https://maven.kosmx.dev/'
     }
+    // Official Re:Avaritia repository. The dependency itself is only enabled
+    // for explicit -PavaritiaTest development launches below.
+    maven {
+        name = 'NovaCommittee'
+        url = 'https://maven.nova-committee.cn/releases'
+        content {
+            includeGroup 'committee.nova.mods'
+        }
+    }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    implementation fg.deobf("curse.maven:tetra-289712:${tetra_file_id}")
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation fg.deobf(project.hasProperty('mmtTest')
+            ? "local:tetra:1.20.1-6.9.0"
+            : "curse.maven:tetra-289712:${tetra_file_id}")
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
     implementation fg.deobf(
             "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
+
+    // Compile against JEI's stable API only. The plugin is discovered when JEI
+    // is present, while Blade Tetra remains fully usable without JEI installed.
+    compileOnly fg.deobf(
+            "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    compileOnly fg.deobf(
+            "mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
+
+    // Optional local profile for verifying JEI integration in the userdev client.
+    if (project.hasProperty('jeiTest')) {
+        runtimeOnly fg.deobf(
+                "mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    }
 
     // Local combat testing only. These are remapped for the userdev runtime and
     // are not bundled into Blade Tetra or declared as release dependencies.
@@ -104,8 +140,80 @@ dependencies {
     // the mixin field-name failure caused by copying them directly into run/mods.
     if (project.hasProperty('contractBladeTest')) {
         runtimeOnly fg.deobf("local:touhoulittlemaid:1.5.3-forge+mc1.20.1")
-        runtimeOnly fg.deobf("local:contract-blade-forge-1.20.1:0.1.0-beta.8")
+        runtimeOnly fg.deobf("local:contract-blade-forge-1.20.1:1.0.0")
     }
+
+    // Storage/NBT pressure-test profile. These mods exist only in the userdev
+    // runtime and are never bundled or exposed as release dependencies.
+    if (project.hasProperty('storageStressTest')) {
+        runtimeOnly fg.deobf("local:guideme:20.1.14")
+        runtimeOnly fg.deobf("curse.maven:applied-energistics-2-223794:7096071")
+        runtimeOnly fg.deobf("curse.maven:refined-storage-243076:4844585")
+        runtimeOnly fg.deobf("curse.maven:beyond-dimensions-1222890:8463869")
+    }
+
+    // Optional Infinity-material integration test profile. Re:Avaritia is
+    // remapped into the Forge userdev runtime, but is never bundled into the
+    // release jar or declared as a mandatory dependency for players.
+    if (project.hasProperty('avaritiaTest')) {
+        runtimeOnly fg.deobf(
+                "committee.nova.mods:avaritia-forge:1.20.1-1.4.0-release")
+    }
+
+    // Recommended material-provider integration test profile. MMT and Curios
+    // are present only in the userdev runtime; neither is bundled into Blade
+    // Tetra and all material stats remain owned by the provider.
+    if (project.hasProperty('mmtTest')) {
+        runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
+        runtimeOnly fg.deobf(
+                "curse.maven:more-mod-tetra-1311159:7867317")
+    }
+
+    // Named-blade addon discovery profiles. These are inspection/smoke-test
+    // inputs only: addon jars are never bundled and remain optional at runtime.
+    if (project.hasProperty('sjapTest')) {
+        runtimeOnly fg.deobf("curse.maven:sjap-310187:7039817")
+    }
+    if (project.hasProperty('yakumoTest')) {
+        // CurseForge disables third-party Maven delivery for this project, so
+        // the locally audited production jar is used by the opt-in profile.
+        runtimeOnly fg.deobf("local:Yakumoblade:1.1.4-1.20.1_Forge")
+    }
+
+    // Larger material-compatibility test pack. Twilight Forest is resolved
+    // from the local test library, while Goety uses the already-remapped local
+    // development cache. Neither large jar is ever bundled with this project.
+    if (project.hasProperty('materialPackTest')) {
+        runtimeOnly fg.deobf(
+                "local:twilightforest:1.20.1-4.3.2508-universal")
+        runtimeOnly files(new File(gradle.gradleUserHomeDir,
+                'caches/forge_gradle/deobf_dependencies/compat/goety/' +
+                '2.5.55.4_mapped_official_1.20.1/' +
+                'goety-2.5.55.4_mapped_official_1.20.1.jar'))
+    }
+
+    // Cataclysm visual-material test profile. The jars are kept in the ignored
+    // local test library and are never bundled into or required by releases.
+    if (project.hasProperty('cataclysmTest')) {
+        runtimeOnly fg.deobf("local:lionfishapi:3.0")
+        runtimeOnly fg.deobf("local:L_Enders_Cataclysm:3.31")
+    }
+
+    // Optional large-mod compatibility profile used only by the local
+    // userdev client. Production jars are remapped by ForgeGradle instead of
+    // being copied into run/mods, which keeps their mixins compatible with the
+    // named development runtime. None of these become release dependencies.
+    if (project.hasProperty('largeCompatTest')) {
+        runtimeOnly fg.deobf("local:citadel:2.6.3-1.20.1")
+        runtimeOnly fg.deobf("local:iceandfire:2.1.13-1.20.1-beta-5")
+        runtimeOnly fg.deobf("local:goety:2.5.56.0")
+        runtimeOnly fg.deobf("local:EndingLibrary:1.20.1-2.1.19fix-all")
+        runtimeOnly fg.deobf("local:GoetyRevelation:2.3.3fix")
+    }
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 tasks.named('processResources', ProcessResources).configure {

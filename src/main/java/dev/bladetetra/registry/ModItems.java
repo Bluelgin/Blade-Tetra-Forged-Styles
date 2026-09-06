@@ -3,9 +3,14 @@ package dev.bladetetra.registry;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.LegacyDebugTalismanItem;
+import dev.bladetetra.item.LegacyImprintScrollItem;
 import dev.bladetetra.item.SayaPatternItem;
 import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
+import dev.bladetetra.challenge.BrokenOniMaskItem;
+import dev.bladetetra.challenge.BoundaryGateCharmItem;
+import dev.bladetetra.challenge.SwordGhostRemnantItem;
+import dev.bladetetra.forging.ForgingScrolls;
 import dev.bladetetra.lore.SmithingLore;
 import dev.bladetetra.visual.SayaPresetSkin;
 import net.minecraft.core.registries.Registries;
@@ -31,6 +36,12 @@ public final class ModItems {
     public static final RegistryObject<Item> SAKURA_SOUL_CRYSTAL =
             ITEMS.register("sakura_soul_crystal", () -> new Item(
                     new Item.Properties().rarity(Rarity.RARE)));
+    public static final RegistryObject<BoundaryGateCharmItem> BOUNDARY_GATE_CHARM =
+            ITEMS.register("boundary_gate_charm", BoundaryGateCharmItem::new);
+    public static final RegistryObject<SwordGhostRemnantItem> SWORD_GHOST_REMNANT =
+            ITEMS.register("sword_ghost_remnant", SwordGhostRemnantItem::new);
+    public static final RegistryObject<BrokenOniMaskItem> BROKEN_ONI_MASK =
+            ITEMS.register("broken_oni_mask", BrokenOniMaskItem::new);
     public static final RegistryObject<LegacyDebugTalismanItem>
             LEGACY_DEBUG_TALISMAN = ITEMS.register(
                     "legacy_debug_talisman",
@@ -39,6 +50,8 @@ public final class ModItems {
             ITEMS.register("smithing_clue", SmithingClueItem::new);
     public static final RegistryObject<SmithingJournalItem> SMITHING_JOURNAL =
             ITEMS.register("smithing_journal", SmithingJournalItem::new);
+    public static final RegistryObject<LegacyImprintScrollItem> LEGACY_IMPRINT_SCROLL =
+            ITEMS.register("legacy_imprint_scroll", LegacyImprintScrollItem::new);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_BLACK_GOLD =
             registerSayaPattern("saya_pattern_black_gold", SayaPresetSkin.BLACK_GOLD);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_VERMILION_CLOUD =
@@ -66,7 +79,20 @@ public final class ModItems {
                         output.accept(MODULAR_SLASHBLADE.get().createDefaultStack());
                         output.accept(BLOOD_CRYSTAL.get());
                         output.accept(SAKURA_SOUL_CRYSTAL.get());
+                        output.accept(BOUNDARY_GATE_CHARM.get());
+                        output.accept(SWORD_GHOST_REMNANT.get());
+                        output.accept(BROKEN_ONI_MASK.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
+                        output.accept(LEGACY_IMPRINT_SCROLL.get());
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.ASSEMBLY));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.WIND_CUT));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.FLYING_SWALLOW));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.FULL_MOON));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.ZANSHIN));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.BLACK_FOX));
+                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.WHITE_FOX));
                         SmithingLore.CLUES.forEach(clue ->
                                 output.accept(SmithingClueItem.create(clue)));
                         output.accept(SAYA_PATTERN_BLACK_GOLD.get());

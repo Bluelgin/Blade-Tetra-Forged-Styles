@@ -1,6 +1,8 @@
 {
   "key": "silver",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 5.3,
   "secondary": 3.4,
   "tertiary": 3.1,

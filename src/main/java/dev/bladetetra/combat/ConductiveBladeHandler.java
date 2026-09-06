@@ -1,7 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
-import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
+import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.visual.MaterialAppearance;
@@ -96,6 +96,9 @@ public final class ConductiveBladeHandler {
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
         ItemStack blade = event.getBlade();
+        // Awakened Raikiri uses its deterministic chain circuit instead of the
+        // ordinary conductive blade's random thunderstorm strike.
+        if (SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.RAIKIRI)) return;
         if (event.getUser().level().isClientSide()
                 || !(event.getUser().level() instanceof ServerLevel level)
                 || !GameplayConfig.ENABLE_OFFENSIVE_LIGHTNING.get()
@@ -109,11 +112,9 @@ public final class ConductiveBladeHandler {
         long now = level.getGameTime();
         if (blade.getOrCreateTag().getLong(STRIKE_COOLDOWN) > now) return;
 
-        double chance = BladeLegacyEasterEggs.isRaikiriUnlocked(blade)
-                ? GameplayConfig.RAIKIRI_OFFENSIVE_CHANCE.get()
-                : Math.min(
-                        GameplayConfig.OFFENSIVE_CHANCE_CAP.get(),
-                        score * GameplayConfig.OFFENSIVE_CHANCE_PER_POINT.get());
+        double chance = Math.min(
+                GameplayConfig.OFFENSIVE_CHANCE_CAP.get(),
+                score * GameplayConfig.OFFENSIVE_CHANCE_PER_POINT.get());
         if (event.getUser().getRandom().nextDouble() >= chance) return;
 
         LightningBolt visualBolt = EntityType.LIGHTNING_BOLT.create(level);

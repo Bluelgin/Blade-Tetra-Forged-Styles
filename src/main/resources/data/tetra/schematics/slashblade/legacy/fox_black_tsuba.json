@@ -1,0 +1,8 @@
+{
+  "replace": true, "slots": [ "slashblade/tsuba" ], "materialSlotCount": 1,
+  "displayType": "minor", "glyph": { "textureX": 32, "textureY": 112, "tint": "433746" },
+  "requirement": { "type": "tetra:locked", "key": "tetra:slashblade/legacy/fox_black_tsuba" },
+  "outcomes": [ { "material": { "items": [ "minecraft:obsidian" ] },
+    "requiredTools": { "hammer_dig": "minecraft:diamond" },
+    "moduleKey": "slashblade/fox_tsuba", "moduleVariant": "fox_tsuba/black" } ]
+}

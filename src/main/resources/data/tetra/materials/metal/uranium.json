@@ -1,6 +1,8 @@
 {
   "key": "uranium",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.2,
   "secondary": 6.2,
   "tertiary": 1.8,

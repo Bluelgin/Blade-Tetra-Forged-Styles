@@ -62,7 +62,7 @@ public final class AkatsukiAwakening {
     }
 
     public static boolean isActive(ItemStack stack) {
-        return isUnlocked(stack) && isCandidate(stack) && !isBroken(stack);
+        return SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.AKATSUKI);
     }
 
     public static boolean prepareForDebug(ItemStack stack) {
@@ -92,6 +92,8 @@ public final class AkatsukiAwakening {
         if (isActive(stack)) {
             tooltip.add(Component.translatable("tooltip.blade_tetra.akatsuki.awakened")
                     .withStyle(ChatFormatting.DARK_RED));
+            tooltip.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution")
+                    .withStyle(ChatFormatting.RED));
             if (ContractBladeCompat.hasAkatsuki(stack)) {
                 tooltip.add(Component.translatable(
                                 "tooltip.blade_tetra.akatsuki.spirit_bound")

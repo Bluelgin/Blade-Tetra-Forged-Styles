@@ -1,6 +1,8 @@
 {
   "key": "tin",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 3.2,
   "secondary": 3,
   "tertiary": 4.2,

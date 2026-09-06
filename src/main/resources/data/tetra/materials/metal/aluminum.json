@@ -1,6 +1,8 @@
 {
   "key": "aluminum",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 4.2,
   "secondary": 2.2,
   "tertiary": 4.4,

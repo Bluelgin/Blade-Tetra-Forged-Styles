@@ -5,6 +5,7 @@ import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.KyoukaAwakening;
+import dev.bladetetra.easteregg.SoulLegacyState;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.item.ItemStack;
@@ -24,7 +25,7 @@ public final class MaterialSlashEffectResolver {
             return new SlashVisual(blend(materialColor, 0xBEEBFF, 0.52F),
                     ParticleTypes.END_ROD);
         }
-        if (BladeLegacyEasterEggs.isRaikiriUnlocked(stack)) {
+        if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.RAIKIRI)) {
             return new SlashVisual(0x9D8CFF, ParticleTypes.ELECTRIC_SPARK);
         }
         if (BladeLegacyEasterEggs.isBanshoUnlocked(stack)) {
@@ -49,6 +50,25 @@ public final class MaterialSlashEffectResolver {
     }
 
     static SlashVisual resolve(String material) {
+        SlashVisual adventureVisual = curatedAdventureVisual(material);
+        if (adventureVisual != null) {
+            return adventureVisual;
+        }
+        if (containsAny(material, "cursed_metal", "cursed_ingot")) {
+            return new SlashVisual(0xB27AE8, ParticleTypes.WITCH);
+        }
+        if (containsAny(material, "dark_alloy", "dark_ingot")) {
+            return new SlashVisual(0x765A9E, ParticleTypes.SOUL);
+        }
+        if (material.contains("steeleaf")) {
+            return new SlashVisual(0x9BCB63, ParticleTypes.HAPPY_VILLAGER);
+        }
+        if (material.contains("ironwood")) {
+            return new SlashVisual(0xC7B475, null);
+        }
+        if (material.contains("knightmetal")) {
+            return new SlashVisual(0xC5D0CA, null);
+        }
         if (containsAny(material, "dragonsteel_fire", "blaze", "fiery", "signalum")) {
             return new SlashVisual(0xF06A32, ParticleTypes.FLAME);
         }
@@ -138,7 +158,69 @@ public final class MaterialSlashEffectResolver {
         if (containsAny(material, "steel", "iron", "forged_beam")) {
             return new SlashVisual(0xD1E0E6, null);
         }
+        TetraMaterialVisualResolver.MaterialVisual visual =
+                TetraMaterialVisualResolver.resolve(material);
+        if (visual != null) {
+            ParticleOptions particle = visual.kind()
+                    == TetraMaterialVisualResolver.MaterialKind.GEM
+                    ? ParticleTypes.END_ROD
+                    : null;
+            return new SlashVisual(
+                    blend(visual.color(), 0xFFFFFF, 0.14F), particle);
+        }
         return new SlashVisual(generatedColor(material), null);
+    }
+
+    private static SlashVisual curatedAdventureVisual(String material) {
+        if (containsAny(material, "gobber_end", "gobber2_end")) {
+            return new SlashVisual(0x61F4D2, ParticleTypes.PORTAL);
+        }
+        if (containsAny(material, "gobber_nether", "gobber2_nether")) {
+            return new SlashVisual(0xF05A2A, ParticleTypes.FLAME);
+        }
+        if (containsAny(material, "gobber", "gobber2_ingot")) {
+            return new SlashVisual(0x8DE4FF, ParticleTypes.END_ROD);
+        }
+        if (containsAny(
+                material,
+                "dark_metal_ingot",
+                "armor_plate_from_dark_metal")) {
+            return new SlashVisual(0xD34D46, ParticleTypes.CRIMSON_SPORE);
+        }
+        if (material.contains("ghost_steel")) {
+            return new SlashVisual(0x9CFFE8, ParticleTypes.SOUL_FIRE_FLAME);
+        }
+        if (material.contains("immortal_ingot")) {
+            return new SlashVisual(0xD6D095, ParticleTypes.WITCH);
+        }
+        if (material.contains("ignitium")) {
+            return new SlashVisual(0xFF9D32, ParticleTypes.FLAME);
+        }
+        if (material.contains("witherite")) {
+            return new SlashVisual(0xB1C98E, ParticleTypes.SOUL);
+        }
+        if (material.contains("cursium")) {
+            return new SlashVisual(0xBD82E8, ParticleTypes.WITCH);
+        }
+        if (containsAny(material, "storm_ingot", "cataclysm_storm")) {
+            return new SlashVisual(0x9CCBFF, ParticleTypes.ELECTRIC_SPARK);
+        }
+        if (containsAny(material, "abyssal_ingot", "cataclysm_abyssal")) {
+            return new SlashVisual(0x5278AE, ParticleTypes.REVERSE_PORTAL);
+        }
+        if (containsAny(
+                material,
+                "black_steel_ingot",
+                "cataclysm_black_steel")) {
+            return new SlashVisual(0x7D8794, ParticleTypes.ASH);
+        }
+        if (containsAny(
+                material,
+                "ancient_metal_ingot",
+                "cataclysm_ancient_metal")) {
+            return new SlashVisual(0xD5B27A, null);
+        }
+        return null;
     }
 
     public static int blendTowardWhite(int color, float amount) {

@@ -10,11 +10,20 @@
     "integrity": -1
   },
   "requirement": {
-    "type": "tetra:not",
-    "requirement": {
-      "type": "tetra:improvement",
-      "improvement": "blade_tetra/assembly/rigid"
-    }
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/finishing/rigid_assembly"
+      },
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/assembly/rigid"
+        }
+      }
+    ]
   },
   "outcomes": [
     {

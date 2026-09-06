@@ -1,0 +1,51 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "rarity": "temporary",
+  "preview": "applicable",
+  "glyph": {
+    "textureX": 176,
+    "textureY": 32,
+    "tint": "B71936"
+  },
+  "translation": {
+    "durability": 4,
+    "integrity": -1,
+    "magicCapacity": 3
+  },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/boundary_forging"
+      },
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/boundary_forging"
+        }
+      },
+      {
+        "type": "tetra:accepts_improvement",
+        "improvement": "blade_tetra/boundary_forging"
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [ "blade_tetra:sword_ghost_remnant" ]
+      },
+      "requiredTools": {
+        "hammer_dig": "tetra:maxed_forge_hammer"
+      },
+      "improvements": {
+        "blade_tetra/boundary_forging": 1
+      }
+    }
+  ]
+}

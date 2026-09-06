@@ -1,9 +1,12 @@
 package dev.bladetetra.item;
 
 import dev.bladetetra.combat.ComponentEffectResolver;
+import dev.bladetetra.combat.PotatoBladeHandler;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.SoulLegacyState;
+import dev.bladetetra.challenge.BoundaryForging;
 import dev.bladetetra.visual.MaterialAppearance;
+import dev.bladetetra.forging.FoxLegacyParts;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -26,6 +29,12 @@ public final class BladeNameResolver {
     private static final String TITLED_PATTERN = "name.blade_tetra.pattern.titled";
 
     public static Component resolve(ItemStack stack) {
+        if (BoundaryForging.isForged(stack)) {
+            return Component.translatable(SoulLegacyState.active(stack)
+                    == SoulLegacyState.Legacy.AKATSUKI
+                    ? "name.blade_tetra.akatsuki_boundary"
+                    : "name.blade_tetra.boundary_blade");
+        }
         switch (SoulLegacyState.active(stack)) {
             case AKATSUKI -> {
                 return Component.translatable("name.blade_tetra.akatsuki");
@@ -36,11 +45,28 @@ public final class BladeNameResolver {
             case SENBONZAKURA -> {
                 return Component.translatable("name.blade_tetra.senbonzakura");
             }
+            case RAIKIRI -> {
+                return Component.translatable("name.blade_tetra.raikiri");
+            }
             default -> {
             }
         }
-        if (BladeLegacyEasterEggs.isRaikiriUnlocked(stack)) {
-            return Component.translatable("name.blade_tetra.raikiri");
+        FoxLegacyParts.Color foxSet = FoxLegacyParts.fromStack(stack).completeSet();
+        if (foxSet == FoxLegacyParts.Color.BLACK) {
+            return Component.translatable("name.blade_tetra.legacy.fox_black");
+        }
+        if (foxSet == FoxLegacyParts.Color.WHITE) {
+            return Component.translatable("name.blade_tetra.legacy.fox_white");
+        }
+        var namedSet = dev.bladetetra.forging.NamedLegacyParts.fromStack(stack).completeSet();
+        if (namedSet != null)
+            return Component.translatable("name.blade_tetra.legacy.named",
+                    Component.translatable(namedSet.translationKey()));
+        boolean inheritedLegacy = BladeLegacyEasterEggs.isBanshoUnlocked(stack)
+                || BladeLegacyEasterEggs.isBairenUnlocked(stack)
+                || BladeLegacyEasterEggs.isShoshinUnlocked(stack);
+        if (!inheritedLegacy && PotatoBladeHandler.isPotatoBlade(stack)) {
+            return Component.translatable("name.blade_tetra.potato_blade");
         }
         CompoundTag tag = stack.getTag();
         if (tag == null || !tag.contains(ModularSlashBladeItem.BLADE_SLOT, Tag.TAG_STRING)) {
@@ -66,6 +92,8 @@ public final class BladeNameResolver {
 
     private static String resolveBladeType(CompoundTag tag) {
         return switch (tag.getString(ModularSlashBladeItem.BLADE_SLOT)) {
+            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE ->
+                    "name.blade_tetra.type.orthodox";
             case ModularSlashBladeItem.WAKIZASHI_MODULE ->
                     "name.blade_tetra.type.wakizashi";
             case ModularSlashBladeItem.NODACHI_MODULE ->

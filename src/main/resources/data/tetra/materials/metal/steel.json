@@ -1,6 +1,8 @@
 {
   "key": "steel",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.4,
   "secondary": 4.6,
   "tertiary": 2.7,

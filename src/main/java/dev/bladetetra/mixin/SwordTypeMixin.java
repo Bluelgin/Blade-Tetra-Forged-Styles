@@ -16,7 +16,7 @@ import java.util.EnumSet;
  *
  * <p>Resharped treats any enchanted, custom-named blade as bewitched. Modular
  * blades instead require their blade state to be explicitly marked as
- * default-bewitched, which is done by the awakened soul inscription. Existing
+ * default-bewitched, which is done by a proudsoul inscription. Existing
  * converted blades which already carry that state remain valid.</p>
  */
 @Mixin(value = SwordType.class, remap = false)

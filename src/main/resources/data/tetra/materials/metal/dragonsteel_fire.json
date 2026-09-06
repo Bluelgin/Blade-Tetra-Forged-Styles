@@ -1,6 +1,8 @@
 {
   "key": "dragonsteel_fire",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 10.2,
   "secondary": 5.6,
   "tertiary": 3,

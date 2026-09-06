@@ -1,0 +1,8 @@
+{
+  "replace": true, "slots": [ "slashblade/tsuba" ], "materialSlotCount": 1,
+  "displayType": "minor", "glyph": { "textureX": 32, "textureY": 112, "tint": "E9DEDA" },
+  "requirement": { "type": "tetra:locked", "key": "tetra:slashblade/legacy/fox_white_tsuba" },
+  "outcomes": [ { "material": { "items": [ "minecraft:quartz" ] },
+    "requiredTools": { "hammer_dig": "minecraft:diamond" },
+    "moduleKey": "slashblade/fox_tsuba", "moduleVariant": "fox_tsuba/white" } ]
+}

@@ -1,6 +1,8 @@
 {
   "key": "invar",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.1,
   "secondary": 5,
   "tertiary": 2.5,

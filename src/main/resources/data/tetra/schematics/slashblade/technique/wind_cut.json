@@ -1,0 +1,24 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 80, "textureY": 16, "tint": "6C9773" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "tetra:locked", "key": "tetra:slashblade/technique/wind_cut" },
+      { "type": "tetra:not", "requirement": { "type": "tetra:improvement", "improvement": "blade_tetra/technique/wind_cut" } },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/technique/wind_cut" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:feather" ] },
+      "requiredTools": { "hammer_dig": "minecraft:iron" },
+      "improvements": { "blade_tetra/technique/wind_cut": 1 }
+    }
+  ]
+}

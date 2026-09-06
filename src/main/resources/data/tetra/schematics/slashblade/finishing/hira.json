@@ -10,11 +10,20 @@
     "integrity": -1
   },
   "requirement": {
-    "type": "tetra:not",
-    "requirement": {
-      "type": "tetra:improvement",
-      "improvement": "blade_tetra/edge/hira"
-    }
+    "type": "tetra:and",
+    "requirements": [
+      {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/finishing/hira"
+      },
+      {
+        "type": "tetra:not",
+        "requirement": {
+          "type": "tetra:improvement",
+          "improvement": "blade_tetra/edge/hira"
+        }
+      }
+    ]
   },
   "outcomes": [
     {

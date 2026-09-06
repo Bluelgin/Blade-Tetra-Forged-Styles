@@ -1,0 +1,14 @@
+{
+  "replace": true,
+  "localizationKey": "slashblade/soul_fusion/kyouka_senbonzakura",
+  "slots": [ "slashblade/inscription" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "preview": "applicable",
+  "glyph": { "textureX": 40, "textureY": 112, "tint": "B9B2E8" },
+  "translation": { "integrity": -1 },
+  "requirement": { "type": "blade_tetra:soul_fusion", "host": "kyouka", "partner": "senbonzakura" },
+  "outcomes": [
+    { "material": { "items": [ "blade_tetra:sakura_soul_crystal" ] }, "requiredTools": { "hammer_dig": "minecraft:diamond" }, "moduleKey": "slashblade/awakened_soul_inscription", "moduleVariant": "awakened_soul_inscription/kyouka_senbonzakura" }
+  ]
+}

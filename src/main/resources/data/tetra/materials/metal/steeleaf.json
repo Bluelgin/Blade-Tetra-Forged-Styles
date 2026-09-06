@@ -1,0 +1,26 @@
+{
+  "key": "steeleaf",
+  "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
+  "primary": 6.8,
+  "secondary": 3.8,
+  "tertiary": 2,
+  "durability": 300,
+  "integrityCost": 2,
+  "integrityGain": 5,
+  "magicCapacity": 120,
+  "toolLevel": "minecraft:diamond",
+  "toolEfficiency": 8,
+  "tints": {
+    "glyph": "BBDD78",
+    "texture": "54733A"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/steeleaf"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:iron"
+  }
+}

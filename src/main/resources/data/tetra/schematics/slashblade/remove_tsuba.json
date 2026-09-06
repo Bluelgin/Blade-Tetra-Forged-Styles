@@ -1,0 +1,25 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuba" ],
+  "materialSlotCount": 0,
+  "displayType": "minor",
+  "preview": "applicable",
+  "glyph": {
+    "textureX": 8,
+    "textureY": 112,
+    "tint": "9A8F83"
+  },
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:module",
+      "module": "slashblade/tsubaless"
+    }
+  },
+  "outcomes": [
+    {
+      "moduleKey": "slashblade/tsubaless",
+      "moduleVariant": "tsubaless/none"
+    }
+  ]
+}

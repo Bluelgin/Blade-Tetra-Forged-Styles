@@ -14,6 +14,10 @@
     "type": "tetra:and",
     "requirements": [
       {
+        "type": "tetra:locked",
+        "key": "tetra:slashblade/forging/shihozume"
+      },
+      {
         "type": "tetra:not",
         "requirement": {
           "type": "tetra:improvement",

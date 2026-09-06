@@ -17,6 +17,7 @@ public final class StyleResolver {
         }
 
         return switch (tag.getString(ModularSlashBladeItem.BLADE_SLOT)) {
+            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE -> BladeStyle.STANDARD;
             case ModularSlashBladeItem.BLADE_MODULE -> BladeStyle.IAIDO;
             case ModularSlashBladeItem.WAKIZASHI_MODULE -> BladeStyle.RENGEKI;
             case ModularSlashBladeItem.NODACHI_MODULE -> BladeStyle.DANGAKU;

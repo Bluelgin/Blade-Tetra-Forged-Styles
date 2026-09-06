@@ -1,6 +1,8 @@
 {
   "key": "ghost_ingot",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 7.6,
   "secondary": 2.4,
   "tertiary": 5.5,

@@ -1,0 +1,14 @@
+[
+  {
+    "key": "blade_tetra/boundary_forging",
+    "level": 1,
+    "integrity": -1,
+    "durabilityMultiplier": 1.12,
+    "attributes": {
+      "generic.attack_damage": 0.75
+    },
+    "effects": {
+      "criticalStrike": 1
+    }
+  }
+]

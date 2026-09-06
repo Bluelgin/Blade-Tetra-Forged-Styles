@@ -1,0 +1,14 @@
+{
+  "replace": true,
+  "localizationKey": "slashblade/soul_fusion/akatsuki_raikiri",
+  "slots": [ "slashblade/inscription" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "preview": "applicable",
+  "glyph": { "textureX": 40, "textureY": 112, "tint": "A9478C" },
+  "translation": { "integrity": -1 },
+  "requirement": { "type": "blade_tetra:soul_fusion", "host": "raikiri", "partner": "akatsuki" },
+  "outcomes": [
+    { "material": { "items": [ "blade_tetra:blood_crystal" ] }, "requiredTools": { "hammer_dig": "minecraft:diamond" }, "moduleKey": "slashblade/awakened_soul_inscription", "moduleVariant": "awakened_soul_inscription/akatsuki_raikiri" }
+  ]
+}

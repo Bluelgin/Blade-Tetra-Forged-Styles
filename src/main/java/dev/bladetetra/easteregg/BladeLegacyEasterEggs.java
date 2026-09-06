@@ -232,9 +232,12 @@ public final class BladeLegacyEasterEggs {
                     .withStyle(ChatFormatting.GOLD));
         }
 
-        if (isRaikiriUnlocked(stack)) {
+        if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.RAIKIRI)) {
             tooltip.add(Component.translatable("tooltip.blade_tetra.raikiri.unlocked")
                     .withStyle(ChatFormatting.AQUA));
+        } else if (isRaikiriUnlocked(stack)) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.raikiri.dormant")
+                    .withStyle(ChatFormatting.DARK_AQUA));
         }
 
         if (isShoshinUnlocked(stack)) {
@@ -381,7 +384,9 @@ public final class BladeLegacyEasterEggs {
         return stack.getItem() instanceof ModularSlashBladeItem
                 && SayaPresetSkin.fromStack(stack)
                         == SayaPresetSkin.PURPLE_LIGHTNING
-                && ConductiveBladeHandler.conductivityScore(stack) > 0;
+                && ConductiveBladeHandler.conductivityScore(stack) > 0
+                && SoulLegacyState.hasSingleInscription(
+                        stack, SoulLegacyState.Legacy.RAIKIRI);
     }
 
     private static boolean isShoshinCandidate(ItemStack stack) {

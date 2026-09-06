@@ -23,6 +23,16 @@ public final class ForgingImprovements {
     public static final String RIGID_ASSEMBLY = "blade_tetra/assembly/rigid";
     public static final String NORMALIZED_ASSEMBLY =
             "blade_tetra/assembly/normalized";
+    public static final String BOUNDARY_FORGING = "blade_tetra/boundary_forging";
+
+    public static final String TECHNIQUE_WIND_CUT =
+            "blade_tetra/technique/wind_cut";
+    public static final String TECHNIQUE_FLYING_SWALLOW =
+            "blade_tetra/technique/flying_swallow";
+    public static final String TECHNIQUE_FULL_MOON =
+            "blade_tetra/technique/full_moon";
+    public static final String TECHNIQUE_ZANSHIN =
+            "blade_tetra/technique/zanshin";
 
     public static boolean has(ItemStack stack, String slot, String improvement) {
         return level(stack, slot, improvement) >= 0;

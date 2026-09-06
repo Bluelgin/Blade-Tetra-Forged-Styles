@@ -1,6 +1,8 @@
 {
   "key": "constantan",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 5.5,
   "secondary": 4.1,
   "tertiary": 3.5,

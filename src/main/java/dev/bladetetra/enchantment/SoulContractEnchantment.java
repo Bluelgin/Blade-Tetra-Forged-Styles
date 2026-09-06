@@ -7,7 +7,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
 
 /**
- * A zero-stat marker enchantment used by the awakened soul inscription.
+ * A zero-stat marker enchantment used by proudsoul inscriptions.
  *
  * <p>SlashBlade: Resharped requires a blade to be enchanted before its
  * default-bewitched flag can make it a bewitched blade. Keeping that marker in

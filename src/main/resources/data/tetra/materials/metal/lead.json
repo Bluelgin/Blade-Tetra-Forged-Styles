@@ -1,6 +1,8 @@
 {
   "key": "lead",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 3.8,
   "secondary": 6.5,
   "tertiary": 1.5,

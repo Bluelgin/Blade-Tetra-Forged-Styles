@@ -1,0 +1,15 @@
+{
+  "type": "blade_tetra:easter_realm",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "minecraft:plains",
+      "lakes": false,
+      "features": false,
+      "layers": [
+        { "height": 128, "block": "minecraft:air" }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "replace": true, "slots": [ "slashblade/saya" ], "materialSlotCount": 1,
+  "displayType": "minor", "glyph": { "textureX": 24, "textureY": 112, "tint": "433746" },
+  "requirement": { "type": "tetra:locked", "key": "tetra:slashblade/legacy/fox_black_saya" },
+  "outcomes": [ { "material": { "items": [ "minecraft:black_dye" ] },
+    "requiredTools": { "hammer_dig": "minecraft:iron" },
+    "moduleKey": "slashblade/fox_saya", "moduleVariant": "fox_saya/black" } ]
+}

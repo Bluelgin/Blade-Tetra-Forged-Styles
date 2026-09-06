@@ -1,6 +1,8 @@
 {
   "key": "elementium",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.5,
   "secondary": 3.6,
   "tertiary": 4.8,

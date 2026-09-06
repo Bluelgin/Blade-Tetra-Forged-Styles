@@ -26,13 +26,13 @@
         "edged_weapon": 2,
         "breakable": 2
       },
-      "durability": -35,
+      "durability": -10,
       "tags": [ "forge:swords" ],
       "extract": {
         "primaryAttributes": {
-          "generic.attack_damage": 0.72
+          "generic.attack_damage": 0.88
         },
-        "durability": 0.7,
+        "durability": 1.1,
         "integrity": -1,
         "magicCapacity": 1,
         "glyph": {

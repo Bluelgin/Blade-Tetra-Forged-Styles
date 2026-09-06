@@ -1,6 +1,8 @@
 {
   "key": "brass",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 4.5,
   "secondary": 3.8,
   "tertiary": 3.5,

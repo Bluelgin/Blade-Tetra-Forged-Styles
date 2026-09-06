@@ -1,6 +1,8 @@
 {
   "key": "lumium",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 5.7,
   "secondary": 3,
   "tertiary": 4.8,

@@ -1,6 +1,8 @@
 {
   "key": "refined_obsidian",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 7.4,
   "secondary": 6,
   "tertiary": 1.5,

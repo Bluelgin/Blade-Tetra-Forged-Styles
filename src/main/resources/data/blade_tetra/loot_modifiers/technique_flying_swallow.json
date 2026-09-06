@@ -1,0 +1,10 @@
+{
+  "type": "blade_tetra:technique_scroll",
+  "conditions": [
+    {
+      "condition": "forge:loot_table_id",
+      "loot_table_id": "minecraft:chests/end_city_treasure"
+    }
+  ],
+  "kind": "FLYING_SWALLOW"
+}

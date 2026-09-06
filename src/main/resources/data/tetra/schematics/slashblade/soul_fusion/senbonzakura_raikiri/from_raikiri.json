@@ -1,0 +1,14 @@
+{
+  "replace": true,
+  "localizationKey": "slashblade/soul_fusion/senbonzakura_raikiri",
+  "slots": [ "slashblade/inscription" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "preview": "applicable",
+  "glyph": { "textureX": 40, "textureY": 112, "tint": "C99DE8" },
+  "translation": { "integrity": -1 },
+  "requirement": { "type": "blade_tetra:soul_fusion", "host": "raikiri", "partner": "senbonzakura" },
+  "outcomes": [
+    { "material": { "items": [ "blade_tetra:sakura_soul_crystal" ] }, "requiredTools": { "hammer_dig": "minecraft:diamond" }, "moduleKey": "slashblade/awakened_soul_inscription", "moduleVariant": "awakened_soul_inscription/senbonzakura_raikiri" }
+  ]
+}

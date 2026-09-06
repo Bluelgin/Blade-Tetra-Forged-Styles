@@ -1,0 +1,14 @@
+{
+  "replace": true,
+  "localizationKey": "slashblade/soul_fusion/kyouka_raikiri",
+  "slots": [ "slashblade/inscription" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "preview": "applicable",
+  "glyph": { "textureX": 40, "textureY": 112, "tint": "8BC8F4" },
+  "translation": { "integrity": -1 },
+  "requirement": { "type": "blade_tetra:soul_fusion", "host": "raikiri", "partner": "kyouka" },
+  "outcomes": [
+    { "material": { "items": [ "slashblade:proudsoul_sphere" ] }, "requiredTools": { "hammer_dig": "minecraft:diamond" }, "moduleKey": "slashblade/awakened_soul_inscription", "moduleVariant": "awakened_soul_inscription/kyouka_raikiri" }
+  ]
+}

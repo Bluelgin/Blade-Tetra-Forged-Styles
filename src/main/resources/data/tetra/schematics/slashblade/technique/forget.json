@@ -1,0 +1,19 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 144, "textureY": 16, "tint": "777777" },
+  "requirement": {
+    "type": "tetra:accepts_improvement",
+    "improvement": "blade_tetra/technique/none"
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "minecraft:charcoal" ] },
+      "requiredTools": { "hammer_dig": "minecraft:stone" },
+      "improvements": { "blade_tetra/technique/none": 1 }
+    }
+  ]
+}

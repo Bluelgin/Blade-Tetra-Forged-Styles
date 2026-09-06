@@ -1,0 +1,26 @@
+{
+  "key": "infinity",
+  "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
+  "primary": 13.0,
+  "secondary": 7.5,
+  "tertiary": 6.0,
+  "durability": 16000,
+  "integrityCost": 4,
+  "integrityGain": 12,
+  "magicCapacity": 400,
+  "toolLevel": "minecraft:netherite",
+  "toolEfficiency": 15,
+  "tints": {
+    "glyph": "D9E8FF",
+    "texture": "241B54"
+  },
+  "textures": [ "shiny", "heavy", "metal" ],
+  "material": {
+    "tag": "blade_tetra:materials/infinity"
+  },
+  "requiredTools": {
+    "hammer_dig": "minecraft:netherite"
+  }
+}

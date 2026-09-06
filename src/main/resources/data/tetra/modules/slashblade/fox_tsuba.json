@@ -1,0 +1,12 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/tsuba" ],
+  "type": "tetra:basic_module",
+  "renderLayer": "higher",
+  "variants": [
+    { "key": "fox_tsuba/black", "durability": 10, "integrity": 1,
+      "glyph": { "textureX": 32, "textureY": 112, "tint": "55404E" } },
+    { "key": "fox_tsuba/white", "durability": 10, "integrity": 1,
+      "glyph": { "textureX": 32, "textureY": 112, "tint": "D8C8C3" } }
+  ]
+}

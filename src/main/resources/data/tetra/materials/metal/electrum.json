@@ -1,6 +1,8 @@
 {
   "key": "electrum",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 4.8,
   "secondary": 3,
   "tertiary": 4.3,

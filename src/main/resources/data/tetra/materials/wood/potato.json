@@ -1,0 +1,24 @@
+{
+  "key": "potato",
+  "category": "wood",
+  "primary": 2.6,
+  "secondary": 2.0,
+  "tertiary": 4.0,
+  "durability": 72,
+  "integrityCost": 1,
+  "integrityGain": 3,
+  "magicCapacity": 12,
+  "toolLevel": "minecraft:wood",
+  "toolEfficiency": 1.8,
+  "tints": {
+    "glyph": "E8C86A",
+    "texture": "D9AD4F"
+  },
+  "textures": [ "crude", "wooden" ],
+  "material": {
+    "items": [ "minecraft:potato" ]
+  },
+  "requiredTools": {
+    "cut": "minecraft:wood"
+  }
+}

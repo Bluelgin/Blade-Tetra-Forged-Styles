@@ -22,4 +22,12 @@ public enum BladeStyle {
     public String getDescriptionTranslationKey() {
         return translationKey + ".description";
     }
+
+    public String getRoleTranslationKey() {
+        return translationKey + ".role";
+    }
+
+    public String getTradeoffTranslationKey() {
+        return translationKey + ".tradeoff";
+    }
 }

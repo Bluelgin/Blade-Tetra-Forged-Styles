@@ -1,0 +1,31 @@
+[
+  {
+    "key": "blade_tetra/technique/wind_cut",
+    "group": "blade_tetra/blade_technique",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/technique/flying_swallow",
+    "group": "blade_tetra/blade_technique",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/technique/full_moon",
+    "group": "blade_tetra/blade_technique",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/technique/zanshin",
+    "group": "blade_tetra/blade_technique",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/technique/none",
+    "group": "blade_tetra/blade_technique",
+    "level": 1
+  }
+]

@@ -1,6 +1,8 @@
 {
   "key": "refined_glowstone",
   "category": "metal",
+  "hidden": true,
+  "hiddenOutcomes": true,
   "primary": 6.2,
   "secondary": 3,
   "tertiary": 4.6,

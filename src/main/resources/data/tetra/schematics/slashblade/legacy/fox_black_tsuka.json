@@ -1,0 +1,33 @@
+{
+  "replace": true,
+  "slots": [
+    "slashblade/tsuka"
+  ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": {
+    "textureX": 16,
+    "tint": "433746"
+  },
+  "requirement": {
+    "type": "blade_tetra:legacy_pattern",
+    "id": "fox_black",
+    "part": "tsuka"
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [
+          "minecraft:black_dye"
+        ]
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:iron"
+      },
+      "improvements": {
+        "blade_tetra/legacy/fox_black_tsuka": 1
+      }
+    }
+  ]
+}

@@ -1,6 +1,11 @@
 {
   "replace": false,
   "entries": [
-    "blade_tetra:smithy_clues"
+    "blade_tetra:smithy_clues",
+    "blade_tetra:forging_scrolls",
+    "blade_tetra:technique_wind_cut",
+    "blade_tetra:technique_flying_swallow",
+    "blade_tetra:technique_full_moon",
+    "blade_tetra:technique_zanshin"
   ]
 }

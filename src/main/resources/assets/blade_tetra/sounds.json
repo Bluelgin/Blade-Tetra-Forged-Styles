@@ -1,0 +1,27 @@
+{
+  "music.mikage_battle": {
+    "sounds": [
+      {
+        "name": "blade_tetra:music/boss/mikage/the_final_trial",
+        "stream": true
+      }
+    ]
+  },
+  "voice.mikage.intro_1": { "sounds": ["blade_tetra:voice/mikage/ja_jp/intro_1"] },
+  "voice.mikage.intro_2": { "sounds": ["blade_tetra:voice/mikage/ja_jp/intro_2"] },
+  "voice.mikage.akatsuki": { "sounds": ["blade_tetra:voice/mikage/ja_jp/akatsuki"] },
+  "voice.mikage.battle_begin": { "sounds": ["blade_tetra:voice/mikage/ja_jp/battle_begin"] },
+  "voice.mikage.phase_2": { "sounds": ["blade_tetra:voice/mikage/ja_jp/phase_2"] },
+  "voice.mikage.phase_3": { "sounds": ["blade_tetra:voice/mikage/ja_jp/phase_3"] },
+  "voice.mikage.boundary_slash": { "sounds": ["blade_tetra:voice/mikage/ja_jp/boundary_slash"] },
+  "voice.mikage.torii_sweep": { "sounds": ["blade_tetra:voice/mikage/ja_jp/torii_sweep"] },
+  "voice.mikage.torii_cage": { "sounds": ["blade_tetra:voice/mikage/ja_jp/torii_cage"] },
+  "voice.mikage.cage_guard": { "sounds": ["blade_tetra:voice/mikage/ja_jp/cage_guard"] },
+  "voice.mikage.defeat_1": { "sounds": ["blade_tetra:voice/mikage/ja_jp/defeat_1"] },
+  "voice.mikage.defeat_2": { "sounds": ["blade_tetra:voice/mikage/ja_jp/defeat_2"] },
+  "voice.mikage.defeat_3": { "sounds": ["blade_tetra:voice/mikage/ja_jp/defeat_3"] },
+  "voice.mikage.reminiscence_intro": { "sounds": ["blade_tetra:voice/mikage/ja_jp/reminiscence_intro"] },
+  "voice.mikage.reminiscence_begin": { "sounds": ["blade_tetra:voice/mikage/ja_jp/reminiscence_begin"] },
+  "voice.mikage.victory": { "sounds": ["blade_tetra:voice/mikage/ja_jp/victory"] },
+  "voice.mikage.reminiscence_victory": { "sounds": ["blade_tetra:voice/mikage/ja_jp/reminiscence_victory"] }
+}
