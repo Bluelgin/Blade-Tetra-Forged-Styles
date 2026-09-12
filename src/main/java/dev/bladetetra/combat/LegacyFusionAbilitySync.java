@@ -1,0 +1,186 @@
+package dev.bladetetra.combat;
+
+import dev.bladetetra.forging.LegacyFusion;
+import dev.bladetetra.forging.LegacyImprintKind;
+import dev.bladetetra.forging.NamedLegacyParts;
+import dev.bladetetra.registry.ModSlashBladeAbilities;
+import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** Reconciles structural Slash Arts and Special Effects with assembled legacy fittings. */
+final class LegacyFusionAbilitySync {
+    private static final String LAST_ACTIVE = "blade_tetra_legacy_fusion_active";
+    private static final String PREVIOUS_SLASH_ART =
+            "blade_tetra_legacy_fusion_previous_slash_art";
+    private static final String ABILITY_OWNER = "blade_tetra_named_ability_owner";
+    private static final String APPLIED_SLASH_ART = "blade_tetra_named_applied_slash_art";
+    private static final String OWNED_SPECIAL_EFFECTS = "blade_tetra_named_owned_effects";
+
+    static void sync(ItemStack blade, ISlashBladeState state) {
+        LegacyFusion active = LegacyFusion.active(blade);
+        CompoundTag tag = blade.getOrCreateTag();
+        String previous = tag.getString(LAST_ACTIVE);
+        String current = active == null ? "" : active.id();
+
+        ResourceLocation pursuit = ModSlashBladeAbilities.TWIN_FOX_REFLECTION.getId();
+        reconcileSpecialEffect(state, pursuit,
+                active == LegacyFusion.WHITE_SAYA_BLACK_HILT);
+        if (active != LegacyFusion.WHITE_SAYA_BLACK_HILT) {
+            TwinFoxFusionHandler.clearStoredPursuit(tag);
+        }
+
+        ResourceLocation piercing = ModSlashBladeAbilities.TWIN_FOX_PIERCING.getId();
+        LegacyImprintKind orthodox = active == null
+                ? NamedLegacyParts.fromStack(blade).completeSet() : null;
+        if (orthodox != null && !orthodox.supportsOrthodoxInheritance()) {
+            orthodox = null;
+        }
+
+        String owner = active != null
+                ? "fusion:" + active.id()
+                : orthodox == null ? "" : "orthodox:" + orthodox.id();
+        ResourceLocation inheritedSlashArt = fusionSlashArt(active);
+        if (inheritedSlashArt == null && orthodox != null) {
+            inheritedSlashArt = orthodox.slashArt();
+        }
+        List<ResourceLocation> inheritedEffects = orthodox == null
+                ? List.of() : orthodox.specialEffects();
+
+        String previousOwner = tag.getString(ABILITY_OWNER);
+        // Migrate the first fusion build without losing the SA it displaced.
+        if (previousOwner.isEmpty()
+                && LegacyFusion.BLACK_SAYA_WHITE_HILT.id().equals(previous)
+                && piercing.equals(state.getSlashArtsKey())) {
+            previousOwner = "fusion:" + LegacyFusion.BLACK_SAYA_WHITE_HILT.id();
+            tag.putString(ABILITY_OWNER, previousOwner);
+            tag.putString(APPLIED_SLASH_ART, piercing.toString());
+        }
+
+        if (!owner.equals(previousOwner)) {
+            restoreStructuralSlashArt(tag, state);
+            removeOwnedSpecialEffects(tag, state);
+            applyStructuralSlashArt(tag, state, inheritedSlashArt);
+            addOwnedSpecialEffects(tag, state, inheritedEffects);
+            if (owner.isEmpty()) {
+                tag.remove(ABILITY_OWNER);
+            } else {
+                tag.putString(ABILITY_OWNER, owner);
+            }
+        } else if (!owner.isEmpty()) {
+            // Structural abilities are authoritative while their fitting owner is
+            // still assembled. If another system temporarily replaced the SA,
+            // restore the fusion/orthodox SA without overwriting the saved fallback.
+            ensureStructuralSlashArt(tag, state, inheritedSlashArt);
+            addOwnedSpecialEffects(tag, state, inheritedEffects);
+        }
+
+        if (current.isEmpty()) {
+            tag.remove(LAST_ACTIVE);
+        } else if (!current.equals(previous)) {
+            tag.putString(LAST_ACTIVE, current);
+        }
+    }
+
+    private static ResourceLocation fusionSlashArt(LegacyFusion fusion) {
+        if (fusion == LegacyFusion.BLACK_SAYA_WHITE_HILT) {
+            return ModSlashBladeAbilities.TWIN_FOX_PIERCING.getId();
+        }
+        if (fusion == LegacyFusion.YASHA_SAYA_KIKOUKU_HILT) {
+            return ModSlashBladeAbilities.TWIN_PHASE_KIKOUKU.getId();
+        }
+        return null;
+    }
+
+    private static void reconcileSpecialEffect(ISlashBladeState state,
+            ResourceLocation effect, boolean shouldExist) {
+        long count = state.getSpecialEffects().stream().filter(effect::equals).count();
+        if ((!shouldExist && count > 0L) || (shouldExist && count != 1L)) {
+            state.getSpecialEffects().removeIf(effect::equals);
+            if (shouldExist) {
+                state.addSpecialEffect(effect);
+            }
+        }
+    }
+
+    private static void applyStructuralSlashArt(CompoundTag tag,
+            ISlashBladeState state, ResourceLocation slashArt) {
+        if (slashArt == null || slashArt.equals(state.getSlashArtsKey())) {
+            return;
+        }
+        tag.putString(PREVIOUS_SLASH_ART, state.getSlashArtsKey().toString());
+        tag.putString(APPLIED_SLASH_ART, slashArt.toString());
+        state.setSlashArtsKey(slashArt);
+    }
+
+    private static void ensureStructuralSlashArt(CompoundTag tag,
+            ISlashBladeState state, ResourceLocation slashArt) {
+        if (slashArt == null || slashArt.equals(state.getSlashArtsKey())) {
+            return;
+        }
+        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        if (applied == null) {
+            applyStructuralSlashArt(tag, state, slashArt);
+            return;
+        }
+        tag.putString(APPLIED_SLASH_ART, slashArt.toString());
+        state.setSlashArtsKey(slashArt);
+    }
+
+    private static void restoreStructuralSlashArt(CompoundTag tag,
+            ISlashBladeState state) {
+        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        if (applied != null && applied.equals(state.getSlashArtsKey())) {
+            ResourceLocation restored = ResourceLocation.tryParse(
+                    tag.getString(PREVIOUS_SLASH_ART));
+            state.setSlashArtsKey(restored == null
+                    ? mods.flammpfeil.slashblade.registry.SlashArtsRegistry.NONE.getId()
+                    : restored);
+        }
+        tag.remove(PREVIOUS_SLASH_ART);
+        tag.remove(APPLIED_SLASH_ART);
+    }
+
+    private static void addOwnedSpecialEffects(CompoundTag tag,
+            ISlashBladeState state, List<ResourceLocation> desired) {
+        List<String> owned = new ArrayList<>();
+        String stored = tag.getString(OWNED_SPECIAL_EFFECTS);
+        if (!stored.isEmpty()) {
+            owned.addAll(List.of(stored.split(",")));
+        }
+        for (ResourceLocation effect : desired) {
+            if (!state.getSpecialEffects().contains(effect)) {
+                state.addSpecialEffect(effect);
+                if (!owned.contains(effect.toString())) {
+                    owned.add(effect.toString());
+                }
+            }
+        }
+        if (owned.isEmpty()) {
+            tag.remove(OWNED_SPECIAL_EFFECTS);
+        } else {
+            tag.putString(OWNED_SPECIAL_EFFECTS, String.join(",", owned));
+        }
+    }
+
+    private static void removeOwnedSpecialEffects(CompoundTag tag,
+            ISlashBladeState state) {
+        String stored = tag.getString(OWNED_SPECIAL_EFFECTS);
+        if (!stored.isEmpty()) {
+            for (String value : stored.split(",")) {
+                ResourceLocation effect = ResourceLocation.tryParse(value);
+                if (effect != null) {
+                    state.getSpecialEffects().removeIf(effect::equals);
+                }
+            }
+        }
+        tag.remove(OWNED_SPECIAL_EFFECTS);
+    }
+
+    private LegacyFusionAbilitySync() {
+    }
+}
