@@ -72,8 +72,8 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 en.addProperty(prefix + ".name", title + " · " + (part.equals("tsuba") ? "Complete hilt" : "Saya"));
                 zh.addProperty(prefix + ".name", NamedLegacyCatalog.localizedName(kind, "zh_cn") + " · " + switch(part) {
                     case "saya" -> "仿造刀鞘"; case "tsuba" -> "仿造镡柄刀装"; default -> "仿造刀柄"; });
-                en.addProperty(prefix + ".description", "Imprinted fitting. A matching saya and hilt form affinity: at least +10% attack, half the positive gap to the source, capped at +30%; no copied SA.");
-                zh.addProperty(prefix + ".description", "同源刀鞘与镡柄刀装形成映锻契合：攻击至少+10%，追回与原刀正向差距的一半，最高+30%；不继承原刀SA。");
+                en.addProperty(prefix + ".description", "Imprinted fitting. A matching saya and hilt form affinity and inherits the original blade's registered orthodox abilities.");
+                zh.addProperty(prefix + ".description", "同源刀鞘与镡柄刀装形成映锻契合，并继承原刀登记的正传能力。");
                 en.addProperty(prefix + ".slot1", "Proud Soul Ingot"); zh.addProperty(prefix + ".slot1", "耀魂铁锭");
                 en.addProperty(prefix + ".slot2", "Source recipe material"); zh.addProperty(prefix + ".slot2", "原刀配方材料");
             }
@@ -83,8 +83,8 @@ public final class NamedLegacyPack extends AbstractPackResources {
             en.addProperty(scroll + ".prefix", "Imprinting pattern"); zh.addProperty(scroll + ".prefix", "映锻刀谱");
             en.addProperty(scroll + ".description", "Unlocks this named blade's fittings. Unroll beside a Tetra workbench.");
             zh.addProperty(scroll + ".description", "解锁对应名刀的刀装仿造，展开并放在Tetra工作台附近。");
-            en.addProperty(scroll + ".details", "Reproduce the saya and complete hilt while the blade remains modular. A matching form grants dynamic imprint affinity based on both blades.");
-            zh.addProperty(scroll + ".details", "可仿造刀鞘和完整镡柄刀装，刀身仍由模块化锻造；同源形制会依据原刀与当前刀的性能形成动态映锻契合。");
+            en.addProperty(scroll + ".details", "Reproduce the saya and complete hilt while the blade remains modular. A matching form grants dynamic affinity and the original blade's registered SA or SE.");
+            zh.addProperty(scroll + ".details", "可仿造刀鞘和完整镡柄刀装，刀身仍由模块化锻造；同源形制会形成动态契合，并继承原刀登记的SA或SE。");
         }
         put("data/tetra/improvements/slashblade/tsuka/legacy_auto.json", improvements.toString());
         for (String part : List.of("saya", "tsuba")) {

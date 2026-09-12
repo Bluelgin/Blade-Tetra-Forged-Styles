@@ -1,0 +1,23 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 128, "textureY": 112, "tint": "6D2546" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "blade_tetra:legacy_fusion", "id": "black_saya_white_hilt" },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/legacy_fusion/black_saya_white_hilt" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "slashblade:proudsoul_sphere" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/legacy_fusion/black_saya_white_hilt": 1 }
+    }
+  ]
+}

@@ -11,6 +11,8 @@ import dev.bladetetra.registry.ModRecipes;
 import dev.bladetetra.registry.ModSounds;
 import dev.bladetetra.network.ModNetwork;
 import dev.bladetetra.compat.SoulFusionRequirement;
+import dev.bladetetra.compat.LegacyFusionRequirement;
+import dev.bladetetra.registry.ModSlashBladeAbilities;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -24,6 +26,7 @@ public final class BladeTetra {
     public BladeTetra() {
         SoulFusionRequirement.register();
         dev.bladetetra.compat.LegacyPatternRequirement.register();
+        LegacyFusionRequirement.register();
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.SERVER,
@@ -41,6 +44,8 @@ public final class BladeTetra {
         ModRecipes.SERIALIZERS.register(modBus);
         ModSounds.SOUND_EVENTS.register(modBus);
         ModComboStates.COMBOS.register(modBus);
+        ModSlashBladeAbilities.SLASH_ARTS.register(modBus);
+        ModSlashBladeAbilities.SPECIAL_EFFECTS.register(modBus);
         ModNetwork.register();
     }
 }

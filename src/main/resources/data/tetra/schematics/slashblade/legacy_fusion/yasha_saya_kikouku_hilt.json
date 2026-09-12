@@ -1,0 +1,23 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 160, "textureY": 112, "tint": "A33A70" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "blade_tetra:legacy_fusion", "id": "yasha_saya_kikouku_hilt" },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "slashblade:proudsoul_sphere" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt": 1 }
+    }
+  ]
+}

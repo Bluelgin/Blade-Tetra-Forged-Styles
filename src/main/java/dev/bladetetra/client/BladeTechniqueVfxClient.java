@@ -123,6 +123,12 @@ public final class BladeTechniqueVfxClient {
         } else if (packet.type() == BladeTechniqueVfxPacket.BOUNDARY_WALL) {
             EFFECTS.removeIf(effect -> effect.type == BladeTechniqueVfxPacket.BOUNDARY_WALL
                     && effect.seed == packet.seed());
+        } else if (packet.type() == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS) {
+            EFFECTS.removeIf(effect -> effect.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK
+                    && effect.targetEntityId == packet.targetEntityId());
+        } else if (packet.type() == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK) {
+            EFFECTS.removeIf(effect -> effect.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK
+                    && effect.targetEntityId == packet.targetEntityId());
         }
         Effect incoming = new Effect(packet);
         addEffect(incoming);
@@ -180,6 +186,9 @@ public final class BladeTechniqueVfxClient {
             case BladeTechniqueVfxPacket.SCISSOR_BREAK -> 0.72F;
             case BladeTechniqueVfxPacket.BOUNDARY_FLASH -> 0.18F;
             case BladeTechniqueVfxPacket.BOUNDARY_FLASH_IMPACT -> 2.45F;
+            case BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT -> 1.05F;
+            case BladeTechniqueVfxPacket.TWIN_PHASE_YASHA -> 0.68F;
+            case BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU -> 0.84F;
             default -> 0.0F;
         };
         if (base <= 0.0F) return;
@@ -292,6 +301,9 @@ public final class BladeTechniqueVfxClient {
         Tesselator.getInstance().end();
         if (optionalVfx) {
             renderAkatsukiJudgementWinds(poses, event.getPartialTick(), global, quality);
+            renderTwinFoxModels(poses, event.getPartialTick(), global);
+            renderTwinPhaseModels(poses, event.getPartialTick(), global);
+            renderTwinPhaseNativeWinds(poses, event.getPartialTick(), global, quality);
             RenderSystem.enableBlend();
             RenderSystem.disableCull();
             RenderSystem.depthMask(false);
@@ -430,8 +442,164 @@ public final class BladeTechniqueVfxClient {
                     drawAkatsukiFinalMoon(buffer, matrix, camera, effect, t, strength, quality);
             case BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON_END ->
                     drawAkatsukiFinalMoonEnd(buffer, matrix, camera, effect, t, strength, quality);
+            case BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT ->
+                    drawTwinFoxMoonhunt(buffer, matrix, camera, effect, t, strength, quality);
+            case BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT ->
+                    drawTwinFoxMoonhuntImpact(buffer, matrix, camera, effect, t, strength, quality);
             default -> {
             }
+        }
+    }
+
+    private static void drawTwinFoxMoonhunt(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 camera, Effect effect, float t, float strength, int quality) {
+        // Short trailing wisps, not full-length luminous tubes.
+        int steps = segments(10, quality);
+        for (int sign : new int[]{1, -1}) {
+            for (int i = 0; i < steps; i++) {
+                double a = Math.max(0, t - .16 + .16 * i / steps);
+                double b = Math.max(0, t - .16 + .16 * (i + 1) / steps);
+                float alpha = (float) (i + 1) / steps * .55F;
+                int tint = sign > 0 ? color(1, .94F, .84F, alpha)
+                        : color(.85F, .035F, .12F, alpha);
+                line(buffer, matrix, camera,
+                        TwinFoxModelRenderer.path(effect.start, effect.end, a, sign),
+                        TwinFoxModelRenderer.path(effect.start, effect.end, b, sign),
+                        .035D * strength * (i + 1) / steps, tint);
+            }
+        }
+    }
+
+    private static void renderTwinFoxModels(PoseStack poses, float partialTick, float global) {
+        if (EFFECTS.stream().noneMatch(e -> e.type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT
+                || e.type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT
+                || e.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK
+                || e.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS)) return;
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(256));
+        try {
+            for (Effect effect : EFFECTS) {
+                boolean impact = effect.type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT;
+                float t = Mth.clamp((effect.age + partialTick) / effect.duration, 0, 1);
+                if (effect.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK
+                        || effect.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS) {
+                    TwinFoxModelRenderer.drawPursuit(poses, buffers, effect.start,
+                            effect.initialEnd, effect.end, t, global,
+                            effect.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS);
+                    continue;
+                }
+                if (!impact && effect.type != BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT) continue;
+                TwinFoxModelRenderer.draw(poses, buffers, effect.start, effect.end, t,
+                        global, impact, effect.intensity > 1);
+            }
+            buffers.endBatch();
+        } finally {
+            BladeRenderState.resetCol();
+        }
+    }
+
+    private static void renderTwinPhaseModels(PoseStack poses, float partialTick,
+            float global) {
+        if (EFFECTS.stream().noneMatch(effect ->
+                effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_YASHA
+                        || effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU)) return;
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(
+                new BufferBuilder(512));
+        try {
+            for (Effect effect : EFFECTS) {
+                float t = Mth.clamp((effect.age + partialTick) / effect.duration,
+                        0.0F, 1.0F);
+                if (effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_YASHA) {
+                    TwinPhaseModelRenderer.drawYasha(poses, buffers, effect.start,
+                            effect.end, t, global * effect.intensity, effect.seed);
+                } else if (effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU) {
+                    TwinPhaseModelRenderer.drawKikouku(poses, buffers, effect.end,
+                            t, global * effect.intensity, effect.seed);
+                }
+            }
+            buffers.endBatch();
+        } finally {
+            BladeRenderState.resetCol();
+        }
+    }
+
+    /**
+     * Adds SlashBlade's mature judgement-cut wind motion around Kikouku's custom
+     * meshes. Only the {@code wind} group is drawn, so the original black-hole
+     * center and every gameplay effect remain absent.
+     */
+    private static void renderTwinPhaseNativeWinds(PoseStack poses,
+            float partialTick, float global, int quality) {
+        if (EFFECTS.stream().noneMatch(effect ->
+                effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU)) return;
+        WavefrontObject model = BladeModelManager.getInstance().getModel(SLASH_DIM_MODEL);
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(
+                new BufferBuilder(384));
+        try {
+            for (Effect effect : EFFECTS) {
+                if (effect.type != BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU) continue;
+                float age = effect.age + partialTick;
+                float t = Mth.clamp(age / effect.duration, 0.0F, 1.0F);
+                float appear = Mth.clamp(t / 0.16F, 0.0F, 1.0F);
+                float fade = Mth.clamp((1.0F - t) / 0.20F, 0.0F, 1.0F);
+                float visibility = appear * fade;
+                int copies = quality == 0 ? 2 : quality == 1 ? 3 : 4;
+                float scale = 0.0105F * global * effect.intensity
+                        * (0.78F + t * 0.72F);
+                poses.pushPose();
+                poses.translate(effect.end.x, effect.end.y + 0.72D, effect.end.z);
+                poses.mulPose(Axis.YP.rotationDegrees(
+                        Math.floorMod(effect.seed, 360) + age * 4.8F));
+                poses.scale(scale, scale, scale);
+                for (int index = 0; index < copies; index++) {
+                    poses.pushPose();
+                    poses.mulPose(Axis.YP.rotationDegrees(360.0F / copies * index));
+                    poses.mulPose(Axis.XP.rotationDegrees(58.0F + index * 17.0F));
+                    poses.mulPose(Axis.ZP.rotationDegrees(
+                            (index % 2 == 0 ? 1.0F : -1.0F) * age * 13.0F));
+                    float pulse = 0.72F + 0.28F * Mth.sin(
+                            t * Mth.PI + index * 0.7F);
+                    poses.scale(pulse, pulse, pulse);
+                    int alpha = Mth.clamp((int) (visibility * 205.0F), 0, 255);
+                    int rgb = index % 3 == 1 ? 0xF2D6EA : 0xA51E5B;
+                    BladeRenderState.setCol((alpha << 24) | rgb, false);
+                    BladeRenderState.renderOverridedColorWrite(ItemStack.EMPTY,
+                            model, "wind", SLASH_DIM_TEXTURE, poses, buffers,
+                            LightTexture.FULL_BRIGHT);
+                    poses.popPose();
+                }
+                poses.popPose();
+            }
+            buffers.endBatch();
+        } finally {
+            BladeRenderState.resetCol();
+        }
+    }
+
+    private static void drawTwinFoxMoonhuntImpact(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 camera, Effect effect, float t, float strength, int quality) {
+        Vec3 center = effect.end;
+        Vec3 forward = flatDirection(effect.start, center, effect.yaw);
+        Vec3 side = new Vec3(-forward.z, 0.0D, forward.x).normalize();
+        float fade = (1.0F - t) * (1.0F - t);
+        boolean complete = effect.intensity > 1.0F;
+        double radius = (0.55D + t * (complete ? 3.8D : 2.2D)) * strength;
+        int white = color(1.0F, 0.96F, 0.90F, 0.92F * fade);
+        int crimson = color(0.98F, 0.025F, 0.14F, 0.88F * fade);
+        ringVertical(buffer, matrix, center, side, radius,
+                0.075D + 0.06D * fade, complete ? crimson : white,
+                segments(44, quality));
+        line(buffer, matrix, camera,
+                center.subtract(side.scale(radius)).add(0.0D, -radius * 0.42D, 0.0D),
+                center.add(side.scale(radius)).add(0.0D, radius * 0.42D, 0.0D),
+                (complete ? 0.15D : 0.09D) * fade, white);
+        if (complete) {
+            line(buffer, matrix, camera,
+                    center.subtract(side.scale(radius)).add(0.0D, radius * 0.42D, 0.0D),
+                    center.add(side.scale(radius)).add(0.0D, -radius * 0.42D, 0.0D),
+                    0.17D * fade, crimson);
+            arcHorizontal(buffer, matrix, camera, center.add(0.0D, -0.62D, 0.0D),
+                    radius * 0.78D, 0.0D, Math.PI * 2.0D,
+                    0.055D, crimson, segments(40, quality));
         }
     }
 
@@ -2355,6 +2523,7 @@ public final class BladeTechniqueVfxClient {
         final List<Vec3> history = new ArrayList<>();
         Vec3 start;
         Vec3 end;
+        final Vec3 initialEnd;
         float gapAlong = -1.0F;
         int gapTicks;
         float pendingGapAlong = -1.0F;
@@ -2366,6 +2535,7 @@ public final class BladeTechniqueVfxClient {
             priority = priority(packet.type());
             start = new Vec3(packet.startX(), packet.startY(), packet.startZ());
             end = new Vec3(packet.endX(), packet.endY(), packet.endZ());
+            initialEnd = end;
             yaw = packet.yaw();
             intensity = Math.max(0.1F, packet.intensity());
             sourceEntityId = packet.sourceEntityId();
@@ -2402,7 +2572,12 @@ public final class BladeTechniqueVfxClient {
                         BladeTechniqueVfxPacket.SCISSOR_BREAK,
                         BladeTechniqueVfxPacket.BOUNDARY_SUPPRESSION_FLAME,
                         BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON,
-                        BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON_END -> 2;
+                        BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON_END,
+                        BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT,
+                        BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT,
+                        BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS,
+                        BladeTechniqueVfxPacket.TWIN_PHASE_YASHA,
+                        BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU -> 2;
                 case BladeTechniqueVfxPacket.SEAL_LINK,
                         BladeTechniqueVfxPacket.SEAL_BREAK,
                         BladeTechniqueVfxPacket.PURSUIT_RETURN,
@@ -2411,7 +2586,8 @@ public final class BladeTechniqueVfxClient {
                         BladeTechniqueVfxPacket.PURSUIT_SWORD,
                         BladeTechniqueVfxPacket.MOON_ECHO_FALSE,
                         BladeTechniqueVfxPacket.SWORD_WHEEL,
-                        BladeTechniqueVfxPacket.SCISSOR_FEINT -> 1;
+                        BladeTechniqueVfxPacket.SCISSOR_FEINT,
+                        BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK -> 1;
                 default -> 0;
             };
         }
@@ -2424,6 +2600,11 @@ public final class BladeTechniqueVfxClient {
                     ? null : level.getEntity(sourceEntityId);
             Entity target = level == null || targetEntityId < 0
                     ? null : level.getEntity(targetEntityId);
+            if (type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT) {
+                if (target != null) end = initialEnd.lerp(target.getBoundingBox().getCenter(), .35D);
+                return;
+            }
+            if (type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT) return;
             if (source != null) {
                 start = entityCenter(source);
             }

@@ -55,6 +55,12 @@ public record BladeTechniqueVfxPacket(int type,
     public static final int BOUNDARY_SUPPRESSION_FLAME = 34;
     public static final int AKATSUKI_FINAL_MOON = 35;
     public static final int AKATSUKI_FINAL_MOON_END = 36;
+    public static final int TWIN_FOX_MOONHUNT = 37;
+    public static final int TWIN_FOX_MOONHUNT_IMPACT = 38;
+    public static final int TWIN_FOX_PURSUIT_MARK = 39;
+    public static final int TWIN_FOX_PURSUIT_CROSS = 40;
+    public static final int TWIN_PHASE_YASHA = 41;
+    public static final int TWIN_PHASE_KIKOUKU = 42;
 
     public static void encode(BladeTechniqueVfxPacket packet, FriendlyByteBuf buffer) {
         buffer.writeByte(packet.type);

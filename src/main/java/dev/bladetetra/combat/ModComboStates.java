@@ -43,6 +43,8 @@ public final class ModComboStates {
             new ResourceLocation(BladeTetra.MOD_ID, "dangaku_rise");
     private static final ResourceLocation DANGAKU_CLEAVE_ID =
             new ResourceLocation(BladeTetra.MOD_ID, "dangaku_cleave");
+    private static final ResourceLocation TWIN_PHASE_DRAW_ID =
+            new ResourceLocation(BladeTetra.MOD_ID, "twin_phase_draw");
 
     public static final RegistryObject<ComboState> IAIDO_DRAW =
             COMBOS.register("iaido_draw", () -> copyAttack(
@@ -101,6 +103,11 @@ public final class ModComboStates {
                     ComboStateRegistry.COMBO_A4_EX_END.getId(),
                     22,
                     0));
+
+    /** Native SlashBlade draw motion with every attack callback deliberately removed. */
+    public static final RegistryObject<ComboState> TWIN_PHASE_DRAW =
+            COMBOS.register("twin_phase_draw", () -> visualMotion(
+                    ComboStateRegistry.COMBO_C, 18));
 
     public static final RegistryObject<ComboState> IAIDO_ROOT =
             COMBOS.register("iaido_root", () -> root(ModComboStates::selectIaidoOpener));
@@ -173,6 +180,20 @@ public final class ModComboStates {
             builder.aerial();
         }
         return builder.build();
+    }
+
+    private static ComboState visualMotion(Supplier<ComboState> source,
+            int timeout) {
+        ComboState original = source.get();
+        return ComboState.Builder.newInstance()
+                .startAndEnd(original.getStartFrame(), original.getEndFrame())
+                .priority(original.getPriority())
+                .speed(original.getSpeed())
+                .timeout(timeout)
+                .motionLoc(original.getMotionLoc())
+                .next(entity -> ComboStateRegistry.NONE.getId())
+                .nextOfTimeout(entity -> ComboStateRegistry.NONE.getId())
+                .build();
     }
 
     private static ResourceLocation selectIaidoOpener(LivingEntity entity) {

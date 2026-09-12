@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ComponentEffectResolver;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.PotatoBladeHandler;
@@ -590,6 +591,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             if (state.getTexture().filter(MODULAR_TEXTURE::equals).isEmpty()) {
                 state.setTexture(MODULAR_TEXTURE);
             }
+            LegacyFusionHandler.sync(stack, state);
         });
     }
 

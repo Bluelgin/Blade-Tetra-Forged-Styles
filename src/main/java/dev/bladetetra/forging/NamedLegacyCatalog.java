@@ -83,6 +83,8 @@ public final class NamedLegacyCatalog {
                 String id = name.getNamespace().equals("slashblade") && path.startsWith("fox_")
                         ? path : name.getNamespace() + "/" + path;
                 String feature = chooseMaterial(name.toString(), recipes);
+                ResourceLocation slashArt = resource(properties, "slash_art");
+                List<ResourceLocation> specialEffects = resources(properties, "special_effects");
                 LegacyModelAdapter adapter = LegacyModelAdapter.resolve(model);
                 if (!analyzedModels.containsKey(model))
                     analyzedModels.put(model, analyze(model, adapter));
@@ -97,7 +99,7 @@ public final class NamedLegacyCatalog {
                 }
                 entries.put(id, new LegacyImprintKind(id, name, model, texture, feature,
                         path.startsWith("fox_") ? LegacyCalibrationProfile.DEFAULT : analysis.profile(),
-                        baseAttack, maxDamage));
+                        baseAttack, maxDamage, slashArt, specialEffects));
             } catch (RuntimeException exception) {
                 LogUtils.getLogger().warn("Skipping unsupported named blade {}", entry.getKey());
             }
@@ -109,6 +111,26 @@ public final class NamedLegacyCatalog {
         if (!object.has(key) || !object.get(key).isJsonPrimitive()
                 || !object.getAsJsonPrimitive(key).isNumber()) return fallback;
         return object.get(key).getAsDouble();
+    }
+    private static ResourceLocation resource(JsonObject object, String key) {
+        if (!object.has(key) || !object.get(key).isJsonPrimitive()) return null;
+        return ResourceLocation.tryParse(object.get(key).getAsString());
+    }
+    private static List<ResourceLocation> resources(JsonObject object, String key) {
+        if (!object.has(key)) return List.of();
+        List<ResourceLocation> result = new ArrayList<>();
+        JsonElement value = object.get(key);
+        if (value.isJsonPrimitive()) {
+            ResourceLocation id = ResourceLocation.tryParse(value.getAsString());
+            if (id != null) result.add(id);
+        } else if (value.isJsonArray()) {
+            for (JsonElement element : value.getAsJsonArray()) {
+                if (!element.isJsonPrimitive()) continue;
+                ResourceLocation id = ResourceLocation.tryParse(element.getAsString());
+                if (id != null) result.add(id);
+            }
+        }
+        return List.copyOf(result);
     }
     static boolean excluded(String path) {
         return path.startsWith("rodai_") || path.contains("broken") || path.endsWith("_rust")

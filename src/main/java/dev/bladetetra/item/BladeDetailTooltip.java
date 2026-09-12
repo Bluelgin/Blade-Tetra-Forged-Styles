@@ -17,6 +17,7 @@ import dev.bladetetra.visual.SayaBannerSkin;
 import dev.bladetetra.visual.SayaPresetSkin;
 import dev.bladetetra.forging.FoxLegacyParts;
 import dev.bladetetra.forging.ImprintAffinity;
+import dev.bladetetra.forging.LegacyFusion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -161,19 +162,47 @@ public final class BladeDetailTooltip {
                             Component.translatable("screen.blade_tetra.imprint." + part[0]),
                             Component.translatable(kind.translationKey())).withStyle(ChatFormatting.GRAY));
             }
-            if (namedParts.completeSet() != null
+            var orthodox = namedParts.completeSet();
+            if (orthodox != null
                     && stack.getItem() instanceof ModularSlashBladeItem blade) {
                 ImprintAffinity affinity = blade.getImprintAffinity(stack);
                 if (affinity != null) {
                     lines.add(Component.translatable(
                                     "tooltip.blade_tetra.named.affinity",
-                                    Component.translatable(namedParts.completeSet().translationKey()),
+                                    Component.translatable(orthodox.translationKey()),
                                     Component.translatable("tooltip.blade_tetra.named.grade."
                                             + affinity.grade()),
                                     percent(affinity.attackRatio()),
                                     percent(affinity.durabilityRatio()))
                             .withStyle(ChatFormatting.GOLD));
                 }
+                if (orthodox.supportsOrthodoxInheritance()) {
+                    lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox",
+                                    Component.translatable(orthodox.translationKey()))
+                            .withStyle(ChatFormatting.DARK_AQUA));
+                    if (orthodox.slashArt() != null) {
+                        lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox_sa",
+                                        abilityName("slash_art", orthodox.slashArt()))
+                                .withStyle(ChatFormatting.AQUA));
+                    }
+                    for (var effect : orthodox.specialEffects()) {
+                        lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox_se",
+                                        abilityName("se", effect))
+                                .withStyle(ChatFormatting.BLUE));
+                    }
+                }
+            }
+            LegacyFusion fusion = LegacyFusion.installed(namedParts);
+            if (fusion != null) {
+                Component name = Component.translatable(
+                        "tooltip.blade_tetra.legacy_fusion." + fusion.id());
+                lines.add(Component.translatable(
+                                LegacyFusion.active(stack) == fusion
+                                        ? "tooltip.blade_tetra.legacy_fusion.active"
+                                        : "tooltip.blade_tetra.legacy_fusion.candidate",
+                                name)
+                        .withStyle(LegacyFusion.active(stack) == fusion
+                                ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GRAY));
             }
         }
         for (var missing : dev.bladetetra.forging.NamedLegacyParts.missing(stack)) {
@@ -215,6 +244,10 @@ public final class BladeDetailTooltip {
     private static Component foxPart(FoxLegacyParts.Color color) {
         return Component.translatable("tooltip.blade_tetra.fox." +
                 color.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static Component abilityName(String type, net.minecraft.resources.ResourceLocation id) {
+        return Component.translatable(type + "." + id.getNamespace() + "." + id.getPath());
     }
 
     private static String percent(double ratio) {
