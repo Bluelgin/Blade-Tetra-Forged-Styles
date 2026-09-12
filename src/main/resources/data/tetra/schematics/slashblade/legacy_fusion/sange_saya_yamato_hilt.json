@@ -1,36 +1,23 @@
 {
-  "replace": false,
-  "slots": [
-    "slashblade/blade"
-  ],
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
   "materialSlotCount": 1,
-  "displayType": "minor",
-  "glyph": {
-    "textureX": 240,
-    "textureY": 48,
-    "tint": "C7A6FF"
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 240, "textureY": 48, "tint": "C7A6FF" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "blade_tetra:legacy_fusion", "id": "sange_saya_yamato_hilt" },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/legacy_fusion/sange_saya_yamato_hilt" }
+    ]
   },
   "outcomes": [
     {
-      "material": {
-        "items": [
-          "slashblade:proudsoul_sphere"
-        ],
-        "count": 1
-      },
-      "requiredTools": {
-        "hammer_dig": 3
-      },
-      "moduleKey": "blade/legacy_fusion",
-      "moduleVariant": "blade_tetra:legacy_fusion/saya_then_hilt",
-      "improvements": {
-        "blade_tetra/legacy_fusion/sange_saya_yamato_hilt": 0
-      }
+      "material": { "items": [ "slashblade:proudsoul_sphere" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/legacy_fusion/sange_saya_yamato_hilt": 1 }
     }
-  ],
-  "requirement": {
-    "type": "blade_tetra:legacy_fusion",
-    "sayaSource": "slashblade/sange",
-    "hiltSource": "slashblade/yamato"
-  }
+  ]
 }
