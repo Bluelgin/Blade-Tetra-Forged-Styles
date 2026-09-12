@@ -1,0 +1,12 @@
+{
+  "item.blade_tetra.named_blade_record": "Named Blade Record",
+  "tooltip.blade_tetra.named_blade_record": "A handbook for named-blade imprinting, orthodox forms and legacy fusions",
+  "tooltip.blade_tetra.named_blade_record.use": "Right-click to read; confirmed fusion recipes are listed automatically",
+  "message.blade_tetra.named_blade_record.gift": "A Named Blade Record and a blank imprint scroll slip from a hidden pocket in the Smithing Journal.",
+  "lore.blade_tetra.named_blade_record.cover": "Named Blade Record\n\n— A master smith's gift —\n\n'When you find a famed blade, do not rush to copy its edge.\nStudy the saya first, then the hilt.'\n\nThis volume records imprinting and legacy fusion.",
+  "lore.blade_tetra.named_blade_record.imprinting": "[Named-blade imprinting]\n\nPlace a supported named blade on a blade stand directly above a Tetra workbench.\n\nHold a blank imprint scroll and sneak-right-click the workbench to begin studying it.\n\nFailure can damage the original blade. Proud Soul materials can improve the odds or protect it.",
+  "lore.blade_tetra.named_blade_record.orthodox": "[Orthodox legacy]\n\nA successful study unlocks the named blade's saya and complete hilt fittings.\n\nYour Tetra blade material remains your own.\n\nMatching saya and hilt fittings form imprint affinity and inherit the source blade's registered SA or SE.",
+  "lore.blade_tetra.named_blade_record.fusion_intro": "[Legacy fusion]\n\nSome fittings from different named blades can be tuned together, awakening techniques that neither source blade possessed.\n\nSaya and hilt order matters. Reversing the same pair can produce a different result.\n\nConfirmed combinations follow.",
+  "lore.blade_tetra.named_blade_record.fusion_page": "Confirmed fusions",
+  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s saya\n+ %2$s hilt\n→ %3$s"
+}
