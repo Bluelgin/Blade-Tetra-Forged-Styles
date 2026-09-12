@@ -3,6 +3,7 @@ package dev.bladetetra.forging;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
+import java.util.function.Function;
 
 /** Read-only player-facing view of the authored legacy-fusion catalog. */
 public final class LegacyFusionGuide {
@@ -10,11 +11,16 @@ public final class LegacyFusionGuide {
             Component abilityName) {}
 
     public static List<Entry> entries() {
-        return LegacyFusionCatalog.values().stream()
+        return entries(LegacyFusionCatalog.values(), LegacyFusionGuide::namedBlade);
+    }
+
+    static List<Entry> entries(List<LegacyFusionDefinition> definitions,
+            Function<String, Component> nameResolver) {
+        return definitions.stream()
                 .map(definition -> new Entry(
                         definition.id(),
-                        namedBlade(definition.sayaId()),
-                        namedBlade(definition.hiltId()),
+                        nameResolver.apply(definition.sayaId()),
+                        nameResolver.apply(definition.hiltId()),
                         ability(definition)))
                 .toList();
     }
