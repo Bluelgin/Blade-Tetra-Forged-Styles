@@ -52,16 +52,25 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void runtimeConstantsMatchApprovedRedesign() {
-        assertEquals(90, VoidScatteringFusionHandler.DOMAIN_DURATION_TICKS);
+    void runtimeConstantsMatchExtendedDomainPass() {
+        assertEquals(200, VoidScatteringFusionHandler.DOMAIN_DURATION_TICKS);
         assertEquals(400, VoidScatteringFusionHandler.DOMAIN_COOLDOWN_TICKS);
         assertEquals(6, VoidScatteringFusionHandler.MAX_STORED_SWORDS);
         assertEquals(12, VoidScatteringFusionHandler.MAX_VOID_CHARGE);
         assertEquals(2, VoidScatteringFusionHandler.VOID_CHARGE_PER_SWORD);
+        assertEquals(5, VoidScatteringFusionHandler.AUTO_BREAK_CAPTURE_COUNT);
         assertEquals(8, VoidScatteringFusionHandler.SOURCE_CAPTURE_INTERVAL_TICKS);
         assertEquals(5, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
         assertEquals(36, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
         assertEquals(2, VoidScatteringFusionHandler.RETURN_DAMAGE_MAX_ATTEMPTS);
+    }
+
+    @Test
+    void fifthEffectiveCaptureBreaksDomain() {
+        assertFalse(VoidScatteringFusionHandler.shouldAutoRelease(0));
+        assertFalse(VoidScatteringFusionHandler.shouldAutoRelease(4));
+        assertTrue(VoidScatteringFusionHandler.shouldAutoRelease(5));
+        assertTrue(VoidScatteringFusionHandler.shouldAutoRelease(6));
     }
 
     @Test
@@ -87,6 +96,12 @@ class VoidScatteringBalanceTest {
                 "/assets/blade_tetra/shaders/core/void_scattering_dome.vsh"));
         assertNotNull(getClass().getResource(
                 "/assets/blade_tetra/shaders/core/void_scattering_dome.fsh"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_veil.json"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_veil.vsh"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_veil.fsh"));
         assertTrue(Files.isRegularFile(Path.of(
                 "art/void_scattering/void_ready_icon.svg")));
         assertTrue(Files.isRegularFile(Path.of(
