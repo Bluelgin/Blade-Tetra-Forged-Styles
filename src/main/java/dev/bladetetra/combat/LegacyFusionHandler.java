@@ -12,7 +12,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -84,13 +83,6 @@ public final class LegacyFusionHandler {
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
         VoidScatteringFusionHandler.tick(event);
-    }
-
-    @SubscribeEvent
-    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
-            VoidScatteringFusionHandler.onPlayerLoggedOut(player);
-        }
     }
 
     @SubscribeEvent
