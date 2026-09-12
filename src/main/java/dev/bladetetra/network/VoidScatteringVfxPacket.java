@@ -19,6 +19,8 @@ public record VoidScatteringVfxPacket(int type, int playerEntityId,
     public static final int CANCEL = 3;
     public static final int RESIDUAL = 4;
     public static final int READY = 5;
+    public static final int RESIDUAL_COUNTER = 6;
+    public static final int COUNTER_RELEASE = 7;
 
     public VoidScatteringVfxPacket(int type, int playerEntityId,
             int storedSlots, int duration, int seed) {
