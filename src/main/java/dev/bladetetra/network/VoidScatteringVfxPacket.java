@@ -1,5 +1,6 @@
 package dev.bladetetra.network;
 
+import dev.bladetetra.client.VoidScatteringFirstPersonClient;
 import dev.bladetetra.client.VoidScatteringVfxClient;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -47,7 +48,10 @@ public record VoidScatteringVfxPacket(int type, int playerEntityId,
             Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
-                Dist.CLIENT, () -> () -> VoidScatteringVfxClient.accept(packet)));
+                Dist.CLIENT, () -> () -> {
+                    VoidScatteringVfxClient.accept(packet);
+                    VoidScatteringFirstPersonClient.accept(packet);
+                }));
         context.setPacketHandled(true);
     }
 }
