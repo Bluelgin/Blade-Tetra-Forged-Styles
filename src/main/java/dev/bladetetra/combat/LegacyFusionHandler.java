@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -34,6 +35,12 @@ public final class LegacyFusionHandler {
             return;
         }
         ItemStack blade = player.getMainHandItem();
+        if (ModSlashBladeAbilities.VOID_SCATTERING.getId().equals(
+                event.getSlashBladeState().getSlashArtsKey())) {
+            VoidScatteringFusionHandler.onSlashArt(
+                    event, player, blade, event.getSlashBladeState());
+            return;
+        }
         if (ModSlashBladeAbilities.DOUWARI.getId().equals(
                 event.getSlashBladeState().getSlashArtsKey())) {
             DouwariFusionHandler.onSlashArt(
@@ -57,7 +64,13 @@ public final class LegacyFusionHandler {
     }
 
     @SubscribeEvent
+    public static void onLivingAttack(LivingAttackEvent event) {
+        VoidScatteringFusionHandler.onLivingAttack(event);
+    }
+
+    @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
+        VoidScatteringFusionHandler.onLivingHurt(event);
         RustReleaseFusionHandler.onLivingHurt(event);
     }
 
@@ -69,6 +82,7 @@ public final class LegacyFusionHandler {
         TwinFoxFusionHandler.tick(event);
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
+        VoidScatteringFusionHandler.tick(event);
     }
 
     @SubscribeEvent
@@ -77,6 +91,7 @@ public final class LegacyFusionHandler {
             TwinFoxFusionHandler.onLevelUnload(level);
             TwinPhaseFusionHandler.onLevelUnload(level);
             DouwariFusionHandler.onLevelUnload(level);
+            VoidScatteringFusionHandler.onLevelUnload(level);
         }
     }
 
@@ -86,6 +101,7 @@ public final class LegacyFusionHandler {
         TwinPhaseFusionHandler.clear();
         RustReleaseFusionHandler.clear();
         DouwariFusionHandler.clear();
+        VoidScatteringFusionHandler.clear();
     }
 
     // Package-visible compatibility seams retained for existing focused tests.

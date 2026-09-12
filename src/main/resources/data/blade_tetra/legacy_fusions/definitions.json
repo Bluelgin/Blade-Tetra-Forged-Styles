@@ -43,5 +43,14 @@
     "abilityType": "slash_art",
     "ability": "blade_tetra:douwari",
     "priority": 100
+  },
+  {
+    "id": "sange_saya_yamato_hilt",
+    "saya": "slashblade/sange",
+    "hilt": "slashblade/yamato",
+    "improvement": "blade_tetra/legacy_fusion/sange_saya_yamato_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:void_scattering",
+    "priority": 100
   }
 ]

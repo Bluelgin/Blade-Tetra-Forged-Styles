@@ -12,6 +12,8 @@ public final class ClientVisualConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_IAIDO_IMPACT_FEEDBACK;
     public static final ForgeConfigSpec.DoubleValue IAIDO_CAMERA_IMPACT_INTENSITY;
     public static final ForgeConfigSpec.DoubleValue IAIDO_FLASH_INTENSITY;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_VOID_SCATTERING_SHADER;
+    public static final ForgeConfigSpec.DoubleValue VOID_SCATTERING_SHADER_INTENSITY;
     public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_MUSIC;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_MUSIC_VOLUME;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AUDIO_PACK_REMINDER;
@@ -63,6 +65,14 @@ public final class ClientVisualConfig {
         IAIDO_FLASH_INTENSITY = builder
                 .comment("Opacity of the prepared-Iaido impact flash; 0 disables the flash.")
                 .defineInRange("iaidoFlashIntensity", 0.55D, 0.0D, 1.0D);
+        ENABLE_VOID_SCATTERING_SHADER = builder
+                .comment(
+                        "Use the local procedural rift shader for Void Scattering and Residual Bloom.",
+                        "Disable this if a shader pack or graphics mod conflicts; the geometry fallback remains available.")
+                .define("enableVoidScatteringShader", true);
+        VOID_SCATTERING_SHADER_INTENSITY = builder
+                .comment("Brightness/opacity multiplier for the local Void Scattering rift shader.")
+                .defineInRange("voidScatteringShaderIntensity", 1.0D, 0.0D, 1.5D);
         builder.pop();
 
         builder.push("audio");

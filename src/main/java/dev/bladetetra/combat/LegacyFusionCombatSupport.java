@@ -6,6 +6,7 @@ import mods.flammpfeil.slashblade.util.AttackManager;
 import mods.flammpfeil.slashblade.util.KnockBacks;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
@@ -51,6 +52,12 @@ final class LegacyFusionCombatSupport {
         }
     }
 
+    static void markVisualOnly(Entity entity) {
+        entity.getPersistentData().putBoolean(
+                BladeTechniqueHandler.TECHNIQUE_ENTITY, true);
+        entity.getPersistentData().putBoolean(VISUAL_ONLY, true);
+    }
+
     /**
      * Spawns SlashBlade's native slash mesh as a cosmetic entity only. Clearing
      * its shooter is intentional: EntitySlashEffect's indirect attack path scales
@@ -78,9 +85,7 @@ final class LegacyFusionCombatSupport {
         if (VISUAL_SLASH_DETACH_SHOOTER) {
             slash.setShooter(null);
         }
-        slash.getPersistentData().putBoolean(
-                BladeTechniqueHandler.TECHNIQUE_ENTITY, true);
-        slash.getPersistentData().putBoolean(VISUAL_ONLY, true);
+        markVisualOnly(slash);
     }
 
     private LegacyFusionCombatSupport() {

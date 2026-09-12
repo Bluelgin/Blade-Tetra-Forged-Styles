@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs><filter id="g"><feGaussianBlur stdDeviation="1.4"/></filter></defs>
+  <path d="M17 2 13 9l3 3-5 5 3 3-5 9" fill="none" stroke="#7D5CCF" stroke-width="5" opacity=".45" filter="url(#g)"/>
+  <path d="M17 2 13 9l3 3-5 5 3 3-5 9" fill="none" stroke="#F0E9FF" stroke-width="1.6"/>
+  <path d="m20 9 5-2-2 5 4 3-5 1" fill="none" stroke="#E8A8C4" stroke-width="1.2"/>
+  <path d="m6 12 3-2 1 4-3 2Z" fill="#F3C5D7"/>
+</svg>
