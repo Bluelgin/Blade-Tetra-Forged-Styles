@@ -21,21 +21,32 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void returnAndResidualSwordsStayBounded() {
-        assertEquals(4.4F, VoidScatteringBalance.returnSwordDamage(20.0D), 1.0E-4F);
-        assertEquals(10.0F, VoidScatteringBalance.returnSwordDamage(100.0D), 1.0E-4F);
-        assertEquals(10.0F, VoidScatteringBalance.returnSwordDamage(1000.0D), 1.0E-4F);
+    void returnAndResidualCountersStayBounded() {
+        assertEquals(6.6F,
+                VoidScatteringBalance.returnSwordDamage(20.0D, 12, false), 1.0E-4F);
+        assertEquals(7.59F,
+                VoidScatteringBalance.returnSwordDamage(20.0D, 12, true), 1.0E-4F);
+        assertEquals(12.0F,
+                VoidScatteringBalance.returnSwordDamage(100.0D, 12, false), 1.0E-4F);
+        assertEquals(13.8F,
+                VoidScatteringBalance.returnSwordDamage(1000.0D, 12, true), 1.0E-4F);
 
-        assertEquals(3.0F, VoidScatteringBalance.residualSwordDamage(20.0D), 1.0E-4F);
-        assertEquals(7.0F, VoidScatteringBalance.residualSwordDamage(100.0D), 1.0E-4F);
-        assertEquals(7.0F, VoidScatteringBalance.residualSwordDamage(1000.0D), 1.0E-4F);
+        assertEquals(3.4F,
+                VoidScatteringBalance.residualCounterSwordDamage(20.0D), 1.0E-4F);
+        assertEquals(8.0F,
+                VoidScatteringBalance.residualCounterSwordDamage(100.0D), 1.0E-4F);
+        assertEquals(2.6F,
+                VoidScatteringBalance.residualFallbackSwordDamage(20.0D), 1.0E-4F);
+        assertEquals(6.0F,
+                VoidScatteringBalance.residualFallbackSwordDamage(100.0D), 1.0E-4F);
     }
 
     @Test
-    void domainLeavesFortyFivePercentOfEligibleDamage() {
+    void defensiveWindowsKeepTheirApprovedMultipliers() {
         assertEquals(9.0F, VoidScatteringBalance.reducedDamage(20.0F), 1.0E-4F);
+        assertEquals(12.0F, VoidScatteringBalance.residualReducedDamage(20.0F), 1.0E-4F);
         assertEquals(0.0F, VoidScatteringBalance.reducedDamage(0.0F), 1.0E-4F);
-        assertEquals(0.0F, VoidScatteringBalance.reducedDamage(-3.0F), 1.0E-4F);
+        assertEquals(0.0F, VoidScatteringBalance.residualReducedDamage(-3.0F), 1.0E-4F);
     }
 
     @Test
@@ -52,7 +63,7 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void runtimeConstantsMatchExtendedDomainPass() {
+    void runtimeConstantsMatchCounterRedesign() {
         assertEquals(200, VoidScatteringFusionHandler.DOMAIN_DURATION_TICKS);
         assertEquals(400, VoidScatteringFusionHandler.DOMAIN_COOLDOWN_TICKS);
         assertEquals(6, VoidScatteringFusionHandler.MAX_STORED_SWORDS);
@@ -60,8 +71,11 @@ class VoidScatteringBalanceTest {
         assertEquals(2, VoidScatteringFusionHandler.VOID_CHARGE_PER_SWORD);
         assertEquals(5, VoidScatteringFusionHandler.AUTO_BREAK_CAPTURE_COUNT);
         assertEquals(8, VoidScatteringFusionHandler.SOURCE_CAPTURE_INTERVAL_TICKS);
-        assertEquals(5, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
-        assertEquals(36, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
+        assertEquals(8, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
+        assertEquals(60, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
+        assertEquals(10, VoidScatteringFusionHandler.RESIDUAL_DOMAIN_REFUND_TICKS);
+        assertEquals(7, VoidScatteringFusionHandler.COUNTER_WINDUP_TICKS);
+        assertEquals(3, VoidScatteringFusionHandler.COUNTER_STAGGER_TICKS);
         assertEquals(2, VoidScatteringFusionHandler.RETURN_DAMAGE_MAX_ATTEMPTS);
     }
 
