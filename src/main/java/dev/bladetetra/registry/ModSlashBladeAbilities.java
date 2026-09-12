@@ -53,6 +53,11 @@ public final class ModSlashBladeAbilities {
             SPECIAL_EFFECTS.register("twin_fox_reflection",
                     () -> new SpecialEffect(0, false, false));
 
+    /** Structural normal-combo SE for the sealed Agito/Orotiagito fitting pair. */
+    public static final RegistryObject<SpecialEffect> SNAKE_MOLT =
+            SPECIAL_EFFECTS.register("snake_molt",
+                    () -> new SpecialEffect(0, false, false));
+
     private static boolean isActive(net.minecraft.world.item.ItemStack stack,
             LegacyFusion expected) {
         return LegacyFusion.active(stack) == expected;

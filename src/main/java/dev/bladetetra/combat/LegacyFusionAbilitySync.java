@@ -27,9 +27,12 @@ final class LegacyFusionAbilitySync {
         String previous = tag.getString(LAST_ACTIVE);
         String current = active == null ? "" : active.id();
 
-        ResourceLocation pursuit = ModSlashBladeAbilities.TWIN_FOX_REFLECTION.getId();
-        reconcileSpecialEffect(state, pursuit,
-                active == LegacyFusion.WHITE_SAYA_BLACK_HILT);
+        for (LegacyFusion fusion : LegacyFusion.values()) {
+            if (fusion.ability() == LegacyFusion.Ability.SPECIAL_EFFECT
+                    && fusion.abilityId() != null) {
+                reconcileSpecialEffect(state, fusion.abilityId(), active == fusion);
+            }
+        }
         if (active != LegacyFusion.WHITE_SAYA_BLACK_HILT) {
             TwinFoxFusionHandler.clearStoredPursuit(tag);
         }
@@ -87,13 +90,8 @@ final class LegacyFusionAbilitySync {
     }
 
     private static ResourceLocation fusionSlashArt(LegacyFusion fusion) {
-        if (fusion == LegacyFusion.BLACK_SAYA_WHITE_HILT) {
-            return ModSlashBladeAbilities.TWIN_FOX_PIERCING.getId();
-        }
-        if (fusion == LegacyFusion.YASHA_SAYA_KIKOUKU_HILT) {
-            return ModSlashBladeAbilities.TWIN_PHASE_KIKOUKU.getId();
-        }
-        return null;
+        return fusion != null && fusion.ability() == LegacyFusion.Ability.SLASH_ART
+                ? fusion.abilityId() : null;
     }
 
     private static void reconcileSpecialEffect(ISlashBladeState state,

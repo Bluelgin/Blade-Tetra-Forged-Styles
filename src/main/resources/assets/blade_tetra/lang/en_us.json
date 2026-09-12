@@ -915,5 +915,11 @@
   "tetra.improvement.blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt.name": "Twin Phase: Kikouku",
   "tetra.improvement.blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt.description": "Yasha's saya releases and Kikouku's hilt answers. Rapid cuts wear foes down before a focused sakura execution or the broken ghost rings close in.",
   "tetra/schematic/slashblade/legacy_fusion/yasha_saya_kikouku_hilt.name": "Attune legacy: Twin Phase Kikouku",
-  "tooltip.blade_tetra.legacy_fusion.yasha_saya_kikouku_hilt": "Twin Phase: Kikouku · SA"
+  "tooltip.blade_tetra.legacy_fusion.yasha_saya_kikouku_hilt": "Twin Phase: Kikouku · SA",
+  "se.blade_tetra.snake_molt": "True Lineage: Rust Release",
+  "tooltip.blade_tetra.legacy_fusion.sealed_agito_saya_orotiagito_hilt": "True Lineage: Rust Release · SE",
+  "tooltip.blade_tetra.legacy_fusion.rust_release.details": "Direct normal attacks only: deeper combo steps shed the seal's rust and gain armor penetration. A normal finisher releases a short honing edge; sheathing seals it again.",
+  "tetra.improvement.blade_tetra/legacy_fusion/sealed_agito_saya_orotiagito_hilt.name": "True Lineage: Rust Release",
+  "tetra.improvement.blade_tetra/legacy_fusion/sealed_agito_saya_orotiagito_hilt.description": "The sealed Agito saya binds an awakened Orotiagito hilt once more. Normal combos grind away the seal and sharpen with every step.",
+  "tetra/schematic/slashblade/legacy_fusion/sealed_agito_saya_orotiagito_hilt.name": "Attune legacy: Rust Release"
 }

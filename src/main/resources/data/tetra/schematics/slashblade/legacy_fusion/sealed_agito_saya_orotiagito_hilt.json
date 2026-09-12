@@ -1,0 +1,23 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 176, "textureY": 112, "tint": "355B3D" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "blade_tetra:legacy_fusion", "id": "sealed_agito_saya_orotiagito_hilt" },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/legacy_fusion/sealed_agito_saya_orotiagito_hilt" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "slashblade:proudsoul_sphere" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/legacy_fusion/sealed_agito_saya_orotiagito_hilt": 1 }
+    }
+  ]
+}

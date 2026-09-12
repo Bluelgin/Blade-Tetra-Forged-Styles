@@ -3,8 +3,6 @@ package dev.bladetetra.forging;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Arrays;
-
 /**
  * Ordered, deliberately authored combinations of two imprinted named-blade
  * fittings. The saya is the release form and the complete hilt is the response,
@@ -12,37 +10,18 @@ import java.util.Arrays;
  */
 public enum LegacyFusion {
     BLACK_SAYA_WHITE_HILT(
-            "black_saya_white_hilt",
-            "fox_black",
-            "fox_white",
-            "blade_tetra/legacy_fusion/black_saya_white_hilt",
-            Ability.SLASH_ART),
+            "black_saya_white_hilt"),
     WHITE_SAYA_BLACK_HILT(
-            "white_saya_black_hilt",
-            "fox_white",
-            "fox_black",
-            "blade_tetra/legacy_fusion/white_saya_black_hilt",
-            Ability.SPECIAL_EFFECT),
+            "white_saya_black_hilt"),
     YASHA_SAYA_KIKOUKU_HILT(
-            "yasha_saya_kikouku_hilt",
-            "slashblade/yasha",
-            "slashblade/yasha_true",
-            "blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt",
-            Ability.SLASH_ART);
+            "yasha_saya_kikouku_hilt"),
+    SEALED_AGITO_SAYA_OROTIAGITO_HILT(
+            "sealed_agito_saya_orotiagito_hilt");
 
     private final String id;
-    private final String sayaId;
-    private final String hiltId;
-    private final String improvement;
-    private final Ability ability;
 
-    LegacyFusion(String id, String sayaId, String hiltId,
-            String improvement, Ability ability) {
+    LegacyFusion(String id) {
         this.id = id;
-        this.sayaId = sayaId;
-        this.hiltId = hiltId;
-        this.improvement = improvement;
-        this.ability = ability;
     }
 
     public String id() {
@@ -50,25 +29,31 @@ public enum LegacyFusion {
     }
 
     public String improvement() {
-        return improvement;
+        LegacyFusionDefinition definition = definition();
+        return definition == null ? "" : definition.improvement();
     }
 
     public Ability ability() {
-        return ability;
+        LegacyFusionDefinition definition = definition();
+        return definition != null
+                && definition.abilityType() == LegacyFusionDefinition.AbilityType.SPECIAL_EFFECT
+                ? Ability.SPECIAL_EFFECT : Ability.SLASH_ART;
+    }
+
+    public net.minecraft.resources.ResourceLocation abilityId() {
+        LegacyFusionDefinition definition = definition();
+        return definition == null ? null : definition.ability();
     }
 
     public boolean matches(NamedLegacyParts parts) {
-        return parts != null
-                && parts.saya() != null
-                && parts.tsuba() != null
-                && sayaId.equals(parts.saya().id())
-                && hiltId.equals(parts.tsuba().id());
+        LegacyFusionDefinition definition = definition();
+        return definition != null && definition.matches(parts);
     }
 
     public boolean isAttuned(ItemStack stack) {
         return matches(NamedLegacyParts.fromStack(stack))
                 && ForgingImprovements.has(stack,
-                ModularSlashBladeItem.BLADE_SLOT, improvement);
+                ModularSlashBladeItem.BLADE_SLOT, improvement());
     }
 
     public static LegacyFusion installed(ItemStack stack) {
@@ -76,8 +61,8 @@ public enum LegacyFusion {
     }
 
     public static LegacyFusion installed(NamedLegacyParts parts) {
-        return Arrays.stream(values()).filter(fusion -> fusion.matches(parts))
-                .findFirst().orElse(null);
+        LegacyFusionDefinition definition = LegacyFusionCatalog.resolve(parts);
+        return definition == null ? null : byId(definition.id());
     }
 
     public static LegacyFusion active(ItemStack stack) {
@@ -86,8 +71,14 @@ public enum LegacyFusion {
     }
 
     public static LegacyFusion byId(String id) {
-        return Arrays.stream(values()).filter(fusion -> fusion.id.equals(id))
-                .findFirst().orElse(null);
+        for (LegacyFusion fusion : values()) {
+            if (fusion.id.equals(id)) return fusion;
+        }
+        return null;
+    }
+
+    private LegacyFusionDefinition definition() {
+        return LegacyFusionCatalog.get(id);
     }
 
     public enum Ability {

@@ -194,15 +194,22 @@ public final class BladeDetailTooltip {
             }
             LegacyFusion fusion = LegacyFusion.installed(namedParts);
             if (fusion != null) {
+                boolean activeFusion = LegacyFusion.active(stack) == fusion;
                 Component name = Component.translatable(
                         "tooltip.blade_tetra.legacy_fusion." + fusion.id());
                 lines.add(Component.translatable(
-                                LegacyFusion.active(stack) == fusion
+                                activeFusion
                                         ? "tooltip.blade_tetra.legacy_fusion.active"
                                         : "tooltip.blade_tetra.legacy_fusion.candidate",
                                 name)
-                        .withStyle(LegacyFusion.active(stack) == fusion
+                        .withStyle(activeFusion
                                 ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GRAY));
+                if (activeFusion
+                        && fusion == LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT) {
+                    lines.add(Component.translatable(
+                                    "tooltip.blade_tetra.legacy_fusion.rust_release.details")
+                            .withStyle(ChatFormatting.DARK_GREEN));
+                }
             }
         }
         for (var missing : dev.bladetetra.forging.NamedLegacyParts.missing(stack)) {

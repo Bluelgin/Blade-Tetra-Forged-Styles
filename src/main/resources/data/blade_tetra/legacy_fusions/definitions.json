@@ -1,0 +1,38 @@
+[
+  {
+    "id": "black_saya_white_hilt",
+    "saya": "fox_black",
+    "hilt": "fox_white",
+    "improvement": "blade_tetra/legacy_fusion/black_saya_white_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:twin_fox_piercing",
+    "priority": 100
+  },
+  {
+    "id": "white_saya_black_hilt",
+    "saya": "fox_white",
+    "hilt": "fox_black",
+    "improvement": "blade_tetra/legacy_fusion/white_saya_black_hilt",
+    "abilityType": "special_effect",
+    "ability": "blade_tetra:twin_fox_reflection",
+    "priority": 100
+  },
+  {
+    "id": "yasha_saya_kikouku_hilt",
+    "saya": "slashblade/yasha",
+    "hilt": "slashblade/yasha_true",
+    "improvement": "blade_tetra/legacy_fusion/yasha_saya_kikouku_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:twin_phase_kikouku",
+    "priority": 100
+  },
+  {
+    "id": "sealed_agito_saya_orotiagito_hilt",
+    "saya": "slashblade/orotiagito_sealed",
+    "hilt": "slashblade/orotiagito",
+    "improvement": "blade_tetra/legacy_fusion/sealed_agito_saya_orotiagito_hilt",
+    "abilityType": "special_effect",
+    "ability": "blade_tetra:snake_molt",
+    "priority": 100
+  }
+]

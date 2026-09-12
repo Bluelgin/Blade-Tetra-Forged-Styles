@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -46,6 +47,12 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
         TwinFoxFusionHandler.onBladeHit(event);
+        RustReleaseFusionHandler.onBladeHit(event);
+    }
+
+    @SubscribeEvent
+    public static void onLivingHurt(LivingHurtEvent event) {
+        RustReleaseFusionHandler.onLivingHurt(event);
     }
 
     @SubscribeEvent
@@ -69,6 +76,7 @@ public final class LegacyFusionHandler {
     public static void onServerStopped(ServerStoppedEvent event) {
         TwinFoxFusionHandler.clear();
         TwinPhaseFusionHandler.clear();
+        RustReleaseFusionHandler.clear();
     }
 
     // Package-visible compatibility seams retained for existing focused tests.

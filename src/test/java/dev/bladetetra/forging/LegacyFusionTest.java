@@ -55,6 +55,25 @@ class LegacyFusionTest {
                 new NamedLegacyParts(kikouku, yasha, yasha)));
     }
 
+    @Test
+    void sealedAgitoSayaAndOrotiagitoHiltResolveToRustRelease() {
+        LegacyImprintKind sealed = named(
+                "slashblade/orotiagito_sealed", "orotiagito_sealed");
+        LegacyImprintKind released = named(
+                "slashblade/orotiagito", "orotiagito");
+
+        assertEquals(LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT,
+                LegacyFusion.installed(
+                        new NamedLegacyParts(sealed, released, released)));
+        assertNull(LegacyFusion.installed(
+                new NamedLegacyParts(released, sealed, sealed)));
+        assertEquals(LegacyFusion.Ability.SPECIAL_EFFECT,
+                LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT.ability());
+        assertEquals("blade_tetra:snake_molt",
+                LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT
+                        .abilityId().toString());
+    }
+
     private static LegacyImprintKind kind(String id) {
         return id.equals("fox_black")
                 ? LegacyImprintKind.BLACK_FOX
