@@ -51,6 +51,7 @@ final class VoidScatteringFusionHandler {
     static final int SOURCE_CAPTURE_INTERVAL_TICKS = 8;
     static final int RESIDUAL_DURATION_TICKS = 5;
     static final int RESIDUAL_COOLDOWN_TICKS = 36;
+    static final int RETURN_DAMAGE_MAX_ATTEMPTS = 2;
 
     private static final double DOMAIN_PROJECTILE_RADIUS = 5.0D;
     private static final double RETURN_RANGE = 40.0D;
@@ -421,6 +422,7 @@ final class VoidScatteringFusionHandler {
         sword.setPos(start.x, start.y, start.z);
         sword.setOwner(player);
         sword.setShooter(player);
+        sword.setHitEntity(target);
         sword.setDamage(0.0D);
         sword.setColor(VOID_COLOR);
         sword.setRoll((float) ((sequence * 53) % 360));
@@ -458,15 +460,28 @@ final class VoidScatteringFusionHandler {
                         pending.sequence);
                 continue;
             }
-            LegacyFusionCombatSupport.hurtPreservingIFrames(
+
+            pending.damageAttempts++;
+            boolean damaged = LegacyFusionCombatSupport.hurtPreservingIFrames(
                     level, player, target, pending.damage);
-            Vec3 center = target.getBoundingBox().getCenter();
-            LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                    player.getYRot(), 90.0F, VOID_COLOR, 0.92F, 6);
-            level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                    center.x, center.y, center.z, 5, 0.35D, 0.35D, 0.35D, 0.025D);
+            if (shouldRetryReturnDamage(damaged, pending.damageAttempts)) {
+                pending.dueTick = now + 1L;
+                continue;
+            }
+            if (damaged) {
+                Vec3 center = target.getBoundingBox().getCenter();
+                LegacyFusionCombatSupport.spawnVisualSlash(player, center,
+                        player.getYRot(), 90.0F, VOID_COLOR, 0.92F, 6);
+                level.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                        center.x, center.y, center.z, 5,
+                        0.35D, 0.35D, 0.35D, 0.025D);
+            }
             iterator.remove();
         }
+    }
+
+    static boolean shouldRetryReturnDamage(boolean damaged, int attempts) {
+        return !damaged && attempts < RETURN_DAMAGE_MAX_ATTEMPTS;
     }
 
     private static boolean validDomainPlayer(ServerPlayer player, DomainState domain) {
@@ -504,16 +519,6 @@ final class VoidScatteringFusionHandler {
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
                 player.getX(), player.getY() + 1.15D, player.getZ(),
                 2, 2.1D, 0.6D, 2.1D, 0.01D);
-        if (now % 12L == 0L) {
-            double angle = player.getRandom().nextDouble() * Math.PI * 2.0D;
-            Vec3 crack = player.position().add(
-                    Math.cos(angle) * 2.2D,
-                    0.75D + player.getRandom().nextDouble() * 1.1D,
-                    Math.sin(angle) * 2.2D);
-            LegacyFusionCombatSupport.spawnVisualSlash(player, crack,
-                    (float) Math.toDegrees(-angle), 90.0F,
-                    VOID_COLOR, 0.95F, 7);
-        }
     }
 
     private static void renderResidual(ServerPlayer player) {
@@ -625,6 +630,7 @@ final class VoidScatteringFusionHandler {
         private final int sequence;
         private long dueTick;
         private boolean launched;
+        private int damageAttempts;
 
         private PendingReturn(ResourceKey<Level> dimension, UUID playerId,
                 UUID targetId, float damage, long dueTick, int sequence) {
