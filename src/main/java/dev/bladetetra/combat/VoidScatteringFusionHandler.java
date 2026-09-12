@@ -40,20 +40,21 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Sange saya + Yamato hilt: an endgame defensive domain that stores hostile
- * pressure and returns it as authored summoned swords instead of reflecting the
- * incoming damage value.
+ * Sange saya + Yamato hilt: an endgame defensive domain that converts hostile
+ * pressure into bounded void charge and returns it as authored summoned swords.
  */
 final class VoidScatteringFusionHandler {
-    static final int DOMAIN_DURATION_TICKS = 60;
-    static final int DOMAIN_COOLDOWN_TICKS = 280;
-    static final int MAX_STORED_SWORDS = 5;
+    static final int DOMAIN_DURATION_TICKS = 90;
+    static final int DOMAIN_COOLDOWN_TICKS = 400;
+    static final int MAX_STORED_SWORDS = 6;
+    static final int MAX_VOID_CHARGE = 12;
+    static final int VOID_CHARGE_PER_SWORD = 2;
     static final int SOURCE_CAPTURE_INTERVAL_TICKS = 8;
     static final int RESIDUAL_DURATION_TICKS = 5;
     static final int RESIDUAL_COOLDOWN_TICKS = 36;
     static final int RETURN_DAMAGE_MAX_ATTEMPTS = 2;
 
-    private static final double DOMAIN_PROJECTILE_RADIUS = 5.0D;
+    private static final double DOMAIN_PROJECTILE_RADIUS = 3.25D;
     private static final double RETURN_RANGE = 40.0D;
     private static final double RESIDUAL_RANGE = 4.0D;
     private static final int VOID_COLOR = 0xC8A7FF;
@@ -69,10 +70,6 @@ final class VoidScatteringFusionHandler {
     private static final Map<UUID, ResidualState> RESIDUALS = new HashMap<>();
     private static final List<PendingReturn> PENDING_RETURNS = new ArrayList<>();
 
-    /**
-     * @return true when this handler consumed the Slash Art event and vanilla
-     * SlashBlade should not charge its normal Proud Soul cost.
-     */
     static boolean onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
             ServerPlayer player, ItemStack blade, ISlashBladeState state) {
         if (LegacyFusion.active(blade) != LegacyFusion.SANGE_SAYA_YAMATO_HILT) {
@@ -115,8 +112,10 @@ final class VoidScatteringFusionHandler {
         if (domain != null && validDomainPlayer(player, domain)) {
             event.setCanceled(true);
             projectile.discard();
-            if (capture(player, domain, source, globalGameTime(player))) {
-                captureVisual(player.serverLevel(), player);
+            Vec3 impact = domainImpactPoint(player, projectile.position());
+            if (capture(player, domain, source, event.getAmount(),
+                    globalGameTime(player), impact)) {
+                captureVisual(player.serverLevel(), impact);
             }
             return;
         }
@@ -128,7 +127,7 @@ final class VoidScatteringFusionHandler {
             RESIDUALS.remove(player.getUUID());
             scheduleReturn(player, source.getUUID(),
                     VoidScatteringBalance.residualSwordDamage(residual.attackSnapshot()), 0);
-            captureVisual(player.serverLevel(), player);
+            captureVisual(player.serverLevel(), projectile.position());
         }
     }
 
@@ -150,9 +149,11 @@ final class VoidScatteringFusionHandler {
             return;
         }
 
-        event.setAmount(VoidScatteringBalance.reducedDamage(event.getAmount()));
-        if (capture(player, domain, source, globalGameTime(player))) {
-            captureVisual(player.serverLevel(), player);
+        float incoming = event.getAmount();
+        event.setAmount(VoidScatteringBalance.reducedDamage(incoming));
+        Vec3 impact = domainImpactPoint(player, source.position());
+        if (capture(player, domain, source, incoming, globalGameTime(player), impact)) {
+            captureVisual(player.serverLevel(), impact);
         }
     }
 
@@ -233,17 +234,14 @@ final class VoidScatteringFusionHandler {
         DOMAINS.put(player.getUUID(), domain);
         RESIDUALS.remove(player.getUUID());
 
-        // Persist a conservative ready time immediately. If the player logs out
-        // mid-domain the field cannot be kept alive, but reconnecting does not
-        // erase the intended defensive cooldown.
         setDomainCooldown(player, now + DOMAIN_DURATION_TICKS + DOMAIN_COOLDOWN_TICKS);
 
         level.sendParticles(ParticleTypes.PORTAL,
                 player.getX(), player.getY() + 1.0D, player.getZ(),
-                36, 2.2D, 0.75D, 2.2D, 0.04D);
+                20, 2.7D, 0.95D, 2.7D, 0.035D);
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
                 player.getX(), player.getY() + 1.2D, player.getZ(),
-                18, 1.9D, 0.65D, 1.9D, 0.015D);
+                12, 2.4D, 0.85D, 2.4D, 0.012D);
         level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
                 SoundSource.PLAYERS, 0.55F, 0.72F);
         sendVfx(player, VoidScatteringVfxPacket.OPEN, 0,
@@ -270,19 +268,19 @@ final class VoidScatteringFusionHandler {
             }
         }
 
-        Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
+        Vec3 center = domainCenter(player);
         LegacyFusionCombatSupport.spawnVisualSlash(player, center,
                 player.getYRot(), 90.0F, VOID_COLOR, 2.4F, 11);
         level.sendParticles(ParticleTypes.PORTAL,
-                center.x, center.y, center.z, 28,
-                1.8D, 0.65D, 1.8D, 0.08D);
+                center.x, center.y, center.z, 24,
+                1.9D, 0.75D, 1.9D, 0.075D);
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                center.x, center.y, center.z, 20,
-                1.6D, 0.55D, 1.6D, 0.05D);
+                center.x, center.y, center.z, 18,
+                1.7D, 0.6D, 1.7D, 0.045D);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
                 SoundSource.PLAYERS, 0.82F, 1.22F);
         sendVfx(player, VoidScatteringVfxPacket.COLLAPSE,
-                domain.sources().size(), 12, domain.seed());
+                domain.sources().size(), 8, domain.seed());
     }
 
     private static void cancelDomain(ServerPlayer player) {
@@ -335,17 +333,23 @@ final class VoidScatteringFusionHandler {
     private static void interceptDomainProjectiles(ServerPlayer player,
             DomainState domain, long now) {
         ServerLevel level = player.serverLevel();
+        Vec3 center = domainCenter(player);
+        double radiusSqr = DOMAIN_PROJECTILE_RADIUS * DOMAIN_PROJECTILE_RADIUS;
         AABB area = player.getBoundingBox().inflate(DOMAIN_PROJECTILE_RADIUS);
         List<Projectile> projectiles = level.getEntitiesOfClass(Projectile.class, area,
                 VoidScatteringFusionHandler::isWhitelistedProjectile);
         for (Projectile projectile : projectiles) {
+            if (projectile.position().distanceToSqr(center) > radiusSqr) {
+                continue;
+            }
             LivingEntity source = projectileOwner(projectile);
             if (source == null || !LegacyFusionCombatSupport.canAffect(player, source)) {
                 continue;
             }
+            Vec3 impact = domainImpactPoint(player, projectile.position());
             projectile.discard();
-            if (capture(player, domain, source, now)) {
-                captureVisual(level, player);
+            if (capture(player, domain, source, projectilePressure(projectile), now, impact)) {
+                captureVisual(level, impact);
             }
         }
     }
@@ -368,31 +372,78 @@ final class VoidScatteringFusionHandler {
             if (source == null || !LegacyFusionCombatSupport.canAffect(player, source)) {
                 continue;
             }
+            Vec3 impact = projectile.position();
             projectile.discard();
             RESIDUALS.remove(residual.playerId());
             scheduleReturn(player, source.getUUID(),
                     VoidScatteringBalance.residualSwordDamage(residual.attackSnapshot()), 0);
-            captureVisual(level, player);
+            captureVisual(level, impact);
             return true;
         }
         return false;
     }
 
     private static boolean capture(ServerPlayer player, DomainState domain,
-            LivingEntity source, long now) {
-        if (domain.sources().size() >= MAX_STORED_SWORDS) {
-            return false;
-        }
+            LivingEntity source, float incomingDamage, long now, Vec3 impactPoint) {
         long previous = domain.lastCapture().getOrDefault(source.getUUID(), Long.MIN_VALUE / 2L);
         if (now - previous < SOURCE_CAPTURE_INTERVAL_TICKS) {
             return false;
         }
+        int gainedCharge = VoidScatteringBalance.voidChargeForIncomingDamage(incomingDamage);
+        if (gainedCharge <= 0) {
+            return false;
+        }
         domain.lastCapture().put(source.getUUID(), now);
-        domain.sources().add(source.getUUID());
+
+        int oldCharge = domain.voidCharge();
+        int newCharge = Math.min(MAX_VOID_CHARGE, oldCharge + gainedCharge);
+        domain.setVoidCharge(newCharge);
+        int oldSwordCount = Math.min(MAX_STORED_SWORDS, oldCharge / VOID_CHARGE_PER_SWORD);
+        int newSwordCount = Math.min(MAX_STORED_SWORDS, newCharge / VOID_CHARGE_PER_SWORD);
+        while (domain.sources().size() < newSwordCount
+                && domain.sources().size() < MAX_STORED_SWORDS) {
+            domain.sources().add(source.getUUID());
+        }
+
+        Vec3 direction = impactPoint.subtract(domainCenter(player));
+        if (direction.lengthSqr() > 1.0E-5D) {
+            direction = direction.normalize();
+        } else {
+            direction = new Vec3(0.0D, 0.0D, 1.0D);
+        }
         sendVfx(player, VoidScatteringVfxPacket.CAPTURE,
                 domain.sources().size(),
-                Math.max(1, (int) (domain.endTick() - now)), domain.seed());
-        return true;
+                Math.max(1, (int) (domain.endTick() - now)), domain.seed(), direction);
+        return newCharge != oldCharge || oldSwordCount == newSwordCount;
+    }
+
+    private static float projectilePressure(Projectile projectile) {
+        if (projectile instanceof ThrownTrident) {
+            return 8.0F;
+        }
+        if (projectile instanceof SmallFireball) {
+            return 5.0F;
+        }
+        if (projectile instanceof Snowball) {
+            return 1.0F;
+        }
+        if (projectile instanceof AbstractArrow) {
+            return 6.0F;
+        }
+        return 1.0F;
+    }
+
+    private static Vec3 domainCenter(ServerPlayer player) {
+        return player.position().add(0.0D, 1.0D, 0.0D);
+    }
+
+    private static Vec3 domainImpactPoint(ServerPlayer player, Vec3 threatPosition) {
+        Vec3 center = domainCenter(player);
+        Vec3 delta = threatPosition.subtract(center);
+        if (delta.lengthSqr() < 1.0E-5D) {
+            delta = player.getLookAngle().scale(-1.0D);
+        }
+        return center.add(delta.normalize().scale(DOMAIN_PROJECTILE_RADIUS * 0.95D));
     }
 
     private static void scheduleReturn(ServerPlayer player, UUID targetId,
@@ -509,16 +560,16 @@ final class VoidScatteringFusionHandler {
     }
 
     private static void renderDomain(ServerPlayer player, long now) {
-        if (now % 4L != 0L) {
+        if (now % 6L != 0L) {
             return;
         }
         ServerLevel level = player.serverLevel();
         level.sendParticles(ParticleTypes.PORTAL,
                 player.getX(), player.getY() + 1.0D, player.getZ(),
-                5, 2.35D, 0.7D, 2.35D, 0.015D);
+                2, 2.85D, 0.9D, 2.85D, 0.01D);
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
                 player.getX(), player.getY() + 1.15D, player.getZ(),
-                2, 2.1D, 0.6D, 2.1D, 0.01D);
+                1, 2.55D, 0.75D, 2.55D, 0.008D);
     }
 
     private static void renderResidual(ServerPlayer player) {
@@ -529,15 +580,16 @@ final class VoidScatteringFusionHandler {
                 0.16D, 0.34D, 0.16D, 0.02D);
     }
 
-    private static void captureVisual(ServerLevel level, ServerPlayer player) {
+    private static void captureVisual(ServerLevel level, Vec3 impact) {
         level.sendParticles(ParticleTypes.PORTAL,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                10, 0.72D, 0.58D, 0.72D, 0.08D);
+                impact.x, impact.y, impact.z,
+                7, 0.28D, 0.28D, 0.28D, 0.055D);
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                player.getX(), player.getY() + 1.15D, player.getZ(),
-                5, 0.58D, 0.42D, 0.58D, 0.035D);
-        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME,
-                SoundSource.PLAYERS, 0.28F, 1.36F);
+                impact.x, impact.y, impact.z,
+                3, 0.24D, 0.24D, 0.24D, 0.025D);
+        level.playSound(null, impact.x, impact.y, impact.z,
+                SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS,
+                0.28F, 1.36F);
     }
 
     private static void setDomainCooldown(ServerPlayer player, long readyAt) {
@@ -581,8 +633,15 @@ final class VoidScatteringFusionHandler {
 
     private static void sendVfx(ServerPlayer player, int type, int slots,
             int duration, int seed) {
+        sendVfx(player, type, slots, duration, seed, Vec3.ZERO);
+    }
+
+    private static void sendVfx(ServerPlayer player, int type, int slots,
+            int duration, int seed, Vec3 impactDirection) {
         VoidScatteringVfxPacket packet = new VoidScatteringVfxPacket(
-                type, player.getId(), slots, duration, seed);
+                type, player.getId(), slots, duration, seed,
+                (float) impactDirection.x, (float) impactDirection.y,
+                (float) impactDirection.z);
         for (ServerPlayer viewer : player.serverLevel().players()) {
             if (viewer.distanceToSqr(player) <= 64.0D * 64.0D) {
                 ModNetwork.CHANNEL.send(
@@ -599,6 +658,7 @@ final class VoidScatteringFusionHandler {
         private final int seed;
         private final List<UUID> sources = new ArrayList<>();
         private final Map<UUID, Long> lastCapture = new HashMap<>();
+        private int voidCharge;
 
         private DomainState(ResourceKey<Level> dimension, UUID playerId,
                 long endTick, double attackSnapshot, int seed) {
@@ -616,6 +676,8 @@ final class VoidScatteringFusionHandler {
         int seed() { return seed; }
         List<UUID> sources() { return sources; }
         Map<UUID, Long> lastCapture() { return lastCapture; }
+        int voidCharge() { return voidCharge; }
+        void setVoidCharge(int voidCharge) { this.voidCharge = voidCharge; }
     }
 
     private record ResidualState(ResourceKey<Level> dimension, UUID playerId,

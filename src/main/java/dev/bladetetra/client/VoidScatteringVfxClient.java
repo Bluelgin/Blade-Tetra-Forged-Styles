@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-/** Client reconstruction of the five stable void rifts around an active domain. */
+/** Client reconstruction of Void Scattering's translucent dome and stored swords. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class VoidScatteringVfxClient {
@@ -40,6 +40,11 @@ public final class VoidScatteringVfxClient {
             BladeTetra.MOD_ID, "textures/gui/void_scattering_ready.png");
     private static final Map<Integer, DomainVisual> DOMAINS = new HashMap<>();
     private static final ArrayList<ResidualVisual> RESIDUALS = new ArrayList<>();
+    private static final double DOME_RADIUS = 3.15D;
+    private static final int DOME_LAT_SEGMENTS = 10;
+    private static final int DOME_LON_SEGMENTS = 18;
+    private static final int MAX_STORED_SWORDS = 6;
+    private static final int COLLAPSE_TICKS = 8;
     private static ClientLevel activeLevel;
     private static int readyTicks;
 
@@ -52,18 +57,24 @@ public final class VoidScatteringVfxClient {
             case VoidScatteringVfxPacket.CAPTURE -> {
                 DomainVisual domain = DOMAINS.get(packet.playerEntityId());
                 if (domain != null && domain.seed == packet.seed()) {
-                    domain.storedSlots = Mth.clamp(packet.storedSlots(), 0, 5);
-                    domain.flashSlot = Math.max(0, domain.storedSlots - 1);
-                    domain.flashTicks = 9;
+                    int previous = domain.storedSwords;
+                    domain.storedSwords = Mth.clamp(packet.storedSlots(), 0, MAX_STORED_SWORDS);
+                    domain.newSwordIndex = domain.storedSwords > previous
+                            ? domain.storedSwords - 1 : -1;
+                    domain.flashTicks = 10;
+                    Vec3 impact = new Vec3(packet.impactX(), packet.impactY(), packet.impactZ());
+                    if (impact.lengthSqr() > 1.0E-5D) {
+                        domain.impactDirection = impact.normalize();
+                    }
                     domain.remainingTicks = Math.max(domain.remainingTicks, packet.duration());
                 }
             }
             case VoidScatteringVfxPacket.COLLAPSE -> {
                 DomainVisual domain = DOMAINS.get(packet.playerEntityId());
                 if (domain != null) {
-                    domain.storedSlots = Mth.clamp(packet.storedSlots(), 0, 5);
+                    domain.storedSwords = Mth.clamp(packet.storedSlots(), 0, MAX_STORED_SWORDS);
                     domain.collapsing = true;
-                    domain.remainingTicks = Math.max(8, packet.duration());
+                    domain.remainingTicks = Math.max(1, packet.duration());
                 }
             }
             case VoidScatteringVfxPacket.CANCEL -> DOMAINS.remove(packet.playerEntityId());
@@ -90,9 +101,10 @@ public final class VoidScatteringVfxClient {
         while (domains.hasNext()) {
             DomainVisual domain = domains.next();
             domain.age++;
-            domain.remainingTicks--;
+            if (domain.remainingTicks > 0) domain.remainingTicks--;
             if (domain.flashTicks > 0) domain.flashTicks--;
-            if (domain.remainingTicks <= 0
+            if (domain.flashTicks <= 0) domain.newSwordIndex = -1;
+            if ((domain.collapsing && domain.remainingTicks <= 0)
                     || minecraft.level == null
                     || minecraft.level.getEntity(domain.playerEntityId) == null) {
                 domains.remove();
@@ -117,37 +129,49 @@ public final class VoidScatteringVfxClient {
         poses.translate(-camera.getPosition().x, -camera.getPosition().y,
                 -camera.getPosition().z);
 
-        if (!renderShaderRifts(poses, camera, level, event.getPartialTick())) {
-            renderFallbackRifts(poses, camera, level, event.getPartialTick());
+        if (!renderShaderVisuals(poses, camera, level, event.getPartialTick())) {
+            renderFallbackVisuals(poses, camera, level, event.getPartialTick());
         }
 
         poses.popPose();
     }
 
-    private static boolean renderShaderRifts(PoseStack poses, Camera camera,
+    private static boolean renderShaderVisuals(PoseStack poses, Camera camera,
             ClientLevel level, float partialTick) {
         if (!ClientVisualConfig.ENABLE_VOID_SCATTERING_SHADER.get()) return false;
-        ShaderInstance shader = VoidScatteringShaders.riftShader();
-        if (shader == null) return false;
+        ShaderInstance riftShader = VoidScatteringShaders.riftShader();
+        ShaderInstance domeShader = VoidScatteringShaders.domeShader();
+        if (riftShader == null || (!DOMAINS.isEmpty() && domeShader == null)) return false;
 
         RenderSystem.enableBlend();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        RenderSystem.setShader(() -> shader);
-        if (shader.getUniform("RiftTime") != null) {
-            shader.getUniform("RiftTime").set(
-                    (level.getGameTime() + partialTick) * 0.05F);
-        }
-        if (shader.getUniform("RiftIntensity") != null) {
-            shader.getUniform("RiftIntensity").set(
-                    ClientVisualConfig.VOID_SCATTERING_SHADER_INTENSITY.get().floatValue());
+
+        Matrix4f matrix = poses.last().pose();
+        if (domeShader != null) {
+            for (DomainVisual domain : DOMAINS.values()) {
+                Entity player = level.getEntity(domain.playerEntityId);
+                if (player == null) continue;
+                renderShaderDome(domeShader, matrix, player, domain, level, partialTick);
+            }
         }
 
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE);
+        RenderSystem.setShader(() -> riftShader);
+        if (riftShader.getUniform("RiftTime") != null) {
+            riftShader.getUniform("RiftTime").set(
+                    (level.getGameTime() + partialTick) * 0.05F);
+        }
+        if (riftShader.getUniform("RiftIntensity") != null) {
+            riftShader.getUniform("RiftIntensity").set(
+                    ClientVisualConfig.VOID_SCATTERING_SHADER_INTENSITY.get().floatValue());
+        }
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        drawShaderAll(buffer, poses.last().pose(), camera.getPosition(), level, partialTick);
+        drawShaderSwordsAndResiduals(buffer, matrix, camera.getPosition(), level, partialTick);
         Tesselator.getInstance().end();
 
         RenderSystem.depthMask(true);
@@ -157,25 +181,69 @@ public final class VoidScatteringVfxClient {
         return true;
     }
 
-    private static void renderFallbackRifts(PoseStack poses, Camera camera,
+    private static void renderShaderDome(ShaderInstance shader, Matrix4f matrix,
+            Entity player, DomainVisual domain, ClientLevel level, float partialTick) {
+        float age = domain.age + partialTick;
+        float opening = openingProgress(age);
+        float closing = closingProgress(domain);
+        float visibility = opening * (1.0F - closing * 0.48F);
+        if (visibility <= 0.001F) return;
+
+        RenderSystem.setShader(() -> shader);
+        float configured = ClientVisualConfig.VOID_SCATTERING_SHADER_INTENSITY.get().floatValue();
+        if (shader.getUniform("DomeTime") != null) {
+            shader.getUniform("DomeTime").set((level.getGameTime() + partialTick) * 0.04F);
+        }
+        if (shader.getUniform("DomeIntensity") != null) {
+            shader.getUniform("DomeIntensity").set(configured);
+        }
+        if (shader.getUniform("DomeOpacity") != null) {
+            shader.getUniform("DomeOpacity").set(0.16F * configured);
+        }
+        Vec3 impactUv = impactUv(domain.impactDirection);
+        if (shader.getUniform("ImpactUv") != null) {
+            shader.getUniform("ImpactUv").set((float) impactUv.x, (float) impactUv.y);
+        }
+        if (shader.getUniform("ImpactFlash") != null) {
+            shader.getUniform("ImpactFlash").set(domain.flashTicks / 10.0F);
+        }
+        if (shader.getUniform("Collapse") != null) {
+            shader.getUniform("Collapse").set(closing);
+        }
+
+        Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
+        double radius = DOME_RADIUS * (0.82D + opening * 0.18D) * (1.0D - closing * 0.16D);
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        drawShaderSphere(buffer, matrix, center, radius, domain.seed, visibility);
+        Tesselator.getInstance().end();
+    }
+
+    private static void renderFallbackVisuals(PoseStack poses, Camera camera,
             ClientLevel level, float partialTick) {
         RenderSystem.enableBlend();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Matrix4f matrix = poses.last().pose();
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
 
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        drawAll(buffer, matrix, camera.getPosition(), level, partialTick, false);
+        for (DomainVisual domain : DOMAINS.values()) {
+            Entity player = level.getEntity(domain.playerEntityId);
+            if (player != null) drawFallbackDome(buffer, matrix, player, domain, partialTick);
+        }
+        drawFallbackSwordsAndResiduals(buffer, matrix, camera.getPosition(), level,
+                partialTick, false);
         Tesselator.getInstance().end();
 
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE);
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        drawAll(buffer, matrix, camera.getPosition(), level, partialTick, true);
+        drawFallbackSwordsAndResiduals(buffer, matrix, camera.getPosition(), level,
+                partialTick, true);
         Tesselator.getInstance().end();
 
         RenderSystem.depthMask(true);
@@ -199,32 +267,22 @@ public final class VoidScatteringVfxClient {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    private static void drawShaderAll(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
-            ClientLevel level, float partialTick) {
+    private static void drawShaderSwordsAndResiduals(BufferBuilder buffer,
+            Matrix4f matrix, Vec3 camera, ClientLevel level, float partialTick) {
         for (DomainVisual domain : DOMAINS.values()) {
             Entity player = level.getEntity(domain.playerEntityId);
             if (player == null) continue;
             float age = domain.age + partialTick;
             Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
-            for (int slot = 0; slot < 5; slot++) {
-                int revealTick = slot == 0 ? 1 : slot <= 2 ? 4 : 8;
-                float reveal = Mth.clamp((age - revealTick) / 5.0F, 0.0F, 1.0F);
-                if (reveal <= 0.0F) continue;
-                float collapse = domain.collapsing
-                        ? Mth.clamp(domain.remainingTicks / 10.0F, 0.0F, 1.0F) : 1.0F;
-                Vec3 slotCenter = slotCenter(center, domain.seed, slot, age);
-                float closing = domain.collapsing ? 1.0F
-                        : Mth.clamp((10.0F - domain.remainingTicks) / 10.0F,
-                        0.0F, 1.0F);
-                if (closing > 0.0F) {
-                    slotCenter = center.lerp(slotCenter, 1.0D - closing * 0.22D);
-                }
-                boolean filled = slot < domain.storedSlots;
-                float flash = slot == domain.flashSlot
-                        ? domain.flashTicks / 9.0F : 0.0F;
-                flash = Math.max(flash, closing * (filled ? 0.72F : 0.42F));
-                drawShaderCrack(buffer, matrix, camera, slotCenter,
-                        domain.seed + slot * 71, reveal * collapse, filled, flash, 1.0F);
+            float closing = closingProgress(domain);
+            for (int sword = 0; sword < domain.storedSwords; sword++) {
+                Vec3 swordCenter = storedSwordCenter(center, domain.seed, sword, age, closing);
+                float flash = sword == domain.newSwordIndex
+                        ? domain.flashTicks / 10.0F : 0.0F;
+                flash = Math.max(flash, closing * 0.72F);
+                drawShaderCrack(buffer, matrix, camera, swordCenter,
+                        domain.seed + sword * 71, 1.0F, true, flash,
+                        0.82F + (sword % 2) * 0.04F);
             }
         }
         for (ResidualVisual residual : RESIDUALS) {
@@ -239,32 +297,22 @@ public final class VoidScatteringVfxClient {
         }
     }
 
-    private static void drawAll(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
-            ClientLevel level, float partialTick, boolean glow) {
+    private static void drawFallbackSwordsAndResiduals(BufferBuilder buffer,
+            Matrix4f matrix, Vec3 camera, ClientLevel level, float partialTick,
+            boolean glow) {
         for (DomainVisual domain : DOMAINS.values()) {
             Entity player = level.getEntity(domain.playerEntityId);
             if (player == null) continue;
             float age = domain.age + partialTick;
             Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
-            for (int slot = 0; slot < 5; slot++) {
-                int revealTick = slot == 0 ? 1 : slot <= 2 ? 4 : 8;
-                float reveal = Mth.clamp((age - revealTick) / 5.0F, 0.0F, 1.0F);
-                if (reveal <= 0.0F) continue;
-                float collapse = domain.collapsing
-                        ? Mth.clamp(domain.remainingTicks / 10.0F, 0.0F, 1.0F) : 1.0F;
-                Vec3 slotCenter = slotCenter(center, domain.seed, slot, age);
-                float closing = domain.collapsing ? 1.0F
-                        : Mth.clamp((10.0F - domain.remainingTicks) / 10.0F,
-                        0.0F, 1.0F);
-                if (closing > 0.0F) {
-                    slotCenter = center.lerp(slotCenter, 1.0D - closing * 0.22D);
-                }
-                boolean filled = slot < domain.storedSlots;
-                float flash = slot == domain.flashSlot
-                        ? domain.flashTicks / 9.0F : 0.0F;
-                if (filled) flash = Math.max(flash, closing * 0.62F);
-                drawCrack(buffer, matrix, camera, slotCenter,
-                        domain.seed + slot * 71, reveal * collapse, filled, flash, glow);
+            float closing = closingProgress(domain);
+            for (int sword = 0; sword < domain.storedSwords; sword++) {
+                Vec3 swordCenter = storedSwordCenter(center, domain.seed, sword, age, closing);
+                float flash = sword == domain.newSwordIndex
+                        ? domain.flashTicks / 10.0F : 0.0F;
+                if (glow) flash = Math.max(flash, closing * 0.65F);
+                drawCrack(buffer, matrix, camera, swordCenter,
+                        domain.seed + sword * 71, 1.0F, true, flash, glow);
             }
         }
         for (ResidualVisual residual : RESIDUALS) {
@@ -279,15 +327,116 @@ public final class VoidScatteringVfxClient {
         }
     }
 
-    private static Vec3 slotCenter(Vec3 center, int seed, int slot, float age) {
+    private static void drawFallbackDome(BufferBuilder buffer, Matrix4f matrix,
+            Entity player, DomainVisual domain, float partialTick) {
+        float age = domain.age + partialTick;
+        float opening = openingProgress(age);
+        float closing = closingProgress(domain);
+        float visibility = opening * (1.0F - closing * 0.52F);
+        if (visibility <= 0.001F) return;
+        float impact = domain.flashTicks / 10.0F;
+        int domeColor = color(0.025F, 0.012F, 0.045F,
+                visibility * (0.075F + impact * 0.025F + closing * 0.02F));
+        Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
+        double radius = DOME_RADIUS * (0.82D + opening * 0.18D) * (1.0D - closing * 0.16D);
+        drawColorSphere(buffer, matrix, center, radius, domeColor);
+    }
+
+    private static float openingProgress(float age) {
+        return Mth.clamp(age / 8.0F, 0.0F, 1.0F);
+    }
+
+    private static float closingProgress(DomainVisual domain) {
+        if (domain.collapsing) {
+            return Mth.clamp(1.0F - domain.remainingTicks / (float) COLLAPSE_TICKS,
+                    0.0F, 1.0F);
+        }
+        if (domain.remainingTicks <= 12) {
+            return Mth.clamp((12.0F - domain.remainingTicks) / 12.0F,
+                    0.0F, 1.0F);
+        }
+        return 0.0F;
+    }
+
+    private static Vec3 storedSwordCenter(Vec3 center, int seed, int sword,
+            float age, float closing) {
         double base = Math.floorMod(seed, 360) * Math.PI / 180.0D;
-        double[] spacing = {0.0D, 1.19D, 2.47D, 3.82D, 5.08D};
-        double angle = base + spacing[slot];
-        double radius = 1.78D + ((seed >>> (slot * 3)) & 3) * 0.11D;
-        double height = 0.05D + (slot % 2) * 0.34D
-                + Math.sin(age * 0.055D + slot * 1.7D) * 0.07D;
+        double angle = base + sword * (Math.PI * 2.0D / MAX_STORED_SWORDS)
+                + age * 0.012D;
+        double radius = (1.46D + ((seed >>> (sword * 3)) & 3) * 0.035D)
+                * (1.0D - closing * 0.26D);
+        double height = 0.02D + (sword % 3) * 0.19D
+                + Math.sin(age * 0.06D + sword * 1.3D) * 0.055D;
         return center.add(Math.cos(angle) * radius, height,
                 Math.sin(angle) * radius);
+    }
+
+    private static Vec3 impactUv(Vec3 direction) {
+        Vec3 normalized = direction.lengthSqr() < 1.0E-6D
+                ? new Vec3(0.0D, 0.0D, 1.0D) : direction.normalize();
+        double u = Math.atan2(normalized.z, normalized.x) / (Math.PI * 2.0D) + 0.5D;
+        u = u - Math.floor(u);
+        double v = 0.5D - Math.asin(Mth.clamp(normalized.y, -1.0D, 1.0D)) / Math.PI;
+        return new Vec3(u, v, 0.0D);
+    }
+
+    private static void drawShaderSphere(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 center, double radius, int seed, float alpha) {
+        int alphaByte = Mth.clamp(Math.round(Mth.clamp(alpha, 0.0F, 1.0F) * 255.0F),
+                0, 255);
+        int seedByte = Math.floorMod(seed, 251);
+        for (int lat = 0; lat < DOME_LAT_SEGMENTS; lat++) {
+            float v0 = lat / (float) DOME_LAT_SEGMENTS;
+            float v1 = (lat + 1) / (float) DOME_LAT_SEGMENTS;
+            double theta0 = -Math.PI * 0.5D + Math.PI * v0;
+            double theta1 = -Math.PI * 0.5D + Math.PI * v1;
+            for (int lon = 0; lon < DOME_LON_SEGMENTS; lon++) {
+                float u0 = lon / (float) DOME_LON_SEGMENTS;
+                float u1 = (lon + 1) / (float) DOME_LON_SEGMENTS;
+                shaderSphereVertex(buffer, matrix, center, radius, theta0,
+                        Math.PI * 2.0D * u0, u0, v0, seedByte, alphaByte);
+                shaderSphereVertex(buffer, matrix, center, radius, theta0,
+                        Math.PI * 2.0D * u1, u1, v0, seedByte, alphaByte);
+                shaderSphereVertex(buffer, matrix, center, radius, theta1,
+                        Math.PI * 2.0D * u1, u1, v1, seedByte, alphaByte);
+                shaderSphereVertex(buffer, matrix, center, radius, theta1,
+                        Math.PI * 2.0D * u0, u0, v1, seedByte, alphaByte);
+            }
+        }
+    }
+
+    private static void shaderSphereVertex(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 center, double radius, double theta, double phi,
+            float u, float v, int seed, int alpha) {
+        double ring = Math.cos(theta);
+        Vec3 point = center.add(Math.cos(phi) * ring * radius,
+                Math.sin(theta) * radius, Math.sin(phi) * ring * radius);
+        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+                .uv(u, v).color(255, 255, seed, alpha).endVertex();
+    }
+
+    private static void drawColorSphere(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 center, double radius, int color) {
+        for (int lat = 0; lat < DOME_LAT_SEGMENTS; lat++) {
+            double theta0 = -Math.PI * 0.5D + Math.PI * lat / DOME_LAT_SEGMENTS;
+            double theta1 = -Math.PI * 0.5D + Math.PI * (lat + 1) / DOME_LAT_SEGMENTS;
+            for (int lon = 0; lon < DOME_LON_SEGMENTS; lon++) {
+                double phi0 = Math.PI * 2.0D * lon / DOME_LON_SEGMENTS;
+                double phi1 = Math.PI * 2.0D * (lon + 1) / DOME_LON_SEGMENTS;
+                colorSphereVertex(buffer, matrix, center, radius, theta0, phi0, color);
+                colorSphereVertex(buffer, matrix, center, radius, theta0, phi1, color);
+                colorSphereVertex(buffer, matrix, center, radius, theta1, phi1, color);
+                colorSphereVertex(buffer, matrix, center, radius, theta1, phi0, color);
+            }
+        }
+    }
+
+    private static void colorSphereVertex(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 center, double radius, double theta, double phi, int color) {
+        double ring = Math.cos(theta);
+        Vec3 point = center.add(Math.cos(phi) * ring * radius,
+                Math.sin(theta) * radius, Math.sin(phi) * ring * radius);
+        vertex(buffer, matrix, point, color);
     }
 
     private static void drawShaderCrack(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
@@ -399,11 +548,12 @@ public final class VoidScatteringVfxClient {
         private final int playerEntityId;
         private final int seed;
         private int remainingTicks;
-        private int storedSlots;
-        private int flashSlot = -1;
+        private int storedSwords;
+        private int newSwordIndex = -1;
         private int flashTicks;
         private int age;
         private boolean collapsing;
+        private Vec3 impactDirection = new Vec3(0.0D, 0.0D, 1.0D);
 
         private DomainVisual(int playerEntityId, int duration, int seed) {
             this.playerEntityId = playerEntityId;

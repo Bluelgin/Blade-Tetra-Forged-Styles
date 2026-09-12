@@ -1,0 +1,21 @@
+{
+  "blend": {
+    "func": "add",
+    "srcrgb": "srcalpha",
+    "dstrgb": "1-srcalpha"
+  },
+  "vertex": "blade_tetra:void_scattering_dome",
+  "fragment": "blade_tetra:void_scattering_dome",
+  "attributes": [ "Position", "UV0", "Color" ],
+  "samplers": [],
+  "uniforms": [
+    { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+    { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+    { "name": "DomeTime", "type": "float", "count": 1, "values": [ 0.0 ] },
+    { "name": "DomeIntensity", "type": "float", "count": 1, "values": [ 1.0 ] },
+    { "name": "DomeOpacity", "type": "float", "count": 1, "values": [ 0.16 ] },
+    { "name": "ImpactUv", "type": "float", "count": 2, "values": [ 0.5, 0.5 ] },
+    { "name": "ImpactFlash", "type": "float", "count": 1, "values": [ 0.0 ] },
+    { "name": "Collapse", "type": "float", "count": 1, "values": [ 0.0 ] }
+  ]
+}

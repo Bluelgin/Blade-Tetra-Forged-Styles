@@ -13,13 +13,18 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 
-/** Optional local shader used by Void Scattering world-space rifts. */
+/** Optional local shaders used by Void Scattering world-space effects. */
 public final class VoidScatteringShaders {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static ShaderInstance riftShader;
+    private static ShaderInstance domeShader;
 
     public static ShaderInstance riftShader() {
         return riftShader;
+    }
+
+    public static ShaderInstance domeShader() {
+        return domeShader;
     }
 
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
@@ -31,6 +36,7 @@ public final class VoidScatteringShaders {
         @SubscribeEvent
         public static void register(RegisterShadersEvent event) {
             riftShader = null;
+            domeShader = null;
             try {
                 event.registerShader(new ShaderInstance(event.getResourceProvider(),
                                 ResourceLocation.fromNamespaceAndPath(
@@ -39,6 +45,16 @@ public final class VoidScatteringShaders {
                         shader -> riftShader = shader);
             } catch (IOException | RuntimeException exception) {
                 LOGGER.warn("Could not load Void Scattering rift shader; "
+                        + "falling back to geometry VFX", exception);
+            }
+            try {
+                event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                                ResourceLocation.fromNamespaceAndPath(
+                                        BladeTetra.MOD_ID, "void_scattering_dome"),
+                                DefaultVertexFormat.POSITION_TEX_COLOR),
+                        shader -> domeShader = shader);
+            } catch (IOException | RuntimeException exception) {
+                LOGGER.warn("Could not load Void Scattering dome shader; "
                         + "falling back to geometry VFX", exception);
             }
         }

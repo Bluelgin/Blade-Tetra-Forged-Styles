@@ -39,10 +39,25 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void runtimeConstantsMatchApprovedFirstPass() {
-        assertEquals(60, VoidScatteringFusionHandler.DOMAIN_DURATION_TICKS);
-        assertEquals(280, VoidScatteringFusionHandler.DOMAIN_COOLDOWN_TICKS);
-        assertEquals(5, VoidScatteringFusionHandler.MAX_STORED_SWORDS);
+    void incomingDamageMapsToBoundedVoidCharge() {
+        assertEquals(0, VoidScatteringBalance.voidChargeForIncomingDamage(0.0F));
+        assertEquals(1, VoidScatteringBalance.voidChargeForIncomingDamage(1.0F));
+        assertEquals(1, VoidScatteringBalance.voidChargeForIncomingDamage(4.0F));
+        assertEquals(2, VoidScatteringBalance.voidChargeForIncomingDamage(5.0F));
+        assertEquals(2, VoidScatteringBalance.voidChargeForIncomingDamage(10.0F));
+        assertEquals(3, VoidScatteringBalance.voidChargeForIncomingDamage(11.0F));
+        assertEquals(3, VoidScatteringBalance.voidChargeForIncomingDamage(20.0F));
+        assertEquals(4, VoidScatteringBalance.voidChargeForIncomingDamage(21.0F));
+        assertEquals(4, VoidScatteringBalance.voidChargeForIncomingDamage(200.0F));
+    }
+
+    @Test
+    void runtimeConstantsMatchApprovedRedesign() {
+        assertEquals(90, VoidScatteringFusionHandler.DOMAIN_DURATION_TICKS);
+        assertEquals(400, VoidScatteringFusionHandler.DOMAIN_COOLDOWN_TICKS);
+        assertEquals(6, VoidScatteringFusionHandler.MAX_STORED_SWORDS);
+        assertEquals(12, VoidScatteringFusionHandler.MAX_VOID_CHARGE);
+        assertEquals(2, VoidScatteringFusionHandler.VOID_CHARGE_PER_SWORD);
         assertEquals(8, VoidScatteringFusionHandler.SOURCE_CAPTURE_INTERVAL_TICKS);
         assertEquals(5, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
         assertEquals(36, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
@@ -57,7 +72,7 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void visualSourceRuntimeIconAndShaderArePackaged() {
+    void visualSourceAndRuntimeShaderResourcesArePackaged() {
         assertNotNull(getClass().getResource(
                 "/assets/blade_tetra/textures/gui/void_scattering_ready.png"));
         assertNotNull(getClass().getResource(
@@ -66,6 +81,12 @@ class VoidScatteringBalanceTest {
                 "/assets/blade_tetra/shaders/core/void_scattering_rift.vsh"));
         assertNotNull(getClass().getResource(
                 "/assets/blade_tetra/shaders/core/void_scattering_rift.fsh"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_dome.json"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_dome.vsh"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_dome.fsh"));
         assertTrue(Files.isRegularFile(Path.of(
                 "art/void_scattering/void_ready_icon.svg")));
         assertTrue(Files.isRegularFile(Path.of(

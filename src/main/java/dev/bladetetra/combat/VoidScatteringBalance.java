@@ -1,6 +1,6 @@
 package dev.bladetetra.combat;
 
-/** Pure first-pass balance helpers for Void Scattering. */
+/** Pure balance helpers for Void Scattering. */
 final class VoidScatteringBalance {
     static final float DOMAIN_DAMAGE_MULTIPLIER = 0.45F;
 
@@ -43,6 +43,22 @@ final class VoidScatteringBalance {
             return 0.0F;
         }
         return incoming * DOMAIN_DAMAGE_MULTIPLIER;
+    }
+
+    static int voidChargeForIncomingDamage(float incoming) {
+        if (!Float.isFinite(incoming) || incoming <= 0.0F) {
+            return 0;
+        }
+        if (incoming <= 4.0F) {
+            return 1;
+        }
+        if (incoming <= 10.0F) {
+            return 2;
+        }
+        if (incoming <= 20.0F) {
+            return 3;
+        }
+        return 4;
     }
 
     private VoidScatteringBalance() {
