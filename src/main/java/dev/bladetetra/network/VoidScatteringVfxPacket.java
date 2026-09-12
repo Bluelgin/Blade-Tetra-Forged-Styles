@@ -1,5 +1,6 @@
 package dev.bladetetra.network;
 
+import dev.bladetetra.client.VoidScatteringCounterVfxClient;
 import dev.bladetetra.client.VoidScatteringFirstPersonClient;
 import dev.bladetetra.client.VoidScatteringVfxClient;
 import net.minecraft.network.FriendlyByteBuf;
@@ -53,6 +54,7 @@ public record VoidScatteringVfxPacket(int type, int playerEntityId,
                 Dist.CLIENT, () -> () -> {
                     VoidScatteringVfxClient.accept(packet);
                     VoidScatteringFirstPersonClient.accept(packet);
+                    VoidScatteringCounterVfxClient.accept(packet);
                 }));
         context.setPacketHandled(true);
     }
