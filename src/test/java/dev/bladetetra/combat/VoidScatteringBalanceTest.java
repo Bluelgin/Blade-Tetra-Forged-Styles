@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +46,14 @@ class VoidScatteringBalanceTest {
         assertEquals(8, VoidScatteringFusionHandler.SOURCE_CAPTURE_INTERVAL_TICKS);
         assertEquals(5, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
         assertEquals(36, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
+        assertEquals(2, VoidScatteringFusionHandler.RETURN_DAMAGE_MAX_ATTEMPTS);
+    }
+
+    @Test
+    void failedReturnDamageGetsOnlyOneRetry() {
+        assertTrue(VoidScatteringFusionHandler.shouldRetryReturnDamage(false, 1));
+        assertFalse(VoidScatteringFusionHandler.shouldRetryReturnDamage(false, 2));
+        assertFalse(VoidScatteringFusionHandler.shouldRetryReturnDamage(true, 1));
     }
 
     @Test
