@@ -1,0 +1,12 @@
+{
+  "item.blade_tetra.named_blade_record": "名刀映录",
+  "tooltip.blade_tetra.named_blade_record": "记录名刀映锻、正传与异传调律",
+  "tooltip.blade_tetra.named_blade_record.use": "右键翻阅；异传配方会随当前版本自动列出",
+  "message.blade_tetra.named_blade_record.gift": "《锻刀秘录》的夹层落下一册《名刀映录》，以及一张空白映锻卷。",
+  "lore.blade_tetra.named_blade_record.cover": "名刀映录\n\n—— 名匠遗赠 ——\n\n『得一名刀，莫急着仿其锋。\n先观其鞘，再识其柄。』\n\n此册记录名刀映锻与异传调律。",
+  "lore.blade_tetra.named_blade_record.imprinting": "【名刀映锻】\n\n将名刀置于 Tetra 工作台正上方的挂刀台。\n\n手持空白映锻卷，潜行右键工作台，即可开始研习。\n\n研习失败会损伤原刀；耀魂类材料可提高成功率或提供保护。",
+  "lore.blade_tetra.named_blade_record.orthodox": "【正传】\n\n研习成功后，刀谱会解锁对应名刀的刀鞘与完整镡柄刀装。\n\n刀身仍由自己的 Tetra 材料锻造。\n\n同源刀鞘与镡柄重新相合，会形成映锻契合，并继承原刀已登记的 SA 或 SE。",
+  "lore.blade_tetra.named_blade_record.fusion_intro": "【异传】\n\n部分不同名刀的刀装也能彼此调律，产生原刀从未拥有过的剑技。\n\n刀鞘与镡柄的顺序具有意义。\n同样两把名刀，交换位置也可能得到完全不同的结果。\n\n已确认的组合记录在后页。",
+  "lore.blade_tetra.named_blade_record.fusion_page": "已确认异传",
+  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s之鞘\n＋ %2$s镡柄\n→ %3$s"
+}
