@@ -17,9 +17,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Event facade for named-blade fusion abilities. Ability reconciliation, Twin
- * Fox and Twin Phase live in dedicated handlers so future fusions do not grow
- * one monolithic combat class.
+ * Event facade for named-blade fusion abilities. Ability reconciliation and
+ * authored combat behavior live in dedicated handlers so this class remains a
+ * small routing layer as more fusions are added.
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LegacyFusionHandler {
@@ -34,6 +34,12 @@ public final class LegacyFusionHandler {
             return;
         }
         ItemStack blade = player.getMainHandItem();
+        if (ModSlashBladeAbilities.DOUWARI.getId().equals(
+                event.getSlashBladeState().getSlashArtsKey())) {
+            DouwariFusionHandler.onSlashArt(
+                    player, blade, event.getSlashBladeState());
+            return;
+        }
         if (ModSlashBladeAbilities.TWIN_PHASE_KIKOUKU.getId().equals(
                 event.getSlashBladeState().getSlashArtsKey())) {
             TwinPhaseFusionHandler.onSlashArt(
@@ -62,6 +68,7 @@ public final class LegacyFusionHandler {
         }
         TwinFoxFusionHandler.tick(event);
         TwinPhaseFusionHandler.tick(event);
+        DouwariFusionHandler.tick(event);
     }
 
     @SubscribeEvent
@@ -69,6 +76,7 @@ public final class LegacyFusionHandler {
         if (event.getLevel() instanceof ServerLevel level) {
             TwinFoxFusionHandler.onLevelUnload(level);
             TwinPhaseFusionHandler.onLevelUnload(level);
+            DouwariFusionHandler.onLevelUnload(level);
         }
     }
 
@@ -77,6 +85,7 @@ public final class LegacyFusionHandler {
         TwinFoxFusionHandler.clear();
         TwinPhaseFusionHandler.clear();
         RustReleaseFusionHandler.clear();
+        DouwariFusionHandler.clear();
     }
 
     // Package-visible compatibility seams retained for existing focused tests.

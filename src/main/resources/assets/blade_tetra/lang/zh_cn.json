@@ -924,5 +924,10 @@
   "lore.blade_tetra.named_blade_record.orthodox": "【正传】\n\n研习成功后，刀谱会解锁对应名刀的刀鞘与完整镡柄刀装。\n\n刀身仍由自己的 Tetra 材料锻造。\n\n同源刀鞘与镡柄重新相合，会形成映锻契合，并继承原刀已登记的 SA 或 SE。",
   "lore.blade_tetra.named_blade_record.fusion_intro": "【异传】\n\n部分不同名刀的刀装也能彼此调律，产生原刀从未拥有过的剑技。\n\n刀鞘与镡柄的顺序具有意义。\n同样两把名刀，交换位置也可能得到完全不同的结果。\n\n已确认的组合记录在后页。",
   "lore.blade_tetra.named_blade_record.fusion_page": "已确认异传",
-  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s之鞘\n＋ %2$s镡柄\n→ %3$s"
+  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s之鞘\n＋ %2$s镡柄\n→ %3$s",
+  "slash_art.blade_tetra.douwari": "胴割",
+  "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "胴割",
+  "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.description": "「千鹤」村正之鞘主释，刚剑「胴田贯」镡柄相应。短暂蓄势后落下重型纵斩，目标的护甲与韧性越高，受控补正越明显。",
+  "tetra/schematic/slashblade/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "调律异传·胴割",
+  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "胴割 · SA"
 }

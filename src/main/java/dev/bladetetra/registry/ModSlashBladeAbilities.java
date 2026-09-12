@@ -48,6 +48,22 @@ public final class ModSlashBladeAbilities {
                             : ComboStateRegistry.NONE.getId())
                     .setProudSoulCost(45));
 
+    public static final RegistryObject<SlashArts> DOUWARI =
+            SLASH_ARTS.register("douwari", () -> new SlashArts(entity ->
+                    isActive(entity.getMainHandItem(),
+                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
+                            ? ComboStateRegistry.STANDBY.getId()
+                            : ComboStateRegistry.NONE.getId())
+                    .setComboStateJust(entity -> isActive(entity.getMainHandItem(),
+                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
+                            ? ComboStateRegistry.STANDBY.getId()
+                            : ComboStateRegistry.NONE.getId())
+                    .setComboStateSuper(entity -> isActive(entity.getMainHandItem(),
+                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
+                            ? ComboStateRegistry.STANDBY.getId()
+                            : ComboStateRegistry.NONE.getId())
+                    .setProudSoulCost(45));
+
     /** Structural SE: the registry says it cannot be extracted into an orb. */
     public static final RegistryObject<SpecialEffect> TWIN_FOX_REFLECTION =
             SPECIAL_EFFECTS.register("twin_fox_reflection",

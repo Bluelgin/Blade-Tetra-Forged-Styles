@@ -34,5 +34,14 @@
     "abilityType": "special_effect",
     "ability": "blade_tetra:snake_molt",
     "priority": 100
+  },
+  {
+    "id": "muramasa_saya_doutanuki_hilt",
+    "saya": "slashblade/muramasa",
+    "hilt": "slashblade/doutanuki",
+    "improvement": "blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:douwari",
+    "priority": 100
   }
 ]

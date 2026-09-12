@@ -1,0 +1,23 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/blade" ],
+  "materialSlotCount": 1,
+  "displayType": "improvement",
+  "preview": "applicable",
+  "glyph": { "textureX": 192, "textureY": 112, "tint": "D9C8A5" },
+  "translation": { "integrity": -1 },
+  "requirement": {
+    "type": "tetra:and",
+    "requirements": [
+      { "type": "blade_tetra:legacy_fusion", "id": "muramasa_saya_doutanuki_hilt" },
+      { "type": "tetra:accepts_improvement", "improvement": "blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt" }
+    ]
+  },
+  "outcomes": [
+    {
+      "material": { "items": [ "slashblade:proudsoul_sphere" ] },
+      "requiredTools": { "hammer_dig": "minecraft:diamond" },
+      "improvements": { "blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt": 1 }
+    }
+  ]
+}

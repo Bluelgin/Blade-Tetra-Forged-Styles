@@ -947,5 +947,10 @@
   "lore.blade_tetra.named_blade_record.orthodox": "[Orthodox legacy]\n\nA successful study unlocks the named blade's saya and complete hilt fittings.\n\nYour Tetra blade material remains your own.\n\nMatching saya and hilt fittings form imprint affinity and inherit the source blade's registered SA or SE.",
   "lore.blade_tetra.named_blade_record.fusion_intro": "[Legacy fusion]\n\nSome fittings from different named blades can be tuned together, awakening techniques that neither source blade possessed.\n\nSaya and hilt order matters. Reversing the same pair can produce a different result.\n\nConfirmed combinations follow.",
   "lore.blade_tetra.named_blade_record.fusion_page": "Confirmed fusions",
-  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s saya\n+ %2$s hilt\n→ %3$s"
+  "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s saya\n+ %2$s hilt\n→ %3$s",
+  "slash_art.blade_tetra.douwari": "Douwari",
+  "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "Douwari",
+  "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.description": "Muramasa's saya releases and Doutanuki's hilt answers. After a short wind-up, a heavy vertical cut applies bounded compensation against the target's armor and toughness.",
+  "tetra/schematic/slashblade/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "Attune legacy: Douwari",
+  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "Douwari · SA"
 }

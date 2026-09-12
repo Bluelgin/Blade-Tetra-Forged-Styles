@@ -74,6 +74,23 @@ class LegacyFusionTest {
                         .abilityId().toString());
     }
 
+    @Test
+    void muramasaSayaAndDoutanukiHiltResolveOnlyToDouwari() {
+        LegacyImprintKind muramasa = named("slashblade/muramasa", "muramasa");
+        LegacyImprintKind doutanuki = named("slashblade/doutanuki", "doutanuki");
+
+        assertEquals(LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT,
+                LegacyFusion.installed(
+                        new NamedLegacyParts(muramasa, doutanuki, doutanuki)));
+        assertNull(LegacyFusion.installed(
+                new NamedLegacyParts(doutanuki, muramasa, muramasa)));
+        assertEquals(LegacyFusion.Ability.SLASH_ART,
+                LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT.ability());
+        assertEquals("blade_tetra:douwari",
+                LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT
+                        .abilityId().toString());
+    }
+
     private static LegacyImprintKind kind(String id) {
         return id.equals("fox_black")
                 ? LegacyImprintKind.BLACK_FOX
