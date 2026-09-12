@@ -26,6 +26,10 @@ public final class ModSlashBladeAbilities {
                             LegacyFusion.BLACK_SAYA_WHITE_HILT)
                             ? ComboStateRegistry.STANDBY.getId()
                             : ComboStateRegistry.NONE.getId())
+                    .setComboStateSuper(entity -> isActive(entity.getMainHandItem(),
+                            LegacyFusion.BLACK_SAYA_WHITE_HILT)
+                            ? ComboStateRegistry.STANDBY.getId()
+                            : ComboStateRegistry.NONE.getId())
                     .setProudSoulCost(40));
 
     public static final RegistryObject<SlashArts> TWIN_PHASE_KIKOUKU =
@@ -35,6 +39,10 @@ public final class ModSlashBladeAbilities {
                             ? ModComboStates.TWIN_PHASE_DRAW.getId()
                             : ComboStateRegistry.NONE.getId())
                     .setComboStateJust(entity -> isActive(entity.getMainHandItem(),
+                            LegacyFusion.YASHA_SAYA_KIKOUKU_HILT)
+                            ? ModComboStates.TWIN_PHASE_DRAW.getId()
+                            : ComboStateRegistry.NONE.getId())
+                    .setComboStateSuper(entity -> isActive(entity.getMainHandItem(),
                             LegacyFusion.YASHA_SAYA_KIKOUKU_HILT)
                             ? ModComboStates.TWIN_PHASE_DRAW.getId()
                             : ComboStateRegistry.NONE.getId())
