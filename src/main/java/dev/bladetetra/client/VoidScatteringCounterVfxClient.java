@@ -210,6 +210,7 @@ public final class VoidScatteringCounterVfxClient {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Matrix4f matrix = poses.last().pose();
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        Vec3 cameraPos = camera.getPosition();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
         for (ReleaseVisual visual : RELEASES) {
@@ -222,7 +223,7 @@ public final class VoidScatteringCounterVfxClient {
                         + i * Math.PI * 2.0D / Math.max(1, visual.swords);
                 Vec3 point = center.add(Math.cos(angle) * 1.82D,
                         (i % 3 - 1) * 0.24D, Math.sin(angle) * 1.82D);
-                drawFallbackBlade(buffer, matrix, camera, point,
+                drawFallbackBlade(buffer, matrix, cameraPos, point,
                         0.88F * (1.0F - t * 0.35F), 1.0F);
             }
         }
@@ -233,7 +234,7 @@ public final class VoidScatteringCounterVfxClient {
             float t = Mth.clamp((visual.age + partialTick) / visual.duration, 0.0F, 1.0F);
             Vec3 center = player.getEyePosition(partialTick)
                     .add(player.getLookAngle().normalize().scale(1.72D));
-            drawFallbackBlade(buffer, matrix, camera, center,
+            drawFallbackBlade(buffer, matrix, cameraPos, center,
                     Mth.sin(t * Mth.PI) * 0.72F, 1.5F);
         }
 
@@ -247,9 +248,9 @@ public final class VoidScatteringCounterVfxClient {
             else right = right.normalize();
             Vec3 center = player.getEyePosition(partialTick).add(look.scale(1.78D));
             float alpha = 1.0F - t;
-            drawFallbackBlade(buffer, matrix, camera, center.add(right.scale(0.32D)),
+            drawFallbackBlade(buffer, matrix, cameraPos, center.add(right.scale(0.32D)),
                     alpha, 1.55F);
-            drawFallbackBlade(buffer, matrix, camera, center.subtract(right.scale(0.32D)),
+            drawFallbackBlade(buffer, matrix, cameraPos, center.subtract(right.scale(0.32D)),
                     alpha, 1.45F);
         }
 
