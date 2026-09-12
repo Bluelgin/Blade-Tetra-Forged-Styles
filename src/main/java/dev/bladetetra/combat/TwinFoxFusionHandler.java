@@ -65,12 +65,12 @@ final class TwinFoxFusionHandler {
                 : target.getBoundingBox().getCenter();
 
         // Snapshot damage on cast so later equipment changes cannot alter this SA.
-        double perFoxDamage = fusionDamage(player, 0.30D, 8.0D);
-        double finisherDamage = fusionDamage(player, 0.75D, 20.0D);
+        TwinFoxDamageScaling.DamageSnapshot damage = TwinFoxDamageScaling.snapshot(
+                player.getAttributeValue(Attributes.ATTACK_DAMAGE));
         PENDING_HUNTS.add(new PendingHunt(level.dimension(), player.getUUID(),
                 target == null ? null : target.getUUID(), start, aim,
                 level.getGameTime(), player.getYRot(),
-                perFoxDamage, finisherDamage));
+                damage.perFoxDamage(), damage.finisherDamage()));
         sendHuntVfx(level, player, target, start, aim,
                 BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT,
                 HUNT_DURATION_TICKS, 1.0F);
@@ -106,9 +106,12 @@ final class TwinFoxFusionHandler {
         if (matchingMark && formsPincer(markedDirection, direction, targetSpan)) {
             clearStoredPursuit(tag);
             tag.putLong(PURSUIT_COOLDOWN, now + PURSUIT_COOLDOWN_TICKS);
+            // Snapshot pursuit damage when the pincer is confirmed.
+            double pursuitDamage = TwinFoxDamageScaling.snapshot(
+                    player.getAttributeValue(Attributes.ATTACK_DAMAGE)).pursuitDamage();
             PENDING_PURSUITS.add(new PendingPursuit(player.serverLevel().dimension(),
                     player.getUUID(), target.getUUID(), now + PURSUIT_DELAY_TICKS,
-                    pursuitDamage(player), markedDirection, direction));
+                    pursuitDamage, markedDirection, direction));
             sendPursuitVfx(player.serverLevel(), player, target, markedDirection,
                     BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS, 12, 1.0F);
             foxDust(player.serverLevel(), target.getBoundingBox().getCenter(),
@@ -249,7 +252,7 @@ final class TwinFoxFusionHandler {
                         0.0F, 0xA62846, hitCount == 2 ? 2.15F : 1.45F, 12);
                 if (victim != null) {
                     LegacyFusionCombatSupport.hurtPreservingIFrames(
-                            level, player, victim, (float) Math.min(36.0D, damage));
+                            level, player, victim, (float) damage);
                 }
                 if (hitCount == 2 && victim != null
                         && victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) < 0.8D) {
@@ -429,18 +432,8 @@ final class TwinFoxFusionHandler {
         return direction.normalize();
     }
 
-    private static double pursuitDamage(LivingEntity player) {
-        return Math.max(0.5D,
-                player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.55D);
-    }
-
     private static float directionYaw(Vec3 direction) {
         return (float) Math.toDegrees(Math.atan2(-direction.x, direction.z));
-    }
-
-    private static double fusionDamage(LivingEntity player, double ratio, double cap) {
-        return Math.max(0.5D, Math.min(cap,
-                player.getAttributeValue(Attributes.ATTACK_DAMAGE) * ratio));
     }
 
     private static void sendHuntVfx(ServerLevel level, ServerPlayer player,
