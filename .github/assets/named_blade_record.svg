@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <title>名刀映录 — SVG concept</title>
+  <desc>Pixel-inspired dark indigo handbook with gold fittings, parchment pages, a vermilion seal, and a blade/saya emblem.</desc>
+
+  <!-- transparent background -->
+
+  <!-- drop shadow / outer silhouette -->
+  <path fill="#0b0d18" d="
+    M6 3h17v2h3v2h2v20h-2v2H8v-1H5V6h1z"/>
+
+  <!-- parchment page block -->
+  <path fill="#d8c79a" d="
+    M8 5h16v2h2v18h-2v2H8z"/>
+  <path fill="#f0dfb0" d="
+    M9 6h14v1h2v16h-2v2H9z"/>
+  <path fill="#b7a376" d="
+    M23 8h2v14h-2z
+    M21 25h3v1h-3z"/>
+
+  <!-- deep indigo cover -->
+  <path fill="#171a31" d="
+    M5 4h17v1h2v20h-2v2H7v-1H5z"/>
+  <path fill="#262b4b" d="
+    M7 5h14v1h2v17h-2v2H7z"/>
+  <path fill="#31375e" d="
+    M8 6h12v1h2v3h-1V8H8z"/>
+
+  <!-- spine -->
+  <path fill="#0f1223" d="M5 5h3v20H5z"/>
+  <path fill="#c39343" d="M7 5h1v20H7z"/>
+  <path fill="#f0c86a" d="M7 8h1v4H7z M7 17h1v5H7z"/>
+
+  <!-- gold corner fittings -->
+  <path fill="#8e652d" d="
+    M8 5h5v1H9v4H8z
+    M18 5h4v1h-3v2h-1z
+    M8 21h1v3h4v1H8z
+    M19 22h1v2h2v-3h1v4h-4z"/>
+  <path fill="#e1b85e" d="
+    M9 6h3v1h-2v2H9z
+    M19 6h2v1h-1v1h-1z
+    M9 22h1v1h2v1H9z
+    M20 23h1v-1h1v2h-2z"/>
+
+  <!-- subtle horizontal record lines -->
+  <rect x="10" y="10" width="10" height="1" fill="#10152b"/>
+  <rect x="10" y="12" width="8" height="1" fill="#10152b"/>
+  <rect x="10" y="19" width="9" height="1" fill="#10152b"/>
+  <rect x="10" y="21" width="7" height="1" fill="#10152b"/>
+
+  <!-- vermilion seal -->
+  <path fill="#651d22" d="M13 13h6v1h2v5h-2v1h-6v-1h-2v-5h2z"/>
+  <path fill="#b83c3c" d="M13 14h6v1h1v3h-1v1h-6v-1h-1v-3h1z"/>
+  <path fill="#e85c49" d="M14 14h4v1h-4z"/>
+
+  <!-- blade and saya emblem, crossed -->
+  <path fill="#f2d176" d="
+    M13 17h1v-1h1v-1h1v-1h1v1h-1v1h-1v1h-1v1h-1z"/>
+  <path fill="#8f9aab" d="
+    M14 18h1v-1h1v-1h1v-1h1v1h-1v1h-1v1h-1v1h-1z"/>
+  <path fill="#f0c665" d="
+    M17 18h1v-1h-1v-1h-1v-1h-1v-1h-1v1h1v1h1v1h1z"/>
+  <rect x="17" y="18" width="2" height="1" fill="#d69f3e"/>
+  <rect x="13" y="18" width="2" height="1" fill="#d69f3e"/>
+
+  <!-- red cord / bookmark -->
+  <path fill="#7b222a" d="M20 24h2v4h-1v2h-1v-2h-1v-4z"/>
+  <path fill="#c64442" d="M20 24h1v4h-1z"/>
+
+  <!-- page edge glints -->
+  <rect x="24" y="9" width="1" height="4" fill="#fff0c7"/>
+  <rect x="24" y="17" width="1" height="3" fill="#fff0c7"/>
+</svg>
