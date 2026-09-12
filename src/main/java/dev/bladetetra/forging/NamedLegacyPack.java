@@ -52,12 +52,13 @@ public final class NamedLegacyPack extends AbstractPackResources {
                         {"material":{"items":["slashblade:proudsoul_ingot"],"count":1},
                          "materialSlot":0,"requiredTools":{"hammer_dig":"minecraft:iron"}}
                         """).getAsJsonObject();
+                String moduleVariant = "legacy_" + part + "/" + kind.id();
                 if (part.equals("tsuka")) {
                     JsonObject values = new JsonObject(); values.addProperty(kind.improvement(), 1);
                     core.add("improvements", values);
                 } else {
                     core.addProperty("moduleKey", "slashblade/legacy_" + part);
-                    core.addProperty("moduleVariant", "legacy_" + part + "/" + kind.id());
+                    core.addProperty("moduleVariant", moduleVariant);
                 }
                 JsonObject feature = new JsonObject();
                 JsonObject material = new JsonObject();
@@ -72,6 +73,11 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 en.addProperty(prefix + ".name", title + " · " + (part.equals("tsuba") ? "Complete hilt" : "Saya"));
                 zh.addProperty(prefix + ".name", NamedLegacyCatalog.localizedName(kind, "zh_cn") + " · " + switch(part) {
                     case "saya" -> "仿造刀鞘"; case "tsuba" -> "仿造镡柄刀装"; default -> "仿造刀柄"; });
+                String variant = "tetra.variant." + moduleVariant;
+                en.addProperty(variant, title + " · "
+                        + (part.equals("tsuba") ? "Imprinted hilt" : "Imprinted saya"));
+                zh.addProperty(variant, NamedLegacyCatalog.localizedName(kind, "zh_cn") + " · "
+                        + (part.equals("tsuba") ? "仿造镡柄刀装" : "仿造刀鞘"));
                 en.addProperty(prefix + ".description", "Imprinted fitting. A matching saya and hilt form affinity and inherits the original blade's registered orthodox abilities.");
                 zh.addProperty(prefix + ".description", "同源刀鞘与镡柄刀装形成映锻契合，并继承原刀登记的正传能力。");
                 en.addProperty(prefix + ".slot1", "Proud Soul Ingot"); zh.addProperty(prefix + ".slot1", "耀魂铁锭");
