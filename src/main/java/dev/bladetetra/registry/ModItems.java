@@ -4,6 +4,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.LegacyDebugTalismanItem;
 import dev.bladetetra.item.LegacyImprintScrollItem;
+import dev.bladetetra.item.NamedBladeRecordItem;
 import dev.bladetetra.item.SayaPatternItem;
 import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
@@ -50,6 +51,8 @@ public final class ModItems {
             ITEMS.register("smithing_clue", SmithingClueItem::new);
     public static final RegistryObject<SmithingJournalItem> SMITHING_JOURNAL =
             ITEMS.register("smithing_journal", SmithingJournalItem::new);
+    public static final RegistryObject<NamedBladeRecordItem> NAMED_BLADE_RECORD =
+            ITEMS.register("named_blade_record", NamedBladeRecordItem::new);
     public static final RegistryObject<LegacyImprintScrollItem> LEGACY_IMPRINT_SCROLL =
             ITEMS.register("legacy_imprint_scroll", LegacyImprintScrollItem::new);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_BLACK_GOLD =
@@ -83,6 +86,7 @@ public final class ModItems {
                         output.accept(SWORD_GHOST_REMNANT.get());
                         output.accept(BROKEN_ONI_MASK.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
+                        output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
                         output.accept(LEGACY_IMPRINT_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
