@@ -16,7 +16,9 @@ public enum LegacyFusion {
     YASHA_SAYA_KIKOUKU_HILT(
             "yasha_saya_kikouku_hilt"),
     SEALED_AGITO_SAYA_OROTIAGITO_HILT(
-            "sealed_agito_saya_orotiagito_hilt");
+            "sealed_agito_saya_orotiagito_hilt"),
+    MURAMASA_SAYA_DOUTANUKI_HILT(
+            "muramasa_saya_doutanuki_hilt");
 
     private final String id;
 
