@@ -952,5 +952,12 @@
   "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "Douwari",
   "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.description": "Muramasa's saya releases and Doutanuki's hilt answers. After a short wind-up, a heavy vertical cut applies bounded compensation against the target's armor and toughness.",
   "tetra/schematic/slashblade/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "Attune legacy: Douwari",
-  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "Douwari · SA"
+  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "Douwari · SA",
+  "slash_art.blade_tetra.void_scattering": "Void Scattering",
+  "tetra.improvement.blade_tetra/legacy_fusion/sange_saya_yamato_hilt.name": "Void Scattering",
+  "tetra.improvement.blade_tetra/legacy_fusion/sange_saya_yamato_hilt.description": "The Sange saya releases while the Yamato hilt answers. A brief void domain reduces and stores hostile pressure, then returns it as summoned swords; Residual Bloom remains available during the domain cooldown.",
+  "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.name": "Attune Legacy · Void Scattering",
+  "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.description": "Attune the Sange saya and Yamato hilt into a defensive domain legacy.",
+  "tooltip.blade_tetra.legacy_fusion.sange_saya_yamato_hilt": "Void Scattering · SA",
+  "message.blade_tetra.void_scattering.ready": "Void Scattering · Domain Ready"
 }

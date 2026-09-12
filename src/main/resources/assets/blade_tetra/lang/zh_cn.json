@@ -929,5 +929,12 @@
   "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "胴割",
   "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.description": "「千鹤」村正之鞘主释，刚剑「胴田贯」镡柄相应。短暂蓄势后落下重型纵斩，目标的护甲与韧性越高，受控补正越明显。",
   "tetra/schematic/slashblade/legacy_fusion/muramasa_saya_doutanuki_hilt.name": "调律异传·胴割",
-  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "胴割 · SA"
+  "tooltip.blade_tetra.legacy_fusion.muramasa_saya_doutanuki_hilt": "胴割 · SA",
+  "slash_art.blade_tetra.void_scattering": "虚空散华",
+  "tetra.improvement.blade_tetra/legacy_fusion/sange_saya_yamato_hilt.name": "虚空散华",
+  "tetra.improvement.blade_tetra/legacy_fusion/sange_saya_yamato_hilt.description": "散华之鞘主释，阎魔刀镡柄相应。展开短暂虚空领域削减并收纳敌方攻势，领域收束后以幻影剑返还；冷却期间保留弱化的残华。",
+  "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.name": "调律异传·虚空散华",
+  "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.description": "将散华之鞘与阎魔刀镡柄调律为领域型异传。",
+  "tooltip.blade_tetra.legacy_fusion.sange_saya_yamato_hilt": "虚空散华 · SA",
+  "message.blade_tetra.void_scattering.ready": "虚空散华 · 展界就绪"
 }
