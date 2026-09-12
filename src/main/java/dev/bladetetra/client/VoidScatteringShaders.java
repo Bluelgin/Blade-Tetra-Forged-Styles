@@ -13,11 +13,12 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 
-/** Optional local shaders used by Void Scattering world-space effects. */
+/** Optional local shaders used by Void Scattering world-space and first-person effects. */
 public final class VoidScatteringShaders {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static ShaderInstance riftShader;
     private static ShaderInstance domeShader;
+    private static ShaderInstance veilShader;
 
     public static ShaderInstance riftShader() {
         return riftShader;
@@ -25,6 +26,10 @@ public final class VoidScatteringShaders {
 
     public static ShaderInstance domeShader() {
         return domeShader;
+    }
+
+    public static ShaderInstance veilShader() {
+        return veilShader;
     }
 
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
@@ -37,6 +42,7 @@ public final class VoidScatteringShaders {
         public static void register(RegisterShadersEvent event) {
             riftShader = null;
             domeShader = null;
+            veilShader = null;
             try {
                 event.registerShader(new ShaderInstance(event.getResourceProvider(),
                                 ResourceLocation.fromNamespaceAndPath(
@@ -56,6 +62,16 @@ public final class VoidScatteringShaders {
             } catch (IOException | RuntimeException exception) {
                 LOGGER.warn("Could not load Void Scattering dome shader; "
                         + "falling back to geometry VFX", exception);
+            }
+            try {
+                event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                                ResourceLocation.fromNamespaceAndPath(
+                                        BladeTetra.MOD_ID, "void_scattering_veil"),
+                                DefaultVertexFormat.POSITION_TEX_COLOR),
+                        shader -> veilShader = shader);
+            } catch (IOException | RuntimeException exception) {
+                LOGGER.warn("Could not load Void Scattering first-person veil shader; "
+                        + "falling back to HUD edge veil", exception);
             }
         }
     }
