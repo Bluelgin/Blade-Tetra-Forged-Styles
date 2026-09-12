@@ -2,6 +2,7 @@ package dev.bladetetra.item;
 
 import dev.bladetetra.client.SmithingJournalClient;
 import dev.bladetetra.lore.SmithingLore;
+import dev.bladetetra.registry.ModItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -28,6 +29,8 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public final class SmithingJournalItem extends WrittenBookItem {
+    private static final String NAMED_BLADE_GIFT = "BladeTetraNamedBladeRecordGift";
+
     public SmithingJournalItem() {
         super(new Properties().stacksTo(1));
     }
@@ -56,6 +59,9 @@ public final class SmithingJournalItem extends WrittenBookItem {
                     () -> () -> SmithingJournalClient.open(stack));
         } else {
             player.awardStat(Stats.ITEM_USED.get(this));
+            if (player instanceof ServerPlayer serverPlayer) {
+                grantNamedBladeGift(serverPlayer);
+            }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
@@ -164,6 +170,28 @@ public final class SmithingJournalItem extends WrittenBookItem {
         tag.putInt("BladeTetraKnownClues", 0);
         tag.putInt("BladeTetraCompletedClues", 0);
         tag.putBoolean("BladeTetraNbtSage", false);
+    }
+
+    private static void grantNamedBladeGift(ServerPlayer player) {
+        CompoundTag root = player.getPersistentData();
+        CompoundTag persisted = root.getCompound(Player.PERSISTED_NBT_TAG);
+        if (persisted.getBoolean(NAMED_BLADE_GIFT)) {
+            return;
+        }
+
+        persisted.putBoolean(NAMED_BLADE_GIFT, true);
+        root.put(Player.PERSISTED_NBT_TAG, persisted);
+        giveOrDrop(player, ModItems.NAMED_BLADE_RECORD.get().getDefaultInstance());
+        giveOrDrop(player, ModItems.LEGACY_IMPRINT_SCROLL.get().getDefaultInstance());
+        player.displayClientMessage(Component.translatable(
+                        "message.blade_tetra.named_blade_record.gift")
+                .withStyle(ChatFormatting.GOLD), false);
+    }
+
+    private static void giveOrDrop(ServerPlayer player, ItemStack stack) {
+        if (!player.getInventory().add(stack)) {
+            player.drop(stack, false);
+        }
     }
 
     private static Component completedPage(String clue) {

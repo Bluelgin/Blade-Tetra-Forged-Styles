@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:book" },
+    { "item": "minecraft:ink_sac" },
+    { "item": "slashblade:proudsoul_tiny" }
+  ],
+  "result": {
+    "item": "blade_tetra:named_blade_record"
+  }
+}

@@ -1,10 +1,13 @@
 package dev.bladetetra.forging;
 
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 import java.io.StringReader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LegacyFusionCatalogTest {
@@ -45,5 +48,27 @@ class LegacyFusionCatalogTest {
                            "abilityType":"special_effect","ability":"blade_tetra:two"}
                         ]
                         """)));
+    }
+
+    @Test
+    void playerGuideMirrorsCatalogOrderAndAbilityKeys() {
+        var definitions = LegacyFusionCatalog.values();
+        var entries = LegacyFusionGuide.entries(definitions, Component::literal);
+
+        assertEquals(definitions.size(), entries.size());
+        for (int index = 0; index < definitions.size(); index++) {
+            var definition = definitions.get(index);
+            var entry = entries.get(index);
+            assertEquals(definition.id(), entry.id());
+
+            var translation = assertInstanceOf(TranslatableContents.class,
+                    entry.abilityName().getContents());
+            String prefix = definition.abilityType()
+                    == LegacyFusionDefinition.AbilityType.SLASH_ART
+                    ? "slash_art."
+                    : "se.";
+            assertEquals(prefix + definition.ability().getNamespace() + "."
+                    + definition.ability().getPath(), translation.getKey());
+        }
     }
 }
