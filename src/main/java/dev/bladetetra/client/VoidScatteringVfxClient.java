@@ -8,11 +8,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.network.VoidScatteringVfxPacket;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -114,6 +116,49 @@ public final class VoidScatteringVfxClient {
         poses.pushPose();
         poses.translate(-camera.getPosition().x, -camera.getPosition().y,
                 -camera.getPosition().z);
+
+        if (!renderShaderRifts(poses, camera, level, event.getPartialTick())) {
+            renderFallbackRifts(poses, camera, level, event.getPartialTick());
+        }
+
+        poses.popPose();
+    }
+
+    private static boolean renderShaderRifts(PoseStack poses, Camera camera,
+            ClientLevel level, float partialTick) {
+        if (!ClientVisualConfig.ENABLE_VOID_SCATTERING_SHADER.get()) return false;
+        ShaderInstance shader = VoidScatteringShaders.riftShader();
+        if (shader == null) return false;
+
+        RenderSystem.enableBlend();
+        RenderSystem.disableCull();
+        RenderSystem.depthMask(false);
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        RenderSystem.setShader(() -> shader);
+        if (shader.getUniform("RiftTime") != null) {
+            shader.getUniform("RiftTime").set(
+                    (level.getGameTime() + partialTick) * 0.05F);
+        }
+        if (shader.getUniform("RiftIntensity") != null) {
+            shader.getUniform("RiftIntensity").set(
+                    ClientVisualConfig.VOID_SCATTERING_SHADER_INTENSITY.get().floatValue());
+        }
+
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        drawShaderAll(buffer, poses.last().pose(), camera.getPosition(), level, partialTick);
+        Tesselator.getInstance().end();
+
+        RenderSystem.depthMask(true);
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
+        return true;
+    }
+
+    private static void renderFallbackRifts(PoseStack poses, Camera camera,
+            ClientLevel level, float partialTick) {
         RenderSystem.enableBlend();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
@@ -124,21 +169,19 @@ public final class VoidScatteringVfxClient {
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        drawAll(buffer, matrix, camera.getPosition(), level,
-                event.getPartialTick(), false);
+        drawAll(buffer, matrix, camera.getPosition(), level, partialTick, false);
         Tesselator.getInstance().end();
 
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE);
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        drawAll(buffer, matrix, camera.getPosition(), level,
-                event.getPartialTick(), true);
+        drawAll(buffer, matrix, camera.getPosition(), level, partialTick, true);
         Tesselator.getInstance().end();
+
         RenderSystem.depthMask(true);
         RenderSystem.defaultBlendFunc();
         RenderSystem.enableCull();
         RenderSystem.disableBlend();
-        poses.popPose();
     }
 
     @SubscribeEvent
@@ -154,6 +197,46 @@ public final class VoidScatteringVfxClient {
         event.getGuiGraphics().blit(READY_ICON, x, y, 0, 0,
                 32, 32, 32, 32);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private static void drawShaderAll(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
+            ClientLevel level, float partialTick) {
+        for (DomainVisual domain : DOMAINS.values()) {
+            Entity player = level.getEntity(domain.playerEntityId);
+            if (player == null) continue;
+            float age = domain.age + partialTick;
+            Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
+            for (int slot = 0; slot < 5; slot++) {
+                int revealTick = slot == 0 ? 1 : slot <= 2 ? 4 : 8;
+                float reveal = Mth.clamp((age - revealTick) / 5.0F, 0.0F, 1.0F);
+                if (reveal <= 0.0F) continue;
+                float collapse = domain.collapsing
+                        ? Mth.clamp(domain.remainingTicks / 10.0F, 0.0F, 1.0F) : 1.0F;
+                Vec3 slotCenter = slotCenter(center, domain.seed, slot, age);
+                float closing = domain.collapsing ? 1.0F
+                        : Mth.clamp((10.0F - domain.remainingTicks) / 10.0F,
+                        0.0F, 1.0F);
+                if (closing > 0.0F) {
+                    slotCenter = center.lerp(slotCenter, 1.0D - closing * 0.22D);
+                }
+                boolean filled = slot < domain.storedSlots;
+                float flash = slot == domain.flashSlot
+                        ? domain.flashTicks / 9.0F : 0.0F;
+                flash = Math.max(flash, closing * (filled ? 0.72F : 0.42F));
+                drawShaderCrack(buffer, matrix, camera, slotCenter,
+                        domain.seed + slot * 71, reveal * collapse, filled, flash, 1.0F);
+            }
+        }
+        for (ResidualVisual residual : RESIDUALS) {
+            Entity player = level.getEntity(residual.playerEntityId);
+            if (player == null) continue;
+            float t = Mth.clamp((residual.age + partialTick) / residual.duration,
+                    0.0F, 1.0F);
+            Vec3 look = player.getLookAngle().normalize();
+            Vec3 center = player.getEyePosition(partialTick).add(look.scale(1.45D));
+            drawShaderCrack(buffer, matrix, camera, center, residual.seed,
+                    Mth.sin(t * Mth.PI), false, 0.52F, 1.18F);
+        }
     }
 
     private static void drawAll(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
@@ -205,6 +288,42 @@ public final class VoidScatteringVfxClient {
                 + Math.sin(age * 0.055D + slot * 1.7D) * 0.07D;
         return center.add(Math.cos(angle) * radius, height,
                 Math.sin(angle) * radius);
+    }
+
+    private static void drawShaderCrack(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
+            Vec3 center, int seed, float alpha, boolean filled, float flash,
+            float scale) {
+        if (alpha <= 0.001F) return;
+        Vec3 right = camera.subtract(center).multiply(1.0D, 0.0D, 1.0D);
+        right = right.lengthSqr() < 0.0001D ? new Vec3(1.0D, 0.0D, 0.0D)
+                : new Vec3(right.z, 0.0D, -right.x).normalize();
+
+        double halfWidth = 0.34D * scale * (0.94D + flash * 0.10D);
+        double halfHeight = 0.72D * scale;
+        Vec3 horizontal = right.scale(halfWidth);
+        Vec3 vertical = new Vec3(0.0D, halfHeight, 0.0D);
+
+        int fillByte = filled ? 255 : 0;
+        int flashByte = Mth.clamp(Math.round(Mth.clamp(flash, 0.0F, 1.0F) * 255.0F),
+                0, 255);
+        int seedByte = Math.floorMod(seed, 251);
+        int alphaByte = Mth.clamp(Math.round(Mth.clamp(alpha, 0.0F, 1.0F) * 255.0F),
+                0, 255);
+
+        shaderVertex(buffer, matrix, center.subtract(horizontal).subtract(vertical),
+                0.0F, 1.0F, fillByte, flashByte, seedByte, alphaByte);
+        shaderVertex(buffer, matrix, center.add(horizontal).subtract(vertical),
+                1.0F, 1.0F, fillByte, flashByte, seedByte, alphaByte);
+        shaderVertex(buffer, matrix, center.add(horizontal).add(vertical),
+                1.0F, 0.0F, fillByte, flashByte, seedByte, alphaByte);
+        shaderVertex(buffer, matrix, center.subtract(horizontal).add(vertical),
+                0.0F, 0.0F, fillByte, flashByte, seedByte, alphaByte);
+    }
+
+    private static void shaderVertex(BufferBuilder buffer, Matrix4f matrix, Vec3 point,
+            float u, float v, int filled, int flash, int seed, int alpha) {
+        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+                .uv(u, v).color(filled, flash, seed, alpha).endVertex();
     }
 
     private static void drawCrack(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,

@@ -57,9 +57,15 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
-    void visualSourceAndRuntimeIconArePackaged() {
+    void visualSourceRuntimeIconAndShaderArePackaged() {
         assertNotNull(getClass().getResource(
                 "/assets/blade_tetra/textures/gui/void_scattering_ready.png"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_rift.json"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_rift.vsh"));
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/shaders/core/void_scattering_rift.fsh"));
         assertTrue(Files.isRegularFile(Path.of(
                 "art/void_scattering/void_ready_icon.svg")));
         assertTrue(Files.isRegularFile(Path.of(
