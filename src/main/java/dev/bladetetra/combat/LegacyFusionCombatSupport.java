@@ -15,6 +15,11 @@ import net.minecraft.world.phys.Vec3;
 final class LegacyFusionCombatSupport {
     private static final String VISUAL_ONLY = "blade_tetra_technique_visual";
 
+    // EntitySlashEffect attacks only while it has a shooter. Keep both parts of
+    // this cosmetic-only contract explicit and covered by regression tests.
+    static final double VISUAL_SLASH_DAMAGE = 0.0D;
+    static final boolean VISUAL_SLASH_DETACH_SHOOTER = true;
+
     static boolean canAffect(LivingEntity owner, LivingEntity target) {
         if (target == owner || !target.isAlive() || owner.isAlliedTo(target)) {
             return false;
@@ -55,11 +60,11 @@ final class LegacyFusionCombatSupport {
     static void spawnVisualSlash(LivingEntity user, Vec3 position,
             float yaw, float roll, int color, float size, int lifetime) {
         EntitySlashEffect slash = AttackManager.doSlash(user, yaw,
-                true, false, 0.0D);
+                true, false, VISUAL_SLASH_DAMAGE);
         if (slash == null) {
             return;
         }
-        slash.setDamage(0.0D);
+        slash.setDamage(VISUAL_SLASH_DAMAGE);
         slash.setMute(true);
         slash.setNoClip(true);
         slash.setCycleHit(false);
@@ -70,7 +75,9 @@ final class LegacyFusionCombatSupport {
         slash.setRotationRoll(roll);
         slash.setPos(position.x, position.y, position.z);
         slash.setYRot(yaw);
-        slash.setShooter(null);
+        if (VISUAL_SLASH_DETACH_SHOOTER) {
+            slash.setShooter(null);
+        }
         slash.getPersistentData().putBoolean(
                 BladeTechniqueHandler.TECHNIQUE_ENTITY, true);
         slash.getPersistentData().putBoolean(VISUAL_ONLY, true);
