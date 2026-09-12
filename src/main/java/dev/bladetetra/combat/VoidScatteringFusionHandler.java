@@ -44,11 +44,12 @@ import java.util.UUID;
  * pressure into bounded void charge and returns it as authored summoned swords.
  */
 final class VoidScatteringFusionHandler {
-    static final int DOMAIN_DURATION_TICKS = 90;
+    static final int DOMAIN_DURATION_TICKS = 200;
     static final int DOMAIN_COOLDOWN_TICKS = 400;
     static final int MAX_STORED_SWORDS = 6;
     static final int MAX_VOID_CHARGE = 12;
     static final int VOID_CHARGE_PER_SWORD = 2;
+    static final int AUTO_BREAK_CAPTURE_COUNT = 5;
     static final int SOURCE_CAPTURE_INTERVAL_TICKS = 8;
     static final int RESIDUAL_DURATION_TICKS = 5;
     static final int RESIDUAL_COOLDOWN_TICKS = 36;
@@ -170,6 +171,11 @@ final class VoidScatteringFusionHandler {
                 continue;
             }
 
+            if (domain.autoRelease()) {
+                releaseDomain(player, domain, true);
+                continue;
+            }
+
             long now = globalGameTime(player);
             if (now >= domain.endTick()) {
                 releaseDomain(player, domain);
@@ -177,6 +183,10 @@ final class VoidScatteringFusionHandler {
             }
 
             interceptDomainProjectiles(player, domain, now);
+            if (domain.autoRelease()) {
+                releaseDomain(player, domain, true);
+                continue;
+            }
             renderDomain(player, now);
         }
 
@@ -243,12 +253,17 @@ final class VoidScatteringFusionHandler {
                 player.getX(), player.getY() + 1.2D, player.getZ(),
                 12, 2.4D, 0.85D, 2.4D, 0.012D);
         level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
-                SoundSource.PLAYERS, 0.55F, 0.72F);
+                SoundSource.PLAYERS, 0.68F, 0.66F);
         sendVfx(player, VoidScatteringVfxPacket.OPEN, 0,
                 DOMAIN_DURATION_TICKS, seed);
     }
 
     private static void releaseDomain(ServerPlayer player, DomainState domain) {
+        releaseDomain(player, domain, false);
+    }
+
+    private static void releaseDomain(ServerPlayer player, DomainState domain,
+            boolean shattered) {
         if (DOMAINS.remove(domain.playerId()) == null) {
             return;
         }
@@ -269,18 +284,27 @@ final class VoidScatteringFusionHandler {
         }
 
         Vec3 center = domainCenter(player);
+        float slashScale = shattered ? 3.15F : 2.4F;
+        int slashLife = shattered ? 14 : 11;
         LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                player.getYRot(), 90.0F, VOID_COLOR, 2.4F, 11);
+                player.getYRot(), 90.0F, VOID_COLOR, slashScale, slashLife);
         level.sendParticles(ParticleTypes.PORTAL,
-                center.x, center.y, center.z, 24,
-                1.9D, 0.75D, 1.9D, 0.075D);
+                center.x, center.y, center.z, shattered ? 38 : 24,
+                shattered ? 2.35D : 1.9D, shattered ? 0.95D : 0.75D,
+                shattered ? 2.35D : 1.9D, shattered ? 0.11D : 0.075D);
         level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                center.x, center.y, center.z, 18,
-                1.7D, 0.6D, 1.7D, 0.045D);
+                center.x, center.y, center.z, shattered ? 28 : 18,
+                shattered ? 2.0D : 1.7D, shattered ? 0.78D : 0.6D,
+                shattered ? 2.0D : 1.7D, shattered ? 0.07D : 0.045D);
+        if (shattered) {
+            level.playSound(null, player.blockPosition(), SoundEvents.GLASS_BREAK,
+                    SoundSource.PLAYERS, 0.95F, 0.72F);
+        }
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                SoundSource.PLAYERS, 0.82F, 1.22F);
+                SoundSource.PLAYERS, shattered ? 0.96F : 0.82F,
+                shattered ? 1.10F : 1.22F);
         sendVfx(player, VoidScatteringVfxPacket.COLLAPSE,
-                domain.sources().size(), 8, domain.seed());
+                domain.sources().size(), shattered ? 12 : 8, domain.seed());
     }
 
     private static void cancelDomain(ServerPlayer player) {
@@ -339,6 +363,9 @@ final class VoidScatteringFusionHandler {
         List<Projectile> projectiles = level.getEntitiesOfClass(Projectile.class, area,
                 VoidScatteringFusionHandler::isWhitelistedProjectile);
         for (Projectile projectile : projectiles) {
+            if (domain.autoRelease()) {
+                break;
+            }
             if (projectile.position().distanceToSqr(center) > radiusSqr) {
                 continue;
             }
@@ -394,12 +421,13 @@ final class VoidScatteringFusionHandler {
             return false;
         }
         domain.lastCapture().put(source.getUUID(), now);
+        domain.incrementCaptureCount();
 
         int oldCharge = domain.voidCharge();
         int newCharge = Math.min(MAX_VOID_CHARGE, oldCharge + gainedCharge);
         domain.setVoidCharge(newCharge);
-        int oldSwordCount = Math.min(MAX_STORED_SWORDS, oldCharge / VOID_CHARGE_PER_SWORD);
-        int newSwordCount = Math.min(MAX_STORED_SWORDS, newCharge / VOID_CHARGE_PER_SWORD);
+        int newSwordCount = Math.min(MAX_STORED_SWORDS,
+                newCharge / VOID_CHARGE_PER_SWORD);
         while (domain.sources().size() < newSwordCount
                 && domain.sources().size() < MAX_STORED_SWORDS) {
             domain.sources().add(source.getUUID());
@@ -414,7 +442,14 @@ final class VoidScatteringFusionHandler {
         sendVfx(player, VoidScatteringVfxPacket.CAPTURE,
                 domain.sources().size(),
                 Math.max(1, (int) (domain.endTick() - now)), domain.seed(), direction);
-        return newCharge != oldCharge || oldSwordCount == newSwordCount;
+        if (shouldAutoRelease(domain.captureCount())) {
+            domain.markAutoRelease();
+        }
+        return true;
+    }
+
+    static boolean shouldAutoRelease(int captureCount) {
+        return captureCount >= AUTO_BREAK_CAPTURE_COUNT;
     }
 
     private static float projectilePressure(Projectile projectile) {
@@ -659,6 +694,8 @@ final class VoidScatteringFusionHandler {
         private final List<UUID> sources = new ArrayList<>();
         private final Map<UUID, Long> lastCapture = new HashMap<>();
         private int voidCharge;
+        private int captureCount;
+        private boolean autoRelease;
 
         private DomainState(ResourceKey<Level> dimension, UUID playerId,
                 long endTick, double attackSnapshot, int seed) {
@@ -678,6 +715,10 @@ final class VoidScatteringFusionHandler {
         Map<UUID, Long> lastCapture() { return lastCapture; }
         int voidCharge() { return voidCharge; }
         void setVoidCharge(int voidCharge) { this.voidCharge = voidCharge; }
+        int captureCount() { return captureCount; }
+        void incrementCaptureCount() { captureCount++; }
+        boolean autoRelease() { return autoRelease; }
+        void markAutoRelease() { autoRelease = true; }
     }
 
     private record ResidualState(ResourceKey<Level> dimension, UUID playerId,
