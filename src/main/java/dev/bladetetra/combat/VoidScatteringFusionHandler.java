@@ -1,6 +1,8 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.forging.LegacyFusion;
+import dev.bladetetra.network.ModNetwork;
+import dev.bladetetra.network.VoidScatteringVfxPacket;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
@@ -29,6 +31,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,6 +66,7 @@ final class VoidScatteringFusionHandler {
 
     private static final Map<UUID, DomainState> DOMAINS = new HashMap<>();
     private static final Map<UUID, ResidualState> RESIDUALS = new HashMap<>();
+    private static final List<PendingReturn> PENDING_RETURNS = new ArrayList<>();
 
     /**
      * @return true when this handler consumed the Slash Art event and vanilla
@@ -110,8 +114,9 @@ final class VoidScatteringFusionHandler {
         if (domain != null && validDomainPlayer(player, domain)) {
             event.setCanceled(true);
             projectile.discard();
-            capture(domain, source, globalGameTime(player));
-            captureVisual(player.serverLevel(), player);
+            if (capture(player, domain, source, globalGameTime(player))) {
+                captureVisual(player.serverLevel(), player);
+            }
             return;
         }
 
@@ -120,7 +125,7 @@ final class VoidScatteringFusionHandler {
             event.setCanceled(true);
             projectile.discard();
             RESIDUALS.remove(player.getUUID());
-            fireSword(player, source,
+            scheduleReturn(player, source.getUUID(),
                     VoidScatteringBalance.residualSwordDamage(residual.attackSnapshot()), 0);
             captureVisual(player.serverLevel(), player);
         }
@@ -145,8 +150,9 @@ final class VoidScatteringFusionHandler {
         }
 
         event.setAmount(VoidScatteringBalance.reducedDamage(event.getAmount()));
-        capture(domain, source, globalGameTime(player));
-        captureVisual(player.serverLevel(), player);
+        if (capture(player, domain, source, globalGameTime(player))) {
+            captureVisual(player.serverLevel(), player);
+        }
     }
 
     static void tick(TickEvent.ServerTickEvent event) {
@@ -154,6 +160,7 @@ final class VoidScatteringFusionHandler {
             ServerPlayer player = event.getServer().getPlayerList()
                     .getPlayer(domain.playerId());
             if (player == null) {
+                DOMAINS.remove(domain.playerId());
                 continue;
             }
             if (!validDomainPlayer(player, domain) || !player.isAlive()) {
@@ -175,6 +182,7 @@ final class VoidScatteringFusionHandler {
             ServerPlayer player = event.getServer().getPlayerList()
                     .getPlayer(residual.playerId());
             if (player == null) {
+                RESIDUALS.remove(residual.playerId());
                 continue;
             }
             if (!validResidualPlayer(player, residual) || !player.isAlive()) {
@@ -194,6 +202,8 @@ final class VoidScatteringFusionHandler {
             }
         }
 
+        tickPendingReturns(event);
+
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
             showReadyNoticeIfNeeded(player);
         }
@@ -203,19 +213,22 @@ final class VoidScatteringFusionHandler {
         ResourceKey<Level> dimension = level.dimension();
         DOMAINS.values().removeIf(state -> state.dimension().equals(dimension));
         RESIDUALS.values().removeIf(state -> state.dimension().equals(dimension));
+        PENDING_RETURNS.removeIf(state -> state.dimension.equals(dimension));
     }
 
     static void clear() {
         DOMAINS.clear();
         RESIDUALS.clear();
+        PENDING_RETURNS.clear();
     }
 
     private static void startDomain(ServerPlayer player, long now) {
         ServerLevel level = player.serverLevel();
         double attack = Math.max(0.0D,
                 player.getAttributeValue(Attributes.ATTACK_DAMAGE));
+        int seed = player.getRandom().nextInt();
         DomainState domain = new DomainState(level.dimension(), player.getUUID(),
-                now + DOMAIN_DURATION_TICKS, attack);
+                now + DOMAIN_DURATION_TICKS, attack, seed);
         DOMAINS.put(player.getUUID(), domain);
         RESIDUALS.remove(player.getUUID());
 
@@ -232,6 +245,8 @@ final class VoidScatteringFusionHandler {
                 18, 1.9D, 0.65D, 1.9D, 0.015D);
         level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
                 SoundSource.PLAYERS, 0.55F, 0.72F);
+        sendVfx(player, VoidScatteringVfxPacket.OPEN, 0,
+                DOMAIN_DURATION_TICKS, seed);
     }
 
     private static void releaseDomain(ServerPlayer player, DomainState domain) {
@@ -249,7 +264,7 @@ final class VoidScatteringFusionHandler {
             if (entity instanceof LivingEntity target
                     && LegacyFusionCombatSupport.canAffect(player, target)
                     && player.distanceToSqr(target) <= RETURN_RANGE * RETURN_RANGE) {
-                fireSword(player, target, damage, index * 3);
+                scheduleReturn(player, target.getUUID(), damage, index * 3);
                 index++;
             }
         }
@@ -265,11 +280,16 @@ final class VoidScatteringFusionHandler {
                 1.6D, 0.55D, 1.6D, 0.05D);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
                 SoundSource.PLAYERS, 0.82F, 1.22F);
+        sendVfx(player, VoidScatteringVfxPacket.COLLAPSE,
+                domain.sources().size(), 12, domain.seed());
     }
 
     private static void cancelDomain(ServerPlayer player) {
-        if (DOMAINS.remove(player.getUUID()) != null) {
+        DomainState removed = DOMAINS.remove(player.getUUID());
+        if (removed != null) {
             setDomainCooldown(player, globalGameTime(player) + DOMAIN_COOLDOWN_TICKS);
+            sendVfx(player, VoidScatteringVfxPacket.CANCEL,
+                    removed.sources().size(), 1, removed.seed());
         }
         RESIDUALS.remove(player.getUUID());
     }
@@ -293,6 +313,8 @@ final class VoidScatteringFusionHandler {
                 player.getYRot(), 0.0F, VOID_COLOR, 1.15F, 6);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME,
                 SoundSource.PLAYERS, 0.34F, 1.52F);
+        sendVfx(player, VoidScatteringVfxPacket.RESIDUAL, 0,
+                RESIDUAL_DURATION_TICKS, player.getRandom().nextInt());
     }
 
     private static void releaseResidualFallback(ServerPlayer player,
@@ -304,7 +326,7 @@ final class VoidScatteringFusionHandler {
         if (entity instanceof LivingEntity target
                 && LegacyFusionCombatSupport.canAffect(player, target)
                 && player.distanceToSqr(target) <= RETURN_RANGE * RETURN_RANGE) {
-            fireSword(player, target,
+            scheduleReturn(player, target.getUUID(),
                     VoidScatteringBalance.residualSwordDamage(residual.attackSnapshot()), 0);
         }
     }
@@ -321,8 +343,9 @@ final class VoidScatteringFusionHandler {
                 continue;
             }
             projectile.discard();
-            capture(domain, source, now);
-            captureVisual(level, player);
+            if (capture(player, domain, source, now)) {
+                captureVisual(level, player);
+            }
         }
     }
 
@@ -346,7 +369,7 @@ final class VoidScatteringFusionHandler {
             }
             projectile.discard();
             RESIDUALS.remove(residual.playerId());
-            fireSword(player, source,
+            scheduleReturn(player, source.getUUID(),
                     VoidScatteringBalance.residualSwordDamage(residual.attackSnapshot()), 0);
             captureVisual(level, player);
             return true;
@@ -354,31 +377,42 @@ final class VoidScatteringFusionHandler {
         return false;
     }
 
-    private static void capture(DomainState domain, LivingEntity source, long now) {
+    private static boolean capture(ServerPlayer player, DomainState domain,
+            LivingEntity source, long now) {
         if (domain.sources().size() >= MAX_STORED_SWORDS) {
-            return;
+            return false;
         }
         long previous = domain.lastCapture().getOrDefault(source.getUUID(), Long.MIN_VALUE / 2L);
         if (now - previous < SOURCE_CAPTURE_INTERVAL_TICKS) {
-            return;
+            return false;
         }
         domain.lastCapture().put(source.getUUID(), now);
         domain.sources().add(source.getUUID());
+        sendVfx(player, VoidScatteringVfxPacket.CAPTURE,
+                domain.sources().size(),
+                Math.max(1, (int) (domain.endTick() - now)), domain.seed());
+        return true;
     }
 
-    private static void fireSword(ServerPlayer player, LivingEntity target,
+    private static void scheduleReturn(ServerPlayer player, UUID targetId,
             float damage, int delay) {
-        if (damage <= 0.0F || !target.isAlive()
-                || player.level() != target.level()
-                || !LegacyFusionCombatSupport.canAffect(player, target)) {
+        if (damage <= 0.0F) {
             return;
         }
+        PENDING_RETURNS.add(new PendingReturn(player.level().dimension(),
+                player.getUUID(), targetId, damage,
+                globalGameTime(player) + Math.max(0, delay),
+                Math.max(0, delay / 3)));
+    }
+
+    private static int launchVisualSword(ServerPlayer player, LivingEntity target,
+            int sequence) {
         ServerLevel level = player.serverLevel();
         Vec3 center = target.getBoundingBox().getCenter();
-        double angle = Math.toRadians((delay * 37.0D) % 360.0D);
+        double angle = Math.toRadians((sequence * 53.0D + player.tickCount * 17.0D) % 360.0D);
         Vec3 start = player.position().add(
                 Math.cos(angle) * 1.25D,
-                1.35D + (delay % 2) * 0.18D,
+                1.35D + (sequence % 2) * 0.18D,
                 Math.sin(angle) * 1.25D);
         Vec3 direction = center.subtract(start).normalize();
 
@@ -387,15 +421,52 @@ final class VoidScatteringFusionHandler {
         sword.setPos(start.x, start.y, start.z);
         sword.setOwner(player);
         sword.setShooter(player);
-        sword.setHitEntity(target);
-        sword.setDamage(damage);
+        sword.setDamage(0.0D);
         sword.setColor(VOID_COLOR);
-        sword.setRoll((float) ((delay * 53) % 360));
-        sword.setDelay(delay);
+        sword.setRoll((float) ((sequence * 53) % 360));
+        sword.setDelay(0);
         sword.setNoClip(true);
-        sword.getPersistentData().putBoolean(BladeTechniqueHandler.TECHNIQUE_ENTITY, true);
+        LegacyFusionCombatSupport.markVisualOnly(sword);
         sword.shoot(direction.x, direction.y, direction.z, 1.7F, 0.0F);
         level.addFreshEntity(sword);
+        return Math.max(2, (int) Math.ceil(start.distanceTo(center) / 1.7D));
+    }
+
+    private static void tickPendingReturns(TickEvent.ServerTickEvent event) {
+        long now = event.getServer().overworld().getGameTime();
+        var iterator = PENDING_RETURNS.iterator();
+        while (iterator.hasNext()) {
+            PendingReturn pending = iterator.next();
+            if (now < pending.dueTick) {
+                continue;
+            }
+            ServerPlayer player = event.getServer().getPlayerList()
+                    .getPlayer(pending.playerId);
+            ServerLevel level = event.getServer().getLevel(pending.dimension);
+            Entity entity = level == null ? null : level.getEntity(pending.targetId);
+            if (player == null || player.level() != level
+                    || !(entity instanceof LivingEntity target)
+                    || !target.isAlive()
+                    || !LegacyFusionCombatSupport.canAffect(player, target)
+                    || player.distanceToSqr(target) > RETURN_RANGE * RETURN_RANGE) {
+                iterator.remove();
+                continue;
+            }
+            if (!pending.launched) {
+                pending.launched = true;
+                pending.dueTick = now + launchVisualSword(player, target,
+                        pending.sequence);
+                continue;
+            }
+            LegacyFusionCombatSupport.hurtPreservingIFrames(
+                    level, player, target, pending.damage);
+            Vec3 center = target.getBoundingBox().getCenter();
+            LegacyFusionCombatSupport.spawnVisualSlash(player, center,
+                    player.getYRot(), 90.0F, VOID_COLOR, 0.92F, 6);
+            level.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                    center.x, center.y, center.z, 5, 0.35D, 0.35D, 0.35D, 0.025D);
+            iterator.remove();
+        }
     }
 
     private static boolean validDomainPlayer(ServerPlayer player, DomainState domain) {
@@ -499,6 +570,20 @@ final class VoidScatteringFusionHandler {
         player.serverLevel().sendParticles(ParticleTypes.PORTAL,
                 player.getX(), player.getY() + 1.15D, player.getZ(),
                 5, 0.32D, 0.34D, 0.32D, 0.01D);
+        sendVfx(player, VoidScatteringVfxPacket.READY, 0,
+                28, player.getRandom().nextInt());
+    }
+
+    private static void sendVfx(ServerPlayer player, int type, int slots,
+            int duration, int seed) {
+        VoidScatteringVfxPacket packet = new VoidScatteringVfxPacket(
+                type, player.getId(), slots, duration, seed);
+        for (ServerPlayer viewer : player.serverLevel().players()) {
+            if (viewer.distanceToSqr(player) <= 64.0D * 64.0D) {
+                ModNetwork.CHANNEL.send(
+                        PacketDistributor.PLAYER.with(() -> viewer), packet);
+            }
+        }
     }
 
     private static final class DomainState {
@@ -506,27 +591,50 @@ final class VoidScatteringFusionHandler {
         private final UUID playerId;
         private final long endTick;
         private final double attackSnapshot;
+        private final int seed;
         private final List<UUID> sources = new ArrayList<>();
         private final Map<UUID, Long> lastCapture = new HashMap<>();
 
         private DomainState(ResourceKey<Level> dimension, UUID playerId,
-                long endTick, double attackSnapshot) {
+                long endTick, double attackSnapshot, int seed) {
             this.dimension = dimension;
             this.playerId = playerId;
             this.endTick = endTick;
             this.attackSnapshot = attackSnapshot;
+            this.seed = seed;
         }
 
         ResourceKey<Level> dimension() { return dimension; }
         UUID playerId() { return playerId; }
         long endTick() { return endTick; }
         double attackSnapshot() { return attackSnapshot; }
+        int seed() { return seed; }
         List<UUID> sources() { return sources; }
         Map<UUID, Long> lastCapture() { return lastCapture; }
     }
 
     private record ResidualState(ResourceKey<Level> dimension, UUID playerId,
             long endTick, double attackSnapshot, UUID targetId) {
+    }
+
+    private static final class PendingReturn {
+        private final ResourceKey<Level> dimension;
+        private final UUID playerId;
+        private final UUID targetId;
+        private final float damage;
+        private final int sequence;
+        private long dueTick;
+        private boolean launched;
+
+        private PendingReturn(ResourceKey<Level> dimension, UUID playerId,
+                UUID targetId, float damage, long dueTick, int sequence) {
+            this.dimension = dimension;
+            this.playerId = playerId;
+            this.targetId = targetId;
+            this.damage = damage;
+            this.dueTick = dueTick;
+            this.sequence = sequence;
+        }
     }
 
     private VoidScatteringFusionHandler() {

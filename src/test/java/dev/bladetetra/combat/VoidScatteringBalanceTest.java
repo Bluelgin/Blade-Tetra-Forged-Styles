@@ -2,7 +2,12 @@ package dev.bladetetra.combat;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VoidScatteringBalanceTest {
     @Test
@@ -40,5 +45,19 @@ class VoidScatteringBalanceTest {
         assertEquals(8, VoidScatteringFusionHandler.SOURCE_CAPTURE_INTERVAL_TICKS);
         assertEquals(5, VoidScatteringFusionHandler.RESIDUAL_DURATION_TICKS);
         assertEquals(36, VoidScatteringFusionHandler.RESIDUAL_COOLDOWN_TICKS);
+    }
+
+    @Test
+    void visualSourceAndRuntimeIconArePackaged() {
+        assertNotNull(getClass().getResource(
+                "/assets/blade_tetra/textures/gui/void_scattering_ready.png"));
+        assertTrue(Files.isRegularFile(Path.of(
+                "art/void_scattering/void_ready_icon.svg")));
+        assertTrue(Files.isRegularFile(Path.of(
+                "art/void_scattering/void_slot_empty.svg")));
+        assertTrue(Files.isRegularFile(Path.of(
+                "art/void_scattering/void_slot_filled.svg")));
+        assertTrue(Files.isRegularFile(Path.of(
+                "art/void_scattering/void_bloom_rift.svg")));
     }
 }
