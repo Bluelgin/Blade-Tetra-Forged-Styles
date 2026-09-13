@@ -15,19 +15,21 @@ class MaterialVisualOverrideRegistryTest {
     }
 
     @Test
-    void normalizesNamespacedAndPathMaterialKeys() {
+    void keepsProviderIdentityForNamespacedMaterialKeys() {
         var visual = visual(0x88CCFF);
         var registration = MaterialVisualOverrideRegistry.register(
                 "example:materials/Frost-Steel", visual);
 
-        assertEquals(visual,
-                MaterialVisualOverrideRegistry.resolve("frost-steel"));
-        assertEquals(visual,
-                MaterialVisualOverrideRegistry.resolve("other:path/frost-steel"));
+        assertEquals(visual, MaterialVisualOverrideRegistry.resolve(
+                "example:materials/frost-steel"));
+        assertNull(MaterialVisualOverrideRegistry.resolve("frost-steel"));
+        assertNull(MaterialVisualOverrideRegistry.resolve(
+                "other:path/frost-steel"));
         assertEquals(1, MaterialVisualOverrideRegistry.registeredCount());
 
         registration.close();
-        assertNull(MaterialVisualOverrideRegistry.resolve("frost-steel"));
+        assertNull(MaterialVisualOverrideRegistry.resolve(
+                "example:materials/frost-steel"));
     }
 
     @Test
@@ -46,7 +48,20 @@ class MaterialVisualOverrideRegistryTest {
         MaterialVisualOverrideRegistry.register("example:moonsteel", visual(0xC8D6FF));
         assertThrows(IllegalStateException.class,
                 () -> MaterialVisualOverrideRegistry.register(
-                        "other:path/moonsteel", visual(0xFFFFFF)));
+                        "EXAMPLE:MOONSTEEL", visual(0xFFFFFF)));
+    }
+
+    @Test
+    void differentProvidersMayOverrideTheSameLeafName() {
+        var first = visual(0xC8D6FF);
+        var second = visual(0xFFAA66);
+        MaterialVisualOverrideRegistry.register("first:metal/steel", first);
+        MaterialVisualOverrideRegistry.register("second:metal/steel", second);
+
+        assertEquals(first,
+                MaterialVisualOverrideRegistry.resolve("first:metal/steel"));
+        assertEquals(second,
+                MaterialVisualOverrideRegistry.resolve("second:metal/steel"));
     }
 
     private static TetraMaterialVisualResolver.MaterialVisual visual(int color) {

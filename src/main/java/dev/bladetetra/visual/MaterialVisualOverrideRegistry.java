@@ -20,7 +20,7 @@ public final class MaterialVisualOverrideRegistry {
     public static synchronized Registration register(
             String materialKey,
             TetraMaterialVisualResolver.MaterialVisual visual) {
-        String normalized = MaterialVisualKey.normalize(materialKey);
+        String normalized = MaterialVisualKey.canonical(materialKey);
         Objects.requireNonNull(visual, "visual");
         if (normalized.isBlank()) {
             throw new IllegalArgumentException("materialKey must not be blank");
@@ -36,7 +36,7 @@ public final class MaterialVisualOverrideRegistry {
 
     static synchronized TetraMaterialVisualResolver.MaterialVisual resolve(
             String materialKey) {
-        return OVERRIDES.get(MaterialVisualKey.normalize(materialKey));
+        return OVERRIDES.get(MaterialVisualKey.canonical(materialKey));
     }
 
     static synchronized long revision() {

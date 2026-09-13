@@ -1,6 +1,6 @@
 package dev.bladetetra.client.vfx;
 
-import dev.bladetetra.network.ModularTechniqueVfxPacket;
+import dev.bladetetra.visual.TechniqueVfxData;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +48,8 @@ class TechniqueVfxRegistryTest {
         assertFalse(TechniqueVfxRegistry.dispatch(packet(TEST_ID)));
     }
 
-    private static ModularTechniqueVfxPacket packet(ResourceLocation effectId) {
-        return new ModularTechniqueVfxPacket(
+    private static TechniqueVfxData packet(ResourceLocation effectId) {
+        return new TechniqueVfxData(
                 effectId,
                 0.0D, 0.0D, 0.0D,
                 1.0D, 1.0D, 1.0D,

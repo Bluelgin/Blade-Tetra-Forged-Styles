@@ -20,24 +20,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ArchitectureDebtGuardTest {
     @Test
     void legacyHotspotsDoNotKeepGrowing() throws IOException {
-        assertSizeAtMost(
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/BladeTechniqueVfxClient.java",
-                146_500L);
-        assertSizeAtMost(
+                2_900L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java",
-                157_500L);
-        assertSizeAtMost(
+                4_100L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                173_000L);
-        assertSizeAtMost(
+                3_900L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/ChallengeManager.java",
-                77_000L);
-        assertSizeAtMost(
+                1_800L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java",
-                40_000L);
-        assertSizeAtMost(
+                950L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/VoidScatteringFusionHandler.java",
-                44_000L);
+                1_050L);
     }
 
     @Test
@@ -64,10 +64,21 @@ class ArchitectureDebtGuardTest {
                 "MaterialTextureManager must stay provider-agnostic");
     }
 
-    private static void assertSizeAtMost(String path, long maximum) throws IOException {
-        long size = Files.size(Path.of(path));
-        assertTrue(size <= maximum,
-                () -> path + " grew to " + size + " bytes (budget " + maximum
+    @Test
+    void clientVfxRegistryDoesNotDependOnNetworkTransport() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/vfx/TechniqueVfxRegistry.java"));
+        assertFalse(source.contains("dev.bladetetra.network"),
+                "The renderer registry should consume neutral VFX data, not network packets");
+    }
+
+    private static void assertLinesAtMost(String path, long maximum) throws IOException {
+        long lines;
+        try (var sourceLines = Files.lines(Path.of(path))) {
+            lines = sourceLines.count();
+        }
+        assertTrue(lines <= maximum,
+                () -> path + " grew to " + lines + " lines (budget " + maximum
                         + "). Extract a focused collaborator instead of raising the budget.");
     }
 }

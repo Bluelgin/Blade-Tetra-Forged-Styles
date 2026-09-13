@@ -4,6 +4,18 @@ import java.util.Locale;
 
 /** Shared normalization for material-visual lookup keys. */
 final class MaterialVisualKey {
+    /** Provider-aware identity for explicit overrides. */
+    static String canonical(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim()
+                .toLowerCase(Locale.ROOT)
+                .replace('\\', '/')
+                .replaceAll("[^a-z0-9_./:\\-]", "_");
+    }
+
+    /** Legacy leaf lookup retained for the generic Tetra material index. */
     static String normalize(String value) {
         if (value == null) {
             return "";

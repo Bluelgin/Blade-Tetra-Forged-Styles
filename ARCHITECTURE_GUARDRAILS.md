@@ -61,6 +61,10 @@ Generic Tetra material information continues to flow through
 correction, use `MaterialVisualOverrideRegistry` instead of adding a provider
 check to `MaterialTextureManager`.
 
+Explicit overrides use the complete provider-aware material key. Do not shorten
+`example:metal/steel` to `steel`: different providers may legitimately expose
+materials with the same leaf name.
+
 Rules:
 
 - no `ModList.isLoaded(...)` branches in `MaterialTextureManager`;
@@ -89,9 +93,9 @@ that failure.
 
 ## Hotspot budgets
 
-`ArchitectureDebtGuardTest` places generous byte ceilings around known large
-legacy classes. These are not normal code-style limits. Their purpose is to
-make growth explicit during review.
+`ArchitectureDebtGuardTest` places generous line-count ceilings around known
+large legacy classes. These are not normal code-style limits. Their purpose is
+to make growth explicit during review without changing across LF/CRLF platforms.
 
 If a hotspot hits its ceiling, do not raise the ceiling as the first response.
 Extract a focused collaborator/controller/renderer and keep behavior identical.

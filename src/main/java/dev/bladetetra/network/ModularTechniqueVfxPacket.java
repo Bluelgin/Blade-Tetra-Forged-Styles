@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.client.vfx.TechniqueVfxRegistry;
+import dev.bladetetra.visual.TechniqueVfxData;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -28,12 +29,13 @@ public record ModularTechniqueVfxPacket(
         float yaw, float intensity,
         int sourceEntityId, int targetEntityId,
         int duration, int seed) {
+    static final int MAX_DURATION_TICKS = 20 * 60;
 
     public ModularTechniqueVfxPacket {
         if (effectId == null) {
             throw new IllegalArgumentException("effectId must not be null");
         }
-        duration = Math.max(1, duration);
+        duration = Math.max(1, Math.min(MAX_DURATION_TICKS, duration));
     }
 
     public static void encode(
@@ -70,7 +72,16 @@ public record ModularTechniqueVfxPacket(
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
                 Dist.CLIENT,
-                () -> () -> TechniqueVfxRegistry.dispatch(packet)));
+                () -> () -> TechniqueVfxRegistry.dispatch(packet.visualData())));
         context.setPacketHandled(true);
+    }
+
+    private TechniqueVfxData visualData() {
+        return new TechniqueVfxData(effectId,
+                startX, startY, startZ,
+                endX, endY, endZ,
+                yaw, intensity,
+                sourceEntityId, targetEntityId,
+                duration, seed);
     }
 }

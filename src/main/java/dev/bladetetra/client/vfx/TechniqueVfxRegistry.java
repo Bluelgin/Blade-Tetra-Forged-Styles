@@ -1,7 +1,7 @@
 package dev.bladetetra.client.vfx;
 
 import com.mojang.logging.LogUtils;
-import dev.bladetetra.network.ModularTechniqueVfxPacket;
+import dev.bladetetra.visual.TechniqueVfxData;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
@@ -19,12 +19,12 @@ import java.util.function.Consumer;
  */
 public final class TechniqueVfxRegistry {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Map<ResourceLocation, Consumer<ModularTechniqueVfxPacket>> HANDLERS =
+    private static final Map<ResourceLocation, Consumer<TechniqueVfxData>> HANDLERS =
             new LinkedHashMap<>();
 
     public static synchronized Registration register(
             ResourceLocation effectId,
-            Consumer<ModularTechniqueVfxPacket> handler) {
+            Consumer<TechniqueVfxData> handler) {
         Objects.requireNonNull(effectId, "effectId");
         Objects.requireNonNull(handler, "handler");
         if (HANDLERS.containsKey(effectId)) {
@@ -39,8 +39,8 @@ public final class TechniqueVfxRegistry {
      * Dispatches one visual packet. Unknown ids are deliberately ignored after
      * a debug message so an optional addon being removed cannot crash a client.
      */
-    public static boolean dispatch(ModularTechniqueVfxPacket packet) {
-        Consumer<ModularTechniqueVfxPacket> handler;
+    public static boolean dispatch(TechniqueVfxData packet) {
+        Consumer<TechniqueVfxData> handler;
         synchronized (TechniqueVfxRegistry.class) {
             handler = HANDLERS.get(packet.effectId());
         }
@@ -63,12 +63,12 @@ public final class TechniqueVfxRegistry {
 
     public static final class Registration implements AutoCloseable {
         private final ResourceLocation effectId;
-        private final Consumer<ModularTechniqueVfxPacket> handler;
+        private final Consumer<TechniqueVfxData> handler;
         private boolean closed;
 
         private Registration(
                 ResourceLocation effectId,
-                Consumer<ModularTechniqueVfxPacket> handler) {
+                Consumer<TechniqueVfxData> handler) {
             this.effectId = effectId;
             this.handler = handler;
         }
