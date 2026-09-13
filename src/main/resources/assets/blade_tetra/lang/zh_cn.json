@@ -936,5 +936,20 @@
   "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.name": "调律异传·虚空散华",
   "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.description": "将散华之鞘与阎魔刀镡柄调律为领域型异传。",
   "tooltip.blade_tetra.legacy_fusion.sange_saya_yamato_hilt": "虚空散华 · SA",
-  "message.blade_tetra.void_scattering.ready": "虚空散华 · 展界就绪"
+  "message.blade_tetra.void_scattering.ready": "虚空散华 · 展界就绪",
+  "slash_art.blade_tetra.tsukumo_cross": "付丧·十文字",
+  "tetra.improvement.blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt.name": "付丧·十文字",
+  "tetra.improvement.blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt.description": "颚门之鞘主释，结月付丧镡柄相应。纵向波刃与横向幻影刃交错成十文字。",
+  "tetra/schematic/slashblade/legacy_fusion/agito_saya_yuzukitukumo_hilt.name": "调律异传·付丧十文字",
+  "tooltip.blade_tetra.legacy_fusion.agito_saya_yuzukitukumo_hilt": "付丧·十文字 · SA",
+  "slash_art.blade_tetra.withered_drive": "枯木·朽驱",
+  "tetra.improvement.blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt.name": "枯木·朽驱",
+  "tetra.improvement.blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt.description": "铁木之鞘主释，古石镡柄相应。释放拔刀剑原生幻影刃纵，命中的敌人会承受五秒凋零。",
+  "tetra/schematic/slashblade/legacy_fusion/tagayasan_saya_koseki_hilt.name": "调律异传·枯木朽驱",
+  "tooltip.blade_tetra.legacy_fusion.tagayasan_saya_koseki_hilt": "枯木·朽驱 · SA",
+  "slash_art.blade_tetra.piercing_void_moon": "穿界·狐月",
+  "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.name": "穿界·狐月",
+  "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.description": "黑狐之鞘主释，散华镡柄相应。短距突进贯穿敌阵，随后虚空裂口闭合追斩实际命中的目标。",
+  "tetra/schematic/slashblade/legacy_fusion/black_saya_sange_hilt.name": "调律异传·穿界狐月",
+  "tooltip.blade_tetra.legacy_fusion.black_saya_sange_hilt": "穿界·狐月 · SA"
 }

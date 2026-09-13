@@ -4,7 +4,6 @@ import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SignatureFusionBatchTest {
     @Test
@@ -16,13 +15,16 @@ class SignatureFusionBatchTest {
     }
 
     @Test
-    void witheredDriveAndPiercingVoidMoonRespectHardCaps() {
-        assertEquals(9.0F, SignatureFusionBalance.witheredFirstDrive(500.0D), 0.0001F);
-        assertEquals(6.5F, SignatureFusionBalance.witheredSecondDrive(500.0D), 0.0001F);
+    void customPiercingVoidMoonStagesRespectHardCaps() {
         assertEquals(9.0F, SignatureFusionBalance.piercingHit(500.0D), 0.0001F);
         assertEquals(11.5F, SignatureFusionBalance.voidClosure(500.0D), 0.0001F);
-        assertTrue(SignatureFusionBalance.witheredFirstDrive(24.0D)
-                > SignatureFusionBalance.witheredSecondDrive(24.0D));
+    }
+
+    @Test
+    void witheredDriveUsesNativeVerticalDriveAndKosekiWitherSignature() {
+        assertEquals(1.50D, SignatureFusionBatchHandler.WITHERED_DRIVE_DAMAGE, 0.0001D);
+        assertEquals(100, SignatureFusionBatchHandler.WITHERED_DURATION_TICKS);
+        assertEquals(1, SignatureFusionBatchHandler.WITHERED_AMPLIFIER);
     }
 
     @Test

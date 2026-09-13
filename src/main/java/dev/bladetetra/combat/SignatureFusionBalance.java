@@ -16,14 +16,6 @@ final class SignatureFusionBalance {
         return Math.min(EFFECTIVE_ATTACK_CAP, effective);
     }
 
-    static float witheredFirstDrive(double rawAttack) {
-        return scaled(rawAttack, 0.26D, 1.25D, 9.0D);
-    }
-
-    static float witheredSecondDrive(double rawAttack) {
-        return scaled(rawAttack, 0.18D, 0.75D, 6.5D);
-    }
-
     static float piercingHit(double rawAttack) {
         return scaled(rawAttack, 0.24D, 1.25D, 9.0D);
     }

@@ -959,5 +959,20 @@
   "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.name": "Attune Legacy · Void Scattering",
   "tetra/schematic/slashblade/legacy_fusion/sange_saya_yamato_hilt.description": "Attune the Sange saya and Yamato hilt into a defensive domain legacy.",
   "tooltip.blade_tetra.legacy_fusion.sange_saya_yamato_hilt": "Void Scattering · SA",
-  "message.blade_tetra.void_scattering.ready": "Void Scattering · Domain Ready"
+  "message.blade_tetra.void_scattering.ready": "Void Scattering · Domain Ready",
+  "slash_art.blade_tetra.tsukumo_cross": "Tsukumo Cross",
+  "tetra.improvement.blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt.name": "Tsukumo Cross",
+  "tetra.improvement.blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt.description": "Agito's saya releases and Yuzuki Tsukumo's hilt answers. A vertical wave and horizontal phantom drive cross into a finishing seal.",
+  "tetra/schematic/slashblade/legacy_fusion/agito_saya_yuzukitukumo_hilt.name": "Attune Legacy · Tsukumo Cross",
+  "tooltip.blade_tetra.legacy_fusion.agito_saya_yuzukitukumo_hilt": "Tsukumo Cross · SA",
+  "slash_art.blade_tetra.withered_drive": "Withered Drive",
+  "tetra.improvement.blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt.name": "Withered Drive",
+  "tetra.improvement.blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt.description": "Tagayasan's saya releases and Koseki's hilt answers. Fires SlashBlade's native vertical phantom drive and inflicts five seconds of Wither on targets it hits.",
+  "tetra/schematic/slashblade/legacy_fusion/tagayasan_saya_koseki_hilt.name": "Attune Legacy · Withered Drive",
+  "tooltip.blade_tetra.legacy_fusion.tagayasan_saya_koseki_hilt": "Withered Drive · SA",
+  "slash_art.blade_tetra.piercing_void_moon": "Piercing Void Moon",
+  "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.name": "Piercing Void Moon",
+  "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.description": "Black Fox's saya releases and Sange's hilt answers. A short piercing dash marks actual hits before the closing void rift cuts them again.",
+  "tetra/schematic/slashblade/legacy_fusion/black_saya_sange_hilt.name": "Attune Legacy · Piercing Void Moon",
+  "tooltip.blade_tetra.legacy_fusion.black_saya_sange_hilt": "Piercing Void Moon · SA"
 }

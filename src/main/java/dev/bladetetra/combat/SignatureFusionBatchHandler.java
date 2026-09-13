@@ -1,12 +1,16 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.forging.LegacyFusion;
+import mods.flammpfeil.slashblade.entity.EntityDrive;
+import mods.flammpfeil.slashblade.slasharts.Drive;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -36,18 +40,15 @@ import java.util.UUID;
  * projectiles instead of custom corridor damage.
  */
 final class SignatureFusionBatchHandler {
-    static final long WITHERED_FIRST_DELAY = 4L;
-    static final long WITHERED_SECOND_DELAY = 12L;
     static final long VOID_CLOSE_DELAY = 6L;
 
-    private static final double WITHERED_RANGE = 7.5D;
+    static final double WITHERED_DRIVE_DAMAGE = 1.50D;
+    static final int WITHERED_DURATION_TICKS = 100;
+    static final int WITHERED_AMPLIFIER = 1;
     private static final double PIERCING_MAX_DASH = 4.0D;
-    private static final int WITHERED_FIRST_COLOR = 0xD6C6A5;
-    private static final int WITHERED_SECOND_COLOR = 0x4A444D;
     private static final int VOID_COLOR = 0xC8A7FF;
     private static final int FOX_COLOR = 0x4D4A59;
 
-    private static final List<WitheredDriveCast> WITHERED_DRIVES = new ArrayList<>();
     private static final List<VoidClosureCast> VOID_CLOSURES = new ArrayList<>();
 
     static void onWitheredDrive(ServerPlayer player, ItemStack blade) {
@@ -55,22 +56,21 @@ final class SignatureFusionBatchHandler {
             return;
         }
         ServerLevel level = player.serverLevel();
-        Vec3 origin = player.position().add(0.0D, 0.80D, 0.0D);
-        Vec3 direction = horizontalDirection(player);
-        double attack = Math.max(0.0D,
-                player.getAttributeValue(Attributes.ATTACK_DAMAGE));
-        long now = level.getGameTime();
+        // Match SlashBlade's native Drive Vertical parameters. EntityDrive owns
+        // targeting, damage scaling, i-frames and enchantment callbacks; the
+        // fusion only adds Koseki's Wither Edge signature to successful hits.
+        EntityDrive drive = Drive.doSlash(player, -90.0F, 10, Vec3.ZERO,
+                false, WITHERED_DRIVE_DAMAGE, 2.0F);
+        if (drive != null) {
+            drive.getPotionEffects().add(new MobEffectInstance(MobEffects.WITHER,
+                    WITHERED_DURATION_TICKS, WITHERED_AMPLIFIER));
+        }
 
-        WITHERED_DRIVES.removeIf(cast -> cast.playerId.equals(player.getUUID()));
-        WITHERED_DRIVES.add(new WitheredDriveCast(level.dimension(),
-                player.getUUID(), origin, direction, attack,
-                now + WITHERED_FIRST_DELAY, now + WITHERED_SECOND_DELAY));
-
-        level.sendParticles(ParticleTypes.CLOUD,
-                player.getX(), player.getY() + 0.15D, player.getZ(),
-                7, 0.25D, 0.05D, 0.25D, 0.012D);
-        level.playSound(null, player.blockPosition(), SoundEvents.ANVIL_HIT,
-                SoundSource.PLAYERS, 0.44F, 0.82F);
+        level.sendParticles(ParticleTypes.ASH,
+                player.getX(), player.getY() + 0.9D, player.getZ(),
+                10, 0.34D, 0.42D, 0.34D, 0.018D);
+        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
+                SoundSource.PLAYERS, 0.64F, 0.78F);
     }
 
     static void onPiercingVoidMoon(ServerPlayer player, ItemStack blade) {
@@ -120,100 +120,16 @@ final class SignatureFusionBatchHandler {
     }
 
     static void tick(TickEvent.ServerTickEvent event) {
-        tickWithered(event);
         tickVoidClosures(event);
     }
 
     static void onLevelUnload(ServerLevel level) {
         ResourceKey<Level> dimension = level.dimension();
-        WITHERED_DRIVES.removeIf(cast -> cast.dimension.equals(dimension));
         VOID_CLOSURES.removeIf(cast -> cast.dimension.equals(dimension));
     }
 
     static void clear() {
-        WITHERED_DRIVES.clear();
         VOID_CLOSURES.clear();
-    }
-
-    private static void tickWithered(TickEvent.ServerTickEvent event) {
-        Iterator<WitheredDriveCast> iterator = WITHERED_DRIVES.iterator();
-        while (iterator.hasNext()) {
-            WitheredDriveCast cast = iterator.next();
-            ServerLevel level = event.getServer().getLevel(cast.dimension);
-            ServerPlayer player = event.getServer().getPlayerList().getPlayer(cast.playerId);
-            if (level == null || player == null || player.level() != level
-                    || !player.isAlive()
-                    || LegacyFusion.active(player.getMainHandItem())
-                    != LegacyFusion.TAGAYASAN_SAYA_KOSEKI_HILT) {
-                iterator.remove();
-                continue;
-            }
-            long now = level.getGameTime();
-            if (cast.stage == 0 && now >= cast.firstTick) {
-                performWitheredFirst(level, player, cast);
-                cast.stage = 1;
-            }
-            if (cast.stage == 1 && now >= cast.secondTick) {
-                performWitheredSecond(level, player, cast);
-                iterator.remove();
-            }
-        }
-    }
-
-    private static void performWitheredFirst(ServerLevel level,
-            ServerPlayer player, WitheredDriveCast cast) {
-        float damage = SignatureFusionBalance.witheredFirstDrive(cast.attackSnapshot);
-        for (LivingEntity target : targetsInCorridor(level, player, cast.origin,
-                cast.direction, WITHERED_RANGE, 1.20D, 2.35D)) {
-            if (LegacyFusionCombatSupport.hurtPreservingIFrames(
-                    level, player, target, damage)) {
-                cast.firstHits.add(target.getUUID());
-                target.knockback(0.32D, -cast.direction.x, -cast.direction.z);
-            }
-        }
-        for (int i = 1; i <= 3; i++) {
-            Vec3 point = cast.origin.add(cast.direction.scale(i * 2.15D));
-            LegacyFusionCombatSupport.spawnVisualSlash(player, point,
-                    player.getYRot(), 90.0F, WITHERED_FIRST_COLOR,
-                    1.28F + i * 0.08F, 7);
-            level.sendParticles(ParticleTypes.CLOUD,
-                    point.x, point.y - 0.45D, point.z, 3,
-                    0.35D, 0.06D, 0.35D, 0.012D);
-        }
-        level.playSound(null, player.blockPosition(), SoundEvents.ANVIL_LAND,
-                SoundSource.PLAYERS, 0.58F, 0.78F);
-    }
-
-    private static void performWitheredSecond(ServerLevel level,
-            ServerPlayer player, WitheredDriveCast cast) {
-        float damage = SignatureFusionBalance.witheredSecondDrive(cast.attackSnapshot);
-        Vec3 pathEnd = cast.origin.add(cast.direction.scale(WITHERED_RANGE));
-        for (UUID id : cast.firstHits) {
-            Entity entity = level.getEntity(id);
-            if (!(entity instanceof LivingEntity target)
-                    || !validDelayedTarget(player, target, 12.0D)
-                    || distanceToSegment(target.getBoundingBox().getCenter(),
-                    cast.origin, pathEnd) > 2.35D) {
-                continue;
-            }
-            if (!LegacyFusionCombatSupport.hurtPreservingIFrames(
-                    level, player, target, damage)) {
-                continue;
-            }
-            Vec3 center = target.getBoundingBox().getCenter();
-            LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                    player.getYRot(), 90.0F, WITHERED_SECOND_COLOR, 1.48F, 8);
-            level.sendParticles(ParticleTypes.ASH,
-                    center.x, center.y, center.z, 12,
-                    0.45D, 0.55D, 0.45D, 0.015D);
-            level.sendParticles(ParticleTypes.SMOKE,
-                    center.x, center.y, center.z, 5,
-                    0.30D, 0.38D, 0.30D, 0.018D);
-        }
-        if (!cast.firstHits.isEmpty()) {
-            level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG,
-                    SoundSource.PLAYERS, 0.60F, 0.72F);
-        }
     }
 
     private static void tickVoidClosures(TickEvent.ServerTickEvent event) {
@@ -352,30 +268,6 @@ final class SignatureFusionBatchHandler {
         double t = point.subtract(start).dot(segment) / lengthSqr;
         t = Math.max(0.0D, Math.min(1.0D, t));
         return point.distanceTo(start.add(segment.scale(t)));
-    }
-
-    private static final class WitheredDriveCast {
-        private final ResourceKey<Level> dimension;
-        private final UUID playerId;
-        private final Vec3 origin;
-        private final Vec3 direction;
-        private final double attackSnapshot;
-        private final long firstTick;
-        private final long secondTick;
-        private final Set<UUID> firstHits = new HashSet<>();
-        private int stage;
-
-        private WitheredDriveCast(ResourceKey<Level> dimension, UUID playerId,
-                Vec3 origin, Vec3 direction, double attackSnapshot,
-                long firstTick, long secondTick) {
-            this.dimension = dimension;
-            this.playerId = playerId;
-            this.origin = origin;
-            this.direction = direction;
-            this.attackSnapshot = attackSnapshot;
-            this.firstTick = firstTick;
-            this.secondTick = secondTick;
-        }
     }
 
     private static final class VoidClosureCast {
