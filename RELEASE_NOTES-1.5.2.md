@@ -2,10 +2,10 @@
 
 Named-blade fittings have started talking to each other. This is probably fine.
 
-- Added nine ordered fitting combinations with their own Slash Arts or Special Effects, including Twin Fox, Twin Phase, Douwari and Void Scattering.
-- Added the Named Blade Record so players can check discovered combinations without keeping seventeen tabs open.
-- Added Tsukumo Cross, Withered Drive and Piercing Void Moon using native SlashBlade attacks and effects.
-- Improved dynamic damage scaling, multiplayer cleanup and compatibility when fittings or abilities are changed.
-- Fixed untranslated module IDs, lingering fusion abilities and several attacks that looked dangerous but forgot the damage part.
+- Matching saya and complete-hilt fittings from the same named blade now form an **Orthodox Legacy**, inheriting that blade's registered SA or SE.
+- Added all nine registered alternate legacies: **Twin Fox: Moonhunt (SA)**, **Twin Fox: Shadow Pursuit (SE)**, **Twin Phase: Kikouku (SA)**, **True Lineage: Rust Release (SE)**, **Douwari (SA)**, **Void Scattering (SA)**, **Tsukumo Cross (SA)**, **Withered Drive (SA)** and **Piercing Void Moon (SA)**.
+- Added the Named Blade Record—no more keeping seventeen tabs open to remember the fittings.
+- Improved native SlashBlade attacks, dynamic damage, multiplayer cleanup and ability switching; also fixed untranslated IDs, lingering abilities and several attacks that looked dangerous but forgot the damage part.
+- **Compatibility note:** Orthodox SA/SE inheritance and the nine combinations currently support built-in **SlashBlade: Resharped** named blades only. Addon blade abilities are not adapted yet.
 
 Short version: the sword parts learned teamwork.
