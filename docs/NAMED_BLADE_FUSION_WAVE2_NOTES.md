@@ -16,6 +16,7 @@ This batch adds three ordered legacy fusions derived from the source blades' nat
 - Source signatures: `Drive Vertical` + `Wither Edge`
 - Requires a valid SlashBlade lock-on target. Three native vertical phantom drives descend from above while a fourth launches from the player toward the same target.
 - Each sword carries Koseki's five-second Wither II effect. Their combined damage budget stays equivalent to the previous single vertical drive.
+- Without a valid lock, the art falls back to one full-strength native vertical drive launched straight ahead.
 
 ## Piercing Void Moon / 穿界·狐月
 

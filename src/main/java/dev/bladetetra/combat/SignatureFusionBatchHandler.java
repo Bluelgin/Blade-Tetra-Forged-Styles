@@ -8,6 +8,7 @@ import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
 import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.slasharts.Drive;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +32,7 @@ import java.util.UUID;
 /** Native SlashBlade-based behavior for the second signature fusion batch. */
 final class SignatureFusionBatchHandler {
     static final double WITHERED_SWORD_DAMAGE = 0.375D;
+    static final double WITHERED_FALLBACK_DAMAGE = 1.50D;
     static final int WITHERED_OVERHEAD_SWORD_COUNT = 3;
     static final double WITHERED_TARGET_RANGE = 32.0D;
     static final int WITHERED_DURATION_TICKS = 100;
@@ -57,6 +59,7 @@ final class SignatureFusionBatchHandler {
                 > WITHERED_TARGET_RANGE * WITHERED_TARGET_RANGE
                 || !player.hasLineOfSight(target)
                 || !LegacyFusionCombatSupport.canAffect(player, target)) {
+            spawnForwardWitheredDrive(player);
             level.sendParticles(ParticleTypes.ASH,
                     player.getX(), player.getY() + 0.9D, player.getZ(),
                     6, 0.24D, 0.30D, 0.24D, 0.012D);
@@ -158,27 +161,35 @@ final class SignatureFusionBatchHandler {
                 center.subtract(front), 1, 45.0F);
     }
 
+    private static void spawnForwardWitheredDrive(ServerPlayer player) {
+        EntityDrive drive = Drive.doSlash(player, -90.0F, 12, Vec3.ZERO,
+                false, WITHERED_FALLBACK_DAMAGE, 2.05F);
+        configureWitheredDrive(drive);
+    }
+
     private static void spawnWitheredDrive(ServerLevel level,
             ServerPlayer player, LivingEntity target, Vec3 start,
             Vec3 direction, int delay, float roll) {
-        EntityDrive sword = new EntityDrive(SlashBlade.RegistryEvents.Drive, level);
+        EntityDrive sword = Drive.doSlash(player, roll, 12, Vec3.ZERO,
+                false, WITHERED_SWORD_DAMAGE, 2.05F);
+        if (sword == null) {
+            return;
+        }
         sword.setPos(start.x, start.y, start.z);
-        sword.setOwner(player);
-        sword.setShooter(player);
-        sword.setHitEntity(target);
-        sword.setDamage(WITHERED_SWORD_DAMAGE);
-        sword.setSpeed(2.05F);
-        sword.setLifetime(12.0F);
-        sword.setColor(WITHERED_COLOR);
-        sword.setRotationRoll(roll);
         sword.setDelay(delay);
-        sword.setNoClip(true);
-        sword.getPotionEffects().add(new MobEffectInstance(MobEffects.WITHER,
-                WITHERED_DURATION_TICKS, WITHERED_AMPLIFIER));
-        SoulLegacyDamageGuard.markSecondary(sword);
+        configureWitheredDrive(sword);
         Vec3 normalized = direction.normalize();
         sword.shoot(normalized.x, normalized.y, normalized.z, 2.05F, 0.0F);
-        level.addFreshEntity(sword);
+    }
+
+    private static void configureWitheredDrive(EntityDrive drive) {
+        if (drive == null) {
+            return;
+        }
+        drive.setColor(WITHERED_COLOR);
+        drive.getPotionEffects().add(new MobEffectInstance(MobEffects.WITHER,
+                WITHERED_DURATION_TICKS, WITHERED_AMPLIFIER));
+        SoulLegacyDamageGuard.markSecondary(drive);
     }
 
     private static void spawnVoidSwords(ServerLevel level, ServerPlayer player,
