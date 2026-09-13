@@ -20,7 +20,13 @@ public enum LegacyFusion {
     MURAMASA_SAYA_DOUTANUKI_HILT(
             "muramasa_saya_doutanuki_hilt"),
     SANGE_SAYA_YAMATO_HILT(
-            "sange_saya_yamato_hilt");
+            "sange_saya_yamato_hilt"),
+    AGITO_SAYA_TUKUMO_HILT(
+            "agito_saya_yuzukitukumo_hilt"),
+    TAGAYASAN_SAYA_KOSEKI_HILT(
+            "tagayasan_saya_koseki_hilt"),
+    BLACK_SAYA_SANGE_HILT(
+            "black_saya_sange_hilt");
 
     private final String id;
 
