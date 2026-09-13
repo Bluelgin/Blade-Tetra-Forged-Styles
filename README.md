@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
   <img alt="Minecraft 1.20.1" src="https://img.shields.io/badge/Minecraft-1.20.1-62b47a">
   <img alt="Forge 47" src="https://img.shields.io/badge/Forge-47-e06c3b">
-  <img alt="Current version 1.5.1" src="https://img.shields.io/badge/version-1.5.1-8b5cf6">
+  <img alt="Current version 1.5.2" src="https://img.shields.io/badge/version-1.5.2-8b5cf6">
 </p>
 
 Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。刀身、柄、镡、鞘、鎺与柄头会共同决定武器的模型、材质、属性和战斗方式；同一把刀可以从开局一路改造到整合包毕业，而不是每隔几小时就被下一把成品刀替换。
@@ -35,7 +35,7 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 - [名刀映锻说明](NAMED_BLADE_IMPRINTING.md)
 - [附属兼容说明](ADDON_COMPATIBILITY.md)
 - [配置说明](CONFIGURATION.md)
-- [1.5.1 更新日志](RELEASE_NOTES-1.5.1-ZH.md)
+- [1.5.2 更新日志](RELEASE_NOTES-1.5.2-ZH.md)
 
 ## 环境与安装
 
@@ -64,6 +64,12 @@ gradlew build
 本项目代码与自有资源以 [MIT](LICENSE) 许可发布。第三方来源与保留声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。独立的赤月模型包采用 CC BY-NC-SA 4.0，不属于本仓库的 MIT 授权范围。
 
 ## 版本记录
+
+## 1.5.2：名刀部件学会了团队合作
+
+- 加入九种有序名刀组合，以及各自对应的 SA 或 SE。
+- 加入名刀映录，并完善动态伤害、多人清理与更换部件后的能力同步。
+- 新增付丧·十文字、枯木·朽驱、穿界·狐月等能力，并修复若干“只有特效，没有伤害”的尴尬现场。
 
 ## 1.5.1：旧刀减负
 
