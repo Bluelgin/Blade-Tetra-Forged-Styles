@@ -71,6 +71,7 @@ public final class LegacyFusionHandler {
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
         TwinFoxFusionHandler.onBladeHit(event);
         RustReleaseFusionHandler.onBladeHit(event);
+        SignatureFusionBatchHandler.onBladeHit(event);
     }
 
     @SubscribeEvent

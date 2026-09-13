@@ -21,7 +21,8 @@ This batch adds three ordered legacy fusions derived from the source blades' nat
 
 - Black Fox saya + Sange hilt
 - Source signatures: `Piercing` + `Void Slash`
-- A collision-safe short forward dash authors the piercing path and records only actually hit targets.
-- The void closure resolves after a short delay and never retargets unrelated entities.
+- Uses SlashBlade's native `Piercing` combo for movement and the opening hit.
+- The first target actually struck by that dash is pinned by three native summoned swords approaching from separate angles.
+- Empty casts do not acquire a target, and the three swords are marked as secondary legacy damage to prevent awakening recursion.
 
 All custom delayed damage remains server-authoritative and respects the existing fusion target validation rules.

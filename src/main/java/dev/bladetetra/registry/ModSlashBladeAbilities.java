@@ -65,7 +65,7 @@ public final class ModSlashBladeAbilities {
                     LegacyFusion.TAGAYASAN_SAYA_KOSEKI_HILT, 45));
 
     public static final RegistryObject<SlashArts> PIERCING_VOID_MOON =
-            SLASH_ARTS.register("piercing_void_moon", () -> standbyArt(
+            SLASH_ARTS.register("piercing_void_moon", () -> piercingArt(
                     LegacyFusion.BLACK_SAYA_SANGE_HILT, 55));
 
     /** Structural SE: the registry says it cannot be extracted into an orb. */
@@ -87,6 +87,19 @@ public final class ModSlashBladeAbilities {
                         : ComboStateRegistry.NONE.getId())
                 .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
                         ? ComboStateRegistry.STANDBY.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setProudSoulCost(proudSoulCost);
+    }
+
+    private static SlashArts piercingArt(LegacyFusion fusion, int proudSoulCost) {
+        return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
+                ? ComboStateRegistry.PIERCING.getId()
+                : ComboStateRegistry.NONE.getId())
+                .setComboStateJust(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.PIERCING_JUST.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.PIERCING_JUST.getId()
                         : ComboStateRegistry.NONE.getId())
                 .setProudSoulCost(proudSoulCost);
     }
