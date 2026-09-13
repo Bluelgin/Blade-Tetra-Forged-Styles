@@ -37,8 +37,7 @@ public final class LegacyFusionHandler {
         ItemStack blade = player.getMainHandItem();
         var art = event.getSlashBladeState().getSlashArtsKey();
         if (ModSlashBladeAbilities.TSUKUMO_CROSS.getId().equals(art)) {
-            SignatureFusionBatchHandler.onTsukumoCross(
-                    player, blade, event.getSlashBladeState());
+            TsukumoCrossNativeHandler.onSlashArt(player, blade);
             return;
         }
         if (ModSlashBladeAbilities.WITHERED_DRIVE.getId().equals(art)) {
@@ -94,6 +93,7 @@ public final class LegacyFusionHandler {
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
         VoidScatteringFusionHandler.tick(event);
+        TsukumoCrossNativeHandler.tick(event);
         SignatureFusionBatchHandler.tick(event);
     }
 
@@ -104,6 +104,7 @@ public final class LegacyFusionHandler {
             TwinPhaseFusionHandler.onLevelUnload(level);
             DouwariFusionHandler.onLevelUnload(level);
             VoidScatteringFusionHandler.onLevelUnload(level);
+            TsukumoCrossNativeHandler.onLevelUnload(level);
             SignatureFusionBatchHandler.onLevelUnload(level);
         }
     }
@@ -115,6 +116,7 @@ public final class LegacyFusionHandler {
         RustReleaseFusionHandler.clear();
         DouwariFusionHandler.clear();
         VoidScatteringFusionHandler.clear();
+        TsukumoCrossNativeHandler.clear();
         SignatureFusionBatchHandler.clear();
     }
 
