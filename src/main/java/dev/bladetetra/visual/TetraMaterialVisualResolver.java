@@ -15,6 +15,11 @@ import java.util.Map;
  * <p>This deliberately depends only on Tetra's public material data. Addons
  * such as More Material Tetra therefore work without becoming hard runtime
  * dependencies and without copying their stats, effects, or assets.</p>
+ *
+ * <p>Provider-specific exceptions belong in
+ * {@link MaterialVisualOverrideRegistry}. Keeping those overrides outside the
+ * texture compositor prevents addon support from growing another hard-coded
+ * branch inside the rendering hot path.</p>
  */
 public final class TetraMaterialVisualResolver {
     private static volatile Map<String, MaterialVisual> cache;
@@ -29,6 +34,11 @@ public final class TetraMaterialVisualResolver {
     }
 
     public static MaterialVisual resolve(String materialKey) {
+        MaterialVisual override = MaterialVisualOverrideRegistry.resolve(materialKey);
+        if (override != null) {
+            return override;
+        }
+
         Map<String, MaterialVisual> current = cache;
         if (current == null) {
             synchronized (TetraMaterialVisualResolver.class) {
@@ -39,11 +49,16 @@ public final class TetraMaterialVisualResolver {
                 }
             }
         }
-        return current.get(normalize(materialKey));
+        return current.get(MaterialVisualKey.normalize(materialKey));
     }
 
+    /**
+     * Revision used by generated-texture cache signatures. Explicit addon
+     * overrides participate so registering or removing one cannot leave a stale
+     * generated atlas in memory.
+     */
     public static long revision() {
-        return revision;
+        return revision * 31L + MaterialVisualOverrideRegistry.revision();
     }
 
     public static synchronized void invalidate() {
@@ -80,7 +95,7 @@ public final class TetraMaterialVisualResolver {
         }
         int color = data.tints.texture & 0xFFFFFF;
 
-        String key = normalize(data.key);
+        String key = MaterialVisualKey.normalize(data.key);
         if (key.isBlank()) {
             return;
         }
@@ -94,7 +109,7 @@ public final class TetraMaterialVisualResolver {
     }
 
     private static VisualTrait visualTrait(MaterialData data) {
-        StringBuilder hints = new StringBuilder(normalize(data.key));
+        StringBuilder hints = new StringBuilder(MaterialVisualKey.normalize(data.key));
         if (data.effects != null) {
             for (ItemEffect effect : data.effects.getValues()) {
                 if (effect != null && effect.getKey() != null) {
@@ -127,22 +142,6 @@ public final class TetraMaterialVisualResolver {
             }
         }
         return SurfaceHint.DEFAULT;
-    }
-
-    private static String normalize(String value) {
-        if (value == null) {
-            return "";
-        }
-        String normalized = value.toLowerCase(Locale.ROOT);
-        int namespace = normalized.lastIndexOf(':');
-        if (namespace >= 0) {
-            normalized = normalized.substring(namespace + 1);
-        }
-        int path = normalized.lastIndexOf('/');
-        if (path >= 0) {
-            normalized = normalized.substring(path + 1);
-        }
-        return normalized.replaceAll("[^a-z0-9_\\-.]", "_");
     }
 
     public record MaterialVisual(
