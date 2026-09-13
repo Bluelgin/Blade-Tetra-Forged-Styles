@@ -52,5 +52,32 @@
     "abilityType": "slash_art",
     "ability": "blade_tetra:void_scattering",
     "priority": 100
+  },
+  {
+    "id": "agito_saya_yuzukitukumo_hilt",
+    "saya": "slashblade/agito",
+    "hilt": "slashblade/yuzukitukumo",
+    "improvement": "blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:tsukumo_cross",
+    "priority": 100
+  },
+  {
+    "id": "tagayasan_saya_koseki_hilt",
+    "saya": "slashblade/tagayasan",
+    "hilt": "slashblade/koseki",
+    "improvement": "blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:withered_drive",
+    "priority": 100
+  },
+  {
+    "id": "black_saya_sange_hilt",
+    "saya": "fox_black",
+    "hilt": "slashblade/sange",
+    "improvement": "blade_tetra/legacy_fusion/black_saya_sange_hilt",
+    "abilityType": "slash_art",
+    "ability": "blade_tetra:piercing_void_moon",
+    "priority": 100
   }
 ]
