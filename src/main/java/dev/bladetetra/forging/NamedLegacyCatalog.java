@@ -4,39 +4,51 @@ import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
+import org.slf4j.Logger;
+
 import java.nio.file.*;
 import java.io.*;
 import java.util.*;
 
 /** Reads standard Resharped definitions from installed mods, without copying their assets. */
 public final class NamedLegacyCatalog {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static Map<String, LegacyImprintKind> entries;
     private static final Map<String, JsonObject> languages = new HashMap<>();
+
     public static synchronized Collection<LegacyImprintKind> values() {
         if (entries == null) load();
         return List.copyOf(entries.values());
     }
+
     public static LegacyImprintKind get(String id) {
         values();
         return entries.get(id);
     }
+
     public static synchronized String localizedName(LegacyImprintKind kind, String locale) {
         String key = kind.name().getNamespace() + "/" + locale;
         JsonObject language = languages.computeIfAbsent(key, unused -> {
             JsonObject result = new JsonObject();
             for (var info : ModList.get().getModFiles()) {
-                Path path = info.getFile().findResource("assets", kind.name().getNamespace(), "lang", locale + ".json");
+                Path path = info.getFile().findResource(
+                        "assets", kind.name().getNamespace(), "lang", locale + ".json");
                 if (!Files.isRegularFile(path)) continue;
                 try (Reader reader = Files.newBufferedReader(path)) {
                     JsonParser.parseReader(reader).getAsJsonObject().entrySet()
                             .forEach(e -> result.add(e.getKey(), e.getValue()));
-                } catch (Exception ignored) {}
+                } catch (Exception exception) {
+                    LOGGER.debug("Ignoring unreadable optional named-blade language file {}",
+                            path, exception);
+                }
             }
             return result;
         });
-        return language.has(kind.translationKey()) ? language.get(kind.translationKey()).getAsString()
+        return language.has(kind.translationKey())
+                ? language.get(kind.translationKey()).getAsString()
                 : kind.name().getPath().replace('_', ' ');
     }
+
     private static void load() {
         Map<String, JsonObject> definitions = new TreeMap<>();
         List<JsonObject> recipes = new ArrayList<>();
@@ -51,13 +63,22 @@ public final class NamedLegacyCatalog {
                             try (Reader reader = Files.newBufferedReader(path)) {
                                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                                 if (path.toString().replace('\\', '/').contains("/slashblade/named_blades/")) {
-                                    if (json.has("name") && json.has("render"))
+                                    if (json.has("name") && json.has("render")) {
                                         definitions.put(json.get("name").getAsString(), json);
-                                } else if (json.has("blade")) recipes.add(json);
-                            } catch (Exception ignored) { /* Optional malformed provider recipes are not ours to repair. */ }
+                                    }
+                                } else if (json.has("blade")) {
+                                    recipes.add(json);
+                                }
+                            } catch (Exception exception) {
+                                // Optional provider data can legitimately use a schema we do not
+                                // understand. Keep discovery tolerant, but leave a diagnostic trail
+                                // for addon audits instead of silently making a blade disappear.
+                                LOGGER.debug("Ignoring unsupported optional SlashBlade data file {}",
+                                        path, exception);
+                            }
                         });
             } catch (IOException exception) {
-                LogUtils.getLogger().warn("Cannot scan named blade data in {}", root, exception);
+                LOGGER.warn("Cannot scan named blade data in {}", root, exception);
             }
         }
         entries = new LinkedHashMap<>();
@@ -86,14 +107,15 @@ public final class NamedLegacyCatalog {
                 ResourceLocation slashArt = resource(properties, "slash_art");
                 List<ResourceLocation> specialEffects = resources(properties, "special_effects");
                 LegacyModelAdapter adapter = LegacyModelAdapter.resolve(model);
-                if (!analyzedModels.containsKey(model))
+                if (!analyzedModels.containsKey(model)) {
                     analyzedModels.put(model, analyze(model, adapter));
+                }
                 LegacyModelAnalysis.Result analysis = analyzedModels.get(model);
                 if (analysis == null || !analysis.usable() || !analysis.saya()) {
                     String reason = analysis == null ? "missing model"
                             : !analysis.saya() ? "no independent saya group"
                             : "no safe complete-hilt boundary";
-                    LogUtils.getLogger().info("Named blade {} is not imitable: {} (adapter {})",
+                    LOGGER.info("Named blade {} is not imitable: {} (adapter {})",
                             name, reason, adapter.id());
                     continue;
                 }
@@ -101,21 +123,24 @@ public final class NamedLegacyCatalog {
                         path.startsWith("fox_") ? LegacyCalibrationProfile.DEFAULT : analysis.profile(),
                         baseAttack, maxDamage, slashArt, specialEffects));
             } catch (RuntimeException exception) {
-                LogUtils.getLogger().warn("Skipping unsupported named blade {}", entry.getKey());
+                LOGGER.warn("Skipping unsupported named blade {}", entry.getKey(), exception);
             }
         }
-        LogUtils.getLogger().info("Blade Tetra discovered {} imitable named blades: {}",
+        LOGGER.info("Blade Tetra discovered {} imitable named blades: {}",
                 entries.size(), entries.keySet());
     }
+
     private static double number(JsonObject object, String key, double fallback) {
         if (!object.has(key) || !object.get(key).isJsonPrimitive()
                 || !object.getAsJsonPrimitive(key).isNumber()) return fallback;
         return object.get(key).getAsDouble();
     }
+
     private static ResourceLocation resource(JsonObject object, String key) {
         if (!object.has(key) || !object.get(key).isJsonPrimitive()) return null;
         return ResourceLocation.tryParse(object.get(key).getAsString());
     }
+
     private static List<ResourceLocation> resources(JsonObject object, String key) {
         if (!object.has(key)) return List.of();
         List<ResourceLocation> result = new ArrayList<>();
@@ -132,12 +157,15 @@ public final class NamedLegacyCatalog {
         }
         return List.copyOf(result);
     }
+
     static boolean excluded(String path) {
         return path.startsWith("rodai_") || path.contains("broken") || path.endsWith("_rust")
                 || Set.of("sabigatana", "slashblade", "slashblade_wood", "slashblade_white",
                         "slashblade_bamboo", "slashblade_silverbamboo").contains(path);
     }
-    private static LegacyModelAnalysis.Result analyze(ResourceLocation model,
+
+    private static LegacyModelAnalysis.Result analyze(
+            ResourceLocation model,
             LegacyModelAdapter adapter) {
         for (var info : ModList.get().getModFiles()) {
             Path path = info.getFile().findResource("assets", model.getNamespace(), model.getPath());
@@ -145,41 +173,53 @@ public final class NamedLegacyCatalog {
             try (Reader reader = Files.newBufferedReader(path)) {
                 return LegacyModelAnalysis.analyze(reader, adapter);
             } catch (Exception exception) {
-                LogUtils.getLogger().warn("Cannot partition named model {}", model, exception);
+                LOGGER.warn("Cannot partition named model {}", model, exception);
                 return null;
             }
         }
         return null;
     }
+
     private static String chooseMaterial(String name, List<JsonObject> recipes) {
         TreeSet<String> candidates = new TreeSet<>();
         for (JsonObject recipe : recipes) {
             if (!recipe.get("blade").isJsonPrimitive()
                     || !name.equals(recipe.get("blade").getAsString())) continue;
             if (recipe.has("key")) {
-                for (var ingredient : recipe.getAsJsonObject("key").entrySet())
+                for (var ingredient : recipe.getAsJsonObject("key").entrySet()) {
                     collectMaterial(ingredient.getValue(), candidates);
+                }
             }
-            for (String key : List.of("addition", "template", "ingredients"))
+            for (String key : List.of("addition", "template", "ingredients")) {
                 if (recipe.has(key)) collectMaterial(recipe.get(key), candidates);
+            }
         }
         return candidates.stream().min(Comparator.comparingInt(NamedLegacyCatalog::materialRank)
                 .thenComparing(String::compareTo)).orElse("slashblade:proudsoul_sphere");
     }
+
     private static void collectMaterial(JsonElement element, Set<String> output) {
-        if (element.isJsonArray()) { element.getAsJsonArray().forEach(e -> collectMaterial(e, output)); return; }
+        if (element.isJsonArray()) {
+            element.getAsJsonArray().forEach(e -> collectMaterial(e, output));
+            return;
+        }
         if (!element.isJsonObject()) return;
         JsonObject ingredient = element.getAsJsonObject();
         if (ingredient.has("request") || !ingredient.has("item")) return;
         String item = ingredient.get("item").getAsString();
         if ((item.startsWith("minecraft:") || item.startsWith("slashblade:proudsoul"))
-                && !item.equals("minecraft:air") && !item.equals("slashblade:proudsoul_ingot")) output.add(item);
+                && !item.equals("minecraft:air")
+                && !item.equals("slashblade:proudsoul_ingot")) {
+            output.add(item);
+        }
     }
+
     private static int materialRank(String item) {
         if (item.startsWith("slashblade:proudsoul")) return 0;
         if (item.contains("nether_star") || item.contains("dragon") || item.contains("netherite")) return 1;
         if (item.contains("diamond") || item.contains("blaze") || item.contains("ender")) return 2;
         return 3;
     }
+
     private NamedLegacyCatalog() {}
 }
