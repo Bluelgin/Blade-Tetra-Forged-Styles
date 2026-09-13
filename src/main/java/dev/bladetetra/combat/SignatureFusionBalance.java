@@ -1,6 +1,6 @@
 package dev.bladetetra.combat;
 
-/** Pure balance helpers for the SA/SE-driven named-blade fusion batch. */
+/** Pure balance helpers for the custom-damage stages in the SA/SE fusion batch. */
 final class SignatureFusionBalance {
     private static final double SOFT_START = 24.0D;
     private static final double SOFT_RATE = 0.40D;
@@ -14,18 +14,6 @@ final class SignatureFusionBalance {
                 ? rawAttack
                 : SOFT_START + (rawAttack - SOFT_START) * SOFT_RATE;
         return Math.min(EFFECTIVE_ATTACK_CAP, effective);
-    }
-
-    static float tsukumoVertical(double rawAttack) {
-        return scaled(rawAttack, 0.24D, 1.25D, 9.0D);
-    }
-
-    static float tsukumoHorizontal(double rawAttack) {
-        return scaled(rawAttack, 0.20D, 1.0D, 8.0D);
-    }
-
-    static float tsukumoCrossClose(double rawAttack) {
-        return scaled(rawAttack, 0.14D, 0.75D, 5.5D);
     }
 
     static float witheredFirstDrive(double rawAttack) {
