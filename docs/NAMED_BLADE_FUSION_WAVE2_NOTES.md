@@ -14,8 +14,8 @@ This batch adds three ordered legacy fusions derived from the source blades' nat
 
 - Tagayasan saya + Koseki hilt
 - Source signatures: `Drive Vertical` + `Wither Edge`
-- Fires SlashBlade's native `Drive Vertical` entity with its original hit and damage handling.
-- The native drive carries Koseki's five-second Wither II effect, so only entities actually hit by the projectile are afflicted.
+- Requires a valid SlashBlade lock-on target. Three native vertical phantom drives descend from above while a fourth launches from the player toward the same target.
+- Each sword carries Koseki's five-second Wither II effect. Their combined damage budget stays equivalent to the previous single vertical drive.
 
 ## Piercing Void Moon / 穿界·狐月
 

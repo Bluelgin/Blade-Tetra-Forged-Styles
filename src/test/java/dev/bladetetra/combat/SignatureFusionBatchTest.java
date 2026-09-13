@@ -6,8 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SignatureFusionBatchTest {
     @Test
-    void witheredDriveUsesNativeVerticalDriveAndKosekiWitherSignature() {
-        assertEquals(1.50D, SignatureFusionBatchHandler.WITHERED_DRIVE_DAMAGE, 0.0001D);
+    void witheredDriveUsesThreeOverheadDrivesAndOneForwardDrive() {
+        assertEquals(3, SignatureFusionBatchHandler.WITHERED_OVERHEAD_SWORD_COUNT);
+        assertEquals(0.375D, SignatureFusionBatchHandler.WITHERED_SWORD_DAMAGE,
+                0.0001D);
+        assertEquals(32.0D, SignatureFusionBatchHandler.WITHERED_TARGET_RANGE,
+                0.0001D);
         assertEquals(100, SignatureFusionBatchHandler.WITHERED_DURATION_TICKS);
         assertEquals(1, SignatureFusionBatchHandler.WITHERED_AMPLIFIER);
     }

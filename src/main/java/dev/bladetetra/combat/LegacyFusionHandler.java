@@ -41,7 +41,8 @@ public final class LegacyFusionHandler {
             return;
         }
         if (ModSlashBladeAbilities.WITHERED_DRIVE.getId().equals(art)) {
-            SignatureFusionBatchHandler.onWitheredDrive(player, blade);
+            SignatureFusionBatchHandler.onWitheredDrive(
+                    player, blade, event.getSlashBladeState());
             return;
         }
         if (ModSlashBladeAbilities.PIERCING_VOID_MOON.getId().equals(art)) {
