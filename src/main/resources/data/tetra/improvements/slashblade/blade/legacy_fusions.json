@@ -34,5 +34,23 @@
     "group": "blade_tetra/legacy_fusion",
     "level": 1,
     "integrity": -1
+  },
+  {
+    "key": "blade_tetra/legacy_fusion/agito_saya_yuzukitukumo_hilt",
+    "group": "blade_tetra/legacy_fusion",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/legacy_fusion/tagayasan_saya_koseki_hilt",
+    "group": "blade_tetra/legacy_fusion",
+    "level": 1,
+    "integrity": -1
+  },
+  {
+    "key": "blade_tetra/legacy_fusion/black_saya_sange_hilt",
+    "group": "blade_tetra/legacy_fusion",
+    "level": 1,
+    "integrity": -1
   }
 ]

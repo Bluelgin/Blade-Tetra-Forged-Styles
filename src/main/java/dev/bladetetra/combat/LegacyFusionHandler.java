@@ -35,20 +35,31 @@ public final class LegacyFusionHandler {
             return;
         }
         ItemStack blade = player.getMainHandItem();
-        if (ModSlashBladeAbilities.VOID_SCATTERING.getId().equals(
-                event.getSlashBladeState().getSlashArtsKey())) {
+        var art = event.getSlashBladeState().getSlashArtsKey();
+        if (ModSlashBladeAbilities.TSUKUMO_CROSS.getId().equals(art)) {
+            TsukumoCrossNativeHandler.onSlashArt(player, blade);
+            return;
+        }
+        if (ModSlashBladeAbilities.WITHERED_DRIVE.getId().equals(art)) {
+            SignatureFusionBatchHandler.onWitheredDrive(
+                    player, blade, event.getSlashBladeState());
+            return;
+        }
+        if (ModSlashBladeAbilities.PIERCING_VOID_MOON.getId().equals(art)) {
+            SignatureFusionBatchHandler.onPiercingVoidMoon(player, blade);
+            return;
+        }
+        if (ModSlashBladeAbilities.VOID_SCATTERING.getId().equals(art)) {
             VoidScatteringFusionHandler.onSlashArt(
                     event, player, blade, event.getSlashBladeState());
             return;
         }
-        if (ModSlashBladeAbilities.DOUWARI.getId().equals(
-                event.getSlashBladeState().getSlashArtsKey())) {
+        if (ModSlashBladeAbilities.DOUWARI.getId().equals(art)) {
             DouwariFusionHandler.onSlashArt(
                     player, blade, event.getSlashBladeState());
             return;
         }
-        if (ModSlashBladeAbilities.TWIN_PHASE_KIKOUKU.getId().equals(
-                event.getSlashBladeState().getSlashArtsKey())) {
+        if (ModSlashBladeAbilities.TWIN_PHASE_KIKOUKU.getId().equals(art)) {
             TwinPhaseFusionHandler.onSlashArt(
                     player, blade, event.getSlashBladeState());
             return;
@@ -61,6 +72,7 @@ public final class LegacyFusionHandler {
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
         TwinFoxFusionHandler.onBladeHit(event);
         RustReleaseFusionHandler.onBladeHit(event);
+        SignatureFusionBatchHandler.onBladeHit(event);
     }
 
     @SubscribeEvent
@@ -83,6 +95,8 @@ public final class LegacyFusionHandler {
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
         VoidScatteringFusionHandler.tick(event);
+        TsukumoCrossNativeHandler.tick(event);
+        SignatureFusionBatchHandler.tick(event);
     }
 
     @SubscribeEvent
@@ -92,6 +106,8 @@ public final class LegacyFusionHandler {
             TwinPhaseFusionHandler.onLevelUnload(level);
             DouwariFusionHandler.onLevelUnload(level);
             VoidScatteringFusionHandler.onLevelUnload(level);
+            TsukumoCrossNativeHandler.onLevelUnload(level);
+            SignatureFusionBatchHandler.onLevelUnload(level);
         }
     }
 
@@ -102,6 +118,8 @@ public final class LegacyFusionHandler {
         RustReleaseFusionHandler.clear();
         DouwariFusionHandler.clear();
         VoidScatteringFusionHandler.clear();
+        TsukumoCrossNativeHandler.clear();
+        SignatureFusionBatchHandler.clear();
     }
 
     // Package-visible compatibility seams retained for existing focused tests.

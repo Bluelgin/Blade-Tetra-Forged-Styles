@@ -9,7 +9,7 @@ import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
-/** Native SlashBlade registrations used by the first ordered legacy fusions. */
+/** Native SlashBlade registrations used by ordered legacy fusions. */
 public final class ModSlashBladeAbilities {
     public static final DeferredRegister<SlashArts> SLASH_ARTS =
             DeferredRegister.create(SlashArts.REGISTRY_KEY, BladeTetra.MOD_ID);
@@ -49,36 +49,24 @@ public final class ModSlashBladeAbilities {
                     .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> DOUWARI =
-            SLASH_ARTS.register("douwari", () -> new SlashArts(entity ->
-                    isActive(entity.getMainHandItem(),
-                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setComboStateJust(entity -> isActive(entity.getMainHandItem(),
-                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setComboStateSuper(entity -> isActive(entity.getMainHandItem(),
-                            LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setProudSoulCost(45));
+            SLASH_ARTS.register("douwari", () -> standbyArt(
+                    LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT, 45));
 
     public static final RegistryObject<SlashArts> VOID_SCATTERING =
-            SLASH_ARTS.register("void_scattering", () -> new SlashArts(entity ->
-                    isActive(entity.getMainHandItem(),
-                            LegacyFusion.SANGE_SAYA_YAMATO_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setComboStateJust(entity -> isActive(entity.getMainHandItem(),
-                            LegacyFusion.SANGE_SAYA_YAMATO_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setComboStateSuper(entity -> isActive(entity.getMainHandItem(),
-                            LegacyFusion.SANGE_SAYA_YAMATO_HILT)
-                            ? ComboStateRegistry.STANDBY.getId()
-                            : ComboStateRegistry.NONE.getId())
-                    .setProudSoulCost(70));
+            SLASH_ARTS.register("void_scattering", () -> standbyArt(
+                    LegacyFusion.SANGE_SAYA_YAMATO_HILT, 70));
+
+    public static final RegistryObject<SlashArts> TSUKUMO_CROSS =
+            SLASH_ARTS.register("tsukumo_cross", () -> standbyArt(
+                    LegacyFusion.AGITO_SAYA_TUKUMO_HILT, 45));
+
+    public static final RegistryObject<SlashArts> WITHERED_DRIVE =
+            SLASH_ARTS.register("withered_drive", () -> standbyArt(
+                    LegacyFusion.TAGAYASAN_SAYA_KOSEKI_HILT, 45));
+
+    public static final RegistryObject<SlashArts> PIERCING_VOID_MOON =
+            SLASH_ARTS.register("piercing_void_moon", () -> piercingArt(
+                    LegacyFusion.BLACK_SAYA_SANGE_HILT, 55));
 
     /** Structural SE: the registry says it cannot be extracted into an orb. */
     public static final RegistryObject<SpecialEffect> TWIN_FOX_REFLECTION =
@@ -89,6 +77,32 @@ public final class ModSlashBladeAbilities {
     public static final RegistryObject<SpecialEffect> SNAKE_MOLT =
             SPECIAL_EFFECTS.register("snake_molt",
                     () -> new SpecialEffect(0, false, false));
+
+    private static SlashArts standbyArt(LegacyFusion fusion, int proudSoulCost) {
+        return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
+                ? ComboStateRegistry.STANDBY.getId()
+                : ComboStateRegistry.NONE.getId())
+                .setComboStateJust(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.STANDBY.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.STANDBY.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setProudSoulCost(proudSoulCost);
+    }
+
+    private static SlashArts piercingArt(LegacyFusion fusion, int proudSoulCost) {
+        return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
+                ? ComboStateRegistry.PIERCING.getId()
+                : ComboStateRegistry.NONE.getId())
+                .setComboStateJust(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.PIERCING_JUST.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? ComboStateRegistry.PIERCING_JUST.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setProudSoulCost(proudSoulCost);
+    }
 
     private static boolean isActive(net.minecraft.world.item.ItemStack stack,
             LegacyFusion expected) {
