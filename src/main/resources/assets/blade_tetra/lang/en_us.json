@@ -974,5 +974,11 @@
   "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.name": "Piercing Void Moon",
   "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.description": "Black Fox's saya releases and Sange's hilt answers. SlashBlade's native piercing dash opens the attack, then three summoned swords pin the struck target from separate angles.",
   "tetra/schematic/slashblade/legacy_fusion/black_saya_sange_hilt.name": "Attune Legacy · Piercing Void Moon",
-  "tooltip.blade_tetra.legacy_fusion.black_saya_sange_hilt": "Piercing Void Moon · SA"
+  "tooltip.blade_tetra.legacy_fusion.black_saya_sange_hilt": "Piercing Void Moon · SA",
+  "slash_art.blade_tetra.blood_cherry_final_scene": "Blood Sakura Final Scene \"Lifeless\"",
+  "se.blade_tetra.life_erosion": "Life Erosion",
+  "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "Blood Sakura Final Scene \"Lifeless\"",
+  "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.description": "NihilUL's saya releases and Crimson Cherry's hilt answers. Direct blade hits erode effective maximum life without a cumulative cap; the Final Scene removes a larger share and bypasses ordinary numerical damage reduction and damage caps.",
+  "tetra/schematic/slashblade/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "Attune Legacy · Dead Thought",
+  "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "Blood Sakura Final Scene \"Lifeless\" · SA + Life Erosion · SE"
 }
