@@ -80,8 +80,7 @@ public final class DeadThoughtFusionHandler {
     public static void onEntityJoin(EntityJoinLevelEvent event) {
         if (!(event.getLevel() instanceof ServerLevel level)
                 || !(event.getEntity() instanceof EntitySlashEffect slash)
-                || !(slash instanceof IShootable shootable)
-                || !(shootable.getShooter() instanceof ServerPlayer player)
+                || !(slash.getShooter() instanceof ServerPlayer player)
                 || !isDeadThought(player.getMainHandItem())
                 || player.getPersistentData().getLong(SA_UNTIL) < level.getGameTime()) {
             return;
