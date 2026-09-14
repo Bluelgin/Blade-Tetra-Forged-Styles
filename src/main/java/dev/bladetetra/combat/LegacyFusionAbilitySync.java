@@ -10,7 +10,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Reconciles structural Slash Arts and Special Effects with assembled legacy fittings. */
 final class LegacyFusionAbilitySync {
@@ -68,19 +70,19 @@ final class LegacyFusionAbilitySync {
         if (!owner.equals(previousOwner)) {
             restoreStructuralSlashArt(tag, state);
             removeOwnedSpecialEffects(tag, state);
-            applyStructuralSlashArt(tag, state, inheritedSlashArt);
-            addOwnedSpecialEffects(tag, state, inheritedEffects);
+            reconcileStructuralSlashArt(tag, state, inheritedSlashArt);
+            reconcileOwnedSpecialEffects(tag, state, inheritedEffects);
             if (owner.isEmpty()) {
                 tag.remove(ABILITY_OWNER);
             } else {
                 tag.putString(ABILITY_OWNER, owner);
             }
         } else if (!owner.isEmpty()) {
-            // Structural abilities are authoritative while their fitting owner is
-            // still assembled. If another system temporarily replaced the SA,
-            // restore the fusion/orthodox SA without overwriting the saved fallback.
-            ensureStructuralSlashArt(tag, state, inheritedSlashArt);
-            addOwnedSpecialEffects(tag, state, inheritedEffects);
+            // Structural abilities remain authoritative while their fitting owner is
+            // assembled, but registry/data changes must also be able to withdraw an
+            // ability without requiring the player to disassemble the weapon first.
+            reconcileStructuralSlashArt(tag, state, inheritedSlashArt);
+            reconcileOwnedSpecialEffects(tag, state, inheritedEffects);
         }
 
         if (current.isEmpty()) {
@@ -116,12 +118,18 @@ final class LegacyFusionAbilitySync {
         state.setSlashArtsKey(slashArt);
     }
 
-    private static void ensureStructuralSlashArt(CompoundTag tag,
+    private static void reconcileStructuralSlashArt(CompoundTag tag,
             ISlashBladeState state, ResourceLocation slashArt) {
-        if (slashArt == null || slashArt.equals(state.getSlashArtsKey())) {
+        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        if (slashArt == null) {
+            if (applied != null) {
+                restoreStructuralSlashArt(tag, state);
+            }
             return;
         }
-        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        if (slashArt.equals(state.getSlashArtsKey())) {
+            return;
+        }
         if (applied == null) {
             applyStructuralSlashArt(tag, state, slashArt);
             return;
@@ -144,14 +152,28 @@ final class LegacyFusionAbilitySync {
         tag.remove(APPLIED_SLASH_ART);
     }
 
-    private static void addOwnedSpecialEffects(CompoundTag tag,
+    private static void reconcileOwnedSpecialEffects(CompoundTag tag,
             ISlashBladeState state, List<ResourceLocation> desired) {
+        Set<ResourceLocation> desiredSet = new LinkedHashSet<>(desired);
         List<String> owned = new ArrayList<>();
         String stored = tag.getString(OWNED_SPECIAL_EFFECTS);
         if (!stored.isEmpty()) {
             owned.addAll(List.of(stored.split(",")));
         }
-        for (ResourceLocation effect : desired) {
+
+        var iterator = owned.iterator();
+        while (iterator.hasNext()) {
+            String value = iterator.next();
+            ResourceLocation effect = ResourceLocation.tryParse(value);
+            if (effect == null || !desiredSet.contains(effect)) {
+                if (effect != null) {
+                    state.getSpecialEffects().removeIf(effect::equals);
+                }
+                iterator.remove();
+            }
+        }
+
+        for (ResourceLocation effect : desiredSet) {
             if (!state.getSpecialEffects().contains(effect)) {
                 state.addSpecialEffect(effect);
                 if (!owned.contains(effect.toString())) {
@@ -159,11 +181,7 @@ final class LegacyFusionAbilitySync {
                 }
             }
         }
-        if (owned.isEmpty()) {
-            tag.remove(OWNED_SPECIAL_EFFECTS);
-        } else {
-            tag.putString(OWNED_SPECIAL_EFFECTS, String.join(",", owned));
-        }
+        writeOwnedSpecialEffects(tag, owned);
     }
 
     private static void removeOwnedSpecialEffects(CompoundTag tag,
@@ -178,6 +196,14 @@ final class LegacyFusionAbilitySync {
             }
         }
         tag.remove(OWNED_SPECIAL_EFFECTS);
+    }
+
+    private static void writeOwnedSpecialEffects(CompoundTag tag, List<String> owned) {
+        if (owned.isEmpty()) {
+            tag.remove(OWNED_SPECIAL_EFFECTS);
+        } else {
+            tag.putString(OWNED_SPECIAL_EFFECTS, String.join(",", owned));
+        }
     }
 
     private LegacyFusionAbilitySync() {
