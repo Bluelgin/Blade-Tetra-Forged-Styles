@@ -28,8 +28,7 @@ public record LegacyImprintKind(String id, ResourceLocation name,
     public String schematic(String part) { return "slashblade/legacy_auto/" + id + "/" + part; }
     public String improvement() { return "blade_tetra/legacy_auto/" + id; }
     public boolean supportsOrthodoxInheritance() {
-        return name.getNamespace().equals("slashblade")
-                && (slashArt != null || !specialEffects.isEmpty());
+        return slashArt != null || !specialEffects.isEmpty();
     }
     public static LegacyImprintKind fromTranslationKey(String key) {
         if (key == null) return null;
