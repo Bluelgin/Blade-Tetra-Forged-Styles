@@ -49,10 +49,11 @@ final class LegacyFusionAbilitySync {
                 : orthodox == null ? "" : "orthodox:" + orthodox.id();
         ResourceLocation inheritedSlashArt = fusionSlashArt(active);
         if (inheritedSlashArt == null && orthodox != null) {
-            inheritedSlashArt = orthodox.slashArt();
+            inheritedSlashArt = LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
         }
         List<ResourceLocation> inheritedEffects = orthodox == null
-                ? List.of() : orthodox.specialEffects();
+                ? List.of()
+                : LegacyAbilityResolver.registeredSpecialEffects(orthodox.specialEffects());
 
         String previousOwner = tag.getString(ABILITY_OWNER);
         // Migrate the first fusion build without losing the SA it displaced.
