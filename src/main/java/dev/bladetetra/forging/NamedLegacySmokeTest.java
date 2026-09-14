@@ -2,6 +2,7 @@ package dev.bladetetra.forging;
 
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.LegacyAbilityResolver;
 import dev.bladetetra.registry.ModItems;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -19,10 +20,34 @@ public final class NamedLegacySmokeTest {
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("blade_tetra.legacySmoke")) return;
         int count = 0;
+        int abilitySets = 0;
+        int externalAbilitySets = 0;
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             if (NamedLegacyCatalog.values().isEmpty()) throw new IllegalStateException("Empty catalog");
             for (var kind : NamedLegacyCatalog.values()) {
+                boolean declaresAbilities = kind.slashArt() != null || !kind.specialEffects().isEmpty();
+                if (declaresAbilities != kind.supportsOrthodoxInheritance()) {
+                    throw new IllegalStateException("Orthodox inheritance gate mismatch " + kind.id());
+                }
+                if (kind.slashArt() != null
+                        && !LegacyAbilityResolver.isSlashArtRegistered(kind.slashArt())) {
+                    throw new IllegalStateException("Unregistered Slash Art "
+                            + kind.slashArt() + " for " + kind.id());
+                }
+                for (ResourceLocation effect : kind.specialEffects()) {
+                    if (!LegacyAbilityResolver.isSpecialEffectRegistered(effect)) {
+                        throw new IllegalStateException("Unregistered Special Effect "
+                                + effect + " for " + kind.id());
+                    }
+                }
+                if (declaresAbilities) {
+                    abilitySets++;
+                    if (!kind.name().getNamespace().equals("slashblade")) {
+                        externalAbilitySets++;
+                    }
+                }
+
                 ItemStack stack = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
                 if (!ForgingImprovements.apply(stack, "slashblade/tsuka", kind.improvement()))
                     throw new IllegalStateException("Old grip record no longer readable " + kind.id());
@@ -76,8 +101,10 @@ public final class NamedLegacySmokeTest {
                 if (new dev.bladetetra.compat.LegacyPatternRequirement(kind.id(), "tsuka").test(null))
                     throw new IllegalStateException("Standalone grip crafting still exposed");
             }
-            LogUtils.getLogger().info("LEGACY_SMOKE_PASS: {} real Tetra upgrades across {} named blades",
-                    count, NamedLegacyCatalog.values().size());
+            LogUtils.getLogger().info(
+                    "LEGACY_SMOKE_PASS: {} real Tetra upgrades across {} named blades; "
+                            + "{} orthodox ability sets ({} external)",
+                    count, NamedLegacyCatalog.values().size(), abilitySets, externalAbilitySets);
         } catch (Exception exception) {
             LogUtils.getLogger().error("LEGACY_SMOKE_FAIL after {} upgrades", count, exception);
         } finally {
