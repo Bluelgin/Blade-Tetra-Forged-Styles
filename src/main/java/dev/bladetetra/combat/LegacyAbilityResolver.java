@@ -4,7 +4,6 @@ import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
 import mods.flammpfeil.slashblade.registry.SpecialEffectsRegistry;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,7 +25,7 @@ public final class LegacyAbilityResolver {
                 registered.add(id);
             }
         }
-        return List.copyOf(new ArrayList<>(registered));
+        return List.copyOf(registered);
     }
 
     public static boolean isSlashArtRegistered(ResourceLocation id) {
