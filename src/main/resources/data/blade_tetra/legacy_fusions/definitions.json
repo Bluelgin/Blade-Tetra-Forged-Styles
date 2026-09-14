@@ -79,5 +79,14 @@
     "abilityType": "slash_art",
     "ability": "blade_tetra:piercing_void_moon",
     "priority": 100
+  },
+  {
+    "id": "nihilul_saya_crimson_cherry_hilt",
+    "saya": "slashblade_addon/nihilul",
+    "hilt": "slashblade_addon/crimsoncherry",
+    "improvement": "blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt",
+    "slashArt": "blade_tetra:blood_cherry_final_scene",
+    "specialEffects": [ "blade_tetra:life_erosion" ],
+    "priority": 200
   }
 ]

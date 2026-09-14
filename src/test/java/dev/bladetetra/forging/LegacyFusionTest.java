@@ -46,8 +46,8 @@ class LegacyFusionTest {
 
     @Test
     void yashaSayaAndKikoukuHiltResolveOnlyInAuthoredOrder() {
-        LegacyImprintKind yasha = named("slashblade/yasha", "yasha");
-        LegacyImprintKind kikouku = named("slashblade/yasha_true", "yasha_true");
+        LegacyImprintKind yasha = named("slashblade/yasha", "slashblade", "yasha");
+        LegacyImprintKind kikouku = named("slashblade/yasha_true", "slashblade", "yasha_true");
 
         assertEquals(LegacyFusion.YASHA_SAYA_KIKOUKU_HILT,
                 LegacyFusion.installed(new NamedLegacyParts(yasha, kikouku, kikouku)));
@@ -58,9 +58,9 @@ class LegacyFusionTest {
     @Test
     void sealedAgitoSayaAndOrotiagitoHiltResolveToRustRelease() {
         LegacyImprintKind sealed = named(
-                "slashblade/orotiagito_sealed", "orotiagito_sealed");
+                "slashblade/orotiagito_sealed", "slashblade", "orotiagito_sealed");
         LegacyImprintKind released = named(
-                "slashblade/orotiagito", "orotiagito");
+                "slashblade/orotiagito", "slashblade", "orotiagito");
 
         assertEquals(LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT,
                 LegacyFusion.installed(
@@ -76,8 +76,8 @@ class LegacyFusionTest {
 
     @Test
     void muramasaSayaAndDoutanukiHiltResolveOnlyToDouwari() {
-        LegacyImprintKind muramasa = named("slashblade/muramasa", "muramasa");
-        LegacyImprintKind doutanuki = named("slashblade/doutanuki", "doutanuki");
+        LegacyImprintKind muramasa = named("slashblade/muramasa", "slashblade", "muramasa");
+        LegacyImprintKind doutanuki = named("slashblade/doutanuki", "slashblade", "doutanuki");
 
         assertEquals(LegacyFusion.MURAMASA_SAYA_DOUTANUKI_HILT,
                 LegacyFusion.installed(
@@ -91,17 +91,34 @@ class LegacyFusionTest {
                         .abilityId().toString());
     }
 
+    @Test
+    void deadThoughtConvergenceIsOrderedAndGrantsCoupledAbilities() {
+        LegacyImprintKind nihilul = named(
+                "slashblade_addon/nihilul", "slashblade_addon", "nihilul");
+        LegacyImprintKind crimson = named(
+                "slashblade_addon/crimsoncherry", "slashblade_addon", "crimsoncherry");
+
+        assertEquals(LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT,
+                LegacyFusion.installed(new NamedLegacyParts(nihilul, crimson, crimson)));
+        assertNull(LegacyFusion.installed(new NamedLegacyParts(crimson, nihilul, nihilul)));
+        assertEquals("blade_tetra:blood_cherry_final_scene",
+                LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT.slashArt().toString());
+        assertEquals(List.of("blade_tetra:life_erosion"),
+                LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT.specialEffects()
+                        .stream().map(Object::toString).toList());
+    }
+
     private static LegacyImprintKind kind(String id) {
         return id.equals("fox_black")
                 ? LegacyImprintKind.BLACK_FOX
                 : LegacyImprintKind.WHITE_FOX;
     }
 
-    private static LegacyImprintKind named(String id, String path) {
+    private static LegacyImprintKind named(String id, String namespace, String path) {
         return new LegacyImprintKind(id,
-                new ResourceLocation("slashblade", path),
-                new ResourceLocation("slashblade", "model/test.obj"),
-                new ResourceLocation("slashblade", "model/test.png"),
+                new ResourceLocation(namespace, path),
+                new ResourceLocation(namespace, "model/test.obj"),
+                new ResourceLocation(namespace, "model/test.png"),
                 "slashblade:proudsoul_ingot", LegacyCalibrationProfile.DEFAULT,
                 6.0D, 70, null, List.of());
     }

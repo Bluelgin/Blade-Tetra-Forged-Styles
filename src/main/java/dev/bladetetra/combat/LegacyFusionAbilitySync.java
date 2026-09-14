@@ -29,12 +29,6 @@ final class LegacyFusionAbilitySync {
         String previous = tag.getString(LAST_ACTIVE);
         String current = active == null ? "" : active.id();
 
-        for (LegacyFusion fusion : LegacyFusion.values()) {
-            if (fusion.ability() == LegacyFusion.Ability.SPECIAL_EFFECT
-                    && fusion.abilityId() != null) {
-                reconcileSpecialEffect(state, fusion.abilityId(), active == fusion);
-            }
-        }
         if (active != LegacyFusion.WHITE_SAYA_BLACK_HILT) {
             TwinFoxFusionHandler.clearStoredPursuit(tag);
         }
@@ -49,12 +43,13 @@ final class LegacyFusionAbilitySync {
         String owner = active != null
                 ? "fusion:" + active.id()
                 : orthodox == null ? "" : "orthodox:" + orthodox.id();
-        ResourceLocation inheritedSlashArt = fusionSlashArt(active);
-        if (inheritedSlashArt == null && orthodox != null) {
-            inheritedSlashArt = LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
-        }
-        List<ResourceLocation> inheritedEffects = orthodox == null
-                ? List.of()
+        ResourceLocation desiredSlashArt = active != null
+                ? active.slashArt()
+                : orthodox == null ? null
+                : LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
+        List<ResourceLocation> desiredEffects = active != null
+                ? active.specialEffects()
+                : orthodox == null ? List.of()
                 : LegacyAbilityResolver.registeredSpecialEffects(orthodox.specialEffects());
 
         String previousOwner = tag.getString(ABILITY_OWNER);
@@ -66,12 +61,13 @@ final class LegacyFusionAbilitySync {
             tag.putString(ABILITY_OWNER, previousOwner);
             tag.putString(APPLIED_SLASH_ART, piercing.toString());
         }
+        migrateLegacyFusionEffects(tag, state, previousOwner);
 
         if (!owner.equals(previousOwner)) {
             restoreStructuralSlashArt(tag, state);
             removeOwnedSpecialEffects(tag, state);
-            reconcileStructuralSlashArt(tag, state, inheritedSlashArt);
-            reconcileOwnedSpecialEffects(tag, state, inheritedEffects);
+            reconcileStructuralSlashArt(tag, state, desiredSlashArt);
+            reconcileOwnedSpecialEffects(tag, state, desiredEffects);
             if (owner.isEmpty()) {
                 tag.remove(ABILITY_OWNER);
             } else {
@@ -81,8 +77,8 @@ final class LegacyFusionAbilitySync {
             // Structural abilities remain authoritative while their fitting owner is
             // assembled, but registry/data changes must also be able to withdraw an
             // ability without requiring the player to disassemble the weapon first.
-            reconcileStructuralSlashArt(tag, state, inheritedSlashArt);
-            reconcileOwnedSpecialEffects(tag, state, inheritedEffects);
+            reconcileStructuralSlashArt(tag, state, desiredSlashArt);
+            reconcileOwnedSpecialEffects(tag, state, desiredEffects);
         }
 
         if (current.isEmpty()) {
@@ -92,20 +88,23 @@ final class LegacyFusionAbilitySync {
         }
     }
 
-    private static ResourceLocation fusionSlashArt(LegacyFusion fusion) {
-        return fusion != null && fusion.ability() == LegacyFusion.Ability.SLASH_ART
-                ? fusion.abilityId() : null;
-    }
-
-    private static void reconcileSpecialEffect(ISlashBladeState state,
-            ResourceLocation effect, boolean shouldExist) {
-        long count = state.getSpecialEffects().stream().filter(effect::equals).count();
-        if ((!shouldExist && count > 0L) || (shouldExist && count != 1L)) {
-            state.getSpecialEffects().removeIf(effect::equals);
-            if (shouldExist) {
-                state.addSpecialEffect(effect);
+    private static void migrateLegacyFusionEffects(CompoundTag tag,
+            ISlashBladeState state, String previousOwner) {
+        if (!tag.getString(OWNED_SPECIAL_EFFECTS).isEmpty()
+                || !previousOwner.startsWith("fusion:")) {
+            return;
+        }
+        LegacyFusion fusion = LegacyFusion.byId(previousOwner.substring("fusion:".length()));
+        if (fusion == null || fusion.specialEffects().isEmpty()) {
+            return;
+        }
+        List<String> owned = new ArrayList<>();
+        for (ResourceLocation effect : fusion.specialEffects()) {
+            if (state.getSpecialEffects().contains(effect)) {
+                owned.add(effect.toString());
             }
         }
+        writeOwnedSpecialEffects(tag, owned);
     }
 
     private static void applyStructuralSlashArt(CompoundTag tag,

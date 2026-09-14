@@ -1,17 +1,18 @@
 package dev.bladetetra.forging;
 
-import net.minecraft.network.chat.Component;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.junit.jupiter.api.Test;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import org.junit.jupiter.api.Test;
 
-import java.io.StringReader;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,6 +33,21 @@ class LegacyFusionCatalogTest {
         assertEquals("low", definitions.get(1).id());
         assertEquals(LegacyFusionDefinition.AbilityType.SLASH_ART,
                 definitions.get(0).abilityType());
+    }
+
+    @Test
+    void parsesCoupledSlashArtAndSpecialEffectWithoutCappingTheSchema() {
+        var definition = LegacyFusionCatalog.parse(new StringReader("""
+                [
+                  {"id":"dead","saya":"a","hilt":"b","improvement":"i/dead",
+                   "slashArt":"blade_tetra:blood_cherry_final_scene",
+                   "specialEffects":["blade_tetra:life_erosion"],"priority":200}
+                ]
+                """)).get(0);
+
+        assertEquals("blade_tetra:blood_cherry_final_scene", definition.slashArt().toString());
+        assertEquals(List.of("blade_tetra:life_erosion"),
+                definition.specialEffects().stream().map(Object::toString).toList());
     }
 
     @Test
@@ -57,7 +73,7 @@ class LegacyFusionCatalogTest {
     }
 
     @Test
-    void playerGuideMirrorsCatalogOrderAndAbilityKeys() {
+    void playerGuideMirrorsCatalogOrderAndAllAbilityKeys() {
         var definitions = LegacyFusionCatalog.values();
         var entries = LegacyFusionGuide.entries(definitions, Component::literal);
 
@@ -66,16 +82,30 @@ class LegacyFusionCatalogTest {
             var definition = definitions.get(index);
             var entry = entries.get(index);
             assertEquals(definition.id(), entry.id());
-
-            var translation = assertInstanceOf(TranslatableContents.class,
-                    entry.abilityName().getContents());
-            String prefix = definition.abilityType()
-                    == LegacyFusionDefinition.AbilityType.SLASH_ART
-                    ? "slash_art."
-                    : "se.";
-            assertEquals(prefix + definition.ability().getNamespace() + "."
-                    + definition.ability().getPath(), translation.getKey());
+            List<String> actual = translationKeys(entry.abilityName());
+            List<String> expected = new ArrayList<>();
+            if (definition.slashArt() != null) {
+                expected.add("slash_art." + definition.slashArt().getNamespace()
+                        + "." + definition.slashArt().getPath());
+            }
+            for (var effect : definition.specialEffects()) {
+                expected.add("se." + effect.getNamespace() + "." + effect.getPath());
+            }
+            assertEquals(expected, actual);
         }
+    }
+
+    private static List<String> translationKeys(Component component) {
+        List<String> result = new ArrayList<>();
+        collectTranslationKeys(component, result);
+        return result;
+    }
+
+    private static void collectTranslationKeys(Component component, List<String> output) {
+        if (component.getContents() instanceof TranslatableContents translation) {
+            output.add(translation.getKey());
+        }
+        component.getSiblings().forEach(child -> collectTranslationKeys(child, output));
     }
 
     @Test

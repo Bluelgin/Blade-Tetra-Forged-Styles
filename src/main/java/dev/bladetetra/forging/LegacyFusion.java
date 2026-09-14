@@ -1,7 +1,10 @@
 package dev.bladetetra.forging;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.List;
 
 /**
  * Ordered, deliberately authored combinations of two imprinted named-blade
@@ -26,7 +29,9 @@ public enum LegacyFusion {
     TAGAYASAN_SAYA_KOSEKI_HILT(
             "tagayasan_saya_koseki_hilt"),
     BLACK_SAYA_SANGE_HILT(
-            "black_saya_sange_hilt");
+            "black_saya_sange_hilt"),
+    NIHILUL_SAYA_CRIMSON_CHERRY_HILT(
+            "nihilul_saya_crimson_cherry_hilt");
 
     private final String id;
 
@@ -43,6 +48,17 @@ public enum LegacyFusion {
         return definition == null ? "" : definition.improvement();
     }
 
+    public ResourceLocation slashArt() {
+        LegacyFusionDefinition definition = definition();
+        return definition == null ? null : definition.slashArt();
+    }
+
+    public List<ResourceLocation> specialEffects() {
+        LegacyFusionDefinition definition = definition();
+        return definition == null ? List.of() : definition.specialEffects();
+    }
+
+    /** Backward-compatible primary ability type; coupled fusions prefer their SA. */
     public Ability ability() {
         LegacyFusionDefinition definition = definition();
         return definition != null
@@ -50,7 +66,8 @@ public enum LegacyFusion {
                 ? Ability.SPECIAL_EFFECT : Ability.SLASH_ART;
     }
 
-    public net.minecraft.resources.ResourceLocation abilityId() {
+    /** Backward-compatible primary ability id; use slashArt/specialEffects for new code. */
+    public ResourceLocation abilityId() {
         LegacyFusionDefinition definition = definition();
         return definition == null ? null : definition.ability();
     }
