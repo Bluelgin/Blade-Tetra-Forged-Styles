@@ -195,6 +195,7 @@ dependencies {
     // Cataclysm visual-material test profile. The jars are kept in the ignored
     // local test library and are never bundled into or required by releases.
     if (project.hasProperty('cataclysmTest')) {
+        runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
         runtimeOnly fg.deobf("local:lionfishapi:3.0")
         runtimeOnly fg.deobf("local:L_Enders_Cataclysm:3.31")
     }
