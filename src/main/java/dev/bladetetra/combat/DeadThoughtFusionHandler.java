@@ -26,6 +26,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHealEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -54,7 +55,6 @@ import java.util.UUID;
 public final class DeadThoughtFusionHandler {
     static final double NORMAL_EROSION = 0.0025D;
     static final double FINAL_SCENE_EROSION = 0.05D;
-    static final double SOUL_BREAK_EROSION = 1.0D;
     static final int NORMAL_HIT_COOLDOWN = 4;
     static final int SA_MARK_WINDOW = 40;
     static final float ENGINE_HEALTH_FLOOR = 0.01F;
@@ -70,6 +70,14 @@ public final class DeadThoughtFusionHandler {
     private static final Map<HitKey, Long> NORMAL_HITS = new HashMap<>();
     private static final Map<HitKey, SaHitStamp> SA_HITS = new HashMap<>();
     private static final Map<UUID, PendingSlash> PENDING_SA_SLASHES = new HashMap<>();
+
+    /**
+     * LivingDeathEvent is posted synchronously from LivingEntity#die. Vanilla isAlive()
+     * still depends on health, so a direct die() call against a positive-health entity
+     * cannot be judged reliably with isAlive() alone. This probe observes whether Forge's
+     * death event was allowed to complete without pre-setting health to zero.
+     */
+    private static final ThreadLocal<DeathProbe> DEATH_PROBE = new ThreadLocal<>();
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
@@ -189,6 +197,19 @@ public final class DeadThoughtFusionHandler {
         }
     }
 
+    /**
+     * Observe the current synchronous Dead Thought death request at the last Forge priority.
+     * If another mod cancels the death event, the request is treated as refused and the
+     * entity remains SOUL_BROKEN. We do not mutate the event here.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void onLivingDeathProbe(LivingDeathEvent event) {
+        DeathProbe probe = DEATH_PROBE.get();
+        if (probe == null || !probe.target.equals(event.getEntity().getUUID())) return;
+        probe.seen = true;
+        probe.canceled = event.isCanceled();
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingHeal(LivingHealEvent event) {
         LivingEntity target = event.getEntity();
@@ -257,6 +278,7 @@ public final class DeadThoughtFusionHandler {
         NORMAL_HITS.clear();
         SA_HITS.clear();
         PENDING_SA_SLASHES.clear();
+        DEATH_PROBE.remove();
     }
 
     private static SoulUpdate erode(ServerLevel level, ServerPlayer attacker,
@@ -279,7 +301,6 @@ public final class DeadThoughtFusionHandler {
                 return new SoulUpdate(soul.erosion, SoulOutcome.COLLAPSED);
             }
             soul.broken = true;
-            soul.brokenAt = level.getGameTime();
             return new SoulUpdate(soul.erosion, SoulOutcome.BROKEN_NOW);
         }
 
@@ -300,22 +321,46 @@ public final class DeadThoughtFusionHandler {
             ServerPlayer attacker, LivingEntity target) {
         float amount = collapseHandshakeDamage(target);
         DamageSource source = level.damageSources().playerAttack(attacker);
-        SoulLegacyDamageGuard.apply(() -> target.hurt(source, amount));
-        return !target.isAlive();
+        return observeDeath(target, () -> SoulLegacyDamageGuard.apply(
+                () -> target.hurt(source, amount)));
     }
 
     /**
-     * A later complete Final Scene against SOUL_BROKEN asks the entity's normal
-     * death pipeline directly. Forge/other mods may still cancel LivingDeathEvent;
-     * if so, the target remains broken and no tick-loop retries are performed.
+     * A later complete Final Scene against SOUL_BROKEN asks the entity's normal death
+     * pipeline directly. We observe LivingDeathEvent instead of relying on isAlive(),
+     * because vanilla isAlive() is health-based and die() can be called with positive HP.
+     * Only after Forge accepts the death do we set health to zero for vanilla death ticks.
      */
     private static boolean attemptTerminalCollapse(ServerLevel level,
             ServerPlayer attacker, LivingEntity target) {
         DamageSource source = level.damageSources().playerAttack(attacker);
-        return SoulLegacyDamageGuard.apply(() -> {
+        boolean accepted = observeDeath(target, () -> SoulLegacyDamageGuard.apply(() -> {
             target.die(source);
-            return !target.isAlive();
-        });
+            return true;
+        }));
+        if (accepted && target.isAlive()) {
+            target.setHealth(0.0F);
+        }
+        return accepted;
+    }
+
+    /**
+     * Returns true when the synchronous death event was observed and not canceled.
+     * If a custom entity dies/removes itself without posting LivingDeathEvent, fall back
+     * to its final alive state. A nested probe is restored defensively after the call.
+     */
+    private static boolean observeDeath(LivingEntity target, Runnable request) {
+        DeathProbe previous = DEATH_PROBE.get();
+        DeathProbe probe = new DeathProbe(target.getUUID());
+        DEATH_PROBE.set(probe);
+        try {
+            request.run();
+        } finally {
+            if (previous == null) DEATH_PROBE.remove();
+            else DEATH_PROBE.set(previous);
+        }
+        if (probe.seen) return !probe.canceled;
+        return !target.isAlive();
     }
 
     static float collapseHandshakeDamage(LivingEntity target) {
@@ -368,7 +413,16 @@ public final class DeadThoughtFusionHandler {
     private static final class SoulRecord {
         double erosion;
         boolean broken;
-        long brokenAt;
+    }
+
+    private static final class DeathProbe {
+        final UUID target;
+        boolean seen;
+        boolean canceled;
+
+        DeathProbe(UUID target) {
+            this.target = target;
+        }
     }
 
     private enum SoulOutcome {
