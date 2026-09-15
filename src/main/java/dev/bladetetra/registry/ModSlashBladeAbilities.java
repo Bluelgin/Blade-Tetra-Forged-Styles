@@ -68,6 +68,11 @@ public final class ModSlashBladeAbilities {
             SLASH_ARTS.register("piercing_void_moon", () -> piercingArt(
                     LegacyFusion.BLACK_SAYA_SANGE_HILT, 55));
 
+    /** Sakura-End lineage retained by the Dead Thought story-convergence fusion. */
+    public static final RegistryObject<SlashArts> BLOOD_CHERRY_FINAL_SCENE =
+            SLASH_ARTS.register("blood_cherry_final_scene", () -> sakuraEndArt(
+                    LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT, 60));
+
     /** Structural SE: the registry says it cannot be extracted into an orb. */
     public static final RegistryObject<SpecialEffect> TWIN_FOX_REFLECTION =
             SPECIAL_EFFECTS.register("twin_fox_reflection",
@@ -76,6 +81,11 @@ public final class ModSlashBladeAbilities {
     /** Structural normal-combo SE for the sealed Agito/Orotiagito fitting pair. */
     public static final RegistryObject<SpecialEffect> SNAKE_MOLT =
             SPECIAL_EFFECTS.register("snake_molt",
+                    () -> new SpecialEffect(0, false, false));
+
+    /** Dead Thought's non-extractable maximum-life erosion rule. */
+    public static final RegistryObject<SpecialEffect> LIFE_EROSION =
+            SPECIAL_EFFECTS.register("life_erosion",
                     () -> new SpecialEffect(0, false, false));
 
     private static SlashArts standbyArt(LegacyFusion fusion, int proudSoulCost) {
@@ -100,6 +110,25 @@ public final class ModSlashBladeAbilities {
                         : ComboStateRegistry.NONE.getId())
                 .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
                         ? ComboStateRegistry.PIERCING_JUST.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setProudSoulCost(proudSoulCost);
+    }
+
+    private static SlashArts sakuraEndArt(LegacyFusion fusion, int proudSoulCost) {
+        return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
+                ? entity.onGround()
+                        ? ComboStateRegistry.SAKURA_END_LEFT.getId()
+                        : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId()
+                : ComboStateRegistry.NONE.getId())
+                .setComboStateJust(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? entity.onGround()
+                                ? ComboStateRegistry.SAKURA_END_LEFT.getId()
+                                : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId()
+                        : ComboStateRegistry.NONE.getId())
+                .setComboStateSuper(entity -> isActive(entity.getMainHandItem(), fusion)
+                        ? entity.onGround()
+                                ? ComboStateRegistry.SAKURA_END_LEFT.getId()
+                                : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId()
                         : ComboStateRegistry.NONE.getId())
                 .setProudSoulCost(proudSoulCost);
     }

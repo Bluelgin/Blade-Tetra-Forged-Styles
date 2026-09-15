@@ -1,7 +1,10 @@
 package dev.bladetetra.forging;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -33,14 +36,24 @@ public final class LegacyFusionGuide {
     }
 
     private static Component ability(LegacyFusionDefinition definition) {
-        String prefix = definition.abilityType()
-                == LegacyFusionDefinition.AbilityType.SLASH_ART
-                ? "slash_art."
-                : "se.";
-        return Component.translatable(prefix
-                + definition.ability().getNamespace()
-                + "."
-                + definition.ability().getPath());
+        List<Component> abilities = new ArrayList<>();
+        if (definition.slashArt() != null) {
+            abilities.add(ability("slash_art.", definition.slashArt()));
+        }
+        for (ResourceLocation effect : definition.specialEffects()) {
+            abilities.add(ability("se.", effect));
+        }
+        if (abilities.size() == 1) return abilities.get(0);
+        MutableComponent combined = Component.empty();
+        for (int index = 0; index < abilities.size(); index++) {
+            if (index > 0) combined.append(Component.literal(" + "));
+            combined.append(abilities.get(index));
+        }
+        return combined;
+    }
+
+    private static Component ability(String prefix, ResourceLocation ability) {
+        return Component.translatable(prefix + ability.getNamespace() + "." + ability.getPath());
     }
 
     private LegacyFusionGuide() {

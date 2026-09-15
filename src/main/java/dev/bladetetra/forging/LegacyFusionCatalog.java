@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -54,19 +55,41 @@ final class LegacyFusionCatalog {
             String saya = required(json, "saya");
             String hilt = required(json, "hilt");
             String improvement = required(json, "improvement");
-            String rawType = required(json, "abilityType");
-            ResourceLocation ability = ResourceLocation.tryParse(required(json, "ability"));
-            if (ability == null) {
-                throw new IllegalArgumentException("Invalid ability id for legacy fusion " + id);
-            }
-            LegacyFusionDefinition.AbilityType type;
-            try {
-                type = LegacyFusionDefinition.AbilityType.valueOf(
-                        rawType.toUpperCase(Locale.ROOT));
-            } catch (IllegalArgumentException exception) {
+
+            boolean legacyShape = json.has("abilityType") || json.has("ability");
+            boolean coupledShape = json.has("slashArt") || json.has("specialEffects");
+            if (legacyShape && coupledShape) {
                 throw new IllegalArgumentException(
-                        "Invalid ability type for legacy fusion " + id, exception);
+                        "Legacy fusion " + id + " mixes legacy and coupled ability fields");
             }
+
+            ResourceLocation slashArt = null;
+            List<ResourceLocation> specialEffects = List.of();
+            if (legacyShape) {
+                String rawType = required(json, "abilityType");
+                ResourceLocation ability = parseResource(required(json, "ability"), id);
+                LegacyFusionDefinition.AbilityType type;
+                try {
+                    type = LegacyFusionDefinition.AbilityType.valueOf(
+                            rawType.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalArgumentException(
+                            "Invalid ability type for legacy fusion " + id, exception);
+                }
+                if (type == LegacyFusionDefinition.AbilityType.SLASH_ART) {
+                    slashArt = ability;
+                } else {
+                    specialEffects = List.of(ability);
+                }
+            } else {
+                slashArt = optionalResource(json, "slashArt", id);
+                specialEffects = resourceList(json, "specialEffects", id);
+                if (slashArt == null && specialEffects.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "Legacy fusion " + id + " must declare at least one ability");
+                }
+            }
+
             if (!ids.add(id)) {
                 throw new IllegalArgumentException("Duplicate legacy fusion id " + id);
             }
@@ -76,11 +99,47 @@ final class LegacyFusionCatalog {
             }
             int priority = json.has("priority") ? json.get("priority").getAsInt() : 0;
             result.add(new LegacyFusionDefinition(id, saya, hilt, improvement,
-                    type, ability, priority));
+                    slashArt, specialEffects, priority));
         }
         result.sort(Comparator.comparingInt(LegacyFusionDefinition::priority)
                 .reversed().thenComparing(LegacyFusionDefinition::id));
         return List.copyOf(result);
+    }
+
+    private static ResourceLocation optionalResource(JsonObject json, String key, String id) {
+        if (!json.has(key)) return null;
+        if (!json.get(key).isJsonPrimitive() || json.get(key).getAsString().isBlank()) {
+            throw new IllegalArgumentException("Invalid " + key + " for legacy fusion " + id);
+        }
+        return parseResource(json.get(key).getAsString(), id);
+    }
+
+    private static List<ResourceLocation> resourceList(JsonObject json, String key, String id) {
+        if (!json.has(key)) return List.of();
+        JsonElement value = json.get(key);
+        LinkedHashSet<ResourceLocation> result = new LinkedHashSet<>();
+        if (value.isJsonPrimitive()) {
+            result.add(parseResource(value.getAsString(), id));
+        } else if (value.isJsonArray()) {
+            for (JsonElement element : value.getAsJsonArray()) {
+                if (!element.isJsonPrimitive() || element.getAsString().isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Invalid " + key + " entry for legacy fusion " + id);
+                }
+                result.add(parseResource(element.getAsString(), id));
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid " + key + " for legacy fusion " + id);
+        }
+        return List.copyOf(result);
+    }
+
+    private static ResourceLocation parseResource(String value, String id) {
+        ResourceLocation result = ResourceLocation.tryParse(value);
+        if (result == null) {
+            throw new IllegalArgumentException("Invalid ability id for legacy fusion " + id);
+        }
+        return result;
     }
 
     private static String required(JsonObject json, String key) {
