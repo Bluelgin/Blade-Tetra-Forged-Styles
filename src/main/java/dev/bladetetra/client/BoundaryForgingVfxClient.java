@@ -58,7 +58,8 @@ public final class BoundaryForgingVfxClient {
             }
         }
         EFFECTS.add(new Effect(packet));
-        while (EFFECTS.size() > 16) EFFECTS.remove(0);
+        int maximumEffects = Math.max(1, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
+        while (EFFECTS.size() > maximumEffects) EFFECTS.remove(0);
     }
 
     @SubscribeEvent
@@ -85,13 +86,14 @@ public final class BoundaryForgingVfxClient {
                 || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) {
             return;
         }
+        float global = ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue();
+        if (global <= 0.001F) return;
         Camera camera = event.getCamera();
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
         poses.translate(-camera.getPosition().x, -camera.getPosition().y,
                 -camera.getPosition().z);
         Matrix4f matrix = poses.last().pose();
-        float global = ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue();
         int quality = ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get();
 
         RenderSystem.enableBlend();
@@ -125,7 +127,9 @@ public final class BoundaryForgingVfxClient {
 
     private static void drawSolid(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
             Effect effect, float global, int quality) {
-        float strength = Mth.clamp(effect.intensity * global, 0.55F, 2.35F);
+        float strength = Mth.clamp(effect.intensity * effect.targetScale * global,
+                0.0F, 2.35F);
+        if (strength <= 0.001F) return;
         if (effect.type == BladeTechniqueVfxPacket.BOUNDARY_STRIKE) {
             drawBoundaryJudgementSolid(buffer, matrix, camera, effect, strength, quality);
         } else if (effect.type == BladeTechniqueVfxPacket.BOUNDARY_SUPPRESSION_FLAME) {
@@ -135,7 +139,9 @@ public final class BoundaryForgingVfxClient {
 
     private static void drawGlow(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
             Effect effect, float global, int quality) {
-        float strength = Mth.clamp(effect.intensity * global, 0.55F, 2.35F);
+        float strength = Mth.clamp(effect.intensity * effect.targetScale * global,
+                0.0F, 2.35F);
+        if (strength <= 0.001F) return;
         if (effect.type == BladeTechniqueVfxPacket.BOUNDARY_STRIKE) {
             drawBoundaryJudgementGlow(buffer, matrix, camera, effect, strength, quality);
         } else if (effect.type == BladeTechniqueVfxPacket.BOUNDARY_SUPPRESSION_FLAME) {
@@ -534,12 +540,13 @@ public final class BoundaryForgingVfxClient {
         final int duration;
         final int seed;
         Vec3 center;
+        float targetScale = 1.0F;
         int age;
 
         Effect(BladeTechniqueVfxPacket packet) {
             type = packet.type();
             yaw = packet.yaw();
-            intensity = Math.max(0.1F, packet.intensity());
+            intensity = Math.max(0.0F, packet.intensity());
             targetEntityId = packet.targetEntityId();
             duration = Math.max(1, packet.duration());
             seed = packet.seed();
@@ -552,6 +559,8 @@ public final class BoundaryForgingVfxClient {
             Entity target = level.getEntity(targetEntityId);
             if (target == null) return;
             if (type == BladeTechniqueVfxPacket.BOUNDARY_STRIKE) {
+                targetScale = Mth.clamp(Math.max(target.getBbWidth() / 1.2F,
+                        target.getBbHeight() / 3.0F), 0.9F, 2.2F);
                 if (age <= 31) center = target.position();
             } else if (type == BladeTechniqueVfxPacket.BOUNDARY_SUPPRESSION_FLAME) {
                 center = target.position();
