@@ -1,9 +1,11 @@
 package dev.bladetetra.visual;
 
-/** Bounded presentation values only; never used by the erosion/damage engine. */
+/** Bounded presentation values only; never used by the soul/damage engine. */
 public final class DeadThoughtVisualMath {
     public static final int LIFETIME = 44;
+    public static final int COLLAPSE_LIFETIME = 28;
     public static final int MAX_SCENES = 8;
+    public static final int MAX_COLLAPSES = 8;
     public static final int MAX_SCARS = 12;
 
     public static int severity(double erosion) {
@@ -29,6 +31,15 @@ public final class DeadThoughtVisualMath {
     public static float opening(float age) {
         if (age < 0 || age >= 8) return 0;
         return Math.min(ramp(age, 0, 2), 1 - ramp(age, 4, 4));
+    }
+
+    /** Soul fragments burst outward, hold briefly, then are pulled back into the wheel. */
+    public static float collapseFragmentDistance(float age) {
+        return ramp(age, 0, 4) * (1 - ramp(age, 8, 12));
+    }
+
+    public static float collapseFade(float age) {
+        return 1 - ramp(age, 20, 8);
     }
 
     private DeadThoughtVisualMath() {}

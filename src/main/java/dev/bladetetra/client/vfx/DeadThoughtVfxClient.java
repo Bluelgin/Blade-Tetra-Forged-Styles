@@ -26,10 +26,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Client-local scene records, not world entities. Owns lifetime/deduplication, not drawing or combat. */
+/** Client-local scene records, not world entities. Owns lifetime/deduplication, not combat. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT)
 public final class DeadThoughtVfxClient {
     private static final Map<Key, Scene> SCENES = new LinkedHashMap<>();
+    private static final Map<Key, Collapse> COLLAPSES = new LinkedHashMap<>();
     private static final Map<Integer, Scar> SCARS = new LinkedHashMap<>();
     private static final MultiBufferSource.BufferSource BUFFERS =
             MultiBufferSource.immediate(new BufferBuilder(256 * 1024));
@@ -50,7 +51,17 @@ public final class DeadThoughtVfxClient {
         if (mc.player.distanceToSqr(anchor) > distance * distance) return;
         Key key = new Key(data.sourceEntityId(), data.seed());
         ResourceLocation stage = data.effectId();
-        if (stage.equals(DeadThoughtVisualEvents.END)) { SCENES.remove(key); return; }
+
+        if (stage.equals(DeadThoughtVisualEvents.END)) {
+            SCENES.remove(key);
+            return;
+        }
+        if (stage.equals(DeadThoughtVisualEvents.SOUL_COLLAPSE)) {
+            trim(COLLAPSES, DeadThoughtVisualMath.MAX_COLLAPSES);
+            COLLAPSES.put(key, new Collapse(data, mc.level));
+            if (data.targetEntityId() >= 0) SCARS.remove(data.targetEntityId());
+            return;
+        }
         if (stage.equals(DeadThoughtVisualEvents.START)) {
             if (SCENES.containsKey(key)) return;
             SCENES.keySet().removeIf(k -> k.source == key.source);
@@ -58,17 +69,22 @@ public final class DeadThoughtVfxClient {
             SCENES.put(key, new Scene(data, mc.level));
             return;
         }
-        if (stage.equals(DeadThoughtVisualEvents.EROSION) || stage.equals(DeadThoughtVisualEvents.STATE)) {
+        if (stage.equals(DeadThoughtVisualEvents.EROSION)
+                || stage.equals(DeadThoughtVisualEvents.STATE)
+                || stage.equals(DeadThoughtVisualEvents.SOUL_BROKEN)) {
             Entity target = mc.level.getEntity(data.targetEntityId());
             if (!(target instanceof LivingEntity living) || !living.isAlive()) return;
-            int severity = DeadThoughtVisualMath.severity(data.intensity());
+            boolean broken = stage.equals(DeadThoughtVisualEvents.SOUL_BROKEN);
+            int severity = broken ? 3 : DeadThoughtVisualMath.severity(data.intensity());
             Scar old = SCARS.get(target.getId());
             if (old == null || !old.target.equals(target.getUUID())) {
                 trim(SCARS, DeadThoughtVisualMath.MAX_SCARS);
-                old = new Scar(target, severity); SCARS.put(target.getId(), old);
+                old = new Scar(target, severity);
+                SCARS.put(target.getId(), old);
             }
-            old.severity = severity;
-            old.age = stage.equals(DeadThoughtVisualEvents.STATE) ? 60 : 0;
+            old.severity = Math.max(old.severity, severity);
+            old.broken |= broken;
+            old.age = stage.equals(DeadThoughtVisualEvents.STATE) || broken ? 60 : 0;
             Scene scene = SCENES.get(key);
             if (scene != null) {
                 if (scene.targetId < 0) scene.bindTarget(target);
@@ -102,13 +118,18 @@ public final class DeadThoughtVfxClient {
             if (s.age >= DeadThoughtVisualMath.LIFETIME || !s.update(mc.level)) return true;
             return mc.player.distanceToSqr(s.anchor) > range * range;
         });
+        COLLAPSES.values().removeIf(c -> {
+            c.age++;
+            return c.age >= DeadThoughtVisualMath.COLLAPSE_LIFETIME
+                    || mc.player.distanceToSqr(c.anchor) > range * range;
+        });
         SCARS.entrySet().removeIf(entry -> {
             Scar scar = entry.getValue(); scar.age++;
             Entity e = mc.level.getEntity(entry.getKey());
             return e == null || !e.isAlive() || !scar.target.equals(e.getUUID())
                     || e.position().distanceToSqr(scar.lastPosition) > 16 * 16
                     || mc.player.distanceToSqr(e) > range * range
-                    || (scar.severity < 3 && scar.age > 45)
+                    || (!scar.broken && scar.severity < 3 && scar.age > 45)
                     || !scar.follow(e);
         });
     }
@@ -126,6 +147,9 @@ public final class DeadThoughtVfxClient {
         try {
             for (Scene scene : SCENES.values())
                 DeadThoughtSceneRenderer.draw(poses, BUFFERS, scene, event.getPartialTick(), quality);
+            for (Collapse collapse : COLLAPSES.values())
+                DeadThoughtSceneRenderer.drawCollapse(poses, BUFFERS, collapse,
+                        event.getPartialTick(), quality);
             for (var entry : SCARS.entrySet()) {
                 Entity target = mc.level.getEntity(entry.getKey());
                 if (target instanceof LivingEntity living && living.isAlive())
@@ -148,10 +172,15 @@ public final class DeadThoughtVfxClient {
             strength = Math.max(strength, Math.min(DeadThoughtVisualMath.ramp(t, 0, 2),
                     1 - DeadThoughtVisualMath.ramp(t, 8, 6)));
         }
+        for (Collapse collapse : COLLAPSES.values()) {
+            if (collapse.sourceId != mc.player.getId()) continue;
+            float t = collapse.age + partial;
+            strength = Math.max(strength, .65F * (1 - DeadThoughtVisualMath.ramp(t, 7, 8)));
+        }
         return strength;
     }
 
-    public static void clear() { SCENES.clear(); SCARS.clear(); }
+    public static void clear() { SCENES.clear(); COLLAPSES.clear(); SCARS.clear(); }
     private static boolean finite(Vec3 v) {
         return Double.isFinite(v.x) && Double.isFinite(v.y) && Double.isFinite(v.z);
     }
@@ -196,10 +225,38 @@ public final class DeadThoughtVfxClient {
         }
     }
 
+    /** Snapshot-only collapse scene. It never follows or queries the target after creation. */
+    static final class Collapse {
+        final int sourceId;
+        final Vec3 anchor;
+        final float yaw;
+        final float scale;
+        final float width;
+        final float height;
+        int age;
+
+        Collapse(TechniqueVfxData data, ClientLevel level) {
+            sourceId = data.sourceEntityId();
+            yaw = data.yaw();
+            anchor = new Vec3(data.endX(), data.endY(), data.endZ());
+            Entity entity = level.getEntity(data.targetEntityId());
+            if (entity instanceof LivingEntity living) {
+                width = Math.max(.3F, living.getBbWidth());
+                height = Math.max(.65F, living.getBbHeight());
+                scale = DeadThoughtVisualMath.scale(width, height);
+            } else {
+                scale = Math.max(.8F, Math.min(2.2F, data.intensity()));
+                width = Math.max(.6F, scale * .7F);
+                height = Math.max(1.8F, scale * 2.0F);
+            }
+        }
+    }
+
     static final class Scar {
         final UUID target;
         Vec3 lastPosition;
         int severity, age;
+        boolean broken;
         Scar(Entity entity, int severity) {
             target = entity.getUUID(); lastPosition = entity.position(); this.severity = severity;
         }
