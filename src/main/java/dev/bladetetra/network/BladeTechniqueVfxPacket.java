@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.client.BladeTechniqueVfxClient;
+import dev.bladetetra.client.BoundaryForgingVfxClient;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -92,7 +93,14 @@ public record BladeTechniqueVfxPacket(int type,
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
                 Dist.CLIENT,
-                () -> () -> BladeTechniqueVfxClient.spawn(packet)));
+                () -> () -> {
+                    if (packet.type() == BOUNDARY_STRIKE
+                            || packet.type() == BOUNDARY_SUPPRESSION_FLAME) {
+                        BoundaryForgingVfxClient.spawn(packet);
+                    } else {
+                        BladeTechniqueVfxClient.spawn(packet);
+                    }
+                }));
         context.setPacketHandled(true);
     }
 }
