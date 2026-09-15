@@ -77,6 +77,11 @@ public final class DeadThoughtFusionHandler {
         PENDING_SA_SLASHES.remove(player.getUUID());
         player.getPersistentData().putInt(SA_SERIAL, serial);
         player.getPersistentData().putLong(SA_UNTIL, now + SA_MARK_WINDOW);
+        if (ModSlashBladeAbilities.BLOOD_CHERRY_FINAL_SCENE.getId()
+                .equals(event.getSlashBladeState().getSlashArtsKey())) {
+            DeadThoughtVisuals.start(player,
+                    event.getSlashBladeState().getTargetEntity(player.level()), serial);
+        }
     }
 
     /**
@@ -99,6 +104,7 @@ public final class DeadThoughtFusionHandler {
         if (serial > 0) {
             PENDING_SA_SLASHES.put(player.getUUID(),
                     new PendingSlash(serial, player.server.getTickCount()));
+            DeadThoughtVisuals.slash(player, serial, event.getSlashBladeState().getComboSeq());
         }
     }
 
@@ -142,6 +148,8 @@ public final class DeadThoughtFusionHandler {
             if (previous == null || previous.serial() != saSerial) {
                 SA_HITS.put(hit, new SaHitStamp(saSerial, level.getGameTime()));
                 erode(level, target, FINAL_SCENE_EROSION);
+                DeadThoughtVisuals.erosion(player, target,
+                        SCARS.get(new ScarKey(level.dimension(), target.getUUID())), saSerial);
             }
             return;
         }
@@ -160,6 +168,17 @@ public final class DeadThoughtFusionHandler {
         }
         NORMAL_HITS.put(hit, now);
         erode(level, target, NORMAL_EROSION);
+        DeadThoughtVisuals.erosion(player, target,
+                SCARS.get(new ScarKey(level.dimension(), target.getUUID())), 0);
+    }
+
+    @SubscribeEvent
+    public static void onStartTracking(net.minecraftforge.event.entity.player.PlayerEvent.StartTracking event) {
+        if (event.getEntity() instanceof ServerPlayer observer
+                && event.getTarget() instanceof LivingEntity target) {
+            Double erosion = SCARS.get(new ScarKey(observer.level().dimension(), target.getUUID()));
+            if (erosion != null && erosion >= .70) DeadThoughtVisuals.tracking(observer, target, erosion);
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
