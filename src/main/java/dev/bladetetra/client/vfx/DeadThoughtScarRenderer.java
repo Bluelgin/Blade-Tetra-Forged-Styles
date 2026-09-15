@@ -36,6 +36,23 @@ final class DeadThoughtScarRenderer {
             DeadThoughtModel.draw(p,b,"rifts",edge,yaw,0,80,size*.4F,size*.7F,1,flash*.75F,
                     "rift_left","rim_left","void_left");
         }
+        if (scar.broken && quality > 0) {
+            // Soul Broken is intentionally readable without touching the target's renderer:
+            // a sparse, already-fragmented life-remnant hangs just behind the body.
+            Vec3 soul = middle.subtract(facing.scale(Math.min(2.6,target.getBbWidth()*.65)+.32));
+            int count = quality > 1 ? 6 : 3;
+            for (int i=0;i<count;i++) {
+                int group = quality > 1 ? i : i * 2;
+                double a = group * Math.PI * 2.0 / 6.0;
+                Vec3 offset = new Vec3(Math.cos(a)*size*.10,
+                        ((group%3)-1)*size*.055,Math.sin(a)*size*.10);
+                float pulse = .16F + .035F * Mth.sin((t + group * 3F) * .16F);
+                DeadThoughtModel.draw(p,b,"life_remnant",soul.add(offset),yaw,0,
+                        (group-2)*8F,size*.52F,
+                        Math.max(.55F,target.getBbHeight()*.78F),.7F,pulse,
+                        "remnant_"+group);
+            }
+        }
     }
     private DeadThoughtScarRenderer() {}
 }
