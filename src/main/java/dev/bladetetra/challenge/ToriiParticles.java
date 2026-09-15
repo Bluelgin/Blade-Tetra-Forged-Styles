@@ -11,12 +11,6 @@ final class ToriiParticles {
     }
 
     static void render(ServerLevel level, Vec3 base, Vec3 right, boolean echo, double scale) {
-        // Boundary Forging's full-size graduation gate is reconstructed by the
-        // dedicated client renderer. Keep the smaller challenge torii helpers,
-        // but do not layer the old Dust outline over the new solid projection.
-        if (echo && scale >= 0.88D) {
-            return;
-        }
         if (level.getGameTime() % 2L != 0L) {
             return;
         }
