@@ -3,6 +3,7 @@ package dev.bladetetra.combat;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
 import dev.bladetetra.forging.LegacyFusion;
+import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.entity.IShootable;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -61,6 +62,7 @@ public final class DeadThoughtFusionHandler {
     private static final Map<ScarKey, Double> SCARS = new HashMap<>();
     private static final Map<HitKey, Long> NORMAL_HITS = new HashMap<>();
     private static final Map<HitKey, SaHitStamp> SA_HITS = new HashMap<>();
+    private static final Map<UUID, PendingSlash> PENDING_SA_SLASHES = new HashMap<>();
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
@@ -72,22 +74,45 @@ public final class DeadThoughtFusionHandler {
         long now = player.serverLevel().getGameTime();
         int serial = player.getPersistentData().getInt(SA_SERIAL) + 1;
         if (serial <= 0) serial = 1;
+        PENDING_SA_SLASHES.remove(player.getUUID());
         player.getPersistentData().putInt(SA_SERIAL, serial);
         player.getPersistentData().putLong(SA_UNTIL, now + SA_MARK_WINDOW);
+    }
+
+    /**
+     * Sakura End posts this event immediately before adding its slash entity.
+     * Issue a one-shot marker here so unrelated slash effects created during the
+     * broader SA animation window cannot inherit Final Scene erosion.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onDoSlash(SlashBladeEvent.DoSlashEvent event) {
+        if (!(event.getUser() instanceof ServerPlayer player)
+                || !isDeadThought(event.getBlade())
+                || !ModSlashBladeAbilities.BLOOD_CHERRY_FINAL_SCENE.getId()
+                        .equals(event.getSlashBladeState().getSlashArtsKey())
+                || !isFinalSceneCombo(event.getSlashBladeState().getComboSeq())
+                || player.getPersistentData().getLong(SA_UNTIL)
+                        < player.serverLevel().getGameTime()) {
+            return;
+        }
+        int serial = player.getPersistentData().getInt(SA_SERIAL);
+        if (serial > 0) {
+            PENDING_SA_SLASHES.put(player.getUUID(),
+                    new PendingSlash(serial, player.server.getTickCount()));
+        }
     }
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
         if (!(event.getLevel() instanceof ServerLevel level)
                 || !(event.getEntity() instanceof EntitySlashEffect slash)
-                || !(slash.getShooter() instanceof ServerPlayer player)
-                || !isDeadThought(player.getMainHandItem())
-                || player.getPersistentData().getLong(SA_UNTIL) < level.getGameTime()) {
+                || !(slash.getShooter() instanceof ServerPlayer player)) {
             return;
         }
-        int serial = player.getPersistentData().getInt(SA_SERIAL);
-        if (serial > 0) {
-            event.getEntity().getPersistentData().putInt(SA_ENTITY_SERIAL, serial);
+        PendingSlash pending = PENDING_SA_SLASHES.remove(player.getUUID());
+        if (pending != null && pending.serverTick() == player.server.getTickCount()) {
+            event.getEntity().getPersistentData().putInt(
+                    SA_ENTITY_SERIAL, pending.serial());
         }
     }
 
@@ -189,6 +214,8 @@ public final class DeadThoughtFusionHandler {
         long oldest = server.getTickCount() - 200L;
         NORMAL_HITS.entrySet().removeIf(entry -> entry.getValue() < oldest);
         SA_HITS.entrySet().removeIf(entry -> entry.getValue().tick() < oldest);
+        PENDING_SA_SLASHES.entrySet().removeIf(
+                entry -> entry.getValue().serverTick() < server.getTickCount());
     }
 
     @SubscribeEvent
@@ -203,6 +230,7 @@ public final class DeadThoughtFusionHandler {
         SCARS.clear();
         NORMAL_HITS.clear();
         SA_HITS.clear();
+        PENDING_SA_SLASHES.clear();
     }
 
     private static void erode(ServerLevel level, LivingEntity target, double amount) {
@@ -230,6 +258,11 @@ public final class DeadThoughtFusionHandler {
                 == LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT;
     }
 
+    static boolean isFinalSceneCombo(ResourceLocation combo) {
+        return combo != null && DeadThoughtSlashProvenance.isFinalSceneCombo(
+                combo.getNamespace(), combo.getPath());
+    }
+
     private static void removeEntity(LivingEntity entity) {
         if (!(entity.level() instanceof ServerLevel level)) return;
         UUID id = entity.getUUID();
@@ -241,6 +274,7 @@ public final class DeadThoughtFusionHandler {
     private record ScarKey(ResourceKey<Level> dimension, UUID entityId) {}
     private record HitKey(UUID attacker, UUID target) {}
     private record SaHitStamp(int serial, long tick) {}
+    private record PendingSlash(int serial, long serverTick) {}
 
     private DeadThoughtFusionHandler() {
     }
