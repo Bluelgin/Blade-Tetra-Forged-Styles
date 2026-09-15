@@ -10,8 +10,12 @@ public final class DeadThoughtVisualEvents {
     public static final ResourceLocation FINAL = id("final");
     public static final ResourceLocation EROSION = id("erosion");
     public static final ResourceLocation STATE = id("state");
+    public static final ResourceLocation SOUL_BROKEN = id("soul_broken");
+    public static final ResourceLocation SOUL_COLLAPSE = id("soul_collapse");
     public static final ResourceLocation END = id("end");
-    public static final ResourceLocation[] ALL = {START, LEFT, RIGHT, FINAL, EROSION, STATE, END};
+    public static final ResourceLocation[] ALL = {
+            START, LEFT, RIGHT, FINAL, EROSION, STATE, SOUL_BROKEN, SOUL_COLLAPSE, END
+    };
 
     private static ResourceLocation id(String stage) {
         return new ResourceLocation(BladeTetra.MOD_ID, "dead_thought/" + stage);
