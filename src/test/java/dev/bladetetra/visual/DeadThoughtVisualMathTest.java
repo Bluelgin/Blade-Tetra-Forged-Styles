@@ -29,4 +29,14 @@ class DeadThoughtVisualMathTest {
         assertEquals(0, DeadThoughtVisualMath.opening(8));
         assertEquals(0, DeadThoughtVisualMath.opening(500));
     }
+    @Test void collapseFragmentsBurstHoldAndReturn() {
+        assertEquals(0F, DeadThoughtVisualMath.collapseFragmentDistance(0), 0.0001F);
+        assertEquals(1F, DeadThoughtVisualMath.collapseFragmentDistance(4), 0.0001F);
+        assertEquals(1F, DeadThoughtVisualMath.collapseFragmentDistance(8), 0.0001F);
+        assertEquals(.5F, DeadThoughtVisualMath.collapseFragmentDistance(14), 0.0001F);
+        assertEquals(0F, DeadThoughtVisualMath.collapseFragmentDistance(20), 0.0001F);
+        assertEquals(1F, DeadThoughtVisualMath.collapseFade(20), 0.0001F);
+        assertEquals(.5F, DeadThoughtVisualMath.collapseFade(24), 0.0001F);
+        assertEquals(0F, DeadThoughtVisualMath.collapseFade(28), 0.0001F);
+    }
 }
