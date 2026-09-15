@@ -3,6 +3,7 @@ package dev.bladetetra.forging;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.fml.ModList;
 import org.slf4j.Logger;
 
@@ -62,6 +63,11 @@ public final class NamedLegacyCatalog {
                         .forEach(path -> {
                             try (Reader reader = Files.newBufferedReader(path)) {
                                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                                if (!ICondition.shouldRegisterEntry(json)) {
+                                    LOGGER.debug("Skipping conditionally disabled SlashBlade data file {}",
+                                            path);
+                                    return;
+                                }
                                 if (path.toString().replace('\\', '/').contains("/slashblade/named_blades/")) {
                                     if (json.has("name") && json.has("render")) {
                                         definitions.put(json.get("name").getAsString(), json);
@@ -70,9 +76,9 @@ public final class NamedLegacyCatalog {
                                     recipes.add(json);
                                 }
                             } catch (Exception exception) {
-                                // Optional provider data can legitimately use a schema we do not
-                                // understand. Keep discovery tolerant, but leave a diagnostic trail
-                                // for addon audits instead of silently making a blade disappear.
+                                // Optional provider data can legitimately use a schema or condition we do not
+                                // understand. Keep discovery tolerant, but never enable data whose loading
+                                // constraints cannot be proven true.
                                 LOGGER.debug("Ignoring unsupported optional SlashBlade data file {}",
                                         path, exception);
                             }
