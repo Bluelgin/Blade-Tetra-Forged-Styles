@@ -45,7 +45,7 @@ public final class KarmicPuppetItem extends Item {
             } catch (IllegalArgumentException ignored) {
                 tier = DivineDomainTier.ECHO;
             }
-            return Component.literal("木偶 · " + tier.displayName());
+            return Component.literal("杀业木偶 · " + tier.displayName());
         }
         return Component.literal("无铭木偶");
     }
