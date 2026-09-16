@@ -22,6 +22,11 @@ public final class DeadThoughtDivineLegacy {
         stack.getOrCreateTag().putBoolean(BOUND_TAG, true);
     }
 
+    /** Pure convergence seam kept registry-free for ordinary JUnit coverage. */
+    static LegacyFusion identity(boolean bound) {
+        return bound ? LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT : null;
+    }
+
     private DeadThoughtDivineLegacy() {
     }
 }
