@@ -28,9 +28,13 @@ public final class DeadThoughtSoulSealItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.literal("死念 · 第二获取路线的神域凭证")
+        tooltip.add(Component.literal("死念 · 神域第二传承的残印")
                 .withStyle(ChatFormatting.DARK_RED));
-        tooltip.add(Component.literal("不是通用剑技或特殊效果兑换物。")
+        tooltip.add(Component.literal("它没有记载剑技，只留下『命』曾被斩开的伤痕。")
                 .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.literal("将自己的 Blade Tetra 刀置于 Tetra 工作台上方的挂刀台，")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.literal("手持残印潜行右击挂刀台，完成死念刻印。")
+                .withStyle(ChatFormatting.DARK_GRAY));
     }
 }
