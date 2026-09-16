@@ -1,0 +1,15 @@
+{
+  "type": "blade_tetra:divine_domain",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "minecraft:nether_wastes",
+      "lakes": false,
+      "features": false,
+      "layers": [
+        { "height": 128, "block": "minecraft:air" }
+      ],
+      "structure_overrides": []
+    }
+  }
+}
