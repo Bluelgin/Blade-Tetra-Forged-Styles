@@ -268,7 +268,7 @@ public final class DivineDomainManager {
         void tick(MinecraftServer server, ServerLevel level) {
             players.removeIf(uuid -> {
                 ServerPlayer player = server.getPlayerList().getPlayer(uuid);
-                return player == null ? false : !player.level().dimension().equals(DIVINE_REALM);
+                return player == null || !player.level().dimension().equals(DIVINE_REALM);
             });
             if (players.isEmpty()) {
                 return;
@@ -350,7 +350,7 @@ public final class DivineDomainManager {
             if (!enemies.isEmpty()) {
                 if (tier.pressureIntervalTicks() > 0 && --pressureTicks <= 0
                         && enemies.size() < tier.concurrentForWave(Math.max(1, wave)) + 3) {
-                    spawnOne(level, wave, wave + pressureTicks + enemies.size(), true);
+                    spawnOne(level, wave, wave + pressureTicks + enemies.size(), false);
                     pressureTicks = tier.pressureIntervalTicks();
                 }
                 return;
