@@ -40,9 +40,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Server-owned life erosion for the NihilUL saya + Crimson Cherry hilt convergence.
- * It deliberately bypasses ordinary numerical damage reduction/caps while leaving
- * explicit invulnerability and an entity-type opt-out available to scripted bosses.
+ * Server-owned soul erosion for the NihilUL saya + Crimson Cherry hilt convergence.
+ *
+ * <p>The stored erosion value is intentionally unbounded. Before the soul reaches zero,
+ * it behaves as the existing virtual maximum-life ceiling. Crossing 100% erosion requests
+ * a normal lethal player-damage handshake. If the target survives because a boss cap,
+ * phase transition, totem/death hook, or other rule refuses that death, the target enters
+ * SOUL_BROKEN instead of being spam-killed every tick. While broken, the virtual health
+ * clamp is suspended so the foreign boss state machine can keep running. A later complete
+ * Blood Cherry Final Scene may then request the terminal soul-collapse death directly.
+ * Explicit invulnerability and the entity-type opt-out remain hard compatibility exits.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DeadThoughtFusionHandler {
@@ -59,10 +66,18 @@ public final class DeadThoughtFusionHandler {
             Registries.ENTITY_TYPE,
             ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID, "dead_thought_immune"));
 
-    private static final Map<ScarKey, Double> SCARS = new HashMap<>();
+    private static final Map<ScarKey, SoulRecord> SOULS = new HashMap<>();
     private static final Map<HitKey, Long> NORMAL_HITS = new HashMap<>();
     private static final Map<HitKey, SaHitStamp> SA_HITS = new HashMap<>();
     private static final Map<UUID, PendingSlash> PENDING_SA_SLASHES = new HashMap<>();
+
+    /**
+     * LivingDeathEvent is posted synchronously from LivingEntity#die. Vanilla isAlive()
+     * still depends on health, so a direct die() call against a positive-health entity
+     * cannot be judged reliably with isAlive() alone. This probe observes whether Forge's
+     * death event was allowed to complete without pre-setting health to zero.
+     */
+    private static final ThreadLocal<DeathProbe> DEATH_PROBE = new ThreadLocal<>();
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
@@ -110,7 +125,7 @@ public final class DeadThoughtFusionHandler {
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
-        if (!(event.getLevel() instanceof ServerLevel level)
+        if (!(event.getLevel() instanceof ServerLevel)
                 || !(event.getEntity() instanceof EntitySlashEffect slash)
                 || !(slash.getShooter() instanceof ServerPlayer player)) {
             return;
@@ -123,9 +138,9 @@ public final class DeadThoughtFusionHandler {
     }
 
     /**
-     * LOWEST + receiveCanceled is intentional: Life Erosion is not conventional
-     * damage, so numeric shields/caps may cancel the attack while the attempted
-     * Dead Thought cut still erodes maximum life.
+     * LOWEST + receiveCanceled is intentional: soul erosion is not conventional
+     * damage, so numeric shields/caps may cancel the attempted cut while Dead Thought
+     * still attacks the target's life-bearing soul.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void onLivingAttack(LivingAttackEvent event) {
@@ -147,9 +162,9 @@ public final class DeadThoughtFusionHandler {
             SaHitStamp previous = SA_HITS.get(hit);
             if (previous == null || previous.serial() != saSerial) {
                 SA_HITS.put(hit, new SaHitStamp(saSerial, level.getGameTime()));
-                erode(level, target, FINAL_SCENE_EROSION);
-                DeadThoughtVisuals.erosion(player, target,
-                        SCARS.get(new ScarKey(level.dimension(), target.getUUID())), saSerial);
+                SoulUpdate update = erode(level, player, target,
+                        FINAL_SCENE_EROSION, true);
+                publishVisualUpdate(player, target, saSerial, update);
             }
             return;
         }
@@ -167,18 +182,32 @@ public final class DeadThoughtFusionHandler {
             return;
         }
         NORMAL_HITS.put(hit, now);
-        erode(level, target, NORMAL_EROSION);
-        DeadThoughtVisuals.erosion(player, target,
-                SCARS.get(new ScarKey(level.dimension(), target.getUUID())), 0);
+        SoulUpdate update = erode(level, player, target, NORMAL_EROSION, false);
+        publishVisualUpdate(player, target, 0, update);
     }
 
     @SubscribeEvent
     public static void onStartTracking(net.minecraftforge.event.entity.player.PlayerEvent.StartTracking event) {
         if (event.getEntity() instanceof ServerPlayer observer
                 && event.getTarget() instanceof LivingEntity target) {
-            Double erosion = SCARS.get(new ScarKey(observer.level().dimension(), target.getUUID()));
-            if (erosion != null && erosion >= .70) DeadThoughtVisuals.tracking(observer, target, erosion);
+            SoulRecord soul = SOULS.get(new ScarKey(observer.level().dimension(), target.getUUID()));
+            if (soul != null && (soul.broken || soul.erosion >= .70D)) {
+                DeadThoughtVisuals.tracking(observer, target, soul.erosion, soul.broken);
+            }
         }
+    }
+
+    /**
+     * Observe the current synchronous Dead Thought death request at the last Forge priority.
+     * If another mod cancels the death event, the request is treated as refused and the
+     * entity remains SOUL_BROKEN. We do not mutate the event here.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void onLivingDeathProbe(LivingDeathEvent event) {
+        DeathProbe probe = DEATH_PROBE.get();
+        if (probe == null || !probe.target.equals(event.getEntity().getUUID())) return;
+        probe.seen = true;
+        probe.canceled = event.isCanceled();
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -187,19 +216,14 @@ public final class DeadThoughtFusionHandler {
         if (!(target.level() instanceof ServerLevel level) || target.isInvulnerable()) {
             return;
         }
-        Double erosion = SCARS.get(new ScarKey(level.dimension(), target.getUUID()));
-        if (erosion == null) return;
+        SoulRecord soul = SOULS.get(new ScarKey(level.dimension(), target.getUUID()));
+        if (soul == null || soul.broken) return;
         float cap = DeadThoughtErosionMath.effectiveCap(
-                target.getMaxHealth(), erosion, ENGINE_HEALTH_FLOOR);
+                target.getMaxHealth(), soul.erosion, ENGINE_HEALTH_FLOOR);
         float room = Math.max(0.0F, cap - target.getHealth());
         if (event.getAmount() > room) {
             event.setAmount(room);
         }
-    }
-
-    @SubscribeEvent
-    public static void onLivingDeath(LivingDeathEvent event) {
-        removeEntity(event.getEntity());
     }
 
     @SubscribeEvent
@@ -213,18 +237,22 @@ public final class DeadThoughtFusionHandler {
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         MinecraftServer server = event.getServer();
-        Iterator<Map.Entry<ScarKey, Double>> iterator = SCARS.entrySet().iterator();
+        Iterator<Map.Entry<ScarKey, SoulRecord>> iterator = SOULS.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<ScarKey, Double> entry = iterator.next();
+            Map.Entry<ScarKey, SoulRecord> entry = iterator.next();
             ServerLevel level = server.getLevel(entry.getKey().dimension());
             Entity found = level == null ? null : level.getEntity(entry.getKey().entityId());
             if (!(found instanceof LivingEntity target) || !target.isAlive()) {
                 iterator.remove();
                 continue;
             }
-            if (target.isInvulnerable()) continue;
+            SoulRecord soul = entry.getValue();
+            // Once another mod/world rule has refused soul collapse, do not force the
+            // old 0.01 HP cap every tick. The foreign phase is allowed to run normally;
+            // only a later complete Final Scene can request terminal collapse.
+            if (soul.broken || target.isInvulnerable()) continue;
             float cap = DeadThoughtErosionMath.effectiveCap(
-                    target.getMaxHealth(), entry.getValue(), ENGINE_HEALTH_FLOOR);
+                    target.getMaxHealth(), soul.erosion, ENGINE_HEALTH_FLOOR);
             if (target.getHealth() > cap) {
                 target.setHealth(cap);
             }
@@ -241,25 +269,117 @@ public final class DeadThoughtFusionHandler {
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         ResourceKey<Level> dimension = level.dimension();
-        SCARS.keySet().removeIf(key -> key.dimension().equals(dimension));
+        SOULS.keySet().removeIf(key -> key.dimension().equals(dimension));
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
-        SCARS.clear();
+        SOULS.clear();
         NORMAL_HITS.clear();
         SA_HITS.clear();
         PENDING_SA_SLASHES.clear();
+        DEATH_PROBE.remove();
     }
 
-    private static void erode(ServerLevel level, LivingEntity target, double amount) {
+    private static SoulUpdate erode(ServerLevel level, ServerPlayer attacker,
+            LivingEntity target, double amount, boolean finalScene) {
         ScarKey key = new ScarKey(level.dimension(), target.getUUID());
-        double erosion = DeadThoughtErosionMath.add(SCARS.getOrDefault(key, 0.0D), amount);
-        SCARS.put(key, erosion);
+        SoulRecord soul = SOULS.computeIfAbsent(key, ignored -> new SoulRecord());
+        soul.erosion = DeadThoughtErosionMath.add(soul.erosion, amount);
+
+        if (soul.broken) {
+            if (!finalScene) {
+                return new SoulUpdate(soul.erosion, SoulOutcome.BROKEN_ALREADY);
+            }
+            boolean collapsed = attemptTerminalCollapse(level, attacker, target);
+            return new SoulUpdate(soul.erosion,
+                    collapsed ? SoulOutcome.COLLAPSED : SoulOutcome.COLLAPSE_REJECTED);
+        }
+
+        if (DeadThoughtErosionMath.isSoulBroken(soul.erosion)) {
+            if (attemptCollapseHandshake(level, attacker, target)) {
+                return new SoulUpdate(soul.erosion, SoulOutcome.COLLAPSED);
+            }
+            soul.broken = true;
+            return new SoulUpdate(soul.erosion, SoulOutcome.BROKEN_NOW);
+        }
+
         float cap = DeadThoughtErosionMath.effectiveCap(
-                target.getMaxHealth(), erosion, ENGINE_HEALTH_FLOOR);
+                target.getMaxHealth(), soul.erosion, ENGINE_HEALTH_FLOOR);
         if (target.getHealth() > cap && !target.isInvulnerable()) {
             target.setHealth(cap);
+        }
+        return new SoulUpdate(soul.erosion, SoulOutcome.ERODED);
+    }
+
+    /**
+     * First soul-zero transition: use a real player damage request so the target's
+     * normal hurt/death hooks, phase changes, totems and third-party damage caps get
+     * one opportunity to answer. Surviving this request means SOUL_BROKEN.
+     */
+    private static boolean attemptCollapseHandshake(ServerLevel level,
+            ServerPlayer attacker, LivingEntity target) {
+        float amount = collapseHandshakeDamage(target);
+        DamageSource source = level.damageSources().playerAttack(attacker);
+        return observeDeath(target, () -> SoulLegacyDamageGuard.apply(
+                () -> target.hurt(source, amount)));
+    }
+
+    /**
+     * A later complete Final Scene against SOUL_BROKEN asks the entity's normal death
+     * pipeline directly. We observe LivingDeathEvent instead of relying on isAlive(),
+     * because vanilla isAlive() is health-based and die() can be called with positive HP.
+     * Only after Forge accepts the death do we set health to zero for vanilla death ticks.
+     */
+    private static boolean attemptTerminalCollapse(ServerLevel level,
+            ServerPlayer attacker, LivingEntity target) {
+        DamageSource source = level.damageSources().playerAttack(attacker);
+        boolean accepted = observeDeath(target, () -> SoulLegacyDamageGuard.apply(() -> {
+            target.die(source);
+            return true;
+        }));
+        if (accepted && target.isAlive()) {
+            target.setHealth(0.0F);
+        }
+        return accepted;
+    }
+
+    /**
+     * Returns true when the synchronous death event was observed and not canceled.
+     * If a custom entity dies/removes itself without posting LivingDeathEvent, fall back
+     * to its final alive state. A nested probe is restored defensively after the call.
+     */
+    private static boolean observeDeath(LivingEntity target, Runnable request) {
+        DeathProbe previous = DEATH_PROBE.get();
+        DeathProbe probe = new DeathProbe(target.getUUID());
+        DEATH_PROBE.set(probe);
+        try {
+            request.run();
+        } finally {
+            if (previous == null) DEATH_PROBE.remove();
+            else DEATH_PROBE.set(previous);
+        }
+        if (probe.seen) return !probe.canceled;
+        return !target.isAlive();
+    }
+
+    static float collapseHandshakeDamage(LivingEntity target) {
+        double health = Math.max(0.0D, target.getHealth());
+        double max = Math.max(1.0D, target.getMaxHealth());
+        double scaled = Math.max(1024.0D, max * 64.0D + health + 1.0D);
+        return (float) Math.min(Float.MAX_VALUE / 1024.0D, scaled);
+    }
+
+    private static void publishVisualUpdate(ServerPlayer attacker, LivingEntity target,
+            int serial, SoulUpdate update) {
+        if (update.outcome == SoulOutcome.COLLAPSED) {
+            DeadThoughtVisuals.soulCollapse(attacker, target, serial);
+            return;
+        }
+        DeadThoughtVisuals.erosion(attacker, target, update.erosion, serial);
+        if (update.outcome == SoulOutcome.BROKEN_NOW
+                || update.outcome == SoulOutcome.COLLAPSE_REJECTED) {
+            DeadThoughtVisuals.soulBroken(attacker, target, update.erosion, serial);
         }
     }
 
@@ -285,11 +405,35 @@ public final class DeadThoughtFusionHandler {
     private static void removeEntity(LivingEntity entity) {
         if (!(entity.level() instanceof ServerLevel level)) return;
         UUID id = entity.getUUID();
-        SCARS.remove(new ScarKey(level.dimension(), id));
+        SOULS.remove(new ScarKey(level.dimension(), id));
         NORMAL_HITS.keySet().removeIf(key -> key.target().equals(id));
         SA_HITS.keySet().removeIf(key -> key.target().equals(id));
     }
 
+    private static final class SoulRecord {
+        double erosion;
+        boolean broken;
+    }
+
+    private static final class DeathProbe {
+        final UUID target;
+        boolean seen;
+        boolean canceled;
+
+        DeathProbe(UUID target) {
+            this.target = target;
+        }
+    }
+
+    private enum SoulOutcome {
+        ERODED,
+        BROKEN_NOW,
+        BROKEN_ALREADY,
+        COLLAPSE_REJECTED,
+        COLLAPSED
+    }
+
+    private record SoulUpdate(double erosion, SoulOutcome outcome) {}
     private record ScarKey(ResourceKey<Level> dimension, UUID entityId) {}
     private record HitKey(UUID attacker, UUID target) {}
     private record SaHitStamp(int serial, long tick) {}

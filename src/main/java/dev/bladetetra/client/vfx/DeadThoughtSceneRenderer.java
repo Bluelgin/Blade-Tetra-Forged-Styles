@@ -6,7 +6,7 @@ import net.minecraft.world.phys.Vec3;
 
 import static dev.bladetetra.visual.DeadThoughtVisualMath.*;
 
-/** Four-stage geometric composition; native Sakura End events set slash/final markers. */
+/** Four-stage geometric composition plus a detached soul-collapse death scene. */
 final class DeadThoughtSceneRenderer {
     static void draw(PoseStack p, MultiBufferSource b, DeadThoughtVfxClient.Scene s, float partial, int quality) {
         float t = s.age + partial;
@@ -61,6 +61,55 @@ final class DeadThoughtSceneRenderer {
                         Math.max(.03F,scale*(1-pull)),height*(1+pull*.45F)*(1-ramp(pull,.6F,.4F)),
                         .8F,.65F*(1-pull),"remnant_"+i);
             }
+        }
+    }
+
+    /**
+     * Terminal Soul Collapse owns a transform snapshot and therefore survives the target entity.
+     * The six existing life-remnant groups burst out, hold, then converge into the final wheel.
+     */
+    static void drawCollapse(PoseStack p, MultiBufferSource b, DeadThoughtVfxClient.Collapse c,
+            float partial, int quality) {
+        float t = c.age + partial;
+        float scale = c.scale;
+        float radius = wheelRadius(scale);
+        float height = Math.max(.65F, Math.min(5.5F, c.height));
+        float fade = collapseFade(t);
+        Vec3 base = c.anchor;
+        Vec3 center = base.add(0, height * .53F, 0);
+        double yaw = Math.toRadians(c.yaw);
+        Vec3 forward = new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
+        Vec3 wheel = center.add(forward.scale(Math.min(2.8, Math.max(.65, c.width * .65))))
+                .add(0, height * .22F, 0);
+
+        float reveal = ramp(t, 0, 4);
+        float wheelScale = radius * (.72F + .28F * reveal) * Math.max(.03F, fade);
+        part(p,b,"final_wheel",wheel,c.yaw,0,0,wheelScale,wheelScale,scale,fade,"core","core_edges");
+        part(p,b,"final_wheel",wheel,c.yaw,0,0,wheelScale,wheelScale,scale,fade*ramp(t,1,2),"inner");
+        part(p,b,"final_wheel",wheel,c.yaw,0,0,wheelScale,wheelScale,scale,fade*ramp(t,2,2),"petals","veins","shards");
+        part(p,b,"final_wheel",wheel,c.yaw,0,0,wheelScale,wheelScale,scale,fade*ramp(t,3,2),"outer","edge");
+
+        // The body is not exploded as a game object; two geometric tears sell the rupture.
+        rift(p,b,center,c.yaw,scale,t,"left",-34);
+        rift(p,b,center.add(0,.04,0),c.yaw,scale,t,"right",34);
+        float cut = ramp(t,2,1)*(1-ramp(t,6,3));
+        part(p,b,"execution_line",center,c.yaw,0,-12,1,height*.95F,1,cut,"black","red","light");
+
+        float burst = ramp(t,0,4);
+        float pull = ramp(t,8,12);
+        int count = quality > 0 ? 6 : 3;
+        for (int i=0;i<count;i++) {
+            int groupIndex = quality > 0 ? i : i * 2;
+            double a = yaw + groupIndex * Math.PI * 2.0 / 6.0;
+            double vertical = ((groupIndex % 3) - 1) * .18D;
+            Vec3 direction = new Vec3(Math.cos(a), vertical, Math.sin(a));
+            Vec3 burstAt = center.add(direction.scale(scale * .88F * burst));
+            Vec3 at = burstAt.lerp(wheel, pull * pull);
+            float fragmentScale = Math.max(.04F, scale * (1.0F - .38F * pull));
+            float alpha = fade * (1 - ramp(t,18,8));
+            part(p,b,"life_remnant",at,c.yaw,0,(groupIndex-2)*11F + burst*16F,
+                    fragmentScale,height*(.95F+.22F*burst)*(1-.55F*pull),.8F,
+                    alpha,"remnant_"+groupIndex);
         }
     }
 

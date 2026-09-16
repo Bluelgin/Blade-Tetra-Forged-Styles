@@ -60,12 +60,32 @@ public final class DeadThoughtVisuals {
         }
         // Serial zero is an ordinary SE hit, never a request for a full SA scene.
         sendPacket(player.serverLevel(), player, target, target.position(),
-                DeadThoughtVisualEvents.EROSION, serial, (float) Math.min(erosion, Float.MAX_VALUE));
+                DeadThoughtVisualEvents.EROSION, serial, finiteFloat(erosion));
     }
 
-    static void tracking(ServerPlayer observer, LivingEntity target, double erosion) {
+    static void soulBroken(ServerPlayer player, LivingEntity target, double erosion, int serial) {
+        sendPacket(player.serverLevel(), player, target, target.position(),
+                DeadThoughtVisualEvents.SOUL_BROKEN, serial, finiteFloat(erosion));
+    }
+
+    /**
+     * Collapse packets carry a target-size scale rather than erosion. The client snapshots
+     * position/size immediately and then owns the detached scene; target death/removal cannot
+     * truncate the visual.
+     */
+    static void soulCollapse(ServerPlayer player, LivingEntity target, int serial) {
+        int visualSerial = serial > 0 ? serial
+                : 0x40000000 ^ player.server.getTickCount() ^ target.getId() * 31;
+        float scale = DeadThoughtVisualMath.scale(target.getBbWidth(), target.getBbHeight());
+        sendPacket(player.serverLevel(), player, target, target.position(),
+                DeadThoughtVisualEvents.SOUL_COLLAPSE, visualSerial, scale);
+    }
+
+    static void tracking(ServerPlayer observer, LivingEntity target, double erosion, boolean broken) {
+        ResourceLocation stage = broken ? DeadThoughtVisualEvents.SOUL_BROKEN
+                : DeadThoughtVisualEvents.STATE;
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> observer), packet(
-                observer, target, target.position(), DeadThoughtVisualEvents.STATE, 0, (float) erosion));
+                observer, target, target.position(), stage, 0, finiteFloat(erosion)));
     }
 
     @SubscribeEvent
@@ -105,6 +125,11 @@ public final class DeadThoughtVisuals {
         return new ModularTechniqueVfxPacket(stage, source.getX(), source.getY(), source.getZ(),
                 end.x, end.y, end.z, source.getYRot(), amount, source.getId(),
                 target == null ? -1 : target.getId(), DeadThoughtVisualMath.LIFETIME, serial);
+    }
+
+    private static float finiteFloat(double value) {
+        if (!Double.isFinite(value)) return Float.MAX_VALUE;
+        return (float) Math.min(Math.max(0.0D, value), Float.MAX_VALUE);
     }
 
     private static final class Cast {
