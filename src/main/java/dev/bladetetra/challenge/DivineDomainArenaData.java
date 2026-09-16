@@ -13,14 +13,15 @@ public final class DivineDomainArenaData {
     public static final int OUTER_RADIUS = 47;
     public static final int HARD_BOUNDARY_RADIUS = 51;
 
-    // The player arrives from the south and looks through the ritual fire toward
-    // the intact central torii. The SlashBlade stand sits directly under the gate.
+    // The player arrives from the south and looks toward the intact central torii.
+    // The SlashBlade stand sits directly under the gate; the offering fire stays
+    // to the player's right so the ritual has a readable rack -> fire movement.
     public static final int ENTRY_X = 0;
     public static final int ENTRY_Z = 18;
     public static final int RACK_X = 0;
     public static final int RACK_Z = -1;
-    public static final int FIRE_X = 0;
-    public static final int FIRE_Z = 5;
+    public static final int FIRE_X = 7;
+    public static final int FIRE_Z = 3;
     public static final int ALTAR_X = 0;
     public static final int ALTAR_Z = 0;
 
