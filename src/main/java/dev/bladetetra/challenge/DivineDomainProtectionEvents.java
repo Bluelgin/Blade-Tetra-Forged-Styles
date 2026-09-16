@@ -18,6 +18,7 @@ import net.minecraftforge.fml.common.Mod;
 /** Protection rules that mirror the boss realms without widening ChallengeManager. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DivineDomainProtectionEvents {
+    static final String FAILED_RETURN = "blade_tetra_divine_failed_return";
     private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
     private static final String DIVINE_ORIGIN_X = "blade_tetra_divine_origin_x";
     private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
@@ -68,6 +69,9 @@ public final class DivineDomainProtectionEvents {
         if (mirror == null) {
             return;
         }
+        // The dimension-change hook uses this one-shot marker so a defeat is not
+        // mistaken for a successful return from a cleared ritual.
+        player.getPersistentData().putBoolean(FAILED_RETURN, true);
         player.getPersistentData().putLong(ChallengeManager.PLAYER_CHALLENGE, challengeId);
         player.getPersistentData().remove(DIVINE_CHALLENGE);
         player.teleportTo(mirror, originX + 163.5D, 64.0D, originZ - 2.5D,
