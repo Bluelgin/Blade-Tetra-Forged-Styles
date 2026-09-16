@@ -13,6 +13,7 @@ public final class ClientVisualConfig {
     public static final ForgeConfigSpec.DoubleValue IAIDO_CAMERA_IMPACT_INTENSITY;
     public static final ForgeConfigSpec.DoubleValue IAIDO_FLASH_INTENSITY;
     public static final ForgeConfigSpec.BooleanValue ENABLE_VOID_SCATTERING_SHADER;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_DEAD_THOUGHT_GRADING;
     public static final ForgeConfigSpec.DoubleValue VOID_SCATTERING_SHADER_INTENSITY;
     public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_MUSIC;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_MUSIC_VOLUME;
@@ -43,6 +44,10 @@ public final class ClientVisualConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         builder.push("visuals");
+        ENABLE_DEAD_THOUGHT_GRADING = builder
+                .comment("Brief, caster-only desaturation for Dead Thought. Off in low VFX quality.",
+                        "Disable for shader-pack compatibility; all 3D effects remain available.")
+                .define("enableDeadThoughtGrading", true);
         ENABLE_EMISSIVE_TEXTURES = builder
                 .comment(
                         "Render a full-bright overlay for luminous materials and awakened soul inscriptions.",
