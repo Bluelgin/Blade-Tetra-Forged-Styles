@@ -12,8 +12,6 @@ import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -52,7 +50,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.common.Tags;
-import org.joml.Vector3f;
 import se.mickelus.tetra.blocks.scroll.ScrollData;
 import se.mickelus.tetra.blocks.scroll.ScrollItem;
 
@@ -337,28 +334,6 @@ public final class BoundaryForging {
                 SoundSource.PLAYERS, 0.34F, 1.25F + index * 0.11F);
     }
 
-    private static void renderGate(ServerLevel level, LivingEntity target,
-            Vec3 fallback, double orientation, int age) {
-        Vec3 center = target.isAlive() ? target.position() : fallback;
-        double targetHeight = target.isAlive() ? target.getBbHeight() : 1.8D;
-        double targetWidth = target.isAlive() ? target.getBbWidth() : 0.6D;
-        double scale = Mth.clamp(Math.max(targetWidth / 1.2D, targetHeight / 3.0D),
-                0.9D, 2.2D);
-        double top = center.y + targetHeight + 6.0D + Math.min(5.0D, targetHeight * 0.5D);
-        double bottom = center.y - 0.3D;
-        double y;
-        if (age < LOCK_TICK) {
-            y = top;
-        } else {
-            double progress = Mth.clamp((age - LOCK_TICK)
-                    / (double) (IMPACT_TICK - LOCK_TICK), 0.0D, 1.0D);
-            double accelerated = progress * progress;
-            y = Mth.lerp(accelerated, top, bottom);
-        }
-        Vec3 right = new Vec3(Math.cos(orientation), 0.0D, Math.sin(orientation));
-        ToriiParticles.render(level, new Vec3(center.x, y, center.z), right, true, scale);
-    }
-
     private static void applySealDamage(ServerLevel level, LivingEntity user,
             LivingEntity target, double attackDamage) {
         if (!target.isAlive() || !canAffect(user, target)) {
@@ -368,11 +343,6 @@ public final class BoundaryForging {
         if (!applied) {
             return;
         }
-        level.sendParticles(new DustParticleOptions(
-                        new Vector3f(0.88F, 0.015F, 0.055F), 1.05F),
-                target.getX(), target.getY() + target.getBbHeight() * 0.55D,
-                target.getZ(), 32, target.getBbWidth() * 0.5D,
-                target.getBbHeight() * 0.35D, target.getBbWidth() * 0.5D, 0.025D);
         level.playSound(null, target.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE,
                 SoundSource.PLAYERS, 0.9F, 0.72F);
     }
@@ -393,16 +363,10 @@ public final class BoundaryForging {
             nearby.hurt(boundaryDamage(level, user), (float) attackDamage);
         }
 
-        level.sendParticles(new DustParticleOptions(
-                        new Vector3f(1.0F, 0.015F, 0.055F), 1.65F),
-                center.x, center.y, center.z, 90,
-                1.8D, 1.15D, 1.8D, 0.12D);
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, center.x, center.y, center.z,
-                30, 1.6D, 1.0D, 1.6D, 0.0D);
         level.playSound(null, net.minecraft.core.BlockPos.containing(center),
-                SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0F, 0.58F);
+                SoundEvents.TRIDENT_RETURN, SoundSource.PLAYERS, 0.95F, 0.58F);
         level.playSound(null, net.minecraft.core.BlockPos.containing(center),
-                SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.4F, 0.48F);
+                SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.25F, 0.56F);
     }
 
     private static void beginSuppressionFlame(ServerLevel level, LivingEntity user,
@@ -439,11 +403,6 @@ public final class BoundaryForging {
                 * FLAME_TOTAL_ATTACK_DAMAGE / FLAME_PULSES)
                 + target.getMaxHealth() * FLAME_MAX_HEALTH_DAMAGE_PER_PULSE;
         target.hurt(flameDamage(level, user), pulseDamage);
-        level.sendParticles(new DustParticleOptions(
-                        new Vector3f(1.0F, 0.025F, 0.015F), 0.86F),
-                target.getX(), target.getY() + target.getBbHeight() * 0.46D,
-                target.getZ(), 8, target.getBbWidth() * 0.34D,
-                target.getBbHeight() * 0.30D, target.getBbWidth() * 0.34D, 0.018D);
     }
 
     private static DamageSource boundaryDamage(ServerLevel level, LivingEntity user) {
@@ -548,9 +507,6 @@ public final class BoundaryForging {
                 swordsLaunched++;
             }
 
-            if (target != null && age <= IMPACT_TICK) {
-                renderGate(level, target, lastCenter, orientation, age);
-            }
             if (!sealDamageApplied && age >= LOCK_TICK) {
                 sealDamageApplied = true;
                 if (target != null) {
