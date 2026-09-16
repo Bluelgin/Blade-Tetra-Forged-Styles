@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -28,9 +29,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -39,7 +38,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,7 +56,6 @@ public final class DivineDomainManager {
     private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
     private static final String DIVINE_ORIGIN_X = "blade_tetra_divine_origin_x";
     private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
-    private static final String RACK_PUPPET = "blade_tetra_divine_rack_puppet";
     private static final Map<Long, Session> SESSIONS = new HashMap<>();
 
     public static void showLore(ServerPlayer player) {
@@ -121,7 +118,7 @@ public final class DivineDomainManager {
         BlockPos entry = DivineDomainArenaData.entry(ox, oz);
         player.teleportTo(divine, entry.getX() + 0.5D, entry.getY() + 0.1D,
                 entry.getZ() + 0.5D, 180.0F, 0.0F);
-        player.sendSystemMessage(Component.literal("神域残响：取下挂刀台上的木偶。")
+        player.sendSystemMessage(Component.literal("神域残响：空手取下挂刀台上的木偶。")
                 .withStyle(ChatFormatting.DARK_RED));
     }
 
@@ -145,33 +142,37 @@ public final class DivineDomainManager {
         }
     }
 
-    @SubscribeEvent
-    public static void onPuppetPickup(EntityItemPickupEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)
-                || !player.level().dimension().equals(DIVINE_REALM)) {
-            return;
+    static boolean isWaitingForPuppet(long challengeId) {
+        Session session = SESSIONS.get(challengeId);
+        return session != null && session.state == State.WAITING_PUPPET;
+    }
+
+    static boolean takePuppetFromStand(ServerPlayer player) {
+        if (!player.level().dimension().equals(DIVINE_REALM)
+                || !player.getPersistentData().contains(DIVINE_CHALLENGE)
+                || !player.getMainHandItem().isEmpty()) {
+            return false;
         }
-        ItemEntity entity = event.getItem();
-        if (!entity.getPersistentData().getBoolean(RACK_PUPPET)) {
-            return;
-        }
-        long id = entity.getPersistentData().getLong(DIVINE_CHALLENGE);
+        long id = player.getPersistentData().getLong(DIVINE_CHALLENGE);
         Session session = SESSIONS.get(id);
         if (session == null || session.state != State.WAITING_PUPPET
                 || !session.players.contains(player.getUUID())) {
-            event.setCanceled(true);
-            return;
+            return false;
         }
+
         long kills = totalSlashBladeKills(player);
         session.kills = kills;
         session.tier = DivineDomainTier.fromKills(kills);
         session.owner = player.getUUID();
         session.state = State.ARMED;
-        entity.setItem(KarmicPuppetItem.snapshot(kills, session.tier, id));
+
+        player.setItemInHand(InteractionHand.MAIN_HAND,
+                KarmicPuppetItem.snapshot(kills, session.tier, id));
         player.sendSystemMessage(Component.literal("木偶记录了 " + kills + " 个刀下亡魂 · "
                 + session.tier.displayName()).withStyle(ChatFormatting.DARK_RED));
-        player.sendSystemMessage(Component.literal("把木偶投入右侧祭火，仪式才会开始。")
+        player.sendSystemMessage(Component.literal("把杀业木偶投入右侧祭火，仪式才会开始。")
                 .withStyle(ChatFormatting.GRAY));
+        return true;
     }
 
     @SubscribeEvent
@@ -285,30 +286,12 @@ public final class DivineDomainManager {
             }
             renderAtmosphere(level);
             switch (state) {
-                case WAITING_PUPPET -> ensureRackPuppet(level);
+                case WAITING_PUPPET -> { }
                 case ARMED -> detectRitualPuppet(level);
                 case IGNITING -> tickIgnition(level);
                 case ACTIVE -> tickEncounter(server, level);
                 case CLEARED -> tickCleared(server, level);
             }
-        }
-
-        void ensureRackPuppet(ServerLevel level) {
-            BlockPos rack = DivineDomainArenaData.rack(originX, originZ);
-            AABB box = new AABB(rack).inflate(1.2D, 1.5D, 1.2D);
-            boolean exists = !level.getEntitiesOfClass(ItemEntity.class, box,
-                    item -> item.getPersistentData().getBoolean(RACK_PUPPET)
-                            && item.getPersistentData().getLong(DIVINE_CHALLENGE) == id).isEmpty();
-            if (exists) return;
-            ItemEntity puppet = new ItemEntity(level, rack.getX() + 0.5D,
-                    rack.getY() + 1.05D, rack.getZ() + 0.5D,
-                    new ItemStack(ModItems.KARMIC_PUPPET.get()));
-            puppet.setNoGravity(true);
-            puppet.setPickUpDelay(0);
-            puppet.setInvulnerable(true);
-            puppet.getPersistentData().putBoolean(RACK_PUPPET, true);
-            puppet.getPersistentData().putLong(DIVINE_CHALLENGE, id);
-            level.addFreshEntity(puppet);
         }
 
         void detectRitualPuppet(ServerLevel level) {
@@ -325,7 +308,7 @@ public final class DivineDomainManager {
             ignitionTicks = 50;
             level.playSound(null, fire, SoundEvents.RESPAWN_ANCHOR_CHARGE,
                     SoundSource.PLAYERS, 1.0F, 0.55F);
-            broadcast(level.getServer(), Component.literal("祭火接受了木偶。杀业正在回响……")
+            broadcast(level.getServer(), Component.literal("祭火接受了杀业木偶。杀业正在回响……")
                     .withStyle(ChatFormatting.DARK_RED));
         }
 
