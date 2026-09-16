@@ -8,6 +8,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.FlintAndSteelItem;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.PistonEvent;
@@ -52,6 +53,20 @@ public final class DivineDomainProtectionEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void recoverAfterReconnect(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                || !player.getPersistentData().contains(DIVINE_CHALLENGE)) {
+            return;
+        }
+        long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
+        int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
+        int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
+        returnAsFailed(player, challengeId, originX, originZ,
+                "神域中的仪式已经中断。御影将你送回了界门。");
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void ritualDefeat(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
@@ -65,18 +80,24 @@ public final class DivineDomainProtectionEvents {
         long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
         int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
         int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
+        returnAsFailed(player, challengeId, originX, originZ,
+                "仪式拒绝了你的死亡。御影将你送回了界门。");
+    }
+
+    private static void returnAsFailed(ServerPlayer player, long challengeId,
+            int originX, int originZ, String message) {
         ServerLevel mirror = player.getServer().getLevel(ChallengeManager.MIRROR_REALM);
         if (mirror == null) {
             return;
         }
-        // The dimension-change hook uses this one-shot marker so a defeat is not
-        // mistaken for a successful return from a cleared ritual.
+        // The dimension-change hook uses this one-shot marker so a defeat or an
+        // interrupted session is never mistaken for a successful cleared return.
         player.getPersistentData().putBoolean(FAILED_RETURN, true);
         player.getPersistentData().putLong(ChallengeManager.PLAYER_CHALLENGE, challengeId);
         player.getPersistentData().remove(DIVINE_CHALLENGE);
         player.teleportTo(mirror, originX + 163.5D, 64.0D, originZ - 2.5D,
                 -90.0F, 0.0F);
-        player.sendSystemMessage(Component.literal("仪式拒绝了你的死亡。御影将你送回了界门。"));
+        player.sendSystemMessage(Component.literal(message));
     }
 
     private DivineDomainProtectionEvents() {
