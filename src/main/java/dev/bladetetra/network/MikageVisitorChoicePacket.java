@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.challenge.ChallengeManager;
+import dev.bladetetra.challenge.DivineDomainManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -22,8 +23,14 @@ public record MikageVisitorChoicePacket(String choice) {
         NetworkEvent.Context context = contextSupplier.get();
         ServerPlayer sender = context.getSender();
         if (sender != null) {
-            context.enqueueWork(() -> ChallengeManager.handleVisitorDialogueChoice(
-                    sender, packet.choice));
+            context.enqueueWork(() -> {
+                switch (packet.choice) {
+                    case "divine_lore" -> DivineDomainManager.showLore(sender);
+                    case "divine_enter" -> DivineDomainManager.tryEnterFromVisitor(sender);
+                    case "divine_back" -> DivineDomainManager.backToTopics(sender);
+                    default -> ChallengeManager.handleVisitorDialogueChoice(sender, packet.choice);
+                }
+            });
         }
         context.setPacketHandled(true);
     }
