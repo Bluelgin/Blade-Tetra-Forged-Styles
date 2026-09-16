@@ -30,7 +30,8 @@ public final class DivineDomainArenaData {
         if (isBuilt(level, originX, originZ)) {
             return;
         }
-        clearVolume(level, originX, originZ);
+        // The dimension generator is intentionally all air. Avoid clearing a huge
+        // volume on first entry; only write the authored arena blocks below.
         buildCentralPlatform(level, originX, originZ);
         buildBrokenRing(level, originX, originZ);
         buildRack(level, originX, originZ);
@@ -62,7 +63,10 @@ public final class DivineDomainArenaData {
     public static BlockPos spawnPoint(int originX, int originZ, int index, int directions) {
         int count = Math.max(2, directions);
         double angle = Math.PI * 2.0D * Math.floorMod(index, count) / count;
-        double radius = 31.0D + (index % 3) * 3.0D;
+        // Combatants appear from multiple directions but stay on the connected
+        // central floor. The broken outer islands remain oppressive scenery rather
+        // than pathfinding traps for melee mobs.
+        double radius = 11.5D + Math.floorMod(index, 3) * 0.65D;
         return new BlockPos(originX + (int) Math.round(Math.cos(angle) * radius),
                 FLOOR_Y + 1,
                 originZ + (int) Math.round(Math.sin(angle) * radius));
@@ -76,20 +80,6 @@ public final class DivineDomainArenaData {
 
     private static BlockPos marker(int originX, int originZ) {
         return new BlockPos(originX, -62, originZ);
-    }
-
-    private static void clearVolume(ServerLevel level, int ox, int oz) {
-        BlockState air = Blocks.AIR.defaultBlockState();
-        for (int x = -HARD_BOUNDARY_RADIUS - 2; x <= HARD_BOUNDARY_RADIUS + 2; x++) {
-            for (int z = -HARD_BOUNDARY_RADIUS - 2; z <= HARD_BOUNDARY_RADIUS + 2; z++) {
-                if (x * x + z * z > (HARD_BOUNDARY_RADIUS + 2) * (HARD_BOUNDARY_RADIUS + 2)) {
-                    continue;
-                }
-                for (int y = FLOOR_Y - 8; y <= FLOOR_Y + 18; y++) {
-                    level.setBlock(new BlockPos(ox + x, y, oz + z), air, 2 | 16);
-                }
-            }
-        }
     }
 
     private static void buildCentralPlatform(ServerLevel level, int ox, int oz) {
