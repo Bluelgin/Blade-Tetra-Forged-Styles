@@ -1,10 +1,14 @@
 package dev.bladetetra.challenge;
 
+import dev.bladetetra.BladeTetra;
 import dev.bladetetra.forging.DeadThoughtDivineImprinting;
 import dev.bladetetra.network.MikageVisitorDialoguePacket;
 import dev.bladetetra.network.ModNetwork;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 
 import java.util.List;
@@ -16,9 +20,28 @@ import java.util.List;
  * touching the ritual state machine. Text is intentionally centralized here while
  * the rest of Mikage's visitor conversation continues to use lang keys.</p>
  */
+@Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class MikageDivineDialogue {
     private static final String NODE = "blade_tetra_mikage_divine_dialogue_node";
     private static final String SEAL_EARNED = "blade_tetra_dead_thought_divine_seal";
+    private static final String DOMAIN_CLEARED = "blade_tetra_divine_domain_cleared";
+
+    @SubscribeEvent
+    public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !event.getFrom().equals(DivineDomainManager.DIVINE_REALM)
+                || !event.getTo().equals(ChallengeManager.MIRROR_REALM)) {
+            return;
+        }
+        if (player.getPersistentData().getBoolean(DivineDomainProtectionEvents.FAILED_RETURN)) {
+            player.getPersistentData().remove(DivineDomainProtectionEvents.FAILED_RETURN);
+            return;
+        }
+        var data = player.getPersistentData();
+        var persisted = data.getCompound(Player.PERSISTED_NBT_TAG);
+        persisted.putBoolean(DOMAIN_CLEARED, true);
+        data.put(Player.PERSISTED_NBT_TAG, persisted);
+    }
 
     public static boolean handleChoice(ServerPlayer player, String choice) {
         if (!choice.startsWith("divine_")) {
@@ -74,7 +97,7 @@ public final class MikageDivineDialogue {
             send(player, "divine_complete1");
         } else if (persisted.getBoolean(SEAL_EARNED)) {
             send(player, "divine_seal1");
-        } else if (persisted.getBoolean("blade_tetra_divine_domain_cleared")) {
+        } else if (persisted.getBoolean(DOMAIN_CLEARED)) {
             send(player, "divine_return1");
         } else {
             send(player, "divine_intro1");
