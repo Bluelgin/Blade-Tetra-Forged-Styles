@@ -1,0 +1,80 @@
+package dev.bladetetra.challenge;
+
+import dev.bladetetra.BladeTetra;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.FlintAndSteelItem;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.PistonEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+/** Protection rules that mirror the boss realms without widening ChallengeManager. */
+@Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public final class DivineDomainProtectionEvents {
+    private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
+    private static final String DIVINE_ORIGIN_X = "blade_tetra_divine_origin_x";
+    private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
+
+    @SubscribeEvent
+    public static void fluidChange(BlockEvent.FluidPlaceBlockEvent event) {
+        if (event.getLevel() instanceof ServerLevel level
+                && level.dimension().equals(DivineDomainManager.DIVINE_REALM)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void piston(PistonEvent.Pre event) {
+        if (event.getLevel() instanceof ServerLevel level
+                && level.dimension().equals(DivineDomainManager.DIVINE_REALM)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void useBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (!event.getLevel().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                || event.getEntity().isCreative()) {
+            return;
+        }
+        if (event.getItemStack().getItem() instanceof BlockItem
+                || event.getItemStack().getItem() instanceof BucketItem
+                || event.getItemStack().getItem() instanceof FlintAndSteelItem) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void ritualDefeat(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                || !player.getPersistentData().contains(DIVINE_CHALLENGE)) {
+            return;
+        }
+        event.setCanceled(true);
+        player.setHealth(1.0F);
+        player.removeAllEffects();
+        long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
+        int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
+        int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
+        ServerLevel mirror = player.getServer().getLevel(ChallengeManager.MIRROR_REALM);
+        if (mirror == null) {
+            return;
+        }
+        player.getPersistentData().putLong(ChallengeManager.PLAYER_CHALLENGE, challengeId);
+        player.getPersistentData().remove(DIVINE_CHALLENGE);
+        player.teleportTo(mirror, originX + 163.5D, 64.0D, originZ - 2.5D,
+                -90.0F, 0.0F);
+        player.sendSystemMessage(Component.literal("仪式拒绝了你的死亡。御影将你送回了界门。"));
+    }
+
+    private DivineDomainProtectionEvents() {
+    }
+}
