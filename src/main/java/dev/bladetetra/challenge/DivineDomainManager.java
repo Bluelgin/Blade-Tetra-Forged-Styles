@@ -111,6 +111,9 @@ public final class DivineDomainManager {
                 ignored -> new Session(challengeId, ox, oz));
         session.players.add(player.getUUID());
         DivineDomainArenaData.build(divine, ox, oz);
+        // Sanitize a persisted ritual stand before its spawn packet reaches the
+        // client. Older PR builds could leave a non-SlashBlade token on it.
+        DivineDomainRitualStand.ensureStand(divine, ox, oz, challengeId);
 
         player.getPersistentData().putLong(DIVINE_CHALLENGE, challengeId);
         player.getPersistentData().putInt(DIVINE_ORIGIN_X, ox);

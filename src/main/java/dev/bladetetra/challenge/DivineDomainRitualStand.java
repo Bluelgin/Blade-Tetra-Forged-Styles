@@ -36,6 +36,7 @@ public final class DivineDomainRitualStand {
     private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
     private static final String RITUAL_STAND = "blade_tetra_divine_ritual_stand";
     private static final String RITUAL_SESSION = "blade_tetra_divine_ritual_session";
+    private static final String RITUAL_DISPLAY = "blade_tetra_divine_ritual_display";
 
     @SubscribeEvent
     public static void serverTick(TickEvent.ServerTickEvent event) {
@@ -63,7 +64,7 @@ public final class DivineDomainRitualStand {
         }
     }
 
-    private static void ensureStand(ServerLevel level, int originX, int originZ, long challengeId) {
+    static void ensureStand(ServerLevel level, int originX, int originZ, long challengeId) {
         BlockPos rack = DivineDomainArenaData.rack(originX, originZ);
         AABB search = new AABB(rack).inflate(1.5D, 2.0D, 1.5D);
         BladeStandEntity stand = level.getEntitiesOfClass(BladeStandEntity.class, search,
@@ -79,11 +80,27 @@ public final class DivineDomainRitualStand {
 
         stand.getPersistentData().putLong(RITUAL_SESSION, challengeId);
         boolean waiting = DivineDomainManager.isWaitingForPuppet(challengeId);
-        if (waiting && !stand.getItem().is(ModItems.KARMIC_PUPPET.get())) {
-            stand.setItem(new ItemStack(ModItems.KARMIC_PUPPET.get()), false);
-        } else if (!waiting && stand.getItem().is(ModItems.KARMIC_PUPPET.get())) {
+        if (waiting && !isSafeRitualDisplay(stand.getItem())) {
+            // BladeStandEntity unconditionally reads SlashBlade's BLADESTATE every
+            // client tick. A normal KarmicPuppetItem here crashes as soon as the
+            // player enters the dimension, so the stand displays a named wooden
+            // blade while interaction still awards the real ritual token.
+            stand.setItem(ritualDisplay(), false);
+        } else if (!waiting && !stand.getItem().isEmpty()) {
             stand.setItem(ItemStack.EMPTY, false);
         }
+    }
+
+    private static ItemStack ritualDisplay() {
+        ItemStack stack = new ItemStack(SlashBladeItems.SLASHBLADE_WOOD.get());
+        stack.setHoverName(Component.literal("无铭木偶"));
+        stack.getOrCreateTag().putBoolean(RITUAL_DISPLAY, true);
+        return stack;
+    }
+
+    private static boolean isSafeRitualDisplay(ItemStack stack) {
+        return stack.is(SlashBladeItems.SLASHBLADE_WOOD.get())
+                && stack.getOrCreateTag().getBoolean(RITUAL_DISPLAY);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -99,7 +116,7 @@ public final class DivineDomainRitualStand {
                 || !(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        if (!stand.getItem().is(ModItems.KARMIC_PUPPET.get())) {
+        if (!isSafeRitualDisplay(stand.getItem())) {
             return;
         }
         if (!player.getMainHandItem().isEmpty()) {
