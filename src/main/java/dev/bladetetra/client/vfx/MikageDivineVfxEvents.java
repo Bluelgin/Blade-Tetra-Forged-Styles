@@ -113,7 +113,7 @@ public final class MikageDivineVfxEvents {
             event.enqueueWork(() -> {
                 for (String kind : new String[]{"array", "wall", "mark", "guard", "binding", "entrance",
                         "dash", "hazard", "anchor_hit", "array_end", "wall_end", "end"})
-                    TechniqueVfxRegistry.register(new ResourceLocation(BladeTetra.MOD_ID, "divine/" + kind), MikageDivineVfxEvents::accept);
+                    TechniqueVfxRegistry.registerDuringSetup(new ResourceLocation(BladeTetra.MOD_ID, "divine/" + kind), MikageDivineVfxEvents::accept);
             });
         }
         @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {

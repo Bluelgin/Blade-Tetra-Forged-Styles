@@ -269,7 +269,7 @@ public final class DeadThoughtVfxClient {
         public static void setup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
                 for (ResourceLocation id : DeadThoughtVisualEvents.ALL)
-                    TechniqueVfxRegistry.register(id, DeadThoughtVfxClient::accept);
+                    TechniqueVfxRegistry.registerDuringSetup(id, DeadThoughtVfxClient::accept);
             });
         }
         @SubscribeEvent
