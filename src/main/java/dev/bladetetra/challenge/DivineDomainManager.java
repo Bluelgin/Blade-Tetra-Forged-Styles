@@ -25,6 +25,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -33,6 +35,9 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
@@ -204,6 +209,32 @@ public final class DivineDomainManager {
         SESSIONS.clear();
     }
 
+    @SubscribeEvent
+    public static void stopping(ServerStoppingEvent event) {
+        ServerLevel level=event.getServer().getLevel(DIVINE_REALM);
+        if(level!=null) for(Session session:SESSIONS.values()) session.cleanup(level);
+        SESSIONS.clear();
+    }
+
+    @SubscribeEvent
+    public static void unloaded(LevelEvent.Unload event) {
+        if(event.getLevel() instanceof ServerLevel level && level.dimension().equals(DIVINE_REALM)) {
+            for(Session session:SESSIONS.values()) session.cleanup(level);
+            SESSIONS.clear();
+        }
+    }
+
+    @SubscribeEvent
+    public static void discardOrphanedHostile(EntityJoinLevelEvent event) {
+        var entity=event.getEntity();
+        if(!event.loadedFromDisk() || !(event.getLevel() instanceof ServerLevel)
+                || !entity.level().dimension().equals(DIVINE_REALM)
+                || !(entity instanceof Mob) || !entity.getPersistentData().contains(DIVINE_CHALLENGE)) return;
+        Session session=SESSIONS.get(entity.getPersistentData().getLong(DIVINE_CHALLENGE));
+        if(session==null || session.state!=State.ACTIVE || !session.enemies.contains(entity.getUUID()))
+            event.setCanceled(true);
+    }
+
     private static MikageEntity visitorGuide(ServerPlayer player) {
         if (!player.level().dimension().equals(ChallengeManager.MIRROR_REALM)) {
             return null;
@@ -242,9 +273,24 @@ public final class DivineDomainManager {
         }
     }
 
-    private enum State { WAITING_PUPPET, ARMED, IGNITING, ACTIVE, CLEARED }
+    enum State { WAITING_PUPPET, ARMED, IGNITING, ACTIVE, CLEARED }
 
-    private static final class Session {
+    static Session activeSession(Entity entity) {
+        if (!(entity.level() instanceof ServerLevel) || !entity.level().dimension().equals(DIVINE_REALM)) return null;
+        for (Session session : SESSIONS.values()) {
+            if (session.state == State.ACTIVE && (session.players.contains(entity.getUUID())
+                    || session.enemies.contains(entity.getUUID()))) return session;
+        }
+        return null;
+    }
+
+    static boolean ownsCompanion(long id, UUID companion) {
+        Session s = SESSIONS.get(id);
+        return s != null && s.state == State.ACTIVE && s.support != null
+                && companion.equals(s.support.companionId());
+    }
+
+    static final class Session {
         final long id;
         final int originX;
         final int originZ;
@@ -259,6 +305,8 @@ public final class DivineDomainManager {
         int nextWaveTicks;
         int pressureTicks;
         boolean rewarded;
+        int reinforcements;
+        MikageDivineSupportManager support;
 
         Session(long id, int originX, int originZ) {
             this.id = id;
@@ -269,7 +317,9 @@ public final class DivineDomainManager {
         void tick(MinecraftServer server, ServerLevel level) {
             players.removeIf(uuid -> {
                 ServerPlayer player = server.getPlayerList().getPlayer(uuid);
-                return player == null || !player.level().dimension().equals(DIVINE_REALM);
+                return player == null || !player.isAlive() || !player.level().dimension().equals(DIVINE_REALM)
+                        || !player.getPersistentData().contains(DIVINE_CHALLENGE)
+                        || player.getPersistentData().getLong(DIVINE_CHALLENGE) != id;
             });
             if (players.isEmpty()) {
                 return;
@@ -321,6 +371,7 @@ public final class DivineDomainManager {
             state = State.ACTIVE;
             nextWaveTicks = 20;
             pressureTicks = tier.pressureIntervalTicks();
+            if (tier.hasSupport()) support = new MikageDivineSupportManager(this, level);
             broadcast(level.getServer(), Component.literal("神域仪式开始 · " + tier.displayName())
                     .withStyle(ChatFormatting.RED));
         }
@@ -330,10 +381,11 @@ public final class DivineDomainManager {
                 Entity entity = level.getEntity(uuid);
                 return !(entity instanceof LivingEntity living) || !living.isAlive();
             });
+            if (support != null) support.tick();
             if (!enemies.isEmpty()) {
-                if (tier.pressureIntervalTicks() > 0 && --pressureTicks <= 0
-                        && enemies.size() < tier.concurrentForWave(Math.max(1, wave)) + 3) {
-                    spawnOne(level, wave, wave + pressureTicks + enemies.size(), false);
+                if (tier.pressureIntervalTicks() > 0 && reinforcements > 0 && --pressureTicks <= 0
+                        && enemies.size() < tier.hostileCap()) {
+                    spawnOne(level, wave, wave * 31 + reinforcements--, false);
                     pressureTicks = tier.pressureIntervalTicks();
                 }
                 return;
@@ -344,6 +396,7 @@ public final class DivineDomainManager {
             }
             if (nextWaveTicks-- > 0) return;
             wave++;
+            reinforcements = tier.reinforcementBudget();
             int count = tier.concurrentForWave(wave);
             for (int i = 0; i < count; i++) {
                 boolean forcedElite = wave == tier.waves() && i == count - 1
@@ -357,19 +410,24 @@ public final class DivineDomainManager {
         }
 
         void spawnOne(ServerLevel level, int waveIndex, int index, boolean forcedElite) {
-            EntityType<? extends Mob> type = selectType(waveIndex, index);
+            if (enemies.size() >= tier.hostileCap()) return;
+            EntityType<? extends Mob> type = forcedElite ? EntityType.WITHER_SKELETON : selectType(waveIndex, index);
             Mob mob = type.create(level);
             if (mob == null) return;
             BlockPos pos = DivineDomainArenaData.spawnPoint(originX, originZ,
                     waveIndex * 17 + index, tier.spawnDirections());
             mob.moveTo(pos.getX() + 0.5D, pos.getY() + 0.2D, pos.getZ() + 0.5D,
                     level.random.nextFloat() * 360.0F, 0.0F);
+            net.minecraftforge.event.ForgeEventFactory.onFinalizeSpawn(mob, level,
+                    level.getCurrentDifficultyAt(pos), MobSpawnType.EVENT, null, null);
+            // This custom dimension is not piglin-safe. Conversion would create an
+            // untracked entity/UUID and escape both the wave cap and Session cleanup.
+            if(mob instanceof AbstractPiglin piglin) piglin.setImmuneToZombification(true);
             mob.setPersistenceRequired();
             mob.getPersistentData().putLong(DIVINE_CHALLENGE, id);
             boolean elite = forcedElite || level.random.nextDouble() < tier.eliteChance();
+            DivineDomainEnemyRole.assign(mob, tier, index, elite, forcedElite);
             if (elite) {
-                mob.setCustomName(Component.literal(forcedElite ? "刀下众生" : "染业亡魂")
-                        .withStyle(ChatFormatting.DARK_RED));
                 mob.setCustomNameVisible(forcedElite);
                 mob.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 20 * 60, 0, false, true));
                 mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 20 * 60, 0, false, true));
@@ -384,11 +442,19 @@ public final class DivineDomainManager {
             }
             if (level.addFreshEntity(mob)) {
                 enemies.add(mob.getUUID());
+                if (forcedElite && support != null) support.setFinalTarget(mob);
             }
         }
 
         EntityType<? extends Mob> selectType(int waveIndex, int index) {
             int selector = Math.floorMod(waveIndex * 3 + index, 7);
+            // Mechanic roles need ground navigation. A Vex ignores Navigation.moveTo and
+            // cannot reliably be assigned the virtual array anchor as its destination.
+            if(tier.hasCompanion()) {
+                int role=Math.floorMod(index,7);
+                if(role==0 || role==1) return EntityType.WITHER_SKELETON;
+                if(role==2) return EntityType.HUSK;
+            }
             if (tier == DivineDomainTier.ECHO) {
                 return selector % 2 == 0 ? EntityType.HUSK : EntityType.STRAY;
             }
@@ -406,6 +472,7 @@ public final class DivineDomainManager {
 
         void clear(MinecraftServer server, ServerLevel level) {
             state = State.CLEARED;
+            if (support != null) { support.close(); support = null; }
             if (!rewarded) {
                 rewarded = true;
                 for (UUID uuid : Set.copyOf(players)) {
@@ -485,6 +552,7 @@ public final class DivineDomainManager {
         }
 
         void cleanup(ServerLevel level) {
+            if (support != null) { support.close(); support = null; }
             for (UUID uuid : enemies) {
                 Entity entity = level.getEntity(uuid);
                 if (entity != null) entity.discard();

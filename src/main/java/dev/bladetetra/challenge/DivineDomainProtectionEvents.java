@@ -74,6 +74,12 @@ public final class DivineDomainProtectionEvents {
                 || !player.getPersistentData().contains(DIVINE_CHALLENGE)) {
             return;
         }
+        DivineDomainManager.Session session = DivineDomainManager.activeSession(player);
+        if (session != null && session.support != null && (session.support.protectedPlayer(player) || session.support.guard(player))) {
+            if(player.getHealth()<=0) player.setHealth(1);
+            event.setCanceled(true);
+            return;
+        }
         event.setCanceled(true);
         player.setHealth(1.0F);
         player.removeAllEffects();

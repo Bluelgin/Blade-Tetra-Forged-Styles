@@ -9,8 +9,8 @@ public enum DivineDomainTier {
     ECHO("残响", 0L, 2, 3, 0.00D, 2, 0),
     GRUDGE("怨聚", 51L, 3, 4, 0.10D, 3, 0),
     HUNDRED_GHOSTS("百鬼", 201L, 4, 5, 0.18D, 4, 100),
-    ASURA("修罗", 501L, 5, 6, 0.28D, 6, 72),
-    AVICI("无间", 1001L, 6, 7, 0.38D, 8, 52);
+    ASURA("修罗", 501L, 5, 8, 0.33D, 8, 72),
+    AVICI("无间", 1001L, 6, 10, 0.40D, 8, 52);
 
     private final String displayName;
     private final long minimumKills;
@@ -56,8 +56,14 @@ public enum DivineDomainTier {
     }
 
     public int concurrentForWave(int wave) {
-        return baseConcurrent + Math.max(0, wave - 1) / 2;
+        return Math.min(this == ASURA ? 10 : this == AVICI ? 12 : 10,
+                baseConcurrent + Math.max(0, wave - 1) / 2);
     }
+
+    public int hostileCap() { return this == AVICI ? 20 : this == ASURA ? 16 : 12; }
+    public int reinforcementBudget() { return this == AVICI ? 12 : this == ASURA ? 8 : this == HUNDRED_GHOSTS ? 4 : 0; }
+    public boolean hasSupport() { return ordinal() >= HUNDRED_GHOSTS.ordinal(); }
+    public boolean hasCompanion() { return ordinal() >= ASURA.ordinal(); }
 
     public double eliteChance() {
         return eliteChance;
