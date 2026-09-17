@@ -1,139 +1,58 @@
 package dev.bladetetra.challenge;
 
 import dev.bladetetra.BladeTetra;
-import dev.bladetetra.registry.ModItems;
-import mods.flammpfeil.slashblade.entity.BladeStandEntity;
-import mods.flammpfeil.slashblade.registry.SlashBladeItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.AABB;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
- * Keeps the Divine Domain ritual puppet on a real SlashBlade blade stand.
- * The stand is locked to ritual use: players may only remove the displayed
- * unsigned puppet with an empty main hand while the session is waiting.
+ * Handles the Divine Domain ritual altar.
+ *
+ * <p>The altar is intentionally independent from SlashBlade's BladeStandEntity.
+ * Interacting with the altar while a session is waiting hands the player the
+ * session-bound karmic mirror and freezes their total SlashBlade kill count at
+ * that exact moment.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DivineDomainRitualStand {
-    private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
-    private static final String DIVINE_ORIGIN_X = "blade_tetra_divine_origin_x";
-    private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
-    private static final String RITUAL_STAND = "blade_tetra_divine_ritual_stand";
-    private static final String RITUAL_SESSION = "blade_tetra_divine_ritual_session";
-    private static final String RITUAL_DISPLAY = "blade_tetra_divine_ritual_display";
-
-    @SubscribeEvent
-    public static void serverTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.getServer().getTickCount() % 5 != 0) {
-            return;
-        }
-        ServerLevel divine = event.getServer().getLevel(DivineDomainManager.DIVINE_REALM);
-        if (divine == null) {
-            return;
-        }
-        Set<Long> checkedSessions = new HashSet<>();
-        for (ServerPlayer player : divine.players()) {
-            if (!player.getPersistentData().contains(DIVINE_CHALLENGE)
-                    || !player.getPersistentData().contains(DIVINE_ORIGIN_X)
-                    || !player.getPersistentData().contains(DIVINE_ORIGIN_Z)) {
-                continue;
-            }
-            long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
-            if (!checkedSessions.add(challengeId)) {
-                continue;
-            }
-            int ox = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
-            int oz = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
-            ensureStand(divine, ox, oz, challengeId);
-        }
-    }
-
-    static void ensureStand(ServerLevel level, int originX, int originZ, long challengeId) {
-        BlockPos rack = DivineDomainArenaData.rack(originX, originZ);
-        AABB search = new AABB(rack).inflate(1.5D, 2.0D, 1.5D);
-        BladeStandEntity stand = level.getEntitiesOfClass(BladeStandEntity.class, search,
-                candidate -> candidate.getPersistentData().getBoolean(RITUAL_STAND))
-                .stream().findFirst().orElse(null);
-        if (stand == null) {
-            stand = BladeStandEntity.createInstanceFromPos(level, rack,
-                    Direction.SOUTH, SlashBladeItems.BLADESTAND_2.get());
-            stand.setInvulnerable(true);
-            stand.getPersistentData().putBoolean(RITUAL_STAND, true);
-            level.addFreshEntity(stand);
-        }
-
-        stand.getPersistentData().putLong(RITUAL_SESSION, challengeId);
-        boolean waiting = DivineDomainManager.isWaitingForPuppet(challengeId);
-        if (waiting && !isSafeRitualDisplay(stand.getItem())) {
-            // BladeStandEntity unconditionally reads SlashBlade's BLADESTATE every
-            // client tick. A normal KarmicPuppetItem here crashes as soon as the
-            // player enters the dimension, so the stand displays a named wooden
-            // blade while interaction still awards the real ritual token.
-            stand.setItem(ritualDisplay(), false);
-        } else if (!waiting && !stand.getItem().isEmpty()) {
-            stand.setItem(ItemStack.EMPTY, false);
-        }
-    }
-
-    private static ItemStack ritualDisplay() {
-        ItemStack stack = new ItemStack(SlashBladeItems.SLASHBLADE_WOOD.get());
-        stack.setHoverName(Component.literal("无铭木偶"));
-        stack.getOrCreateTag().putBoolean(RITUAL_DISPLAY, true);
-        return stack;
-    }
-
-    private static boolean isSafeRitualDisplay(ItemStack stack) {
-        return stack.is(SlashBladeItems.SLASHBLADE_WOOD.get())
-                && stack.getOrCreateTag().getBoolean(RITUAL_DISPLAY);
-    }
-
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void protectStand(PlayerInteractEvent.EntityInteract event) {
-        if (!(event.getTarget() instanceof BladeStandEntity stand)
-                || !stand.getPersistentData().getBoolean(RITUAL_STAND)) {
+    public static void takeOffering(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide
+                || event.getHand() != InteractionHand.MAIN_HAND
+                || !(event.getEntity() instanceof ServerPlayer player)
+                || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                || !player.getPersistentData().contains("blade_tetra_divine_challenge")) {
+            return;
+        }
+
+        int ox = player.getPersistentData().getInt("blade_tetra_divine_origin_x");
+        int oz = player.getPersistentData().getInt("blade_tetra_divine_origin_z");
+        BlockPos altar = DivineDomainArenaData.altar(ox, oz);
+        BlockPos clicked = event.getPos();
+        if (!clicked.equals(altar) && !clicked.equals(altar.above())) {
             return;
         }
 
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
-        if (event.getLevel().isClientSide || event.getHand() != InteractionHand.MAIN_HAND
-                || !(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-        if (!isSafeRitualDisplay(stand.getItem())) {
-            return;
-        }
         if (!player.getMainHandItem().isEmpty()) {
-            player.displayClientMessage(Component.literal("空手取下木偶。")
+            player.displayClientMessage(Component.literal("空手触碰祭坛中央的业镜。")
                     .withStyle(ChatFormatting.GRAY), true);
             return;
         }
-        if (!player.getPersistentData().contains(DIVINE_CHALLENGE)) {
-            return;
-        }
-        long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
-        if (stand.getPersistentData().getLong(RITUAL_SESSION) != challengeId) {
-            return;
-        }
-        if (DivineDomainManager.takePuppetFromStand(player)) {
-            stand.setItem(ItemStack.EMPTY, false);
-            stand.playSound(SoundEvents.ITEM_FRAME_REMOVE_ITEM, 1.0F, 1.0F);
+
+        if (DivineDomainManager.takeOfferingFromAltar(player)) {
+            player.level().playSound(null, altar, SoundEvents.AMETHYST_BLOCK_CHIME,
+                    SoundSource.PLAYERS, 0.9F, 0.65F);
         }
     }
 
