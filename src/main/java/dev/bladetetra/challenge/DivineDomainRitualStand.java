@@ -24,18 +24,24 @@ import net.minecraftforge.fml.common.Mod;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DivineDomainRitualStand {
+    private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
+    private static final String DIVINE_ORIGIN_X = "blade_tetra_divine_origin_x";
+    private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void takeOffering(PlayerInteractEvent.RightClickBlock event) {
         if (event.getLevel().isClientSide
                 || event.getHand() != InteractionHand.MAIN_HAND
                 || !(event.getEntity() instanceof ServerPlayer player)
                 || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
-                || !player.getPersistentData().contains("blade_tetra_divine_challenge")) {
+                || !player.getPersistentData().contains(DIVINE_CHALLENGE)
+                || !player.getPersistentData().contains(DIVINE_ORIGIN_X)
+                || !player.getPersistentData().contains(DIVINE_ORIGIN_Z)) {
             return;
         }
 
-        int ox = player.getPersistentData().getInt("blade_tetra_divine_origin_x");
-        int oz = player.getPersistentData().getInt("blade_tetra_divine_origin_z");
+        int ox = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
+        int oz = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
         BlockPos altar = DivineDomainArenaData.altar(ox, oz);
         BlockPos clicked = event.getPos();
         if (!clicked.equals(altar) && !clicked.equals(altar.above())) {
