@@ -105,24 +105,13 @@ public final class DivineDomainRitualStand {
             return;
         }
 
-        // The manager still owns the authoritative snapshot/session transition.
-        // Its legacy method name is kept until the PR is fully rebased; behavior
-        // is now altar -> snapshot item rather than blade stand -> puppet.
-        if (DivineDomainManager.takePuppetFromStand(player)) {
-            levelFeedback(player, altar);
-            // Removing the crystal makes the pickup visually readable while the
-            // permanent lodestone altar remains in place.
+        if (DivineDomainManager.takeOfferingFromAltar(player)) {
+            player.level().playSound(null, altar, SoundEvents.AMETHYST_BLOCK_CHIME,
+                    SoundSource.PLAYERS, 0.9F, 0.65F);
+            // Pickup has a visible world-state change: the altar remains, while
+            // the dormant crystal representing the unclaimed mirror disappears.
             player.level().setBlock(altar.above(), Blocks.AIR.defaultBlockState(), 2 | 16);
         }
-    }
-
-    private static void levelFeedback(ServerPlayer player, BlockPos altar) {
-        player.level().playSound(null, altar, SoundEvents.AMETHYST_BLOCK_CHIME,
-                SoundSource.PLAYERS, 0.9F, 0.65F);
-        player.sendSystemMessage(Component.literal("业镜已映照你此刻携带的全部拔刀剑杀业。")
-                .withStyle(ChatFormatting.DARK_RED));
-        player.sendSystemMessage(Component.literal("将业镜投入右侧祭火，仪式便会开始。")
-                .withStyle(ChatFormatting.GRAY));
     }
 
     private DivineDomainRitualStand() {
