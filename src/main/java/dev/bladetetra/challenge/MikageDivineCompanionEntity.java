@@ -24,50 +24,116 @@ public final class MikageDivineCompanionEntity extends PathfinderMob {
     private long session;
     private int recover;
     private int actionUntil;
+
     public MikageDivineCompanionEntity(EntityType<? extends PathfinderMob> type, Level level) {
-        super(type, level); setPersistenceRequired(); setCanPickUpLoot(false);
+        super(type, level);
+        setPersistenceRequired();
+        setCanPickUpLoot(false);
     }
-    @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(ACTION, 0); }
+
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        entityData.define(ACTION, 0);
+    }
+
     public void bind(long id) {
         session = id;
-        setItemSlot(EquipmentSlot.MAINHAND,ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
-        setDropChance(EquipmentSlot.MAINHAND,0);
+        setItemSlot(EquipmentSlot.MAINHAND, ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+        setDropChance(EquipmentSlot.MAINHAND, 0);
     }
+
     public void pose(int pose) {
-        if(pose==0 && tickCount<actionUntil) return;
+        if (pose == 0 && tickCount < actionUntil) {
+            return;
+        }
         entityData.set(ACTION, pose);
-        if(pose!=0) actionUntil=tickCount+(pose==2?10:20);
-    }
-    public int pose() { return entityData.get(ACTION); }
-    public boolean recovering() { return recover > 0; }
-    @Override public void tick() {
-        super.tick();
-        if (!level().isClientSide) {
-            if (!DivineDomainManager.ownsCompanion(session, getUUID())) { discard(); return; }
-            if(tickCount>=actionUntil) pose(0);
-            if (recover > 0) { getNavigation().stop(); recover--; pose(4); if (recover == 0) { setHealth(getMaxHealth()); pose(0); } }
+        if (pose != 0) {
+            actionUntil = tickCount + (pose == 2 ? 10 : 20);
         }
     }
-    @Override public boolean hurt(DamageSource source, float amount) {
-        if (level().isClientSide || recover > 0 || source.getEntity() == null
-                || DivineDomainManager.activeSession(source.getEntity()) == null) return false;
-        var s = DivineDomainManager.activeSession(source.getEntity());
-        if (s.id != session || !s.enemies.contains(source.getEntity().getUUID())) return false;
+
+    public int pose() {
+        return entityData.get(ACTION);
+    }
+
+    public boolean recovering() {
+        return recover > 0;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (!level().isClientSide) {
+            if (!DivineDomainManager.ownsCompanion(session, getUUID())) {
+                discard();
+                return;
+            }
+            if (tickCount >= actionUntil) {
+                pose(0);
+            }
+            if (recover > 0) {
+                getNavigation().stop();
+                recover--;
+                pose(4);
+                if (recover == 0) {
+                    setHealth(getMaxHealth());
+                    pose(0);
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean hurt(DamageSource source, float amount) {
+        var attacker = source.getEntity();
+        if (level().isClientSide || recover > 0 || attacker == null) {
+            return false;
+        }
+        var activeSession = DivineDomainManager.activeSession(attacker);
+        if (activeSession == null || activeSession.id != session
+                || !activeSession.enemies.contains(attacker.getUUID())) {
+            return false;
+        }
         float hit = Math.min(12, amount);
-        if (hit >= getHealth()) { setHealth(1); recover = 100; return true; }
+        if (hit >= getHealth()) {
+            setHealth(1);
+            recover = 100;
+            return true;
+        }
         return super.hurt(source, hit);
     }
-    @Override protected boolean shouldDespawnInPeaceful() { return false; }
-    @Override public boolean removeWhenFarAway(double distance) { return false; }
-    @Override public boolean shouldBeSaved() { return false; }
-    public static AttributeSupplier.Builder attributes() {
-        return createMobAttributes().add(Attributes.MAX_HEALTH, 100).add(Attributes.MOVEMENT_SPEED,.29)
-                .add(Attributes.ATTACK_DAMAGE,3).add(Attributes.ARMOR,12).add(Attributes.KNOCKBACK_RESISTANCE,.8);
+
+    @Override
+    protected boolean shouldDespawnInPeaceful() {
+        return false;
     }
-    @Mod.EventBusSubscriber(modid=BladeTetra.MOD_ID,bus=Mod.EventBusSubscriber.Bus.MOD)
+
+    @Override
+    public boolean removeWhenFarAway(double distance) {
+        return false;
+    }
+
+    @Override
+    public boolean shouldBeSaved() {
+        return false;
+    }
+
+    public static AttributeSupplier.Builder attributes() {
+        return createMobAttributes()
+                .add(Attributes.MAX_HEALTH, 100)
+                .add(Attributes.MOVEMENT_SPEED, .29)
+                .add(Attributes.ATTACK_DAMAGE, 3)
+                .add(Attributes.ARMOR, 12)
+                .add(Attributes.KNOCKBACK_RESISTANCE, .8);
+    }
+
+    @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class Registration {
-        @SubscribeEvent public static void attributes(EntityAttributeCreationEvent event) {
-            event.put(ModEntities.MIKAGE_DIVINE_COMPANION.get(), MikageDivineCompanionEntity.attributes().build());
+        @SubscribeEvent
+        public static void attributes(EntityAttributeCreationEvent event) {
+            event.put(ModEntities.MIKAGE_DIVINE_COMPANION.get(),
+                    MikageDivineCompanionEntity.attributes().build());
         }
     }
 }

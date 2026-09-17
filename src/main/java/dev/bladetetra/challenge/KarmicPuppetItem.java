@@ -42,7 +42,8 @@ public final class KarmicPuppetItem extends Item {
 
     static boolean hasSnapshot(ItemStack stack) {
         return stack.is(dev.bladetetra.registry.ModItems.KARMIC_PUPPET.get())
-                && stack.getOrCreateTag().getBoolean(TAG_SNAPSHOT);
+                && stack.hasTag()
+                && stack.getTag().getBoolean(TAG_SNAPSHOT);
     }
 
     private static int modelData(DivineDomainTier tier) {
@@ -58,9 +59,10 @@ public final class KarmicPuppetItem extends Item {
     @Override
     public Component getName(ItemStack stack) {
         if (hasSnapshot(stack)) {
+            var tag = stack.getTag();
             DivineDomainTier tier;
             try {
-                tier = DivineDomainTier.valueOf(stack.getOrCreateTag().getString(TAG_TIER));
+                tier = DivineDomainTier.valueOf(tag.getString(TAG_TIER));
             } catch (IllegalArgumentException ignored) {
                 tier = DivineDomainTier.ECHO;
             }
@@ -73,7 +75,7 @@ public final class KarmicPuppetItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
         if (hasSnapshot(stack)) {
-            tooltip.add(Component.literal("映照杀业：" + stack.getOrCreateTag().getLong(TAG_KILLS))
+            tooltip.add(Component.literal("映照杀业：" + stack.getTag().getLong(TAG_KILLS))
                     .withStyle(ChatFormatting.DARK_RED));
             tooltip.add(Component.literal("取镜的一刻，刀下亡魂已被定格。")
                     .withStyle(ChatFormatting.GRAY));

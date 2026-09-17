@@ -23,6 +23,7 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class MikageDivineDialogue {
     private static final String NODE = "blade_tetra_mikage_divine_dialogue_node";
+    private static final String DIVINE_CHALLENGE = "blade_tetra_divine_challenge";
     private static final String SEAL_EARNED = "blade_tetra_dead_thought_divine_seal";
     private static final String DOMAIN_CLEARED = "blade_tetra_divine_domain_cleared";
 
@@ -35,6 +36,13 @@ public final class MikageDivineDialogue {
         }
         if (player.getPersistentData().getBoolean(DivineDomainProtectionEvents.FAILED_RETURN)) {
             player.getPersistentData().remove(DivineDomainProtectionEvents.FAILED_RETURN);
+            return;
+        }
+        // Only the explicit successful-return path restores the visitor challenge
+        // and clears the Divine-Domain marker before teleporting. Commands or
+        // third-party teleporters must not accidentally unlock the return dialogue.
+        if (!player.getPersistentData().contains(ChallengeManager.PLAYER_CHALLENGE)
+                || player.getPersistentData().contains(DIVINE_CHALLENGE)) {
             return;
         }
         var data = player.getPersistentData();
@@ -72,8 +80,13 @@ public final class MikageDivineDialogue {
         }
 
         if (choice.equals("divine_enter") && canEnterFrom(current)) {
-            player.getPersistentData().remove(NODE);
             DivineDomainManager.tryEnterFromVisitor(player);
+            // Failed preconditions leave the current dialogue usable so the player
+            // can retry or back out instead of being stranded with an empty NODE.
+            if (player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                    && player.getPersistentData().contains(DIVINE_CHALLENGE)) {
+                player.getPersistentData().remove(NODE);
+            }
             return true;
         }
         if (choice.equals("divine_back") && canLeaveDialogueFrom(current)) {

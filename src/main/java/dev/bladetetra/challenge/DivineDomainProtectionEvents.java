@@ -53,7 +53,24 @@ public final class DivineDomainProtectionEvents {
         }
     }
 
-    @SubscribeEvent
+    /**
+     * Divine Domain deliberately removes the ordinary visitor tag during the hop.
+     * Restore it before ChallengeManager's logout hook runs so that its existing
+     * reconnect grace can expire the parked visitor participant instead of leaking
+     * that challenge/arena slot forever when somebody disconnects in the ritual.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void prepareVisitorReconnect(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
+                || !player.getPersistentData().contains(DIVINE_CHALLENGE)) {
+            return;
+        }
+        player.getPersistentData().putLong(ChallengeManager.PLAYER_CHALLENGE,
+                player.getPersistentData().getLong(DIVINE_CHALLENGE));
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void recoverAfterReconnect(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
                 || !player.level().dimension().equals(DivineDomainManager.DIVINE_REALM)
@@ -75,8 +92,11 @@ public final class DivineDomainProtectionEvents {
             return;
         }
         DivineDomainManager.Session session = DivineDomainManager.activeSession(player);
-        if (session != null && session.support != null && (session.support.protectedPlayer(player) || session.support.guard(player))) {
-            if(player.getHealth()<=0) player.setHealth(1);
+        if (session != null && session.support != null
+                && (session.support.protectedPlayer(player) || session.support.guard(player))) {
+            if (player.getHealth() <= 0) {
+                player.setHealth(1);
+            }
             event.setCanceled(true);
             return;
         }
