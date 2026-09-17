@@ -111,8 +111,8 @@ public final class DivineDomainManager {
                 ignored -> new Session(challengeId, ox, oz));
         session.players.add(player.getUUID());
         DivineDomainArenaData.build(divine, ox, oz);
-        // Sanitize a persisted ritual stand before its spawn packet reaches the
-        // client. Older PR builds could leave a non-SlashBlade token on it.
+        // Restore the standalone ritual altar and migrate away any blade stand
+        // left by early PR builds before the client enters the dimension.
         DivineDomainRitualStand.ensureStand(divine, ox, oz, challengeId);
 
         player.getPersistentData().putLong(DIVINE_CHALLENGE, challengeId);
@@ -126,7 +126,7 @@ public final class DivineDomainManager {
         BlockPos entry = DivineDomainArenaData.entry(ox, oz);
         player.teleportTo(divine, entry.getX() + 0.5D, entry.getY() + 0.1D,
                 entry.getZ() + 0.5D, 180.0F, 0.0F);
-        player.sendSystemMessage(Component.literal("神域残响：空手取下挂刀台上的木偶。")
+        player.sendSystemMessage(Component.literal("神域残响：空手触碰中央祭坛，取出业镜。")
                 .withStyle(ChatFormatting.DARK_RED));
     }
 
@@ -155,7 +155,7 @@ public final class DivineDomainManager {
         return session != null && session.state == State.WAITING_PUPPET;
     }
 
-    static boolean takePuppetFromStand(ServerPlayer player) {
+    static boolean takeOfferingFromAltar(ServerPlayer player) {
         if (!player.level().dimension().equals(DIVINE_REALM)
                 || !player.getPersistentData().contains(DIVINE_CHALLENGE)
                 || !player.getMainHandItem().isEmpty()) {
@@ -168,6 +168,8 @@ public final class DivineDomainManager {
             return false;
         }
 
+        // Freeze the sum at pickup time. Later weapon switching, inventory edits,
+        // or additional kills cannot change this ritual's tier.
         long kills = totalSlashBladeKills(player);
         session.kills = kills;
         session.tier = DivineDomainTier.fromKills(kills);
@@ -176,11 +178,16 @@ public final class DivineDomainManager {
 
         player.setItemInHand(InteractionHand.MAIN_HAND,
                 KarmicPuppetItem.snapshot(kills, session.tier, id));
-        player.sendSystemMessage(Component.literal("木偶记录了 " + kills + " 个刀下亡魂 · "
+        player.sendSystemMessage(Component.literal("业镜映照了 " + kills + " 个刀下亡魂 · "
                 + session.tier.displayName()).withStyle(ChatFormatting.DARK_RED));
-        player.sendSystemMessage(Component.literal("把杀业木偶投入右侧祭火，仪式才会开始。")
+        player.sendSystemMessage(Component.literal("把业镜投入右侧祭火，仪式才会开始。")
                 .withStyle(ChatFormatting.GRAY));
         return true;
+    }
+
+    /** Legacy branch compatibility for tests or code compiled against early PR revisions. */
+    static boolean takePuppetFromStand(ServerPlayer player) {
+        return takeOfferingFromAltar(player);
     }
 
     @SubscribeEvent
@@ -361,7 +368,7 @@ public final class DivineDomainManager {
             ignitionTicks = 50;
             level.playSound(null, fire, SoundEvents.RESPAWN_ANCHOR_CHARGE,
                     SoundSource.PLAYERS, 1.0F, 0.55F);
-            broadcast(level.getServer(), Component.literal("祭火接受了杀业木偶。杀业正在回响……")
+            broadcast(level.getServer(), Component.literal("祭火接受了业镜。杀业正在回响……")
                     .withStyle(ChatFormatting.DARK_RED));
         }
 
