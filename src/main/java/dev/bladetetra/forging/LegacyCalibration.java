@@ -46,23 +46,25 @@ public final class LegacyCalibration {
     }
 
     /**
-     * Version 1.5 renders named fittings from the catalog profile and no longer
-     * consumes a complete calibration snapshot from every blade. Old snapshots
-     * could retain every fitting ever installed and grow once addons supplied
-     * more named blades, so remove that redundant copy as soon as the item is
-     * loaded in a player inventory. The player's learned records, Tetra module
-     * variants and legacy identifiers remain untouched.
+     * Compacts historical per-blade calibration copies and upgrades the 1.5.x
+     * per-source Tetra variants to V2's two generic variants. Both migrations are
+     * deliberately local to Blade Tetra stacks and preserve unknown addon ids as
+     * soft references so removing an addon cannot invalidate player data.
      */
     public static boolean migrateStack(ItemStack stack) {
         return stack != null && migrateStackTag(stack.getTag());
     }
 
     public static boolean migrateStackTag(CompoundTag stackTag) {
-        if (stackTag == null || !stackTag.contains(STACK_ROOT)) {
+        if (stackTag == null) {
             return false;
         }
-        stackTag.remove(STACK_ROOT);
-        return true;
+        boolean changed = NamedLegacyImprintStorage.migrateStackTag(stackTag);
+        if (stackTag.contains(STACK_ROOT)) {
+            stackTag.remove(STACK_ROOT);
+            changed = true;
+        }
+        return changed;
     }
 
     /** Kept as a binary-safe bridge for development integrations from older builds. */
@@ -70,8 +72,6 @@ public final class LegacyCalibration {
     public static void attachKnownProfiles(ItemStack stack, Player player) {
         migrateStack(stack);
     }
-
-
 
     @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {

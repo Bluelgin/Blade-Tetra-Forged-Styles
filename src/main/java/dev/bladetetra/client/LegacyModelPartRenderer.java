@@ -79,6 +79,10 @@ public final class LegacyModelPartRenderer {
         if (!supports(target)) {
             return;
         }
+        // Gameplay identity is semantic. Rendering applies the optional client geometry
+        // capability at this boundary so an unsupported provider falls back visually
+        // without changing affinity, durability or orthodox ability ownership.
+        parts = NamedLegacyParts.visualFromStack(event.getStack());
         event.setCanceled(true);
         if ("sheath".equals(target)) {
             renderPart(event, parts.saya(), Part.SAYA, target,
@@ -112,7 +116,7 @@ public final class LegacyModelPartRenderer {
     private static void renderPart(RenderOverrideEvent event,
             LegacyImprintKind kind, Part part, String target,
             ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
-        NamedLegacyParts installedParts = NamedLegacyParts.fromStack(event.getStack());
+        NamedLegacyParts installedParts = NamedLegacyParts.visualFromStack(event.getStack());
         if (part == Part.TSUKA && installedParts.tsuba() != null) return;
         if (part == Part.TSUBA && kind != null) part = Part.HILT;
         boolean inherited = kind != null;
@@ -121,7 +125,7 @@ public final class LegacyModelPartRenderer {
                 : event.getOriginalModel();
         if (inherited) register(source, kind.model());
         LegacyCalibrationProfile profile = inherited
-                ? kind.defaultProfile()
+                ? kind.visualProfile()
                 : LegacyCalibrationProfile.DEFAULT;
         WavefrontObject view = view(source, target, part, profile);
         if (view == null) {
@@ -582,7 +586,6 @@ public final class LegacyModelPartRenderer {
     public record Validation(int tsubaFaces, int tsukaFaces, int sayaFaces,
             boolean overlaps, boolean valid) {
     }
-
 
     private static List<Face> selectIcon(WavefrontObject source, String target,
             Part requested, LegacyCalibrationProfile profile) {
