@@ -115,7 +115,7 @@ public final class LegacyImprinting {
         BladeStandEntity stand = level.getEntitiesOfClass(
                         BladeStandEntity.class,
                         standColumn(clickedPos),
-                        candidate -> identify(candidate.getItem()) != null)
+                        candidate -> LegacyResearchability.identify(candidate.getItem()) != null)
                 .stream()
                 .min(java.util.Comparator.comparingDouble(candidate ->
                         Math.abs(candidate.getY() - (clickedPos.getY() + 1.15D))))
@@ -128,7 +128,7 @@ public final class LegacyImprinting {
             return InteractionResult.FAIL;
         }
 
-        LegacyImprintKind kind = identify(stand.getItem());
+        LegacyImprintKind kind = LegacyResearchability.identify(stand.getItem());
         LOGGER.info("Legacy imprinting recognized {} on blade stand {}", kind.id(), stand.getId());
         Booster booster = Booster.find(player.getInventory());
         CompoundTag session = new CompoundTag();
@@ -178,7 +178,8 @@ public final class LegacyImprinting {
         } catch (IllegalArgumentException exception) {
             return;
         }
-        if (kind == null || !kind.equals(identify(stand.getItem())) || !consumeBlankScroll(player)) {
+        if (kind == null || !kind.equals(LegacyResearchability.identify(stand.getItem()))
+                || !consumeBlankScroll(player)) {
             return;
         }
 
@@ -241,16 +242,6 @@ public final class LegacyImprinting {
         return new AABB(
                 workbench.getX() - 0.20D, workbench.getY() + 0.75D, workbench.getZ() - 0.20D,
                 workbench.getX() + 1.20D, workbench.getY() + 2.60D, workbench.getZ() + 1.20D);
-    }
-
-    private static LegacyImprintKind identify(ItemStack stack) {
-        if (!(stack.getItem() instanceof ItemSlashBlade)) {
-            return null;
-        }
-        return stack.getCapability(ItemSlashBlade.BLADESTATE)
-                .resolve()
-                .map(state -> LegacyImprintKind.fromTranslationKey(state.getTranslationKey()))
-                .orElse(null);
     }
 
     private record Booster(ResourceLocation item, int bonus, boolean protects) {
