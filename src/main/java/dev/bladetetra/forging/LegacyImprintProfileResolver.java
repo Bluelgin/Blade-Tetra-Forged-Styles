@@ -5,8 +5,8 @@ import java.util.function.Function;
 
 /**
  * Side-neutral bridge for optional client geometry resolution.
- * Dedicated servers always use the catalog profile and consider metadata-backed
- * imprints valid. The physical client may install a lazy Wavefront resolver.
+ * Dedicated servers always use pure catalog metadata. A physical client may
+ * install a lazy Wavefront resolver, but that resolver is presentation-only.
  */
 public final class LegacyImprintProfileResolver {
     public record Resolution(LegacyCalibrationProfile profile, boolean visualUsable,
@@ -18,7 +18,7 @@ public final class LegacyImprintProfileResolver {
     }
 
     private static final Function<LegacyImprintKind, Resolution> DEFAULT = kind ->
-            new Resolution(kind.rawDefaultProfile(), true, "server metadata");
+            new Resolution(kind.defaultProfile(), true, "metadata fallback");
     private static volatile Function<LegacyImprintKind, Resolution> resolver = DEFAULT;
 
     public static Resolution resolve(LegacyImprintKind kind) {
@@ -28,10 +28,10 @@ public final class LegacyImprintProfileResolver {
         try {
             Resolution result = resolver.apply(kind);
             return result == null
-                    ? new Resolution(kind.rawDefaultProfile(), false, "resolver returned null")
+                    ? new Resolution(kind.defaultProfile(), false, "resolver returned null")
                     : result;
         } catch (RuntimeException exception) {
-            return new Resolution(kind.rawDefaultProfile(), false,
+            return new Resolution(kind.defaultProfile(), false,
                     exception.getClass().getSimpleName());
         }
     }
