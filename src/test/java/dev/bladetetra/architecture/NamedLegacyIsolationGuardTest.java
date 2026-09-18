@@ -44,4 +44,31 @@ class NamedLegacyIsolationGuardTest {
         assertTrue(storage.contains("sourceFromSchematic"),
                 "Existing per-blade schematic ids should feed the generic NBT identity bridge");
     }
+
+    @Test
+    void clientGeometryCannotLeakIntoIntegratedServerSemantics() throws IOException {
+        String clientResolver = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/LegacyClientModelAnalysis.java"));
+        assertTrue(clientResolver.contains("!minecraft.isSameThread()"),
+                "Integrated-server threads must fall back before touching client resources");
+        assertTrue(clientResolver.contains("non-client thread metadata"),
+                "The cross-thread fallback should stay explicitly metadata-only");
+
+        String calibration = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/LegacyCalibration.java"));
+        assertFalse(calibration.contains("kind.defaultProfile()"),
+                "Persistent/gameplay calibration fallbacks must never invoke client geometry");
+        assertTrue(calibration.contains("kind.rawDefaultProfile()"));
+    }
+
+    @Test
+    void modelAdapterConflictsAreQuarantinedInsteadOfLastWriterWins() throws IOException {
+        String adapters = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/LegacyModelAdapter.java"));
+        assertTrue(adapters.contains("Set<ResourceLocation> ambiguous"));
+        assertTrue(adapters.contains("output.remove(model)"),
+                "A conflicting provider must remove the ambiguous adapter mapping");
+        assertFalse(adapters.contains("if (location != null) output.put(location, adapter)"),
+                "Adapter conflicts must not silently depend on ModList iteration order");
+    }
 }
