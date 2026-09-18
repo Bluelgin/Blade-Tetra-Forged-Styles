@@ -7,14 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LegacyResearchabilityTest {
     @Test
-    void intactNamedBladeStateCanBeResearched() {
+    void intactAndAuthoredSealedStatesRemainResearchable() {
         assertTrue(LegacyResearchability.stateAllowsResearch(false, false));
+        assertTrue(LegacyResearchability.stateAllowsResearch(false, true));
     }
 
     @Test
-    void brokenOrSealedStateCannotBeResearched() {
+    void brokenStateCannotAliasAnIntactCatalogEntry() {
         assertFalse(LegacyResearchability.stateAllowsResearch(true, false));
-        assertFalse(LegacyResearchability.stateAllowsResearch(false, true));
         assertFalse(LegacyResearchability.stateAllowsResearch(true, true));
     }
 }
