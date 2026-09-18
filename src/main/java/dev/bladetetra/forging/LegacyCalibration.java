@@ -30,7 +30,7 @@ public final class LegacyCalibration {
         CompoundTag root = player.getPersistentData().getCompound(PLAYER_ROOT);
         return root.contains(kind.id(), Tag.TAG_COMPOUND)
                 ? LegacyCalibrationProfile.read(root.getCompound(kind.id()))
-                : kind.rawDefaultProfile();
+                : kind.defaultProfile();
     }
 
     public static LegacyCalibrationProfile fromStack(ItemStack stack,
@@ -42,7 +42,7 @@ public final class LegacyCalibration {
         String key = kind.id();
         return root.contains(key, Tag.TAG_COMPOUND)
                 ? LegacyCalibrationProfile.read(root.getCompound(key))
-                : kind.rawDefaultProfile();
+                : kind.defaultProfile();
     }
 
     /**
