@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.billboard;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.texturedRibbon;
+
 /** Textured, crossed world-space ribbons for Raikiri's chain circuit. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -160,42 +163,6 @@ public final class RaikiriVfxClient {
                         effect.color);
             }
         }
-    }
-
-    private static void texturedRibbon(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 start, Vec3 end, Vec3 halfWidth, float alpha, int color) {
-        textureVertex(buffer, matrix, start.add(halfWidth), 0.0F, 0.0F, alpha, color);
-        textureVertex(buffer, matrix, start.subtract(halfWidth), 0.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, end.subtract(halfWidth), 1.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, end.add(halfWidth), 1.0F, 0.0F, alpha, color);
-    }
-
-    private static void billboard(Matrix4f matrix, Vec3 camera, Vec3 center,
-            double halfSize, float alpha, int color) {
-        Vec3 facing = camera.subtract(center);
-        if (facing.lengthSqr() < 0.001D) facing = new Vec3(0, 0, 1);
-        facing = facing.normalize();
-        Vec3 right = new Vec3(0, 1, 0).cross(facing);
-        if (right.lengthSqr() < 0.001D) right = new Vec3(1, 0, 0);
-        right = right.normalize().scale(halfSize);
-        Vec3 up = facing.cross(right).normalize().scale(halfSize);
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        textureVertex(buffer, matrix, center.subtract(right).add(up), 0, 0, alpha, color);
-        textureVertex(buffer, matrix, center.subtract(right).subtract(up), 0, 1, alpha, color);
-        textureVertex(buffer, matrix, center.add(right).subtract(up), 1, 1, alpha, color);
-        textureVertex(buffer, matrix, center.add(right).add(up), 1, 0, alpha, color);
-        Tesselator.getInstance().end();
-    }
-
-    private static void textureVertex(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 position, float u, float v, float alpha, int color) {
-        int red = color >> 16 & 0xFF;
-        int green = color >> 8 & 0xFF;
-        int blue = color & 0xFF;
-        buffer.vertex(matrix, (float) position.x, (float) position.y, (float) position.z)
-                .uv(u, v).color(red, green, blue,
-                        Mth.clamp(Math.round(alpha * 255.0F), 0, 255)).endVertex();
     }
 
     private static final class ArcEffect {
