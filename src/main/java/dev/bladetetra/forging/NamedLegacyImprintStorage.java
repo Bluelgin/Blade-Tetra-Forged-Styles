@@ -104,11 +104,18 @@ public final class NamedLegacyImprintStorage {
         if (part == null || tag == null) {
             return false;
         }
+
+        // Tetra invokes crafting effects after the schematic has produced the upgraded
+        // stack. Use that final module state as the source of truth. An unrelated
+        // refinement/enchantment schematic may operate on the same saya/tsuba slot
+        // without replacing our generic module; such a craft must retain the existing
+        // source identity. Only an actual replacement clears it.
+        boolean genericInstalled = genericVariantInstalled(tag, part);
         String source = sourceFromSchematic(schematicKey, part);
-        if (source == null) {
-            return clearSource(tag, part);
+        if (source != null) {
+            return genericInstalled ? putSource(tag, part, source) : clearSource(tag, part);
         }
-        return putSource(tag, part, source);
+        return genericInstalled ? false : clearSource(tag, part);
     }
 
     public static String sourceFromSchematic(String schematicKey, String part) {
@@ -156,6 +163,12 @@ public final class NamedLegacyImprintStorage {
             tag.put(ROOT, root);
         }
         return true;
+    }
+
+    private static boolean genericVariantInstalled(CompoundTag tag, String part) {
+        String module = tag.getString("slashblade/" + part);
+        return !module.isEmpty()
+                && genericVariant(part).equals(tag.getString(module + "_material"));
     }
 
     private static boolean validPart(String part) {
