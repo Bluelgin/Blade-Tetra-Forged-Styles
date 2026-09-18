@@ -52,8 +52,7 @@ public final class LegacyClientModelAnalysis {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> clear());
     }
 
-    public static synchronized LegacyImprintProfileResolver.Resolution resolve(
-            LegacyImprintKind kind) {
+    public static LegacyImprintProfileResolver.Resolution resolve(LegacyImprintKind kind) {
         // A physical client and its integrated server share one JVM, so the side-neutral
         // resolver function is visible to both threads. Geometry is a client presentation
         // concern: never touch Minecraft resources or SlashBlade's client model manager
@@ -64,12 +63,17 @@ public final class LegacyClientModelAnalysis {
                     kind.rawDefaultProfile(), true, "non-client thread metadata");
         }
 
-        String key = kind.id() + "|" + kind.model() + "|" + kind.texture();
-        LegacyImprintProfileResolver.Resolution cached = CACHE.get(key);
-        if (cached != null) return cached;
-        LegacyImprintProfileResolver.Resolution result = analyze(kind);
-        CACHE.put(key, result);
-        return result;
+        // Keep the integrated-server fast path outside this lock. A large client model may
+        // take noticeable time to inspect, but it must never stall the logical server while
+        // waiting for the presentation cache.
+        synchronized (CACHE) {
+            String key = kind.id() + "|" + kind.model() + "|" + kind.texture();
+            LegacyImprintProfileResolver.Resolution cached = CACHE.get(key);
+            if (cached != null) return cached;
+            LegacyImprintProfileResolver.Resolution result = analyze(kind);
+            CACHE.put(key, result);
+            return result;
+        }
     }
 
     private static LegacyImprintProfileResolver.Resolution analyze(LegacyImprintKind kind) {
@@ -182,8 +186,10 @@ public final class LegacyClientModelAnalysis {
         return new LegacyImprintProfileResolver.Resolution(fallback, false, reason);
     }
 
-    public static synchronized void clear() {
-        CACHE.clear();
+    public static void clear() {
+        synchronized (CACHE) {
+            CACHE.clear();
+        }
     }
 
     private static final class Range {
