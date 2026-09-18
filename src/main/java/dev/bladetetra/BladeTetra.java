@@ -19,6 +19,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import se.mickelus.tetra.craftingeffect.CraftingEffectRegistry;
 
@@ -30,12 +31,9 @@ public final class BladeTetra {
         SoulFusionRequirement.register();
         dev.bladetetra.compat.LegacyPatternRequirement.register();
         LegacyFusionRequirement.register();
-        CraftingEffectRegistry.registerConditionType(
-                "blade_tetra:legacy_imprint_slot", LegacyImprintCraftingCondition.class);
-        CraftingEffectRegistry.registerEffectType(
-                "blade_tetra:apply_legacy_imprint_identity", LegacyImprintCraftingOutcome.class);
 
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modBus.addListener(BladeTetra::commonSetup);
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.SERVER,
                 GameplayConfig.SPEC,
@@ -55,5 +53,14 @@ public final class BladeTetra {
         ModSlashBladeAbilities.SLASH_ARTS.register(modBus);
         ModSlashBladeAbilities.SPECIAL_EFFECTS.register(modBus);
         ModNetwork.register();
+    }
+
+    private static void commonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            CraftingEffectRegistry.registerConditionType(
+                    "blade_tetra:legacy_imprint_slot", LegacyImprintCraftingCondition.class);
+            CraftingEffectRegistry.registerEffectType(
+                    "blade_tetra:apply_legacy_imprint_identity", LegacyImprintCraftingOutcome.class);
+        });
     }
 }
