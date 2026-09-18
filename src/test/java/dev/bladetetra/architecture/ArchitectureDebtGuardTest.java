@@ -65,6 +65,10 @@ class ArchitectureDebtGuardTest {
                 "src/main/java/dev/bladetetra/challenge/ChallengeManager.java"));
         assertTrue(source.contains("cleanupOrphanedRealmEntities(mirror);"),
                 "Old challenge-session entities should be cleaned once when the realms become available");
+        assertTrue(source.contains("if (entity instanceof MikageEntity)"),
+                "Startup cleanup must discard Mikage entities from process-local sessions that no longer exist");
+        assertTrue(source.contains("blade_tetra_mikage_attack"),
+                "Startup cleanup must retain the authored Mikage-attack marker fallback");
         long fullRealmScans = source.lines()
                 .filter(line -> line.contains("mirror.getAllEntities()"))
                 .count();
@@ -72,6 +76,15 @@ class ArchitectureDebtGuardTest {
                 "ChallengeManager must not scan every entity in the mirror realm on a recurring tick");
         assertFalse(source.contains("List<MikageEntity> orphaned = new ArrayList<>()"),
                 "Recurring orphan lists indicate the old once-per-second full-dimension scan returned");
+
+        long challengeClosures = source.lines()
+                .filter(line -> line.contains("closed = true;"))
+                .count();
+        long arenaAttackCleanups = source.lines()
+                .filter(line -> line.contains("cleanupChallengeAttacks(mirror, this);"))
+                .count();
+        assertTrue(arenaAttackCleanups >= challengeClosures,
+                "Every challenge closure path must clean arena-scoped summoned attacks now that the recurring realm scan is gone");
     }
 
     @Test
