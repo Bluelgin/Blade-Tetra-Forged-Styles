@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.challenge.ChallengeManager;
+import dev.bladetetra.challenge.MikageDivineDialogue;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -22,8 +23,11 @@ public record MikageVisitorChoicePacket(String choice) {
         NetworkEvent.Context context = contextSupplier.get();
         ServerPlayer sender = context.getSender();
         if (sender != null) {
-            context.enqueueWork(() -> ChallengeManager.handleVisitorDialogueChoice(
-                    sender, packet.choice));
+            context.enqueueWork(() -> {
+                if (!MikageDivineDialogue.handleChoice(sender, packet.choice)) {
+                    ChallengeManager.handleVisitorDialogueChoice(sender, packet.choice);
+                }
+            });
         }
         context.setPacketHandled(true);
     }

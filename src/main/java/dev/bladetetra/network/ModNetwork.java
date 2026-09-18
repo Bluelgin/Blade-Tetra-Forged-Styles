@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "10";
+    private static final String PROTOCOL = "11";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -17,6 +17,9 @@ public final class ModNetwork {
             PROTOCOL::equals);
 
     public static void register() {
+        CHANNEL.registerMessage(16, DivineSupportStatePacket.class, DivineSupportStatePacket::encode,
+                DivineSupportStatePacket::decode, DivineSupportStatePacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(
                 0,
                 IaidoImpactPacket.class,

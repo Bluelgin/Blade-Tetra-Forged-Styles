@@ -52,6 +52,8 @@ public final class BladeTechniqueVfxClient {
             "slashblade", "model/util/slashdim.obj");
     private static final ResourceLocation SLASH_DIM_TEXTURE = new ResourceLocation(
             "slashblade", "model/util/slashdim.png");
+    private static final MultiBufferSource.BufferSource MODEL_BUFFERS =
+            MultiBufferSource.immediate(new BufferBuilder(256 * 1024));
     private static final List<Effect> EFFECTS = new ArrayList<>();
     private static int cameraTicks;
     private static int cameraTotal;
@@ -475,7 +477,7 @@ public final class BladeTechniqueVfxClient {
                 || e.type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT
                 || e.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_MARK
                 || e.type == BladeTechniqueVfxPacket.TWIN_FOX_PURSUIT_CROSS)) return;
-        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(256));
+        MultiBufferSource.BufferSource buffers = MODEL_BUFFERS;
         try {
             for (Effect effect : EFFECTS) {
                 boolean impact = effect.type == BladeTechniqueVfxPacket.TWIN_FOX_MOONHUNT_IMPACT;
@@ -502,8 +504,7 @@ public final class BladeTechniqueVfxClient {
         if (EFFECTS.stream().noneMatch(effect ->
                 effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_YASHA
                         || effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU)) return;
-        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(
-                new BufferBuilder(512));
+        MultiBufferSource.BufferSource buffers = MODEL_BUFFERS;
         try {
             for (Effect effect : EFFECTS) {
                 float t = Mth.clamp((effect.age + partialTick) / effect.duration,
@@ -532,8 +533,7 @@ public final class BladeTechniqueVfxClient {
         if (EFFECTS.stream().noneMatch(effect ->
                 effect.type == BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU)) return;
         WavefrontObject model = BladeModelManager.getInstance().getModel(SLASH_DIM_MODEL);
-        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(
-                new BufferBuilder(384));
+        MultiBufferSource.BufferSource buffers = MODEL_BUFFERS;
         try {
             for (Effect effect : EFFECTS) {
                 if (effect.type != BladeTechniqueVfxPacket.TWIN_PHASE_KIKOUKU) continue;
@@ -634,7 +634,7 @@ public final class BladeTechniqueVfxClient {
         if (!present) return;
 
         WavefrontObject model = BladeModelManager.getInstance().getModel(SLASH_DIM_MODEL);
-        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(256));
+        MultiBufferSource.BufferSource buffers = MODEL_BUFFERS;
         for (Effect effect : EFFECTS) {
             if (effect.type != BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON
                     && effect.type != BladeTechniqueVfxPacket.AKATSUKI_FINAL_MOON_END) continue;

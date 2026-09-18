@@ -93,6 +93,15 @@ public enum LegacyFusion {
     }
 
     public static LegacyFusion active(ItemStack stack) {
+        // The Divine Domain route does not fake SJAP fittings on the blade. Instead,
+        // its one-time imprint records that this blade independently reached the same
+        // Dead Thought inheritance. All existing combat/ability code can therefore
+        // share the exact same authored identity and never fork into a second version.
+        LegacyFusion divineIdentity = DeadThoughtDivineLegacy.identity(
+                DeadThoughtDivineLegacy.isBound(stack));
+        if (divineIdentity != null) {
+            return divineIdentity;
+        }
         LegacyFusion installed = installed(stack);
         return installed != null && installed.isAttuned(stack) ? installed : null;
     }

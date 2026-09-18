@@ -36,6 +36,21 @@ public final class TechniqueVfxRegistry {
     }
 
     /**
+     * Lifecycle-safe registration for automatic client setup subscribers. Forge can
+     * replay queued setup work during a recovered resource reload in userdev; the
+     * first handler remains authoritative instead of turning that replay into a
+     * broken mod state. Explicit API callers still use {@link #register} and retain
+     * strict duplicate detection.
+     */
+    static synchronized void registerDuringSetup(
+            ResourceLocation effectId,
+            Consumer<TechniqueVfxData> handler) {
+        Objects.requireNonNull(effectId, "effectId");
+        Objects.requireNonNull(handler, "handler");
+        HANDLERS.putIfAbsent(effectId, handler);
+    }
+
+    /**
      * Dispatches one visual packet. Unknown ids are deliberately ignored after
      * a debug message so an optional addon being removed cannot crash a client.
      */

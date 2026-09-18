@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/echo_shard"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 1 }, "model": "blade_tetra:item/karmic_mirror_echo" },
+    { "predicate": { "custom_model_data": 2 }, "model": "blade_tetra:item/karmic_mirror_grudge" },
+    { "predicate": { "custom_model_data": 3 }, "model": "blade_tetra:item/karmic_mirror_hundred_ghosts" },
+    { "predicate": { "custom_model_data": 4 }, "model": "blade_tetra:item/karmic_mirror_asura" },
+    { "predicate": { "custom_model_data": 5 }, "model": "blade_tetra:item/karmic_mirror_avici" }
+  ]
+}

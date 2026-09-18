@@ -18,22 +18,31 @@ public record MikageVisitorDialoguePacket(String nodeId, String textKey,
 
     public static void encode(MikageVisitorDialoguePacket packet, FriendlyByteBuf buffer) {
         buffer.writeUtf(packet.nodeId, 64);
-        buffer.writeUtf(packet.textKey, 192);
+        buffer.writeUtf(packet.textKey, 512);
         buffer.writeUtf(packet.voiceEvent, 192);
         buffer.writeUtf(packet.expression, 64);
-        buffer.writeVarInt(packet.options.size());
-        for (Option option : packet.options) {
+        List<Option> options = packet.nodeId.equals("topics")
+                && packet.options.stream().noneMatch(option -> option.id.equals("divine_lore"))
+                ? appendDivineTopic(packet.options) : packet.options;
+        buffer.writeVarInt(options.size());
+        for (Option option : options) {
             buffer.writeUtf(option.id, 64);
             buffer.writeUtf(option.labelKey, 192);
         }
     }
 
+    private static List<Option> appendDivineTopic(List<Option> original) {
+        List<Option> result = new ArrayList<>(original);
+        result.add(new Option("divine_lore", "关于神域"));
+        return List.copyOf(result);
+    }
+
     public static MikageVisitorDialoguePacket decode(FriendlyByteBuf buffer) {
         String nodeId = buffer.readUtf(64);
-        String textKey = buffer.readUtf(192);
+        String textKey = buffer.readUtf(512);
         String voiceEvent = buffer.readUtf(192);
         String expression = buffer.readUtf(64);
-        int size = Math.min(buffer.readVarInt(), 8);
+        int size = Math.min(buffer.readVarInt(), 10);
         List<Option> options = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             options.add(new Option(buffer.readUtf(64), buffer.readUtf(192)));

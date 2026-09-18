@@ -10,6 +10,8 @@ import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
 import dev.bladetetra.challenge.BrokenOniMaskItem;
 import dev.bladetetra.challenge.BoundaryGateCharmItem;
+import dev.bladetetra.challenge.DeadThoughtSoulSealItem;
+import dev.bladetetra.challenge.KarmicPuppetItem;
 import dev.bladetetra.challenge.SwordGhostRemnantItem;
 import dev.bladetetra.forging.ForgingScrolls;
 import dev.bladetetra.lore.SmithingLore;
@@ -43,6 +45,10 @@ public final class ModItems {
             ITEMS.register("sword_ghost_remnant", SwordGhostRemnantItem::new);
     public static final RegistryObject<BrokenOniMaskItem> BROKEN_ONI_MASK =
             ITEMS.register("broken_oni_mask", BrokenOniMaskItem::new);
+    public static final RegistryObject<KarmicPuppetItem> KARMIC_PUPPET =
+            ITEMS.register("karmic_puppet", KarmicPuppetItem::new);
+    public static final RegistryObject<DeadThoughtSoulSealItem> DEAD_THOUGHT_SOUL_SEAL =
+            ITEMS.register("dead_thought_soul_seal", DeadThoughtSoulSealItem::new);
     public static final RegistryObject<LegacyDebugTalismanItem>
             LEGACY_DEBUG_TALISMAN = ITEMS.register(
                     "legacy_debug_talisman",
@@ -66,9 +72,7 @@ public final class ModItems {
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_SAKURA =
             registerSayaPattern("saya_pattern_sakura", SayaPresetSkin.SAKURA);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_PURPLE_LIGHTNING =
-            registerSayaPattern(
-                    "saya_pattern_purple_lightning",
-                    SayaPresetSkin.PURPLE_LIGHTNING);
+            registerSayaPattern("saya_pattern_purple_lightning", SayaPresetSkin.PURPLE_LIGHTNING);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_AKATSUKI =
             registerSayaPattern("saya_pattern_akatsuki", SayaPresetSkin.AKATSUKI);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_KYOUKA =
@@ -85,6 +89,8 @@ public final class ModItems {
                         output.accept(BOUNDARY_GATE_CHARM.get());
                         output.accept(SWORD_GHOST_REMNANT.get());
                         output.accept(BROKEN_ONI_MASK.get());
+                        output.accept(KARMIC_PUPPET.get());
+                        output.accept(DEAD_THOUGHT_SOUL_SEAL.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
                         output.accept(LEGACY_IMPRINT_SCROLL.get());
