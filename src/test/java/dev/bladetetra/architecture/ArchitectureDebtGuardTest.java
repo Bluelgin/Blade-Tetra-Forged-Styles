@@ -60,6 +60,21 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void challengeRealmMaintenanceDoesNotRegressToRecurringFullScans() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/ChallengeManager.java"));
+        assertTrue(source.contains("cleanupOrphanedRealmEntities(mirror);"),
+                "Old challenge-session entities should be cleaned once when the realms become available");
+        long fullRealmScans = source.lines()
+                .filter(line -> line.contains("mirror.getAllEntities()"))
+                .count();
+        assertTrue(fullRealmScans <= 1,
+                "ChallengeManager must not scan every entity in the mirror realm on a recurring tick");
+        assertFalse(source.contains("List<MikageEntity> orphaned = new ArrayList<>()"),
+                "Recurring orphan lists indicate the old once-per-second full-dimension scan returned");
+    }
+
+    @Test
     void legacyIntegerTechniquePacketIsFrozenForNewVisualFamilies() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/network/BladeTechniqueVfxPacket.java"));
