@@ -293,6 +293,13 @@ public final class StyleCombatHandler {
         }
 
         CompoundTag data = entity.getPersistentData();
+        boolean modularBlade = entity.getMainHandItem().getItem() instanceof ModularSlashBladeItem;
+        boolean hasIaidoState = hasIaidoTickState(data);
+        boolean hasBrokenStanceState = hasBrokenStanceTickState(data);
+        if (!modularBlade && !hasIaidoState && !hasBrokenStanceState) {
+            return;
+        }
+
         long now = entity.level().getGameTime();
         if (data.contains(IAIDO_TARGET_UNTIL, Tag.TAG_LONG)
                 && data.getLong(IAIDO_TARGET_UNTIL) < now) {
@@ -307,26 +314,50 @@ public final class StyleCombatHandler {
                 && data.getLong(IAIDO_FEEDBACK_UNTIL) < now) {
             clearIaidoFeedback(data);
         }
-        if (data.getLong(IAIDO_DRAW_POWER_UNTIL) < now) {
+        if (data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)
+                && data.getLong(IAIDO_DRAW_POWER_UNTIL) < now) {
             data.remove(IAIDO_DRAW_MULTIPLIER);
             data.remove(IAIDO_DRAW_POWER_UNTIL);
             data.remove(IAIDO_DRAW_SLASH_COUNT);
         }
-        if (data.getLong(IAIDO_SPACING_UNTIL) < now) {
+        if (data.contains(IAIDO_SPACING_UNTIL, Tag.TAG_LONG)
+                && data.getLong(IAIDO_SPACING_UNTIL) < now) {
             data.remove(IAIDO_SPACING);
             data.remove(IAIDO_SPACING_UNTIL);
         }
-        if (data.getLong(IAIDO_DEFLECT_UNTIL) < now) {
+        if (data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)
+                && data.getLong(IAIDO_DEFLECT_UNTIL) < now) {
             data.remove(IAIDO_DEFLECT_UNTIL);
         }
-        if (data.getLong(IAIDO_DISRUPTED_UNTIL) < now) {
+        if (data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)
+                && data.getLong(IAIDO_DISRUPTED_UNTIL) < now) {
             data.remove(IAIDO_DISRUPTED_UNTIL);
         }
         if (data.contains(BROKEN_STANCE_UNTIL, Tag.TAG_LONG)
                 && data.getLong(BROKEN_STANCE_UNTIL) < now) {
             clearBrokenStance(data);
         }
-        updateIaidoReadiness(entity, data, now);
+        if (modularBlade || hasIaidoState) {
+            updateIaidoReadiness(entity, data, now);
+        }
+    }
+
+    private static boolean hasIaidoTickState(CompoundTag data) {
+        return data.contains(IAIDO_TARGET_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_READY_SINCE, Tag.TAG_LONG)
+                || data.contains(IAIDO_PERFECT_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_FEEDBACK_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_SPACING_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)
+                || data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)
+                || data.getBoolean(IAIDO_CHAIN_ACTIVE);
+    }
+
+    private static boolean hasBrokenStanceTickState(CompoundTag data) {
+        return data.contains(BROKEN_STANCE_UNTIL, Tag.TAG_LONG)
+                || data.contains(BROKEN_STANCE_READY, Tag.TAG_LONG)
+                || data.hasUUID(BROKEN_STANCE_OWNER);
     }
 
     private static void applyBrokenStance(LivingHurtEvent event) {
