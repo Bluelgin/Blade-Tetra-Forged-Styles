@@ -101,7 +101,7 @@ public final class LegacyModelAnalysis {
             float[] vertex = vertices.get(index);
             float t = (adapter.coordinate(vertex[0], vertex[1], vertex[2]) - min) / length;
             if (!Float.isFinite(t) || t < .55F || t > .94F) continue;
-            float radius = Math.abs(vertex[1]) + Math.abs(vertex[2]);
+            float radius = radial(vertex, adapter.axis());
             if (Float.isFinite(radius) && radius > best) {
                 best = radius;
                 center = t;
@@ -119,6 +119,14 @@ public final class LegacyModelAnalysis {
 
     private static Result unusable(boolean saya) {
         return new Result(LegacyCalibrationProfile.DEFAULT, saya, false);
+    }
+
+    private static float radial(float[] vertex, LegacyModelAdapter.Axis axis) {
+        return switch (axis) {
+            case X -> Math.abs(vertex[1]) + Math.abs(vertex[2]);
+            case Y -> Math.abs(vertex[0]) + Math.abs(vertex[2]);
+            case Z -> Math.abs(vertex[0]) + Math.abs(vertex[1]);
+        };
     }
 
     private static Float finite(String value) {
