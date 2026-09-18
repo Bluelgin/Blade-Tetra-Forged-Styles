@@ -12,11 +12,16 @@ public record LegacyImprintKind(String id, ResourceLocation name,
         List<ResourceLocation> specialEffects) {
     public LegacyImprintKind {
         specialEffects = specialEffects == null ? List.of() : List.copyOf(specialEffects);
+        defaultProfile = defaultProfile == null
+                ? LegacyCalibrationProfile.DEFAULT : defaultProfile.normalized();
     }
+
     public static final LegacyImprintKind BLACK_FOX = fox("black");
     public static final LegacyImprintKind WHITE_FOX = fox("white");
+
     private static LegacyImprintKind fox(String color) {
-        return new LegacyImprintKind("fox_" + color, new ResourceLocation("slashblade", "fox_" + color),
+        return new LegacyImprintKind("fox_" + color,
+                new ResourceLocation("slashblade", "fox_" + color),
                 new ResourceLocation("slashblade", "model/named/sange/sange.obj"),
                 new ResourceLocation("slashblade", "model/named/sange/" + color + ".png"),
                 "slashblade:proudsoul_crystal", LegacyCalibrationProfile.DEFAULT,
@@ -24,17 +29,47 @@ public record LegacyImprintKind(String id, ResourceLocation name,
                 color.equals("black") ? new ResourceLocation("slashblade", "piercing") : null,
                 List.of());
     }
-    public String translationKey() { return "item." + name.getNamespace() + "." + name.getPath(); }
-    public String schematic(String part) { return "slashblade/legacy_auto/" + id + "/" + part; }
-    public String improvement() { return "blade_tetra/legacy_auto/" + id; }
+
+    /** Client may refine the catalog profile lazily from SlashBlade's loaded model. */
+    @Override
+    public LegacyCalibrationProfile defaultProfile() {
+        return LegacyImprintProfileResolver.resolve(this).profile();
+    }
+
+    /** Stable server/catalog profile that never invokes client geometry. */
+    public LegacyCalibrationProfile rawDefaultProfile() {
+        return defaultProfile;
+    }
+
+    public boolean visualUsable() {
+        return LegacyImprintProfileResolver.resolve(this).visualUsable();
+    }
+
+    public String visualFailureReason() {
+        return LegacyImprintProfileResolver.resolve(this).reason();
+    }
+
+    public String translationKey() {
+        return "item." + name.getNamespace() + "." + name.getPath();
+    }
+
+    public String schematic(String part) {
+        return "slashblade/legacy_auto/" + id + "/" + part;
+    }
+
+    public String improvement() {
+        return "blade_tetra/legacy_auto/" + id;
+    }
+
     public boolean supportsOrthodoxInheritance() {
         return slashArt != null || !specialEffects.isEmpty();
     }
+
     public static LegacyImprintKind fromTranslationKey(String key) {
         if (key == null) return null;
         return NamedLegacyCatalog.values().stream().filter(value ->
                 key.equals(value.translationKey()) || key.equals(value.name.toString())
-                || key.equals(value.name.getNamespace() + "." + value.name.getPath()))
+                        || key.equals(value.name.getNamespace() + "." + value.name.getPath()))
                 .findFirst().orElse(null);
     }
 }

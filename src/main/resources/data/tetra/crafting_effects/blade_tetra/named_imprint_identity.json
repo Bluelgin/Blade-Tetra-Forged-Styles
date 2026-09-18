@@ -1,0 +1,12 @@
+{
+  "replace": true,
+  "active": true,
+  "requirement": {
+    "type": "blade_tetra:legacy_imprint_slot"
+  },
+  "outcomes": [
+    {
+      "type": "blade_tetra:apply_legacy_imprint_identity"
+    }
+  ]
+}

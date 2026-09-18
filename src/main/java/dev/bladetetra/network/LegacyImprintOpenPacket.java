@@ -1,6 +1,6 @@
 package dev.bladetetra.network;
 
-import dev.bladetetra.client.LegacyImprintScreen;
+import dev.bladetetra.client.LegacyImprintClient;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -27,7 +27,7 @@ public record LegacyImprintOpenPacket(String kind, int booster, boolean protecte
             Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> LegacyImprintScreen.open(packet)));
+                () -> () -> LegacyImprintClient.open(packet)));
         context.setPacketHandled(true);
     }
 }

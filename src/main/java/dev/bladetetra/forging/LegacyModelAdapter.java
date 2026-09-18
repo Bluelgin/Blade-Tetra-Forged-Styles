@@ -63,7 +63,11 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
     }
 
     public float coordinate(float x, float y, float z) {
-        float value = switch (axis) { case X -> x; case Y -> y; case Z -> z; };
+        float value = switch (axis) {
+            case X -> x;
+            case Y -> y;
+            case Z -> z;
+        };
         return reversed ? -value : value;
     }
 
@@ -74,12 +78,13 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
     private static void load() {
         Map<ResourceLocation, LegacyModelAdapter> result = new LinkedHashMap<>();
         for (var info : ModList.get().getModFiles()) {
-            Path root = info.getFile().findResource("data");
+            // Providers intentionally publish adapters into the blade_tetra namespace.
+            // Do not walk every mod's entire data tree just to discover this tiny opt-in folder.
+            Path root = info.getFile().findResource("data", "blade_tetra", "legacy_adapters");
             if (!Files.isDirectory(root)) continue;
             try (var files = Files.walk(root)) {
-                files.filter(path -> path.toString().endsWith(".json"))
-                        .filter(path -> path.toString().replace('\\', '/')
-                                .contains("/blade_tetra/legacy_adapters/"))
+                files.filter(Files::isRegularFile)
+                        .filter(path -> path.toString().endsWith(".json"))
                         .forEach(path -> read(path, result));
             } catch (Exception exception) {
                 LogUtils.getLogger().warn("Cannot scan legacy adapters in {}", root, exception);
@@ -91,7 +96,9 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
 
     private static void read(Path path, Map<ResourceLocation, LegacyModelAdapter> output) {
         try (Reader reader = Files.newBufferedReader(path)) {
-            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonElement parsed = JsonParser.parseReader(reader);
+            if (!parsed.isJsonObject()) return;
+            JsonObject json = parsed.getAsJsonObject();
             String id = path.getFileName().toString().replaceFirst("\\.json$", "");
             LegacyModelAdapter adapter = new LegacyModelAdapter(id,
                     strings(json, "blade_groups", List.of("blade")),
@@ -102,7 +109,8 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
                     number(json, "tsuka_center"), number(json, "tsuka_radius"),
                     transform(json, "hilt_transform"), transform(json, "saya_transform"));
             for (String model : strings(json, "models", List.of())) {
-                output.put(new ResourceLocation(model), adapter);
+                ResourceLocation location = ResourceLocation.tryParse(model);
+                if (location != null) output.put(location, adapter);
             }
         } catch (Exception exception) {
             LogUtils.getLogger().warn("Ignoring malformed legacy model adapter {}", path, exception);
@@ -113,34 +121,54 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
         if (!json.has(key)) return fallback;
         JsonElement value = json.get(key);
         List<String> result = new ArrayList<>();
-        if (value.isJsonArray()) value.getAsJsonArray().forEach(e -> result.add(e.getAsString()));
-        else result.add(value.getAsString());
-        return result;
+        if (value.isJsonArray()) {
+            value.getAsJsonArray().forEach(element -> {
+                if (element.isJsonPrimitive()) result.add(element.getAsString());
+            });
+        } else if (value.isJsonPrimitive()) {
+            result.add(value.getAsString());
+        }
+        return result.isEmpty() ? fallback : result;
     }
 
     private static Axis parseAxis(JsonObject json) {
-        if (!json.has("axis")) return Axis.X;
-        try { return Axis.valueOf(json.get("axis").getAsString().toUpperCase(Locale.ROOT)); }
-        catch (IllegalArgumentException ignored) { return Axis.X; }
+        if (!json.has("axis") || !json.get("axis").isJsonPrimitive()) return Axis.X;
+        try {
+            return Axis.valueOf(json.get("axis").getAsString().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return Axis.X;
+        }
     }
 
     private static boolean bool(JsonObject json, String key) {
-        return json.has(key) && json.get(key).getAsBoolean();
+        return json.has(key) && json.get(key).isJsonPrimitive()
+                && json.get(key).getAsBoolean();
     }
 
     private static Float number(JsonObject json, String key) {
-        return json.has(key) ? json.get(key).getAsFloat() : null;
+        if (!json.has(key) || !json.get(key).isJsonPrimitive()) return null;
+        float value = json.get(key).getAsFloat();
+        return Float.isFinite(value) ? value : null;
     }
 
     private static LegacyCalibrationProfile.PartTransform transform(JsonObject root, String key) {
-        if (!root.has(key)) return null;
+        if (!root.has(key) || !root.get(key).isJsonObject()) return null;
         JsonObject json = root.getAsJsonObject(key);
         return new LegacyCalibrationProfile.PartTransform(
-                json.has("scale") ? json.get("scale").getAsFloat() : 1,
-                json.has("offset_x") ? json.get("offset_x").getAsFloat() : 0,
-                json.has("offset_y") ? json.get("offset_y").getAsFloat() : 0,
-                json.has("rotation") ? json.get("rotation").getAsFloat() : 0,
-                json.has("length") ? json.get("length").getAsFloat() : 1,
-                json.has("width") ? json.get("width").getAsFloat() : 1).normalized();
+                finite(json, "scale", 1), finite(json, "offset_x", 0),
+                finite(json, "offset_y", 0), finite(json, "rotation", 0),
+                finite(json, "length", 1), finite(json, "width", 1)).normalized();
     }
+
+    private static float finite(JsonObject json, String key, float fallback) {
+        if (!json.has(key) || !json.get(key).isJsonPrimitive()) return fallback;
+        try {
+            float value = json.get(key).getAsFloat();
+            return Float.isFinite(value) ? value : fallback;
+        } catch (RuntimeException exception) {
+            return fallback;
+        }
+    }
+
+    private LegacyModelAdapter() {}
 }
