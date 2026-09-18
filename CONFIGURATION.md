@@ -134,7 +134,7 @@ Visual and audio settings are stored per client in:
 | `enableMikageMusic` | `true` | Plays *The Final Trial* after Mikage formally enters combat. |
 | `mikageMusicVolume` | `0.78` | Mikage music multiplier, applied in addition to Minecraft's Music slider. Range: `0.0`–`1.0`. |
 | `enableMikageBoundary` | `true` | Enables the geometric mirror-realm battle boundary. It does not spawn particles. |
-| `mikageBoundaryBrightness` | `1.0` | Brightness of boundary seals, spectral torii and mirror walls. Range: `0.0`–`1.5`. |
+| `mikageBoundaryBrightness` | `1.0` | Brightness of the geometric mirror-realm boundary rings. Range: `0.0`–`1.5`. |
 | `enableAkatsukiExecutionTint` | `true` | Enables the local crimson-orange world grade during your Final Moon execution. |
 | `akatsukiExecutionTintIntensity` | `0.72` | Strength of Final Moon's local world grading. Range: `0.0`–`1.0`. |
 | `enableMikageBossBar` | `true` | Replaces only Mikage's vanilla boss bar with the torii-themed custom HUD. Disable for boss-bar overhaul compatibility. |

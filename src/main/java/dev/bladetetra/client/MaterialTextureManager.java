@@ -92,6 +92,8 @@ public final class MaterialTextureManager {
             new LinkedHashMap<>(16, 0.75F, true);
     private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
             ThreadLocal.withInitial(() -> false);
+    /** Immutable 256px source for per-signature working copies during one resource cycle. */
+    private static NativeImage GENERATED_ATLAS_TEMPLATE;
     private static final Palette RAYSKIN_PALETTE =
             new Palette(0x6D6552, 0xC4B99A, 0xF1E8CC);
 
@@ -249,9 +251,8 @@ public final class MaterialTextureManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
-            Resource resource = minecraft.getResourceManager()
-                    .getResourceOrThrow(TEMPLATE);
-            NativeImage image = loadGeneratedAtlas(resource);
+            NativeImage image = copyGeneratedAtlas(
+                    minecraft.getResourceManager());
             recolor(
                     image,
                     appearance,
@@ -580,9 +581,8 @@ public final class MaterialTextureManager {
         Minecraft minecraft = Minecraft.getInstance();
         boolean firstGeneratedTexture = CACHE.isEmpty();
         try {
-            Resource resource = minecraft.getResourceManager()
-                    .getResourceOrThrow(TEMPLATE);
-            NativeImage image = loadGeneratedAtlas(resource);
+            NativeImage image = copyGeneratedAtlas(
+                    minecraft.getResourceManager());
 
             recolor(
                     image,
@@ -618,6 +618,20 @@ public final class MaterialTextureManager {
                     exception);
             return null;
         }
+    }
+
+    private static synchronized NativeImage copyGeneratedAtlas(
+            ResourceManager resourceManager) throws IOException {
+        if (GENERATED_ATLAS_TEMPLATE == null) {
+            Resource resource = resourceManager.getResourceOrThrow(TEMPLATE);
+            GENERATED_ATLAS_TEMPLATE = loadGeneratedAtlas(resource);
+        }
+        NativeImage copy = new NativeImage(
+                GENERATED_ATLAS_SIZE,
+                GENERATED_ATLAS_SIZE,
+                true);
+        copy.copyFrom(GENERATED_ATLAS_TEMPLATE);
+        return copy;
     }
 
     /**
@@ -2491,6 +2505,10 @@ public final class MaterialTextureManager {
             minecraft.getTextureManager().release(texture.location());
         }
         DURABILITY_BASE_CACHE.clear();
+        if (GENERATED_ATLAS_TEMPLATE != null) {
+            GENERATED_ATLAS_TEMPLATE.close();
+            GENERATED_ATLAS_TEMPLATE = null;
+        }
         LegacyModelPartRenderer.clear();
     }
 

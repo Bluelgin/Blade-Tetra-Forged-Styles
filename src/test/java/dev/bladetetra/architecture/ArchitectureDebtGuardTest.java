@@ -41,6 +41,72 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void styleCombatLivingTickKeepsItsFastExit() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java"));
+        assertTrue(source.contains(
+                "if (!modularBlade && !hasIaidoState && !hasBrokenStanceState)"),
+                "Unrelated living entities must leave StyleCombatHandler.onLivingTick early");
+        assertTrue(source.contains("hasIaidoTickState(CompoundTag data)"),
+                "Iaido transient-state detection must stay explicit and allocation-free");
+        assertTrue(source.contains("data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)"),
+                "Missing transient tags must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_SPACING_UNTIL, Tag.TAG_LONG)"),
+                "Missing spacing state must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)"),
+                "Missing deflect state must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)"),
+                "Missing disrupted state must not trigger pointless cleanup writes every tick");
+    }
+
+    @Test
+    void challengeRealmMaintenanceDoesNotRegressToRecurringFullScans() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/ChallengeManager.java"));
+        assertTrue(source.contains("cleanupOrphanedRealmEntities(mirror);"),
+                "Old challenge-session entities should be cleaned once when the realms become available");
+        assertTrue(source.contains("if (entity instanceof MikageEntity)"),
+                "Startup cleanup must discard Mikage entities from process-local sessions that no longer exist");
+        assertTrue(source.contains("blade_tetra_mikage_attack"),
+                "Startup cleanup must retain the authored Mikage-attack marker fallback");
+        long fullRealmScans = source.lines()
+                .filter(line -> line.contains("mirror.getAllEntities()"))
+                .count();
+        assertTrue(fullRealmScans <= 1,
+                "ChallengeManager must not scan every entity in the mirror realm on a recurring tick");
+        assertFalse(source.contains("List<MikageEntity> orphaned = new ArrayList<>()"),
+                "Recurring orphan lists indicate the old once-per-second full-dimension scan returned");
+
+        long challengeClosures = source.lines()
+                .filter(line -> line.contains("closed = true;"))
+                .count();
+        long arenaAttackCleanups = source.lines()
+                .filter(line -> line.contains("cleanupChallengeAttacks(mirror, this);"))
+                .count();
+        assertTrue(arenaAttackCleanups >= challengeClosures,
+                "Every challenge closure path must clean arena-scoped summoned attacks now that the recurring realm scan is gone");
+    }
+
+    @Test
+    void materialTextureTemplateIsDecodedOncePerResourceCycle() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
+        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE"),
+                "The normalized material atlas should be cached for one resource cycle");
+        assertTrue(source.contains("copyGeneratedAtlas("),
+                "Material and emissive generation should copy the normalized template");
+        assertTrue(source.contains("copy.copyFrom(GENERATED_ATLAS_TEMPLATE);"),
+                "Each generated signature still needs an isolated mutable image");
+        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE.close();"),
+                "The native template image must be released on resource reload");
+        long directTemplateLoads = source.lines()
+                .filter(line -> line.contains("getResourceOrThrow(TEMPLATE)"))
+                .count();
+        assertTrue(directTemplateLoads <= 1,
+                "Template decode/resample belongs in the resource-cycle cache helper only");
+    }
+
+    @Test
     void legacyIntegerTechniquePacketIsFrozenForNewVisualFamilies() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/network/BladeTechniqueVfxPacket.java"));
