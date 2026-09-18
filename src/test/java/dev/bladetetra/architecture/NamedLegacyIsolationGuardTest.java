@@ -53,6 +53,9 @@ class NamedLegacyIsolationGuardTest {
                 "Integrated-server threads must fall back before touching client resources");
         assertTrue(clientResolver.contains("non-client thread metadata"),
                 "The cross-thread fallback should stay explicitly metadata-only");
+        assertTrue(clientResolver.contains("kind.defaultProfile()"));
+        assertFalse(clientResolver.contains("kind.rawDefaultProfile()"),
+                "Client fallback should use the record's pure metadata accessor directly");
 
         String kind = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/forging/LegacyImprintKind.java"));
@@ -60,6 +63,8 @@ class NamedLegacyIsolationGuardTest {
                 "The record defaultProfile accessor must stay pure metadata");
         assertTrue(kind.contains("public LegacyCalibrationProfile visualProfile()"),
                 "Dynamic geometry needs an explicitly visual API");
+        assertFalse(kind.contains("rawDefaultProfile"),
+                "Do not reintroduce an ambiguous semantic/profile alias");
 
         String calibration = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/forging/LegacyCalibration.java"));
@@ -73,6 +78,34 @@ class NamedLegacyIsolationGuardTest {
                 "Rendering must have a separate presentation view");
         assertTrue(parts.contains("return NamedLegacyCatalog.get(id);"),
                 "Semantic source resolution must use catalog identity directly");
+        int semanticStart = parts.indexOf("public static NamedLegacyParts fromStack");
+        int visualStart = parts.indexOf("public static NamedLegacyParts visualFromStack");
+        assertTrue(semanticStart >= 0 && visualStart > semanticStart);
+        String semanticPath = parts.substring(semanticStart, visualStart);
+        assertFalse(semanticPath.contains("visualUsable"));
+        assertFalse(semanticPath.contains("visualProfile"));
+        assertFalse(semanticPath.contains("LegacyImprintProfileResolver"),
+                "Gameplay identity must never consult client geometry");
+    }
+
+    @Test
+    void legacyPerBladeVariantsHaveAnItemLoadMigrationPath() throws IOException {
+        String item = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/item/ModularSlashBladeItem.java"));
+        assertTrue(item.contains("LegacyCalibration.migrateStackTag(tag);"),
+                "Existing 1.5.x stacks need migration when Minecraft verifies their tag");
+
+        String calibration = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/LegacyCalibration.java"));
+        assertTrue(calibration.contains("NamedLegacyImprintStorage.migrateStackTag(stackTag)"),
+                "The existing item-load migration entry point must include V2 imprint migration");
+
+        String storage = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/NamedLegacyImprintStorage.java"));
+        assertTrue(storage.contains("LEGACY_SAYA_PREFIX"));
+        assertTrue(storage.contains("LEGACY_TSUBA_PREFIX"));
+        assertTrue(storage.contains("tag.putString(module + \"_material\", genericVariant(part))"),
+                "Old per-source Tetra variants must be rewritten to the generic V2 variant");
     }
 
     @Test
