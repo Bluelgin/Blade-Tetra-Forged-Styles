@@ -11,14 +11,16 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Small provider-owned correction layer over standard SlashBlade OBJ groups.
- * Exact model entries win; models without an entry use the conservative
+ * Exact model entries win; models without an unambiguous entry use the conservative
  * blade/handle/sheath convention.
  */
 public record LegacyModelAdapter(String id, List<String> bladeGroups,
@@ -77,6 +79,7 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
 
     private static void load() {
         Map<ResourceLocation, LegacyModelAdapter> result = new LinkedHashMap<>();
+        Set<ResourceLocation> ambiguous = new HashSet<>();
         for (var info : ModList.get().getModFiles()) {
             // Providers intentionally publish adapters into the blade_tetra namespace.
             // Do not walk every mod's entire data tree just to discover this tiny opt-in folder.
@@ -85,16 +88,19 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
             try (var files = Files.walk(root)) {
                 files.filter(Files::isRegularFile)
                         .filter(path -> path.toString().endsWith(".json"))
-                        .forEach(path -> read(path, result));
+                        .forEach(path -> read(path, result, ambiguous));
             } catch (Exception exception) {
                 LogUtils.getLogger().warn("Cannot scan legacy adapters in {}", root, exception);
             }
         }
         adapters = Map.copyOf(result);
-        LogUtils.getLogger().info("Blade Tetra loaded {} named-model adapter entries", adapters.size());
+        LogUtils.getLogger().info(
+                "Blade Tetra loaded {} named-model adapter entries; quarantined {} conflicts",
+                adapters.size(), ambiguous.size());
     }
 
-    private static void read(Path path, Map<ResourceLocation, LegacyModelAdapter> output) {
+    private static void read(Path path, Map<ResourceLocation, LegacyModelAdapter> output,
+            Set<ResourceLocation> ambiguous) {
         try (Reader reader = Files.newBufferedReader(path)) {
             JsonElement parsed = JsonParser.parseReader(reader);
             if (!parsed.isJsonObject()) return;
@@ -110,11 +116,42 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
                     transform(json, "hilt_transform"), transform(json, "saya_transform"));
             for (String model : strings(json, "models", List.of())) {
                 ResourceLocation location = ResourceLocation.tryParse(model);
-                if (location != null) output.put(location, adapter);
+                if (location != null) register(location, adapter, path, output, ambiguous);
             }
         } catch (Exception exception) {
             LogUtils.getLogger().warn("Ignoring malformed legacy model adapter {}", path, exception);
         }
+    }
+
+    private static void register(ResourceLocation model, LegacyModelAdapter adapter, Path source,
+            Map<ResourceLocation, LegacyModelAdapter> output, Set<ResourceLocation> ambiguous) {
+        if (ambiguous.contains(model)) return;
+        LegacyModelAdapter previous = output.get(model);
+        if (previous == null) {
+            output.put(model, adapter);
+            return;
+        }
+        if (equivalent(previous, adapter)) return;
+
+        output.remove(model);
+        ambiguous.add(model);
+        LogUtils.getLogger().warn(
+                "Conflicting Blade Tetra legacy model adapters for {} ({} vs {} from {}); using standard fallback",
+                model, previous.id(), adapter.id(), source);
+    }
+
+    private static boolean equivalent(LegacyModelAdapter first, LegacyModelAdapter second) {
+        return first.bladeGroups().equals(second.bladeGroups())
+                && first.hiltGroups().equals(second.hiltGroups())
+                && first.sayaGroups().equals(second.sayaGroups())
+                && first.axis() == second.axis()
+                && first.reversed() == second.reversed()
+                && java.util.Objects.equals(first.tsubaCenter(), second.tsubaCenter())
+                && java.util.Objects.equals(first.tsubaRadius(), second.tsubaRadius())
+                && java.util.Objects.equals(first.tsukaCenter(), second.tsukaCenter())
+                && java.util.Objects.equals(first.tsukaRadius(), second.tsukaRadius())
+                && java.util.Objects.equals(first.hiltTransform(), second.hiltTransform())
+                && java.util.Objects.equals(first.sayaTransform(), second.sayaTransform());
     }
 
     private static List<String> strings(JsonObject json, String key, List<String> fallback) {
