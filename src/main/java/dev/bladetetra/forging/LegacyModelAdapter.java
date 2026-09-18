@@ -169,6 +169,4 @@ public record LegacyModelAdapter(String id, List<String> bladeGroups,
             return fallback;
         }
     }
-
-    private LegacyModelAdapter() {}
 }

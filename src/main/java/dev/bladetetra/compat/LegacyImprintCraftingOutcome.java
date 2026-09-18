@@ -20,7 +20,7 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             boolean isReplacing, Player player, ItemStack[] preMaterials,
             Map<ToolAction, Integer> tools, Level world, UpgradeSchematic schematic,
             BlockPos pos, BlockState blockState, boolean consumeResources,
-            ItemStack[] postMaterials, float severity) {
+            ItemStack[] postMaterials) {
         String key = schematic == null ? null : schematic.getKey();
         return NamedLegacyImprintStorage.applyCraftResult(upgradedStack, slot, key);
     }
