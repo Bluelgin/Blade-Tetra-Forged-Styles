@@ -46,6 +46,30 @@ class NamedLegacyImprintStorageTest {
     }
 
     @Test
+    void unrelatedNonReplacingCraftPreservesInstalledImprintIdentity() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("slashblade/saya", "slashblade/legacy_saya");
+        tag.putString("slashblade/legacy_saya_material", "legacy_saya/imprinted");
+        NamedLegacyImprintStorage.putSource(tag, "saya", "yakumoblade/fox");
+
+        assertFalse(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/saya", "thirdparty:saya_polish"));
+        assertEquals("yakumoblade/fox", NamedLegacyImprintStorage.sourceId(tag, "saya"));
+    }
+
+    @Test
+    void namedSchematicCannotAttachIdentityIfItsModuleOutcomeDidNotStick() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("slashblade/tsuba", "slashblade/basic_tsuba");
+        tag.putString("slashblade/basic_tsuba_material", "basic_tsuba/iron");
+        NamedLegacyImprintStorage.putSource(tag, "tsuba", "removed_addon/old");
+
+        assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/tsuba", "slashblade/legacy_auto/sjap/yamato/tsuba"));
+        assertNull(NamedLegacyImprintStorage.sourceId(tag, "tsuba"));
+    }
+
+    @Test
     void parsesOnlyMatchingNamedImprintSchematics() {
         assertEquals("slashblade_addon/sange",
                 NamedLegacyImprintStorage.sourceFromSchematic(
