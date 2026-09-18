@@ -102,9 +102,13 @@ class NamedLegacyIsolationGuardTest {
 
         String storage = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/forging/NamedLegacyImprintStorage.java"));
-        assertTrue(storage.contains("LEGACY_SAYA_PREFIX"));
-        assertTrue(storage.contains("LEGACY_TSUBA_PREFIX"));
-        assertTrue(storage.contains("tag.putString(module + \"_material\", genericVariant(part))"),
+        assertTrue(storage.contains("String prefix = \"legacy_\" + part + \"/\";"),
+                "V1.5 per-source variants must remain recognizable by the migration path");
+        assertTrue(storage.contains("material.startsWith(prefix)"),
+                "Migration must detect old per-source Tetra variants");
+        assertTrue(storage.contains("putSource(tag, part, source)"),
+                "Migration must preserve the old source id as Blade Tetra soft-reference NBT");
+        assertTrue(storage.contains("tag.putString(materialKey, genericVariant(part));"),
                 "Old per-source Tetra variants must be rewritten to the generic V2 variant");
     }
 
