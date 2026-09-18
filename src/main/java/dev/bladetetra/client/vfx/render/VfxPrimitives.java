@@ -79,6 +79,26 @@ public final class VfxPrimitives {
                 end.add(side), start.add(side), color);
     }
 
+    public static void bandFacing(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 start, Vec3 end, Vec3 camera, double width, int color) {
+        Vec3 direction = end.subtract(start);
+        if (direction.lengthSqr() < 0.0000001D) {
+            return;
+        }
+        Vec3 center = start.add(end).scale(0.5D);
+        Vec3 view = camera.subtract(center);
+        Vec3 side = direction.cross(view);
+        if (side.lengthSqr() < 0.0001D) {
+            side = direction.cross(new Vec3(0.0D, 1.0D, 0.0D));
+        }
+        if (side.lengthSqr() < 0.0001D) {
+            side = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+        side = side.normalize().scale(width);
+        quad(buffer, matrix, start.subtract(side), end.subtract(side),
+                end.add(side), start.add(side), color);
+    }
+
     public static void texturedRibbon(BufferBuilder buffer, Matrix4f matrix,
             Vec3 start, Vec3 end, Vec3 halfWidth, float alpha, int color) {
         textureVertex(buffer, matrix, start.add(halfWidth), 0.0F, 0.0F, alpha, color);
@@ -158,6 +178,11 @@ public final class VfxPrimitives {
         int g = Mth.clamp(Math.round(green * 255.0F), 0, 255);
         int b = Mth.clamp(Math.round(blue * 255.0F), 0, 255);
         return a << 24 | r << 16 | g << 8 | b;
+    }
+
+    public static int withAlpha(int rgb, float alpha) {
+        int a = Mth.clamp(Math.round(alpha * 255.0F), 0, 255);
+        return a << 24 | rgb & 0xFFFFFF;
     }
 
     private VfxPrimitives() {
