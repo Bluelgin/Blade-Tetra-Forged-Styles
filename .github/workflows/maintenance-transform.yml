@@ -2,14 +2,15 @@ name: One-shot maintenance transform
 
 on:
   push:
-    branches: [perf/runtime-hotpaths-and-maintenance]
+    branches:
+      - perf/runtime-hotpaths-and-maintenance
 
 permissions:
   contents: write
 
 jobs:
   transform:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -19,22 +20,39 @@ jobs:
           ref: perf/runtime-hotpaths-and-maintenance
           fetch-depth: 0
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Apply bounded maintenance patches
-        shell: python
+        shell: bash
         run: |
+          python3 - <<'PY'
           from pathlib import Path
 
-          def replace_once(path, old, new):
-              text = path.read_text(encoding="utf-8")
+          def replace_exact(text, old, new, label, expected=1):
               count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{path}: expected one match, found {count}")
-              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+              if count != expected:
+                  raise SystemExit(f"{label}: expected {expected} match(es), found {count}")
+              return text.replace(old, new)
 
           challenge = Path("src/main/java/dev/bladetetra/challenge/ChallengeManager.java")
           text = challenge.read_text(encoding="utf-8")
-          text = text.replace("mirrorAttacksCleaned", "mirrorRealmCleaned")
-          old_tick_scan = '''        if (!mirrorRealmCleaned) {
+          text = replace_exact(
+              text,
+              "mirrorAttacksCleaned",
+              "mirrorRealmCleaned",
+              "ChallengeManager mirror cleanup state",
+              expected=2,
+          )
+          text = replace_exact(
+              text,
+              '''        if (!mirrorRealmCleaned) {
               cleanupOrphanedAttacks(mirror);
               mirrorRealmCleaned = true;
           }
@@ -54,8 +72,8 @@ jobs:
               orphaned.forEach(MikageEntity::discard);
               orphanedAttacks.forEach(Entity::discard);
           }
-          '''
-          new_tick_scan = '''        if (!mirrorRealmCleaned) {
+          ''',
+              '''        if (!mirrorRealmCleaned) {
               // Challenge sessions are intentionally process-local. Once both
               // protected levels are available, clean entities left by an old
               // server session exactly once instead of scanning the complete
@@ -63,11 +81,12 @@ jobs:
               cleanupOrphanedRealmEntities(mirror);
               mirrorRealmCleaned = true;
           }
-          '''
-          if text.count(old_tick_scan) != 1:
-              raise SystemExit("ChallengeManager: recurring realm scan block changed unexpectedly")
-          text = text.replace(old_tick_scan, new_tick_scan, 1)
-          old_cleanup = '''    private static void cleanupOrphanedAttacks(ServerLevel mirror) {
+          ''',
+              "ChallengeManager recurring mirror scan",
+          )
+          text = replace_exact(
+              text,
+              '''    private static void cleanupOrphanedAttacks(ServerLevel mirror) {
           List<Entity> stale = new ArrayList<>();
           for (Entity entity : mirror.getAllEntities()) {
               if (entity instanceof EntityAbstractSummonedSword sword
@@ -79,8 +98,8 @@ jobs:
           }
           stale.forEach(Entity::discard);
       }
-          '''
-          new_cleanup = '''    private static void cleanupOrphanedRealmEntities(ServerLevel mirror) {
+          ''',
+              '''    private static void cleanupOrphanedRealmEntities(ServerLevel mirror) {
           List<Entity> stale = new ArrayList<>();
           for (Entity entity : mirror.getAllEntities()) {
               if (entity instanceof MikageEntity) {
@@ -96,43 +115,45 @@ jobs:
           }
           stale.forEach(Entity::discard);
       }
-          '''
-          if text.count(old_cleanup) != 1:
-              raise SystemExit("ChallengeManager: startup cleanup method changed unexpectedly")
-          text = text.replace(old_cleanup, new_cleanup, 1)
+          ''',
+              "ChallengeManager startup realm cleanup",
+          )
           challenge.write_text(text, encoding="utf-8")
 
           material = Path("src/main/java/dev/bladetetra/client/MaterialTextureManager.java")
           text = material.read_text(encoding="utf-8")
-          field_anchor = '''    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
+          text = replace_exact(
+              text,
+              '''    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
               ThreadLocal.withInitial(() -> false);
           private static final Palette RAYSKIN_PALETTE =
-          '''
-          field_replacement = '''    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
+          ''',
+              '''    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
               ThreadLocal.withInitial(() -> false);
           /** Immutable 256px source for per-signature working copies during one resource cycle. */
           private static NativeImage GENERATED_ATLAS_TEMPLATE;
           private static final Palette RAYSKIN_PALETTE =
-          '''
-          if text.count(field_anchor) != 1:
-              raise SystemExit("MaterialTextureManager: template field anchor changed unexpectedly")
-          text = text.replace(field_anchor, field_replacement, 1)
-
-          direct_load = '''            Resource resource = minecraft.getResourceManager()
+          ''',
+              "MaterialTextureManager template field",
+          )
+          text = replace_exact(
+              text,
+              '''            Resource resource = minecraft.getResourceManager()
                   .getResourceOrThrow(TEMPLATE);
               NativeImage image = loadGeneratedAtlas(resource);
-          '''
-          if text.count(direct_load) != 2:
-              raise SystemExit(f"MaterialTextureManager: expected two direct template loads, found {text.count(direct_load)}")
-          text = text.replace(direct_load,
+          ''',
               '''            NativeImage image = copyGeneratedAtlas(
                   minecraft.getResourceManager());
-          ''')
-
-          helper_anchor = '''    /**
+          ''',
+              "MaterialTextureManager direct atlas load",
+              expected=2,
+          )
+          text = replace_exact(
+              text,
+              '''    /**
        * Resamples the authored 512px source atlas into the 256px runtime atlas.
-          '''
-          helper = '''    private static synchronized NativeImage copyGeneratedAtlas(
+          ''',
+              '''    private static synchronized NativeImage copyGeneratedAtlas(
               ResourceManager resourceManager) throws IOException {
           if (GENERATED_ATLAS_TEMPLATE == null) {
               Resource resource = resourceManager.getResourceOrThrow(TEMPLATE);
@@ -148,38 +169,41 @@ jobs:
 
       /**
        * Resamples the authored 512px source atlas into the 256px runtime atlas.
-          '''
-          if text.count(helper_anchor) != 1:
-              raise SystemExit("MaterialTextureManager: atlas helper anchor changed unexpectedly")
-          text = text.replace(helper_anchor, helper, 1)
-
-          clear_anchor = '''        DURABILITY_BASE_CACHE.clear();
+          ''',
+              "MaterialTextureManager copy helper",
+          )
+          text = replace_exact(
+              text,
+              '''        DURABILITY_BASE_CACHE.clear();
           LegacyModelPartRenderer.clear();
-          '''
-          clear_replacement = '''        DURABILITY_BASE_CACHE.clear();
+          ''',
+              '''        DURABILITY_BASE_CACHE.clear();
           if (GENERATED_ATLAS_TEMPLATE != null) {
               GENERATED_ATLAS_TEMPLATE.close();
               GENERATED_ATLAS_TEMPLATE = null;
           }
           LegacyModelPartRenderer.clear();
-          '''
-          if text.count(clear_anchor) != 1:
-              raise SystemExit("MaterialTextureManager: clearCache anchor changed unexpectedly")
-          text = text.replace(clear_anchor, clear_replacement, 1)
+          ''',
+              "MaterialTextureManager reload cleanup",
+          )
           material.write_text(text, encoding="utf-8")
 
           config = Path("CONFIGURATION.md")
           config_text = config.read_text(encoding="utf-8")
-          old_config = "Brightness of boundary seals, spectral torii and mirror walls."
-          new_config = "Brightness of the geometric mirror-realm boundary rings."
-          if config_text.count(old_config) != 1:
-              raise SystemExit("CONFIGURATION.md: Mikage boundary description changed unexpectedly")
-          config.write_text(config_text.replace(old_config, new_config, 1), encoding="utf-8")
+          config_text = replace_exact(
+              config_text,
+              "Brightness of boundary seals, spectral torii and mirror walls.",
+              "Brightness of the geometric mirror-realm boundary rings.",
+              "CONFIGURATION Mikage boundary wording",
+          )
+          config.write_text(config_text, encoding="utf-8")
+          PY
 
       - name: Validate transformed sources
         run: ./gradlew build
 
       - name: Commit validated maintenance changes
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
