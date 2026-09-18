@@ -44,6 +44,44 @@ class VfxFoundationGuardTest {
         assertFalse(boundary.contains("private static void vertex("));
         assertFalse(boundary.contains("private static int color("));
         assertFalse(boundary.contains("private static int withAlpha("));
+
+        String mikageBoundary = read(
+                "src/main/java/dev/bladetetra/client/MikageBoundaryClient.java");
+        assertTrue(mikageBoundary.contains("ringHorizontal(buffer"),
+                "Mikage arena rings should use the shared ring primitive");
+        assertFalse(mikageBoundary.contains("private static void drawFloorCircle("));
+        assertFalse(mikageBoundary.contains("private static void drawFloorPolyline("));
+        assertFalse(mikageBoundary.contains("private static void quad("));
+        assertFalse(mikageBoundary.contains("renderCeremonialTextures("),
+                "Retired boundary wall/seal renderer should not remain as dead code");
+    }
+
+    @Test
+    void voidScatteringSharesFallbackGeometryWithoutTouchingShaderPayloads()
+            throws IOException {
+        String domain = read(
+                "src/main/java/dev/bladetetra/client/VoidScatteringVfxClient.java");
+        assertTrue(domain.contains("bandFacing(buffer"),
+                "Void Scattering fallback lines should use the shared facing band primitive");
+        assertTrue(domain.contains("vertex(buffer, matrix, point, color)"),
+                "Fallback dome vertices should delegate to VfxPrimitives");
+        assertFalse(domain.contains("private static void line("));
+        assertFalse(domain.contains("private static void vertex("));
+        assertFalse(domain.contains("private static int color("));
+        assertTrue(domain.contains("private static void shaderVertex("),
+                "Shader payload vertices must remain effect-owned");
+        assertTrue(domain.contains(".color(filled, flash, seed, alpha)"),
+                "Shader payload channel packing must not be routed through color primitives");
+
+        String counter = read(
+                "src/main/java/dev/bladetetra/client/VoidScatteringCounterVfxClient.java");
+        assertTrue(counter.contains("quad(buffer, matrix"),
+                "Void Scattering counter fallback should use the shared quad primitive");
+        assertFalse(counter.contains("private static void fallbackVertex("));
+        assertTrue(counter.contains("private static void shaderVertex("),
+                "Counter shader payload vertices must remain effect-owned");
+        assertTrue(counter.contains(".color(filled, flash, seed, alpha)"),
+                "Counter shader payload channel packing must stay intact");
     }
 
     @Test
