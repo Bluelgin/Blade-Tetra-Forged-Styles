@@ -31,12 +31,15 @@ class NamedLegacyImprintStorageTest {
     @Test
     void craftingIdentityComesFromSchematicAndOrdinaryReplacementClearsIt() {
         CompoundTag tag = new CompoundTag();
+        // Tetra applies the schematic/module outcome first, then crafting effects run.
+        tag.putString("slashblade/saya", "slashblade/legacy_saya");
+        tag.putString("slashblade/legacy_saya_material", "legacy_saya/imprinted");
         assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
                 "slashblade/saya", "slashblade/legacy_auto/yakumoblade/fox/saya"));
         assertEquals("yakumoblade/fox", NamedLegacyImprintStorage.sourceId(tag, "saya"));
 
-        tag.putString("slashblade/saya", "slashblade/legacy_saya");
-        tag.putString("slashblade/legacy_saya_material", "legacy_saya/imprinted");
+        tag.putString("slashblade/saya", "slashblade/basic_saya");
+        tag.putString("slashblade/basic_saya_material", "basic_saya/oak");
         assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
                 "slashblade/saya", "slashblade/basic_saya"));
         assertNull(NamedLegacyImprintStorage.sourceId(tag, "saya"));
