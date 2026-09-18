@@ -38,16 +38,6 @@ public record LegacyImprintKind(String id, ResourceLocation name,
         return LegacyImprintProfileResolver.resolve(this).profile();
     }
 
-    /**
-     * Transitional source-compatible alias for the pre-split API. New gameplay code
-     * should use {@link #defaultProfile()}; client presentation code uses
-     * {@link #visualProfile()}.
-     */
-    @Deprecated
-    public LegacyCalibrationProfile rawDefaultProfile() {
-        return defaultProfile;
-    }
-
     /** Whether this client can safely partition and render the provider model. */
     public boolean visualUsable() {
         return LegacyImprintProfileResolver.resolve(this).visualUsable();
