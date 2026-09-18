@@ -70,6 +70,33 @@ class LegacyModelAnalysisTest {
     }
 
     @Test
+    void radialBoundaryUsesAxesPerpendicularToConfiguredBladeAxis() throws Exception {
+        String obj = """
+                v 0 0 0
+                v 0 10 0
+                v 0 5 0
+                v 10 6 0
+                v 0 9 0
+                v 0 6 0
+                g blade
+                f 1 2 3
+                g handle
+                f 4 5 6
+                g sheath
+                f 1 2 3
+                """;
+        var adapter = new LegacyModelAdapter("axis_y", java.util.List.of("blade"),
+                java.util.List.of("handle"), java.util.List.of("sheath"),
+                LegacyModelAdapter.Axis.Y, false, null, null, null, null, null, null);
+
+        var result = LegacyModelAnalysis.analyze(new StringReader(obj), adapter);
+        assertTrue(result.usable());
+        assertTrue(result.profile().tsubaCenter() > .55F
+                && result.profile().tsubaCenter() < .70F,
+                "Y-axis analysis should use X/Z radial distance and choose the y=6 guard vertex");
+    }
+
+    @Test
     void malformedFaceIndicesAreQuarantinedInsteadOfThrowing() throws Exception {
         String obj = """
                 v 0 0 0
