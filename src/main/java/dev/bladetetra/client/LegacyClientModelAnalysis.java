@@ -54,6 +54,16 @@ public final class LegacyClientModelAnalysis {
 
     public static synchronized LegacyImprintProfileResolver.Resolution resolve(
             LegacyImprintKind kind) {
+        // A physical client and its integrated server share one JVM, so the side-neutral
+        // resolver function is visible to both threads. Geometry is a client presentation
+        // concern: never touch Minecraft resources or SlashBlade's client model manager
+        // from an integrated-server thread. Dedicated servers never install this resolver.
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!minecraft.isSameThread()) {
+            return new LegacyImprintProfileResolver.Resolution(
+                    kind.rawDefaultProfile(), true, "non-client thread metadata");
+        }
+
         String key = kind.id() + "|" + kind.model() + "|" + kind.texture();
         LegacyImprintProfileResolver.Resolution cached = CACHE.get(key);
         if (cached != null) return cached;
