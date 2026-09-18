@@ -85,5 +85,6 @@ public final class KarmicPuppetItem extends Item {
             tooltip.add(Component.literal("尚未映照持刀者的杀业。")
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
+        DivineDomainWipNotice.appendTooltip(tooltip);
     }
 }

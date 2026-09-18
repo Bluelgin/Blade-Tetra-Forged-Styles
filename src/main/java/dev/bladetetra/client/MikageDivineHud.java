@@ -2,6 +2,7 @@ package dev.bladetetra.client;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.challenge.DivineDomainManager;
+import dev.bladetetra.challenge.DivineDomainWipNotice;
 import dev.bladetetra.network.DivineSupportStatePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -34,6 +35,7 @@ public final class MikageDivineHud {
         var mc=Minecraft.getInstance();
         if(state==null || mc.options.hideGui || mc.screen!=null) return;
         var g=e.getGuiGraphics(); int y=g.guiHeight()/2-24;
+        g.drawString(mc.font,DivineDomainWipNotice.title(),12,y-13,0xE0B45C,true);
         g.drawString(mc.font,!state.available()?"御影 · 调息":state.tier()>=3?"御影 · 共斗":"御影 · 场外支援",12,y,0xEEE6D5,true);
         row(g,"purification_array",state.arrayTicks(),"三剑",y+15);
         if(state.tier()>=3) {

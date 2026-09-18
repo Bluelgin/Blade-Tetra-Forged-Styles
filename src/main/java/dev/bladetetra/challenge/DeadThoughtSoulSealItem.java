@@ -36,5 +36,6 @@ public final class DeadThoughtSoulSealItem extends Item {
                 .withStyle(ChatFormatting.DARK_GRAY));
         tooltip.add(Component.literal("手持残印潜行右击挂刀台，完成死念刻印。")
                 .withStyle(ChatFormatting.DARK_GRAY));
+        DivineDomainWipNotice.appendTooltip(tooltip);
     }
 }

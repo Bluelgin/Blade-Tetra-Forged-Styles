@@ -183,7 +183,8 @@ public final class MikageDivineDialogue {
 
     private static DialogueLine end(String text, String expression) {
         return new DialogueLine(text, expression, List.of(
-                new MikageVisitorDialoguePacket.Option("divine_enter", "进入神域"),
+                new MikageVisitorDialoguePacket.Option(
+                        "divine_enter", DivineDomainWipNotice.entryLabel()),
                 new MikageVisitorDialoguePacket.Option("divine_back", "返回")));
     }
 
