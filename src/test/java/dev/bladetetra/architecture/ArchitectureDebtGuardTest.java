@@ -75,6 +75,25 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void materialTextureTemplateIsDecodedOncePerResourceCycle() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
+        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE"),
+                "The normalized material atlas should be cached for one resource cycle");
+        assertTrue(source.contains("copyGeneratedAtlas("),
+                "Material and emissive generation should copy the normalized template");
+        assertTrue(source.contains("copy.copyFrom(GENERATED_ATLAS_TEMPLATE);"),
+                "Each generated signature still needs an isolated mutable image");
+        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE.close();"),
+                "The native template image must be released on resource reload");
+        long directTemplateLoads = source.lines()
+                .filter(line -> line.contains("getResourceOrThrow(TEMPLATE)"))
+                .count();
+        assertTrue(directTemplateLoads <= 1,
+                "Template decode/resample belongs in the resource-cycle cache helper only");
+    }
+
+    @Test
     void legacyIntegerTechniquePacketIsFrozenForNewVisualFamilies() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/network/BladeTechniqueVfxPacket.java"));
