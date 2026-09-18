@@ -48,15 +48,6 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         return fox(old);
     }
 
-    private static LegacyImprintKind grip(ItemStack stack, FoxLegacyParts.Color old) {
-        for (LegacyImprintKind kind : NamedLegacyCatalog.values()) {
-            if (ForgingImprovements.has(stack, "slashblade/tsuka", kind.improvement())) {
-                return kind;
-            }
-        }
-        return fox(old);
-    }
-
     public boolean present() {
         return saya != null || tsuba != null || tsuka != null;
     }
