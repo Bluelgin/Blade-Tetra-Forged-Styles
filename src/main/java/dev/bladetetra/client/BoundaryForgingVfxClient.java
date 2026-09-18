@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.bandFacing;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.color;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.quad;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.withAlpha;
+
 /**
  * Player-side Boundary Forging presentation.
  *
@@ -476,32 +481,10 @@ public final class BoundaryForgingVfxClient {
         quad(buffer, matrix, nnp, pnp, pnn, nnn, tint);
     }
 
+    /** Semantic alias retained for the family-specific composition code. */
     private static void line(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
             Vec3 start, Vec3 end, double halfWidth, int tint) {
-        Vec3 direction = end.subtract(start);
-        if (direction.lengthSqr() < 0.000001D) return;
-        Vec3 midpoint = start.add(end).scale(0.5D);
-        Vec3 side = direction.cross(camera.subtract(midpoint));
-        if (side.lengthSqr() < 0.0001D) side = direction.cross(new Vec3(0.0D, 1.0D, 0.0D));
-        if (side.lengthSqr() < 0.0001D) side = new Vec3(1.0D, 0.0D, 0.0D);
-        side = side.normalize().scale(halfWidth);
-        quad(buffer, matrix, start.subtract(side), end.subtract(side),
-                end.add(side), start.add(side), tint);
-    }
-
-    private static void quad(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 a, Vec3 b, Vec3 c, Vec3 d, int tint) {
-        vertex(buffer, matrix, a, tint);
-        vertex(buffer, matrix, b, tint);
-        vertex(buffer, matrix, c, tint);
-        vertex(buffer, matrix, d, tint);
-    }
-
-    private static void vertex(BufferBuilder buffer, Matrix4f matrix, Vec3 point, int tint) {
-        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-                .color((tint >> 16) & 0xFF, (tint >> 8) & 0xFF,
-                        tint & 0xFF, (tint >>> 24) & 0xFF)
-                .endVertex();
+        bandFacing(buffer, matrix, start, end, camera, halfWidth, tint);
     }
 
     private static Vec3 yawDirection(float yaw) {
@@ -517,19 +500,6 @@ public final class BoundaryForgingVfxClient {
         if (age < trigger || age >= trigger + life) return 0.0F;
         float local = (age - trigger) / (float) Math.max(1, life);
         return (1.0F - local) * (1.0F - local);
-    }
-
-    private static int color(float red, float green, float blue, float alpha) {
-        int a = Mth.clamp(Math.round(alpha * 255.0F), 0, 255);
-        int r = Mth.clamp(Math.round(red * 255.0F), 0, 255);
-        int g = Mth.clamp(Math.round(green * 255.0F), 0, 255);
-        int b = Mth.clamp(Math.round(blue * 255.0F), 0, 255);
-        return a << 24 | r << 16 | g << 8 | b;
-    }
-
-    private static int withAlpha(int tint, float alpha) {
-        return (Mth.clamp(Math.round(alpha * 255.0F), 0, 255) << 24)
-                | (tint & 0x00FFFFFF);
     }
 
     private static final class Effect {

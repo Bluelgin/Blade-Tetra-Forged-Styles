@@ -27,6 +27,8 @@ import org.joml.Matrix4f;
 
 import java.util.ArrayList;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.quad;
+
 /**
  * Extra release/counter staging for Void Scattering.
  * The main domain renderer stays focused on the dome itself; this layer makes the
@@ -301,17 +303,12 @@ public final class VoidScatteringCounterVfxClient {
         Vec3 vertical = new Vec3(0.0D, 0.72D * scale, 0.0D);
         Vec3 horizontal = right.scale(0.085D * scale);
         int a = Mth.clamp(Math.round(alpha * 220.0F), 0, 220);
-        int r = 226, g = 207, b = 255;
-        fallbackVertex(buffer, matrix, center.subtract(horizontal).subtract(vertical), r, g, b, a);
-        fallbackVertex(buffer, matrix, center.add(horizontal).subtract(vertical), r, g, b, a);
-        fallbackVertex(buffer, matrix, center.add(horizontal).add(vertical), r, g, b, a);
-        fallbackVertex(buffer, matrix, center.subtract(horizontal).add(vertical), r, g, b, a);
-    }
-
-    private static void fallbackVertex(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 point, int r, int g, int b, int a) {
-        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-                .color(r, g, b, a).endVertex();
+        int color = a << 24 | 226 << 16 | 207 << 8 | 255;
+        quad(buffer, matrix,
+                center.subtract(horizontal).subtract(vertical),
+                center.add(horizontal).subtract(vertical),
+                center.add(horizontal).add(vertical),
+                center.subtract(horizontal).add(vertical), color);
     }
 
     private static void resetFor(ClientLevel level) {

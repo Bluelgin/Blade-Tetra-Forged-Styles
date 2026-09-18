@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.horizontalTexturedQuad;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.rotatedAtlasBillboard;
+
 /** Ground mirror and finishing shards; the actual cuts remain SlashBlade entities. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -125,14 +128,16 @@ public final class KyoukaVfxClient {
                     * (effect.type == KyoukaVfxPacket.BREAK_CHARGE ? 0.82F : 0.58F);
             double radius = effect.scale * (effect.type == KyoukaVfxPacket.BREAK_CHARGE
                     ? 1.55D + age / Math.max(1.0D, effect.duration) * 0.25D : 1.30D);
-            horizontalQuad(buffer, matrix, effect.position.add(0.0D, 0.035D, 0.0D),
-                    radius, alpha);
+            horizontalTexturedQuad(buffer, matrix,
+                    effect.position.add(0.0D, 0.035D, 0.0D), radius, alpha, 0xFFFFFF);
         }
         Tesselator.getInstance().end();
     }
 
     private static void renderShards(Matrix4f matrix, Vec3 camera,
             float partialTick, float global) {
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         for (Effect effect : EFFECTS) {
             if (effect.type != KyoukaVfxPacket.BREAK_SHATTER) continue;
             float age = effect.age + partialTick;
@@ -148,52 +153,12 @@ public final class KyoukaVfxClient {
                         0.35D + rise, Math.sin(angle) * radius);
                 double size = (0.18D + deterministic(effect.seed, index, 3) * 0.20D)
                         * effect.scale * (1.0D - t * 0.28D);
-                billboardCell(matrix, camera, center, size,
-                        (float) (angle + t * 5.0D + index), alpha,
-                        index % 4, index / 4);
+                rotatedAtlasBillboard(buffer, matrix, camera, center, size,
+                        (float) (angle + t * 5.0D + index), alpha, 0xFFFFFF,
+                        4, 3, index % 4, index / 4);
             }
         }
-    }
-
-    private static void horizontalQuad(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 center, double radius, float alpha) {
-        vertex(buffer, matrix, center.add(-radius, 0, -radius), 0, 0, alpha);
-        vertex(buffer, matrix, center.add(-radius, 0, radius), 0, 1, alpha);
-        vertex(buffer, matrix, center.add(radius, 0, radius), 1, 1, alpha);
-        vertex(buffer, matrix, center.add(radius, 0, -radius), 1, 0, alpha);
-    }
-
-    private static void billboardCell(Matrix4f matrix, Vec3 camera, Vec3 center,
-            double halfSize, float rotation, float alpha, int column, int row) {
-        Vec3 facing = camera.subtract(center);
-        if (facing.lengthSqr() < 0.001D) facing = new Vec3(0, 0, 1);
-        facing = facing.normalize();
-        Vec3 right = new Vec3(0, 1, 0).cross(facing);
-        if (right.lengthSqr() < 0.001D) right = new Vec3(1, 0, 0);
-        right = right.normalize();
-        Vec3 up = facing.cross(right).normalize();
-        Vec3 rotatedRight = right.scale(Math.cos(rotation))
-                .add(up.scale(Math.sin(rotation))).scale(halfSize);
-        Vec3 rotatedUp = up.scale(Math.cos(rotation))
-                .subtract(right.scale(Math.sin(rotation))).scale(halfSize);
-        float u0 = column / 4.0F;
-        float u1 = (column + 1) / 4.0F;
-        float v0 = row / 3.0F;
-        float v1 = (row + 1) / 3.0F;
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        vertex(buffer, matrix, center.subtract(rotatedRight).add(rotatedUp), u0, v0, alpha);
-        vertex(buffer, matrix, center.subtract(rotatedRight).subtract(rotatedUp), u0, v1, alpha);
-        vertex(buffer, matrix, center.add(rotatedRight).subtract(rotatedUp), u1, v1, alpha);
-        vertex(buffer, matrix, center.add(rotatedRight).add(rotatedUp), u1, v0, alpha);
         Tesselator.getInstance().end();
-    }
-
-    private static void vertex(BufferBuilder buffer, Matrix4f matrix, Vec3 position,
-            float u, float v, float alpha) {
-        buffer.vertex(matrix, (float) position.x, (float) position.y, (float) position.z)
-                .uv(u, v).color(255, 255, 255,
-                        Mth.clamp(Math.round(alpha * 255.0F), 0, 255)).endVertex();
     }
 
     private static double deterministic(int seed, int index, int channel) {
