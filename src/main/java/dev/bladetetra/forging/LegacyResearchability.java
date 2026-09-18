@@ -31,6 +31,11 @@ public final class LegacyResearchability {
         return stack.getCapability(ItemSlashBlade.BLADESTATE)
                 .resolve()
                 .map(state -> {
+                    // Broken state definitions may deliberately share the intact blade's
+                    // translation key (Yamato is the canonical example). Do not let that
+                    // alias turn a broken blade into a researchable intact blade. Sealed
+                    // is not rejected here because some named blades are authored as
+                    // legitimate sealed forms with their own catalog identity.
                     if (!stateAllowsResearch(state.isBroken(), state.isSealed())) {
                         return new Result(Status.DEGRADED_STATE, null);
                     }
@@ -49,7 +54,7 @@ public final class LegacyResearchability {
     }
 
     static boolean stateAllowsResearch(boolean broken, boolean sealed) {
-        return !broken && !sealed;
+        return !broken;
     }
 
     private LegacyResearchability() {}
