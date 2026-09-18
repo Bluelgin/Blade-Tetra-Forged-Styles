@@ -31,6 +31,8 @@ final class MikageDivineSupportManager {
     private UUID companion, marked;
     private Vec3 array, wall;
     private long arrayEnd, wallEnd, markEnd, arrayReady, wallReady, markReady, attackReady;
+    private long techniqueReady;
+    private int techniqueCycle;
     private int arrayIntegrity;
     private boolean closed;
     private int missingCompanionTicks;
@@ -38,11 +40,13 @@ final class MikageDivineSupportManager {
     private final Map<UUID, Long> meleeWindows = new HashMap<>();
     private final Map<UUID, Long> invaderHits = new HashMap<>();
     private final Map<UUID, Boolean> wallSides = new HashMap<>();
+    private final List<SupportStrike> pendingStrikes = new ArrayList<>();
     private final DivineDomainFinisher finisher;
 
     MikageDivineSupportManager(DivineDomainManager.Session session, ServerLevel level) {
         this.session=session; this.level=level; finisher=new DivineDomainFinisher(this);
         arrayReady=level.getGameTime()+60;
+        techniqueReady=level.getGameTime()+30;
         if (session.tier.hasCompanion()) {
             spawnCompanion();
             say("我与你同去。");
@@ -84,6 +88,7 @@ final class MikageDivineSupportManager {
             if(++missingCompanionTicks>=20) { spawnCompanion(); missingCompanionTicks=0; }
         } else missingCompanionTicks=0;
         List<Mob> mobs=enemies();
+        tickPendingStrikes(now);
         meleeWindows.entrySet().removeIf(e->e.getValue()<=now || !session.enemies.contains(e.getKey()));
         invaderHits.keySet().retainAll(session.enemies);
         wallSides.keySet().retainAll(session.enemies);
@@ -97,6 +102,7 @@ final class MikageDivineSupportManager {
         for(Mob mob:mobs) confine(mob);
         if(now%5!=0) return;
         if(available() && !finisher.binding(now)) {
+            if(now>=techniqueReady && !mobs.isEmpty()) castActiveTechnique(a,player,mobs,now);
             long nearby=mobs.stream().filter(m->m.distanceToSqr(player)<81).count();
             if(now>=arrayReady && nearby>=3) {
                 array=safePoint(player.position()); arrayEnd=now+160; arrayReady=now+400; arrayIntegrity=6;
@@ -177,6 +183,81 @@ final class MikageDivineSupportManager {
             Vec3 direction=target.position().subtract(a.position()); target.knockback(.65,-direction.x,-direction.z);
         }
     }
+
+    private void castActiveTechnique(MikageDivineCompanionEntity ally,
+            ServerPlayer player, List<Mob> mobs, long now) {
+        Vec3 origin=ally==null?player.position():ally.position();
+        List<Mob> targets=mobs.stream()
+                .filter(m->m.isAlive() && m.position().distanceToSqr(origin)<18*18)
+                .sorted(Comparator.comparingInt((Mob m)->priority(DivineDomainEnemyRole.of(m))).reversed()
+                        .thenComparingDouble(m->m.distanceToSqr(origin)))
+                .toList();
+        if(targets.isEmpty()) { techniqueReady=now+20; return; }
+
+        techniqueCycle++;
+        if(ally==null || targets.size()>=3 && techniqueCycle%3==0) {
+            castPurificationVolley(targets,now);
+            techniqueReady=now+(ally==null?100:80);
+            return;
+        }
+
+        Mob target=targets.get(0);
+        if(ally.distanceToSqr(target)>20.25D) {
+            Vec3 from=ally.position();
+            Vec3 approach=from.subtract(target.position()).multiply(1,0,1);
+            if(approach.lengthSqr()<.001D) approach=new Vec3(0,0,1);
+            Vec3 destination=safePoint(target.position().add(approach.normalize().scale(2.0D)));
+            effect("dash",from,-1,10,yaw(from,target.position()));
+            ally.teleportTo(destination.x,destination.y,destination.z);
+            effect("dash",destination,-1,10,yaw(destination,target.position()));
+            ally.pose(2);
+            queueStrike(target,now+4,2.5F);
+        } else {
+            ally.pose(2);
+            queueStrike(target,now,1.5F);
+            queueStrike(target,now+5,1.5F);
+            queueStrike(target,now+10,2.0F);
+        }
+        attackReady=Math.max(attackReady,now+18);
+        techniqueReady=now+70;
+    }
+
+    private void castPurificationVolley(List<Mob> targets,long now) {
+        int count=Math.min(3,targets.size());
+        for(int i=0;i<count;i++) {
+            Mob target=targets.get(i);
+            effect("volley",target.position(),target.getId(),22,i*120);
+            queueStrike(target,now+8+i*3,1.5F);
+        }
+        pose(1);
+        attackReady=Math.max(attackReady,now+18);
+    }
+
+    private void queueStrike(Mob target,long at,float damage) {
+        pendingStrikes.add(new SupportStrike(target.getUUID(),at,damage));
+    }
+
+    private void tickPendingStrikes(long now) {
+        Iterator<SupportStrike> iterator=pendingStrikes.iterator();
+        while(iterator.hasNext()) {
+            SupportStrike strike=iterator.next();
+            if(now<strike.at) continue;
+            iterator.remove();
+            Entity found=level.getEntity(strike.target);
+            if(!(found instanceof Mob target) || !target.isAlive()
+                    || !session.enemies.contains(target.getUUID())) continue;
+            float damage=Math.min(strike.damage,DivineSupportRules.companionDamage(target.getHealth()));
+            if(damage<=0) continue;
+            var ally=ally();
+            target.hurt(ally==null?level.damageSources().magic():level.damageSources().mobAttack(ally),damage);
+            effect("strike",target.position(),target.getId(),12,0);
+        }
+    }
+
+    private static float yaw(Vec3 from,Vec3 to) {
+        Vec3 direction=to.subtract(from);
+        return (float)Math.toDegrees(Math.atan2(-direction.x,direction.z));
+    }
     Vec3 safePoint(Vec3 preferred) {
         for(int i=0;i<16;i++) {
             BlockPos pos=i==0?BlockPos.containing(preferred.x,DivineDomainArenaData.FLOOR_Y+1,preferred.z)
@@ -246,6 +327,8 @@ final class MikageDivineSupportManager {
         if(closed) return;
         status(false); effect("end",new Vec3(session.originX,64,session.originZ),-1,1,0);
         var a=ally(); if(a!=null) a.discard();
-        guardState.revokeProtection(); meleeWindows.clear(); invaderHits.clear(); wallSides.clear(); closed=true;
+        guardState.revokeProtection(); meleeWindows.clear(); invaderHits.clear(); wallSides.clear();
+        pendingStrikes.clear(); closed=true;
     }
+    private record SupportStrike(UUID target,long at,float damage) {}
 }

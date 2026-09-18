@@ -17,7 +17,6 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,7 +29,23 @@ public final class MikageDivineVfxEvents {
     private static final MultiBufferSource.BufferSource BUFFERS = MultiBufferSource.immediate(new BufferBuilder(128 * 1024));
     private static ClientLevel activeLevel;
     private static int serial;
+    private static final String[] EFFECT_KINDS = {
+            "array", "wall", "mark", "guard", "binding", "entrance",
+            "dash", "strike", "volley", "hazard", "anchor_hit",
+            "array_end", "wall_end", "end"
+    };
     private record Key(int ritual, String kind, int target, int serial) {}
+
+    static {
+        // Forge loads this client-only event subscriber before play packets can
+        // arrive. Register synchronously here so visual dispatch never depends
+        // on deferred client-setup work having run first.
+        for (String kind : EFFECT_KINDS) {
+            TechniqueVfxRegistry.registerDuringSetup(
+                    new ResourceLocation(BladeTetra.MOD_ID, "divine/" + kind),
+                    MikageDivineVfxEvents::accept);
+        }
+    }
 
     private static boolean enabled() {
         return ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
@@ -92,7 +107,8 @@ public final class MikageDivineVfxEvents {
         Scene(String kind, TechniqueVfxData data, ClientLevel level) {
             this.kind = kind; duration = Math.max(1, Math.min(240, data.duration()));
             at = previous = new Vec3(data.endX(), data.endY(), data.endZ()); targetId = data.targetEntityId();
-            follows = kind.equals("guard") || kind.equals("mark") || kind.equals("binding");
+            follows = kind.equals("guard") || kind.equals("mark") || kind.equals("binding")
+                    || kind.equals("strike") || kind.equals("volley");
             if (follows) bind(level.getEntity(targetId));
         }
         private void bind(Entity entity) { if (entity != null) { target = entity.getUUID(); height = entity.getBbHeight(); } }
@@ -109,13 +125,6 @@ public final class MikageDivineVfxEvents {
 
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static final class Registration {
-        @SubscribeEvent public static void setup(FMLClientSetupEvent event) {
-            event.enqueueWork(() -> {
-                for (String kind : new String[]{"array", "wall", "mark", "guard", "binding", "entrance",
-                        "dash", "hazard", "anchor_hit", "array_end", "wall_end", "end"})
-                    TechniqueVfxRegistry.registerDuringSetup(new ResourceLocation(BladeTetra.MOD_ID, "divine/" + kind), MikageDivineVfxEvents::accept);
-            });
-        }
         @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener((ResourceManagerReloadListener) manager -> clear());
         }

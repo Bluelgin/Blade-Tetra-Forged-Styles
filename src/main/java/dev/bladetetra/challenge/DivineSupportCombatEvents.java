@@ -78,12 +78,12 @@ public final class DivineSupportCombatEvents {
         if(s==null || !s.enemies.contains(event.getEntity().getUUID()) || event.getNewTarget()==null) return;
         var support=s.support;
         if(support!=null && (support.bound(event.getEntity()) || support.attackingArray(event.getEntity()))) {
-            event.setNewTarget(null); return;
+            event.setCanceled(true); return;
         }
         var target=event.getNewTarget();
         boolean companion=support!=null && target.getUUID().equals(support.companionId());
         if(!target.isAlive() || target.level()!=event.getEntity().level()
-                || !s.players.contains(target.getUUID()) && !companion) event.setNewTarget(null);
+                || !s.players.contains(target.getUUID()) && !companion) event.setCanceled(true);
     }
     private DivineSupportCombatEvents() {}
 }

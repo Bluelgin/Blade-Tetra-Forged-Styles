@@ -57,6 +57,20 @@ final class MikageDivineVfxRenderer {
                 model(p,b,"boundary_cut",at.add(0,1,0),0,0,0,.5F,1.2F,1,alpha*.65F);
                 if(quality>0) shards(p,b,at,time,alpha,5,2);
             }
+            case "strike" -> {
+                model(p,b,"boundary_cut",at.add(0,s.height*.55,0),time*7,0,28,
+                        1.15F,1.8F,1,alpha);
+                if(quality>0) shards(p,b,at.add(0,s.height*.45,0),time,alpha,4,1.2F);
+            }
+            case "volley" -> {
+                for(int i=0;i<3;i++) {
+                    double angle=i*Math.PI*2/3+time*.025;
+                    float drop=(1-Mth.clamp((time-i*2)/10,0,1))*3.5F;
+                    Vec3 blade=at.add(Math.cos(angle)*1.25,2.7+drop,Math.sin(angle)*1.25);
+                    model(p,b,"purification_blade",blade,i*120,0,180,
+                            1.35F,1.35F,1.35F,alpha);
+                }
+            }
             case "array_end", "anchor_hit" -> {
                 model(p,b,"three_sword_anchor",at.add(0,.06,0),0,90,0,5,5,1,alpha*.5F);
                 if(quality>0) shards(p,b,at,time,alpha,9,4);
