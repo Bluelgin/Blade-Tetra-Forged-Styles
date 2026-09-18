@@ -32,6 +32,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.bandFacing;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.color;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.vertex;
+
 /** Client reconstruction of Void Scattering's translucent dome and stored swords. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -494,7 +498,7 @@ public final class VoidScatteringVfxClient {
                 : color(0.09F, 0.045F, 0.14F, alpha * 0.92F);
         double width = (glow ? 0.032D : 0.105D) * pulse;
         for (int i = 0; i + 1 < points.length; i++) {
-            line(buffer, matrix, camera, points[i], points[i + 1], width, crackColor);
+            bandFacing(buffer, matrix, points[i], points[i + 1], camera, width, crackColor);
         }
         if (!filled) return;
         Vec3 bottom = center.subtract(right.scale(0.12D)).add(0.0D, -0.43D, 0.0D);
@@ -502,38 +506,12 @@ public final class VoidScatteringVfxClient {
         int sword = glow
                 ? color(0.94F, 0.91F, 1.0F, alpha * 0.88F)
                 : color(0.20F, 0.11F, 0.28F, alpha * 0.95F);
-        line(buffer, matrix, camera, bottom, top, glow ? 0.025D : 0.075D, sword);
+        bandFacing(buffer, matrix, bottom, top, camera,
+                glow ? 0.025D : 0.075D, sword);
         Vec3 guardCenter = bottom.lerp(top, 0.28D);
-        line(buffer, matrix, camera, guardCenter.subtract(right.scale(0.22D)),
-                guardCenter.add(right.scale(0.22D)), glow ? 0.018D : 0.055D, sword);
-    }
-
-    private static void line(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
-            Vec3 start, Vec3 end, double halfWidth, int color) {
-        Vec3 direction = end.subtract(start);
-        if (direction.lengthSqr() < 0.000001D) return;
-        Vec3 side = direction.cross(camera.subtract(start.add(end).scale(0.5D)));
-        if (side.lengthSqr() < 0.0001D) side = direction.cross(new Vec3(0, 1, 0));
-        if (side.lengthSqr() < 0.0001D) side = new Vec3(1, 0, 0);
-        side = side.normalize().scale(halfWidth);
-        vertex(buffer, matrix, start.subtract(side), color);
-        vertex(buffer, matrix, end.subtract(side), color);
-        vertex(buffer, matrix, end.add(side), color);
-        vertex(buffer, matrix, start.add(side), color);
-    }
-
-    private static void vertex(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 point, int color) {
-        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-                .color((color >> 16) & 255, (color >> 8) & 255,
-                        color & 255, (color >>> 24) & 255).endVertex();
-    }
-
-    private static int color(float red, float green, float blue, float alpha) {
-        return Mth.clamp(Math.round(alpha * 255), 0, 255) << 24
-                | Mth.clamp(Math.round(red * 255), 0, 255) << 16
-                | Mth.clamp(Math.round(green * 255), 0, 255) << 8
-                | Mth.clamp(Math.round(blue * 255), 0, 255);
+        bandFacing(buffer, matrix, guardCenter.subtract(right.scale(0.22D)),
+                guardCenter.add(right.scale(0.22D)), camera,
+                glow ? 0.018D : 0.055D, sword);
     }
 
     private static void resetFor(ClientLevel level) {
