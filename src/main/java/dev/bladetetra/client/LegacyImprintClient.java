@@ -10,14 +10,12 @@ import net.minecraft.network.chat.Component;
 public final class LegacyImprintClient {
     public static void open(LegacyImprintOpenPacket packet) {
         LegacyImprintKind kind = NamedLegacyCatalog.get(packet.kind());
-        if (kind == null) {
-            return;
-        }
-        if (!kind.visualUsable()) {
-            if (Minecraft.getInstance().player != null) {
+        LegacyResearchabilityClient.Result result = LegacyResearchabilityClient.inspect(kind);
+        if (!result.researchable()) {
+            if (kind != null && Minecraft.getInstance().player != null) {
                 Minecraft.getInstance().player.displayClientMessage(Component.translatable(
                         "message.blade_tetra.imprint.unsupported_model",
-                        Component.translatable(kind.translationKey()), kind.visualFailureReason()), false);
+                        Component.translatable(kind.translationKey()), result.reason()), false);
             }
             return;
         }
