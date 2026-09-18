@@ -28,6 +28,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.band3d;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.color;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.planeBand;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.planeVector;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.ringHorizontal;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.ringVertical;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.texturedPlane;
+
 /**
  * Short-lived combat geometry rendered with Minecraft's built-in position/color
  * shader. It deliberately avoids framebuffer effects and custom GLSL so it can
@@ -294,113 +302,6 @@ public final class BladeCombatVfxClient {
                         (2.8D + t * 4.2D) * strength, fade * 0.72F);
             }
         }
-    }
-
-    private static void texturedPlane(Matrix4f matrix, Vec3 center, float yaw,
-            double size, float alpha) {
-        double angle = Math.toRadians(yaw);
-        Vec3 right = new Vec3(Math.cos(angle), 0.0D, Math.sin(angle)).scale(size * 0.5D);
-        Vec3 up = new Vec3(0.0D, size * 0.5D, 0.0D);
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        textureVertex(buffer, matrix, center.subtract(right).add(up), 0.0F, 0.0F, alpha);
-        textureVertex(buffer, matrix, center.subtract(right).subtract(up), 0.0F, 1.0F, alpha);
-        textureVertex(buffer, matrix, center.add(right).subtract(up), 1.0F, 1.0F, alpha);
-        textureVertex(buffer, matrix, center.add(right).add(up), 1.0F, 0.0F, alpha);
-        Tesselator.getInstance().end();
-    }
-
-    private static void textureVertex(BufferBuilder buffer, Matrix4f matrix, Vec3 point,
-            float u, float v, float alpha) {
-        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-                .uv(u, v).color(255, 255, 255,
-                        Mth.clamp(Math.round(alpha * 255.0F), 0, 255)).endVertex();
-    }
-
-    private static void planeBand(BufferBuilder buffer, Matrix4f matrix, Vec3 center,
-            Vec3 right, double angle, double length, double width, int color) {
-        Vec3 direction = planeVector(right, Math.cos(angle), Math.sin(angle));
-        Vec3 perpendicular = planeVector(right, -Math.sin(angle), Math.cos(angle));
-        Vec3 along = direction.scale(length * 0.5D);
-        Vec3 across = perpendicular.scale(width * 0.5D);
-        quad(buffer, matrix, center.subtract(along).subtract(across),
-                center.add(along).subtract(across), center.add(along).add(across),
-                center.subtract(along).add(across), color);
-    }
-
-    private static Vec3 planeVector(Vec3 right, double horizontal, double vertical) {
-        return new Vec3(right.x * horizontal, vertical, right.z * horizontal);
-    }
-
-    private static void ringVertical(BufferBuilder buffer, Matrix4f matrix, Vec3 center,
-            Vec3 right, double radius, double width, int color, int segments) {
-        for (int i = 0; i < segments; i++) {
-            double a0 = i * Math.PI * 2.0D / segments;
-            double a1 = (i + 1) * Math.PI * 2.0D / segments;
-            Vec3 outer0 = center.add(planeVector(right,
-                    Math.cos(a0) * (radius + width), Math.sin(a0) * (radius + width)));
-            Vec3 outer1 = center.add(planeVector(right,
-                    Math.cos(a1) * (radius + width), Math.sin(a1) * (radius + width)));
-            Vec3 inner1 = center.add(planeVector(right,
-                    Math.cos(a1) * Math.max(0.0D, radius - width),
-                    Math.sin(a1) * Math.max(0.0D, radius - width)));
-            Vec3 inner0 = center.add(planeVector(right,
-                    Math.cos(a0) * Math.max(0.0D, radius - width),
-                    Math.sin(a0) * Math.max(0.0D, radius - width)));
-            quad(buffer, matrix, outer0, outer1, inner1, inner0, color);
-        }
-    }
-
-    private static void ringHorizontal(BufferBuilder buffer, Matrix4f matrix, Vec3 center,
-            double radius, double width, int color, int segments) {
-        for (int i = 0; i < segments; i++) {
-            double a0 = i * Math.PI * 2.0D / segments;
-            double a1 = (i + 1) * Math.PI * 2.0D / segments;
-            Vec3 outer0 = center.add(Math.cos(a0) * (radius + width), 0.0D,
-                    Math.sin(a0) * (radius + width));
-            Vec3 outer1 = center.add(Math.cos(a1) * (radius + width), 0.0D,
-                    Math.sin(a1) * (radius + width));
-            Vec3 inner1 = center.add(Math.cos(a1) * Math.max(0.0D, radius - width), 0.0D,
-                    Math.sin(a1) * Math.max(0.0D, radius - width));
-            Vec3 inner0 = center.add(Math.cos(a0) * Math.max(0.0D, radius - width), 0.0D,
-                    Math.sin(a0) * Math.max(0.0D, radius - width));
-            quad(buffer, matrix, outer0, outer1, inner1, inner0, color);
-        }
-    }
-
-    private static void band3d(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 start, Vec3 end, double width, int color) {
-        Vec3 direction = end.subtract(start);
-        Vec3 side = direction.cross(new Vec3(0.0D, 1.0D, 0.0D));
-        if (side.lengthSqr() < 0.0001D) {
-            side = new Vec3(1.0D, 0.0D, 0.0D);
-        }
-        side = side.normalize().scale(width);
-        quad(buffer, matrix, start.subtract(side), end.subtract(side),
-                end.add(side), start.add(side), color);
-    }
-
-    private static void quad(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
-        vertex(buffer, matrix, a, color);
-        vertex(buffer, matrix, b, color);
-        vertex(buffer, matrix, c, color);
-        vertex(buffer, matrix, d, color);
-    }
-
-    private static void vertex(BufferBuilder buffer, Matrix4f matrix, Vec3 point, int color) {
-        buffer.vertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-                .color((color >> 16) & 0xFF, (color >> 8) & 0xFF,
-                        color & 0xFF, (color >>> 24) & 0xFF)
-                .endVertex();
-    }
-
-    private static int color(float red, float green, float blue, float alpha) {
-        int a = Mth.clamp(Math.round(alpha * 255.0F), 0, 255);
-        int r = Mth.clamp(Math.round(red * 255.0F), 0, 255);
-        int g = Mth.clamp(Math.round(green * 255.0F), 0, 255);
-        int b = Mth.clamp(Math.round(blue * 255.0F), 0, 255);
-        return a << 24 | r << 16 | g << 8 | b;
     }
 
     private static final class Effect {
