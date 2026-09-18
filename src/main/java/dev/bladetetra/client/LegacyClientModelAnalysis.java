@@ -9,13 +9,15 @@ import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.GroupObject;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,9 +47,14 @@ public final class LegacyClientModelAnalysis {
                 LegacyClientModelAnalysis::resolve));
     }
 
+    @SubscribeEvent
+    public static void registerReloadListener(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> clear());
+    }
+
     public static synchronized LegacyImprintProfileResolver.Resolution resolve(
             LegacyImprintKind kind) {
-        String key = kind.id() + "|" + kind.model();
+        String key = kind.id() + "|" + kind.model() + "|" + kind.texture();
         LegacyImprintProfileResolver.Resolution cached = CACHE.get(key);
         if (cached != null) return cached;
         LegacyImprintProfileResolver.Resolution result = analyze(kind);
@@ -58,6 +65,17 @@ public final class LegacyClientModelAnalysis {
     private static LegacyImprintProfileResolver.Resolution analyze(LegacyImprintKind kind) {
         LegacyCalibrationProfile fallback = kind.rawDefaultProfile();
         try {
+            // BladeModelManager deliberately has a fallback model. Verify the provider's
+            // resources first so a missing addon asset cannot be mistaken for a valid
+            // imprint merely because SlashBlade returned its default model.
+            var resources = Minecraft.getInstance().getResourceManager();
+            if (resources.getResource(kind.model()).isEmpty()) {
+                return fail(fallback, "missing model resource");
+            }
+            if (resources.getResource(kind.texture()).isEmpty()) {
+                return fail(fallback, "missing texture resource");
+            }
+
             var model = BladeModelManager.getInstance().getModel(kind.model());
             if (model == null || model.groupObjects == null
                     || model.groupObjects.size() > MAX_GROUPS) {
@@ -98,7 +116,6 @@ public final class LegacyClientModelAnalysis {
             if (!blade.valid() || !saya) {
                 return fail(fallback, !saya ? "no independent saya group" : "no blade group");
             }
-            Range candidates = hilt.valid() ? hilt : blade;
             float best = -1.0F;
             float center = .772F;
             for (GroupObject group : model.groupObjects) {
