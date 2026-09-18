@@ -46,7 +46,7 @@ class NamedLegacyIsolationGuardTest {
     }
 
     @Test
-    void clientGeometryCannotLeakIntoIntegratedServerSemantics() throws IOException {
+    void clientGeometryCannotLeakIntoGameplaySemantics() throws IOException {
         String clientResolver = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/LegacyClientModelAnalysis.java"));
         assertTrue(clientResolver.contains("!minecraft.isSameThread()"),
@@ -54,11 +54,25 @@ class NamedLegacyIsolationGuardTest {
         assertTrue(clientResolver.contains("non-client thread metadata"),
                 "The cross-thread fallback should stay explicitly metadata-only");
 
+        String kind = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/LegacyImprintKind.java"));
+        assertFalse(kind.contains("public LegacyCalibrationProfile defaultProfile()"),
+                "The record defaultProfile accessor must stay pure metadata");
+        assertTrue(kind.contains("public LegacyCalibrationProfile visualProfile()"),
+                "Dynamic geometry needs an explicitly visual API");
+
         String calibration = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/forging/LegacyCalibration.java"));
-        assertFalse(calibration.contains("kind.defaultProfile()"),
-                "Persistent/gameplay calibration fallbacks must never invoke client geometry");
-        assertTrue(calibration.contains("kind.rawDefaultProfile()"));
+        assertTrue(calibration.contains("kind.defaultProfile()"));
+        assertFalse(calibration.contains("kind.visualProfile()"));
+        assertFalse(calibration.contains("kind.visualUsable()"));
+
+        String parts = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/NamedLegacyParts.java"));
+        assertTrue(parts.contains("public static NamedLegacyParts visualFromStack"),
+                "Rendering must have a separate presentation view");
+        assertTrue(parts.contains("return NamedLegacyCatalog.get(id);"),
+                "Semantic source resolution must use catalog identity directly");
     }
 
     @Test
