@@ -60,7 +60,7 @@ public final class LegacyClientModelAnalysis {
         Minecraft minecraft = Minecraft.getInstance();
         if (!minecraft.isSameThread()) {
             return new LegacyImprintProfileResolver.Resolution(
-                    kind.rawDefaultProfile(), true, "non-client thread metadata");
+                    kind.defaultProfile(), true, "non-client thread metadata");
         }
 
         // Keep the integrated-server fast path outside this lock. A large client model may
@@ -77,7 +77,7 @@ public final class LegacyClientModelAnalysis {
     }
 
     private static LegacyImprintProfileResolver.Resolution analyze(LegacyImprintKind kind) {
-        LegacyCalibrationProfile fallback = kind.rawDefaultProfile();
+        LegacyCalibrationProfile fallback = kind.defaultProfile();
         try {
             // BladeModelManager deliberately has a fallback model. Verify the provider's
             // resources first so a missing addon asset cannot be mistaken for a valid
