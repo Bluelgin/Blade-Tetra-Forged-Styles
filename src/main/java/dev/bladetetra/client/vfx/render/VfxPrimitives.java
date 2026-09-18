@@ -14,6 +14,10 @@ import org.joml.Matrix4f;
  * <p>This class deliberately contains no technique timing, packet handling or
  * gameplay semantics. Effect families own their lifecycle; this layer only
  * translates reusable geometric primitives into vertices.</p>
+ *
+ * <p>Methods accepting a {@link BufferBuilder} are the preferred path for effect
+ * families that render many primitives in one pass. Convenience overloads that
+ * allocate their own begin/end pair remain for isolated one-off quads.</p>
  */
 public final class VfxPrimitives {
     public static void planeBand(BufferBuilder buffer, Matrix4f matrix, Vec3 center,
@@ -101,14 +105,24 @@ public final class VfxPrimitives {
 
     public static void texturedRibbon(BufferBuilder buffer, Matrix4f matrix,
             Vec3 start, Vec3 end, Vec3 halfWidth, float alpha, int color) {
-        textureVertex(buffer, matrix, start.add(halfWidth), 0.0F, 0.0F, alpha, color);
-        textureVertex(buffer, matrix, start.subtract(halfWidth), 0.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, end.subtract(halfWidth), 1.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, end.add(halfWidth), 1.0F, 0.0F, alpha, color);
+        texturedQuad(buffer, matrix,
+                start.add(halfWidth), start.subtract(halfWidth),
+                end.subtract(halfWidth), end.add(halfWidth),
+                0.0F, 0.0F, 1.0F, 1.0F, alpha, color);
     }
 
-    public static void billboard(Matrix4f matrix, Vec3 camera, Vec3 center,
-            double halfSize, float alpha, int color) {
+    public static void horizontalTexturedQuad(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 center, double radius, float alpha, int color) {
+        texturedQuad(buffer, matrix,
+                center.add(-radius, 0.0D, -radius),
+                center.add(-radius, 0.0D, radius),
+                center.add(radius, 0.0D, radius),
+                center.add(radius, 0.0D, -radius),
+                0.0F, 0.0F, 1.0F, 1.0F, alpha, color);
+    }
+
+    public static void billboard(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 camera, Vec3 center, double halfSize, float alpha, int color) {
         Vec3 facing = camera.subtract(center);
         if (facing.lengthSqr() < 0.001D) {
             facing = new Vec3(0.0D, 0.0D, 1.0D);
@@ -120,31 +134,80 @@ public final class VfxPrimitives {
         }
         right = right.normalize().scale(halfSize);
         Vec3 up = facing.cross(right).normalize().scale(halfSize);
+        texturedQuad(buffer, matrix,
+                center.subtract(right).add(up),
+                center.subtract(right).subtract(up),
+                center.add(right).subtract(up),
+                center.add(right).add(up),
+                0.0F, 0.0F, 1.0F, 1.0F, alpha, color);
+    }
+
+    public static void rotatedAtlasBillboard(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 camera, Vec3 center, double halfSize, float rotation,
+            float alpha, int color, int columns, int rows, int column, int row) {
+        Vec3 facing = camera.subtract(center);
+        if (facing.lengthSqr() < 0.001D) {
+            facing = new Vec3(0.0D, 0.0D, 1.0D);
+        }
+        facing = facing.normalize();
+        Vec3 right = new Vec3(0.0D, 1.0D, 0.0D).cross(facing);
+        if (right.lengthSqr() < 0.001D) {
+            right = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+        right = right.normalize();
+        Vec3 up = facing.cross(right).normalize();
+        Vec3 rotatedRight = right.scale(Math.cos(rotation))
+                .add(up.scale(Math.sin(rotation))).scale(halfSize);
+        Vec3 rotatedUp = up.scale(Math.cos(rotation))
+                .subtract(right.scale(Math.sin(rotation))).scale(halfSize);
+        float u0 = column / (float) columns;
+        float u1 = (column + 1) / (float) columns;
+        float v0 = row / (float) rows;
+        float v1 = (row + 1) / (float) rows;
+        texturedQuad(buffer, matrix,
+                center.subtract(rotatedRight).add(rotatedUp),
+                center.subtract(rotatedRight).subtract(rotatedUp),
+                center.add(rotatedRight).subtract(rotatedUp),
+                center.add(rotatedRight).add(rotatedUp),
+                u0, v0, u1, v1, alpha, color);
+    }
+
+    public static void billboard(Matrix4f matrix, Vec3 camera, Vec3 center,
+            double halfSize, float alpha, int color) {
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        textureVertex(buffer, matrix, center.subtract(right).add(up), 0.0F, 0.0F, alpha, color);
-        textureVertex(buffer, matrix, center.subtract(right).subtract(up), 0.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, center.add(right).subtract(up), 1.0F, 1.0F, alpha, color);
-        textureVertex(buffer, matrix, center.add(right).add(up), 1.0F, 0.0F, alpha, color);
+        billboard(buffer, matrix, camera, center, halfSize, alpha, color);
         Tesselator.getInstance().end();
+    }
+
+    public static void texturedPlane(BufferBuilder buffer, Matrix4f matrix, Vec3 center,
+            float yaw, double size, float alpha, int color) {
+        double angle = Math.toRadians(yaw);
+        Vec3 right = new Vec3(Math.cos(angle), 0.0D, Math.sin(angle)).scale(size * 0.5D);
+        Vec3 up = new Vec3(0.0D, size * 0.5D, 0.0D);
+        texturedQuad(buffer, matrix,
+                center.subtract(right).add(up),
+                center.subtract(right).subtract(up),
+                center.add(right).subtract(up),
+                center.add(right).add(up),
+                0.0F, 0.0F, 1.0F, 1.0F, alpha, color);
     }
 
     public static void texturedPlane(Matrix4f matrix, Vec3 center, float yaw,
             double size, float alpha) {
-        double angle = Math.toRadians(yaw);
-        Vec3 right = new Vec3(Math.cos(angle), 0.0D, Math.sin(angle)).scale(size * 0.5D);
-        Vec3 up = new Vec3(0.0D, size * 0.5D, 0.0D);
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        textureVertex(buffer, matrix, center.subtract(right).add(up), 0.0F, 0.0F, alpha,
-                0xFFFFFF);
-        textureVertex(buffer, matrix, center.subtract(right).subtract(up), 0.0F, 1.0F, alpha,
-                0xFFFFFF);
-        textureVertex(buffer, matrix, center.add(right).subtract(up), 1.0F, 1.0F, alpha,
-                0xFFFFFF);
-        textureVertex(buffer, matrix, center.add(right).add(up), 1.0F, 0.0F, alpha,
-                0xFFFFFF);
+        texturedPlane(buffer, matrix, center, yaw, size, alpha, 0xFFFFFF);
         Tesselator.getInstance().end();
+    }
+
+    public static void texturedQuad(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 a, Vec3 b, Vec3 c, Vec3 d,
+            float u0, float v0, float u1, float v1, float alpha, int color) {
+        textureVertex(buffer, matrix, a, u0, v0, alpha, color);
+        textureVertex(buffer, matrix, b, u0, v1, alpha, color);
+        textureVertex(buffer, matrix, c, u1, v1, alpha, color);
+        textureVertex(buffer, matrix, d, u1, v0, alpha, color);
     }
 
     public static void quad(BufferBuilder buffer, Matrix4f matrix,
