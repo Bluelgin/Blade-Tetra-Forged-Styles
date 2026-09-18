@@ -41,6 +41,25 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void styleCombatLivingTickKeepsItsFastExit() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java"));
+        assertTrue(source.contains(
+                "if (!modularBlade && !hasIaidoState && !hasBrokenStanceState)"),
+                "Unrelated living entities must leave StyleCombatHandler.onLivingTick early");
+        assertTrue(source.contains("hasIaidoTickState(CompoundTag data)"),
+                "Iaido transient-state detection must stay explicit and allocation-free");
+        assertTrue(source.contains("data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)"),
+                "Missing transient tags must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_SPACING_UNTIL, Tag.TAG_LONG)"),
+                "Missing spacing state must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)"),
+                "Missing deflect state must not trigger pointless cleanup writes every tick");
+        assertTrue(source.contains("data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)"),
+                "Missing disrupted state must not trigger pointless cleanup writes every tick");
+    }
+
+    @Test
     void legacyIntegerTechniquePacketIsFrozenForNewVisualFamilies() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/network/BladeTechniqueVfxPacket.java"));
