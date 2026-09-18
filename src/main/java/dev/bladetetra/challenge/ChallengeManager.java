@@ -88,7 +88,7 @@ public final class ChallengeManager {
     private static final ChallengeSlotAllocator ARENA_SLOTS = new ChallengeSlotAllocator();
     private static long nextId = 1L;
     private static MinecraftServer activeServer;
-    private static boolean mirrorAttacksCleaned;
+    private static boolean mirrorRealmCleaned;
 
     @SubscribeEvent
     public static void serverAboutToStart(ServerAboutToStartEvent event) {
@@ -112,7 +112,7 @@ public final class ChallengeManager {
     private static void resetForServer(MinecraftServer server) {
         clearSessionState();
         activeServer = server;
-        mirrorAttacksCleaned = false;
+        mirrorRealmCleaned = false;
     }
 
     private static void clearSessionState() {
@@ -165,25 +165,13 @@ public final class ChallengeManager {
             // follows the overworld. Keep this local to the challenge level.
             mirror.setWeatherParameters(6000, 0, false, false);
         }
-        if (!mirrorAttacksCleaned) {
-            cleanupOrphanedAttacks(mirror);
-            mirrorAttacksCleaned = true;
-        }
-        if (mirror.getGameTime() % 20L == 0L) {
-            List<MikageEntity> orphaned = new ArrayList<>();
-            List<Entity> orphanedAttacks = new ArrayList<>();
-            for (Entity entity : mirror.getAllEntities()) {
-                if (entity instanceof MikageEntity mikage
-                        && !CHALLENGES.containsKey(mikage.getPersistentData()
-                                .getLong("blade_tetra_challenge"))) {
-                    orphaned.add(mikage);
-                } else if (entity instanceof EntityAbstractSummonedSword sword
-                        && sword.getOwner() == null) {
-                    orphanedAttacks.add(sword);
-                }
-            }
-            orphaned.forEach(MikageEntity::discard);
-            orphanedAttacks.forEach(Entity::discard);
+        if (!mirrorRealmCleaned) {
+            // Challenge sessions are process-local. Once the protected levels are
+            // available, anything left in the mirror realm from an older process
+            // is stale. Clean it exactly once instead of scanning the full realm
+            // every second for the rest of the server uptime.
+            cleanupOrphanedRealmEntities(mirror);
+            mirrorRealmCleaned = true;
         }
         if (server.getTickCount() % 20 == 0) {
             easter.setWeatherParameters(6000, 0, false, false);
@@ -200,10 +188,12 @@ public final class ChallengeManager {
         }
     }
 
-    private static void cleanupOrphanedAttacks(ServerLevel mirror) {
+    private static void cleanupOrphanedRealmEntities(ServerLevel mirror) {
         List<Entity> stale = new ArrayList<>();
         for (Entity entity : mirror.getAllEntities()) {
-            if (entity instanceof EntityAbstractSummonedSword sword
+            if (entity instanceof MikageEntity) {
+                stale.add(entity);
+            } else if (entity instanceof EntityAbstractSummonedSword sword
                     && (sword.getOwner() == null
                             || sword.getPersistentData().getBoolean(
                                     "blade_tetra_mikage_attack"))) {
