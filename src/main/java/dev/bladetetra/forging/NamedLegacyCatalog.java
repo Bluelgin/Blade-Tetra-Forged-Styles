@@ -258,14 +258,25 @@ public final class NamedLegacyCatalog {
             }
             providerNamespaces.add(namespaceRoot);
             if (ambiguous.contains(name)) return;
+            Definition candidate = new Definition(json, path, namespaceRoot);
             Definition previous = definitions.get(name);
             if (previous == null) {
-                definitions.put(name, new Definition(json, path, namespaceRoot));
+                definitions.put(name, candidate);
                 return;
             }
             if (previous.json().equals(json)) {
                 return;
             }
+
+            JsonObject selected = selectEquivalentRenderVariant(previous.json(), json);
+            if (selected != null) {
+                Definition preferred = selected == json ? candidate : previous;
+                definitions.put(name, preferred);
+                LOGGER.debug("Collapsing equivalent-render state variants for {} ({} vs {}); using {}",
+                        name, previous.source(), path, preferred.source());
+                return;
+            }
+
             definitions.remove(name);
             ambiguous.add(name);
             reject(foundDiagnostics, name, DiagnosticReason.DUPLICATE_ID,
@@ -277,6 +288,89 @@ public final class NamedLegacyCatalog {
             LOGGER.debug("Ignoring unsupported optional SlashBlade definition {}",
                     path, exception);
         }
+    }
+
+    /**
+     * SlashBlade may publish several state files for one named blade. Yamato is the
+     * canonical example: the intact and broken/sealed definitions share the same
+     * name, model and texture. They are one visual identity, not a provider conflict.
+     *
+     * <p>Equivalent render identities collapse to the least-degraded state. A true
+     * model/texture disagreement still returns {@code null} so discovery quarantines
+     * the duplicate instead of depending on scan order.</p>
+     */
+    static JsonObject selectEquivalentRenderVariant(JsonObject first, JsonObject second) {
+        if (first == null || second == null || !sameRenderIdentity(first, second)) {
+            return null;
+        }
+        int firstPenalty = degradedStatePenalty(first);
+        int secondPenalty = degradedStatePenalty(second);
+        if (firstPenalty != secondPenalty) {
+            return firstPenalty < secondPenalty ? first : second;
+        }
+        // Equal-state duplicates are still equivalent for imprinting. Use a stable
+        // content comparison so ModList iteration order cannot choose gameplay metadata.
+        return first.toString().compareTo(second.toString()) <= 0 ? first : second;
+    }
+
+    static boolean sameRenderIdentity(JsonObject first, JsonObject second) {
+        JsonObject firstRender = renderObject(first);
+        JsonObject secondRender = renderObject(second);
+        if (firstRender == null || secondRender == null) return false;
+
+        ResourceLocation firstTexture = primitiveLocation(firstRender, "texture");
+        ResourceLocation secondTexture = primitiveLocation(secondRender, "texture");
+        if (firstTexture == null || secondTexture == null || !firstTexture.equals(secondTexture)) {
+            return false;
+        }
+
+        ResourceLocation firstModel = firstRender.has("model")
+                ? primitiveLocation(firstRender, "model")
+                : ResourceLocation.tryParse("slashblade:model/blade.obj");
+        ResourceLocation secondModel = secondRender.has("model")
+                ? primitiveLocation(secondRender, "model")
+                : ResourceLocation.tryParse("slashblade:model/blade.obj");
+        return firstModel != null && firstModel.equals(secondModel);
+    }
+
+    static int degradedStatePenalty(JsonObject definition) {
+        if (definition == null || !definition.has("properties")
+                || !definition.get("properties").isJsonObject()) {
+            return 0;
+        }
+        JsonObject properties = definition.getAsJsonObject("properties");
+        JsonElement swordTypes = properties.get("sword_type");
+        if (swordTypes == null) return 0;
+
+        int penalty = 0;
+        if (swordTypes.isJsonArray()) {
+            for (JsonElement element : swordTypes.getAsJsonArray()) {
+                if (element.isJsonPrimitive()) {
+                    penalty += degradedSwordTypePenalty(element.getAsString());
+                }
+            }
+        } else if (swordTypes.isJsonPrimitive()) {
+            penalty += degradedSwordTypePenalty(swordTypes.getAsString());
+        }
+        return penalty;
+    }
+
+    private static int degradedSwordTypePenalty(String value) {
+        if (value == null) return 0;
+        return switch (value.toLowerCase(java.util.Locale.ROOT)) {
+            case "broken" -> 100;
+            case "rust", "rusted" -> 80;
+            case "sealed" -> 40;
+            default -> 0;
+        };
+    }
+
+    private static JsonObject renderObject(JsonObject definition) {
+        if (definition == null || !definition.has("render")
+                || !definition.get("render").isJsonObject()) {
+            return null;
+        }
+        return definition.getAsJsonObject("render");
     }
 
     private static Map<String, List<JsonObject>> scanRelevantRecipes(
