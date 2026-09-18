@@ -82,6 +82,10 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty("tetra.variant.legacy_saya/imprinted", "映锻刀鞘");
         en.addProperty("tetra.variant.legacy_tsuba/imprinted", "Imprinted hilt");
         zh.addProperty("tetra.variant.legacy_tsuba/imprinted", "映锻镡柄刀装");
+        en.addProperty("message.blade_tetra.imprint.unsupported_model",
+                "%1$s cannot be studied: unsupported model (%2$s).");
+        zh.addProperty("message.blade_tetra.imprint.unsupported_model",
+                "%1$s无法映录：模型结构暂不支持（%2$s）。");
 
         putUnique("assets/blade_tetra/lang/en_us.json", en.toString());
         putUnique("assets/blade_tetra/lang/zh_cn.json", zh.toString());
