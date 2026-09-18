@@ -5,6 +5,9 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class VisualPacketRoundTripTest {
@@ -66,6 +69,109 @@ class VisualPacketRoundTripTest {
         assertEquals(expected, roundTrip(expected,
                 MikageBoundaryPacket::encode,
                 MikageBoundaryPacket::decode));
+    }
+
+    @Test
+    void mikageMusicStartAndStopRoundTrip() {
+        MikageMusicPacket start = MikageMusicPacket.start(7_654_321L);
+        assertEquals(start, roundTrip(start,
+                MikageMusicPacket::encode,
+                MikageMusicPacket::decode));
+
+        MikageMusicPacket stop = MikageMusicPacket.stop();
+        assertEquals(stop, roundTrip(stop,
+                MikageMusicPacket::encode,
+                MikageMusicPacket::decode));
+    }
+
+    @Test
+    void activeMikageHudRoundTripsAllVisibleState() {
+        MikageHudPacket expected = new MikageHudPacket(
+                true,
+                44L,
+                UUID.fromString("12345678-1234-5678-9abc-def012345678"),
+                3,
+                true,
+                17,
+                63,
+                140);
+        assertEquals(expected, roundTrip(expected,
+                MikageHudPacket::encode,
+                MikageHudPacket::decode));
+    }
+
+    @Test
+    void hiddenMikageHudUsesCanonicalEmptyPacket() {
+        MikageHudPacket expected = MikageHudPacket.hide();
+        assertEquals(expected, roundTrip(expected,
+                MikageHudPacket::encode,
+                MikageHudPacket::decode));
+    }
+
+    @Test
+    void mikageDialogueRoundTripsTimingAndVoiceFields() {
+        MikageDialoguePacket expected = new MikageDialoguePacket(
+                "dialogue.blade_tetra.mikage.test",
+                "blade_tetra:mikage/test_voice",
+                87,
+                13);
+        assertEquals(expected, roundTrip(expected,
+                MikageDialoguePacket::encode,
+                MikageDialoguePacket::decode));
+    }
+
+    @Test
+    void visitorTopicsEncodeKeepsDivineLoreCompatibilityEntry() {
+        MikageVisitorDialoguePacket original = new MikageVisitorDialoguePacket(
+                "topics",
+                "dialogue.blade_tetra.mikage.visitor.topics",
+                "",
+                "neutral",
+                List.of(new MikageVisitorDialoguePacket.Option(
+                        "history", "dialogue.blade_tetra.mikage.visitor.history")));
+        MikageVisitorDialoguePacket expected = new MikageVisitorDialoguePacket(
+                original.nodeId(),
+                original.textKey(),
+                original.voiceEvent(),
+                original.expression(),
+                List.of(
+                        new MikageVisitorDialoguePacket.Option(
+                                "history", "dialogue.blade_tetra.mikage.visitor.history"),
+                        new MikageVisitorDialoguePacket.Option("divine_lore", "关于神域")));
+        assertEquals(expected, roundTrip(original,
+                MikageVisitorDialoguePacket::encode,
+                MikageVisitorDialoguePacket::decode));
+    }
+
+    @Test
+    void voidScatteringVfxRoundTripsSentinelAndImpactCoordinates() {
+        VoidScatteringVfxPacket expected = new VoidScatteringVfxPacket(
+                VoidScatteringVfxPacket.RESIDUAL_COUNTER,
+                -1,
+                6,
+                160,
+                0x2468ACE,
+                -12.25F,
+                71.5F,
+                8.75F);
+        assertEquals(expected, roundTrip(expected,
+                VoidScatteringVfxPacket::encode,
+                VoidScatteringVfxPacket::decode));
+    }
+
+    @Test
+    void divineSupportStateRoundTrips() {
+        DivineSupportStatePacket expected = new DivineSupportStatePacket(
+                8080L,
+                true,
+                4,
+                95,
+                37,
+                true,
+                false);
+        assertEquals(expected, roundTrip(expected,
+                DivineSupportStatePacket::encode,
+                DivineSupportStatePacket::decode));
     }
 
     private static <T> T roundTrip(T packet, Encoder<T> encoder, Decoder<T> decoder) {
