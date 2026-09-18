@@ -26,6 +26,35 @@ class VfxFoundationGuardTest {
                 "Raikiri VFX should render common geometry through VfxPrimitives");
         assertFalse(raikiri.contains("private static void texturedRibbon("));
         assertFalse(raikiri.contains("private static void billboard("));
+
+        String kyouka = read("src/main/java/dev/bladetetra/client/KyoukaVfxClient.java");
+        assertTrue(kyouka.contains("rotatedAtlasBillboard("),
+                "Kyouka shards should use the shared batched atlas billboard primitive");
+        assertTrue(kyouka.contains("horizontalTexturedQuad("),
+                "Kyouka pools should use the shared textured quad primitive");
+        assertFalse(kyouka.contains("private static void horizontalQuad("));
+        assertFalse(kyouka.contains("private static void billboardCell("));
+        assertFalse(kyouka.contains("private static void vertex("));
+
+        String boundary = read(
+                "src/main/java/dev/bladetetra/client/BoundaryForgingVfxClient.java");
+        assertTrue(boundary.contains("bandFacing(buffer"),
+                "Boundary camera-facing lines should delegate to VfxPrimitives");
+        assertFalse(boundary.contains("private static void quad("));
+        assertFalse(boundary.contains("private static void vertex("));
+        assertFalse(boundary.contains("private static int color("));
+        assertFalse(boundary.contains("private static int withAlpha("));
+    }
+
+    @Test
+    void primitiveLayerSupportsBatchFriendlyTexturedGeometry() throws IOException {
+        String primitives = read(
+                "src/main/java/dev/bladetetra/client/vfx/render/VfxPrimitives.java");
+        assertTrue(primitives.contains("horizontalTexturedQuad(BufferBuilder"));
+        assertTrue(primitives.contains("billboard(BufferBuilder"));
+        assertTrue(primitives.contains("rotatedAtlasBillboard(BufferBuilder"));
+        assertTrue(primitives.contains("texturedPlane(BufferBuilder"));
+        assertTrue(primitives.contains("texturedQuad(BufferBuilder"));
     }
 
     @Test
