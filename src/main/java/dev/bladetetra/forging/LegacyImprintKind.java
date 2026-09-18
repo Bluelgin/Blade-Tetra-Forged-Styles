@@ -30,17 +30,15 @@ public record LegacyImprintKind(String id, ResourceLocation name,
                 List.of());
     }
 
-    /** Client may refine the catalog profile lazily from SlashBlade's loaded model. */
-    @Override
-    public LegacyCalibrationProfile defaultProfile() {
+    /**
+     * Optional client presentation profile. Gameplay and persistence must use the
+     * record's {@link #defaultProfile()} accessor instead, which is pure metadata.
+     */
+    public LegacyCalibrationProfile visualProfile() {
         return LegacyImprintProfileResolver.resolve(this).profile();
     }
 
-    /** Stable server/catalog profile that never invokes client geometry. */
-    public LegacyCalibrationProfile rawDefaultProfile() {
-        return defaultProfile;
-    }
-
+    /** Whether this client can safely partition and render the provider model. */
     public boolean visualUsable() {
         return LegacyImprintProfileResolver.resolve(this).visualUsable();
     }
