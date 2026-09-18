@@ -1,0 +1,44 @@
+name: Material Cache Transform
+
+on:
+  push:
+    branches:
+      - perf/runtime-hotpaths-and-maintenance
+
+permissions:
+  contents: write
+
+jobs:
+  transform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: perf/runtime-hotpaths-and-maintenance
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Apply bounded source transform
+        run: python3 .github/scripts/material_cache_transform.py
+
+      - name: Validate full build
+        run: ./gradlew build
+
+      - name: Commit validated transform and remove helper files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/material-cache-transform.yml .github/scripts/material_cache_transform.py
+          git add src/main/java/dev/bladetetra/client/MaterialTextureManager.java src/test/java/dev/bladetetra/architecture/ArchitectureDebtGuardTest.java
+          git commit -m "Cache normalized material atlas per resource cycle"
+          git push origin HEAD:perf/runtime-hotpaths-and-maintenance
