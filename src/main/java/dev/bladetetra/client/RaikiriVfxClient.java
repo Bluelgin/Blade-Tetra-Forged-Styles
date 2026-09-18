@@ -28,10 +28,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.bandFacing;
 import static dev.bladetetra.client.vfx.render.VfxPrimitives.billboard;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.color;
 import static dev.bladetetra.client.vfx.render.VfxPrimitives.texturedRibbon;
+import static dev.bladetetra.client.vfx.render.VfxPrimitives.withAlpha;
 
-/** Textured, crossed world-space ribbons for Raikiri's chain circuit. */
+/** Textured ribbons with a quality-gated procedural core for Raikiri's chain circuit. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RaikiriVfxClient {
@@ -95,6 +98,11 @@ public final class RaikiriVfxClient {
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         float global = ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue();
         renderArcs(matrix, camera.getPosition(), event.getPartialTick(), global);
+        if (ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get() >= 1) {
+            renderProceduralCores(matrix, camera.getPosition(), event.getPartialTick(), global,
+                    ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get());
+        }
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         renderImpactSprites(matrix, camera.getPosition(), event.getPartialTick(), global);
         RenderSystem.depthMask(true);
         RenderSystem.defaultBlendFunc();
@@ -134,6 +142,59 @@ public final class RaikiriVfxClient {
                 Vec3 diagonal = faceWidth.add(crossWidth).normalize();
                 texturedRibbon(buffer, matrix, effect.start, effect.end,
                         diagonal.scale(width * 0.68D), alpha * 0.36F, effect.color);
+            }
+        }
+        Tesselator.getInstance().end();
+    }
+
+    private static void renderProceduralCores(Matrix4f matrix, Vec3 camera,
+            float partialTick, float global, int quality) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (ArcEffect effect : EFFECTS) {
+            float age = effect.age + partialTick;
+            float t = Mth.clamp(age / effect.duration, 0.0F, 1.0F);
+            float fade = Mth.clamp(1.0F - t, 0.0F, 1.0F);
+            float pulse = 0.82F + 0.18F * Mth.sin((age + effect.seed * 0.11F) * 4.6F);
+            Vec3 direction = effect.end.subtract(effect.start);
+            if (direction.lengthSqr() < 0.0001D) continue;
+
+            Vec3 forward = direction.normalize();
+            Vec3 side = forward.cross(new Vec3(0.0D, 1.0D, 0.0D));
+            if (side.lengthSqr() < 0.001D) side = forward.cross(new Vec3(1.0D, 0.0D, 0.0D));
+            side = side.normalize();
+            Vec3 up = side.cross(forward).normalize();
+            int segments = quality >= 2 ? (effect.overload ? 12 : 9) : (effect.overload ? 8 : 6);
+            double jitter = (effect.overload ? 0.22D : 0.13D) * Math.min(1.25D, global);
+            double outerWidth = (effect.overload ? 0.055D : 0.040D) * global;
+            double coreWidth = (effect.overload ? 0.019D : 0.014D) * global;
+            int outer = withAlpha(effect.color, fade * pulse * global * 0.64F);
+            int core = color(0.92F, 0.98F, 1.0F, fade * pulse * global * 0.96F);
+
+            Vec3 previous = effect.start;
+            for (int index = 1; index <= segments; index++) {
+                double progress = index / (double) segments;
+                Vec3 point = effect.start.lerp(effect.end, progress);
+                if (index < segments) {
+                    double envelope = Math.sin(progress * Math.PI);
+                    double phase = effect.seed * 0.173D + index * 2.399D + age * 0.47D;
+                    point = point.add(side.scale(Math.sin(phase) * jitter * envelope))
+                            .add(up.scale(Math.cos(phase * 1.37D) * jitter * 0.68D * envelope));
+                }
+                bandFacing(buffer, matrix, previous, point, camera, outerWidth, outer);
+                bandFacing(buffer, matrix, previous, point, camera, coreWidth, core);
+
+                if (quality >= 2 && effect.overload && index < segments && index % 3 == 0) {
+                    double branchPhase = effect.seed * 0.29D + index * 1.73D;
+                    Vec3 branchDirection = side.scale(Math.sin(branchPhase))
+                            .add(up.scale(0.45D + 0.35D * Math.cos(branchPhase)))
+                            .normalize();
+                    Vec3 branchEnd = point.add(branchDirection.scale(0.32D + 0.06D * (index % 2)));
+                    bandFacing(buffer, matrix, point, branchEnd, camera,
+                            outerWidth * 0.58D, withAlpha(effect.color, fade * global * 0.42F));
+                }
+                previous = point;
             }
         }
         Tesselator.getInstance().end();
