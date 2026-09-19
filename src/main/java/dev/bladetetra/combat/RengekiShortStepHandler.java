@@ -2,6 +2,7 @@ package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -17,6 +18,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -70,6 +74,14 @@ public final class RengekiShortStepHandler {
     private static final Map<UUID, KillTransfer> KILL_TRANSFERS = new HashMap<>();
 
     /**
+     * Slash effects resolve damage a few ticks after they are spawned. Keep the
+     * exact source ItemStack for every native-B effect so a late B2-B7 kill is
+     * still recognized even if the player's combo has already timed out or
+     * advanced when that damage lands.
+     */
+    private static final Map<UUID, ItemStack> RENGEKI_B_SLASH_BLADES = new HashMap<>();
+
+    /**
      * Rengeki's native B chain gets a small per-slash damage reduction in
      * exchange for its much stronger positioning continuity. Directional,
      * aerial and Slash Art attacks are intentionally untouched.
@@ -84,10 +96,65 @@ public final class RengekiShortStepHandler {
         event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER);
     }
 
+    /** Record native-B slash provenance at the moment the effect is spawned. */
+    @SubscribeEvent
+    public static void onSlashEffectJoin(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()
+                || !(event.getEntity() instanceof EntitySlashEffect slashEffect)
+                || !(slashEffect.getShooter() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        ItemStack blade = player.getMainHandItem();
+        if (!(blade.getItem() instanceof ModularSlashBladeItem)
+                || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
+            return;
+        }
+
+        ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                .map(state -> state.getComboSeq())
+                .orElse(ComboStateRegistry.NONE.getId());
+        if (isNativeBCombo(combo)) {
+            RENGEKI_B_SLASH_BLADES.put(slashEffect.getUUID(), blade);
+        }
+    }
+
+    /** Avoid retaining short-lived slash entity UUIDs after the effect despawns. */
+    @SubscribeEvent
+    public static void onSlashEffectLeave(EntityLeaveLevelEvent event) {
+        if (event.getEntity() instanceof EntitySlashEffect slashEffect) {
+            RENGEKI_B_SLASH_BLADES.remove(slashEffect.getUUID());
+        }
+    }
+
     /**
-     * Successful non-terminal B hits arm the ordinary chase. Any native B hit
-     * which actually kills its target instead schedules a kill hand-off; B7 is
-     * allowed to do this even though it cannot arm another ordinary chase.
+     * Death carries the actual DamageSource, unlike SlashBlade's later HitEvent.
+     * This lets a delayed native-B slash prove that it caused the kill without
+     * trusting whatever combo happens to be current when Item#hurtEnemy runs.
+     */
+    @SubscribeEvent
+    public static void onRengekiKill(LivingDeathEvent event) {
+        if (!(event.getSource().getDirectEntity() instanceof EntitySlashEffect slashEffect)
+                || !(slashEffect.getShooter() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        ItemStack sourceBlade = RENGEKI_B_SLASH_BLADES.get(slashEffect.getUUID());
+        if (sourceBlade == null
+                || player.getMainHandItem() != sourceBlade
+                || !(sourceBlade.getItem() instanceof ModularSlashBladeItem)
+                || StyleResolver.resolve(sourceBlade) != BladeStyle.RENGEKI) {
+            return;
+        }
+
+        scheduleKillTransfer(player, sourceBlade);
+    }
+
+    /**
+     * Successful non-terminal B hits arm the ordinary chase. A confirmed kill
+     * is already converted into KILL_TRANSFERS by LivingDeathEvent before
+     * ItemSlashBlade emits this HitEvent, so lethal hits cannot accidentally
+     * downgrade the stronger hand-off into an ordinary chase.
      */
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
@@ -98,35 +165,29 @@ public final class RengekiShortStepHandler {
             return;
         }
 
-        ResourceLocation combo = event.getSlashBladeState().getComboSeq();
-        if (!isNativeBCombo(combo)) {
-            return;
-        }
-
         UUID playerId = player.getUUID();
-        long now = player.level().getGameTime();
-        boolean killed = !event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F;
-        if (killed) {
-            CHASE_WINDOWS.remove(playerId);
-            KILL_TRANSFERS.put(
-                    playerId,
-                    new KillTransfer(
-                            now + KILL_TRANSFER_DELAY_TICKS,
-                            now + KILL_TRANSFER_WINDOW_TICKS,
-                            event.getBlade()));
-            return;
-        }
-
-        // A multi-hit B node may continue resolving more targets after one of
-        // them was killed. Do not let those later hits replace the pending
-        // kill hand-off with a weaker ordinary chase window.
+        ResourceLocation combo = event.getSlashBladeState().getComboSeq();
         if (KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)) {
             return;
         }
 
         CHASE_WINDOWS.put(
                 playerId,
-                new ChaseWindow(now + CHASE_WINDOW_TICKS, event.getBlade()));
+                new ChaseWindow(
+                        player.level().getGameTime() + CHASE_WINDOW_TICKS,
+                        event.getBlade()));
+    }
+
+    private static void scheduleKillTransfer(ServerPlayer player, ItemStack blade) {
+        UUID playerId = player.getUUID();
+        long now = player.level().getGameTime();
+        CHASE_WINDOWS.remove(playerId);
+        KILL_TRANSFERS.put(
+                playerId,
+                new KillTransfer(
+                        now + KILL_TRANSFER_DELAY_TICKS,
+                        now + KILL_TRANSFER_WINDOW_TICKS,
+                        blade));
     }
 
     /**
