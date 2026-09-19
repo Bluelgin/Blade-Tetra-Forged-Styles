@@ -66,9 +66,6 @@ public final class StyleCombatHandler {
     private static final String IAIDO_SPACING_UNTIL = "blade_tetra_iaido_spacing_until";
     private static final String IAIDO_DISRUPTED_UNTIL = "blade_tetra_iaido_disrupted_until";
     private static final String IAIDO_DEFLECT_UNTIL = "blade_tetra_iaido_deflect_until";
-    private static final String BROKEN_STANCE_OWNER = "blade_tetra_broken_stance_owner";
-    private static final String BROKEN_STANCE_READY = "blade_tetra_broken_stance_ready";
-    private static final String BROKEN_STANCE_UNTIL = "blade_tetra_broken_stance_until";
 
     @SubscribeEvent
     public static void onSlash(SlashBladeEvent.DoSlashEvent event) {
@@ -187,12 +184,6 @@ public final class StyleCombatHandler {
             return;
         }
 
-        long now = event.getUser().level().getGameTime();
-        CompoundTag targetData = event.getTarget().getPersistentData();
-        targetData.putUUID(BROKEN_STANCE_OWNER, event.getUser().getUUID());
-        targetData.putLong(BROKEN_STANCE_READY, now + 3L);
-        targetData.putLong(BROKEN_STANCE_UNTIL, now + 60L);
-
         if (event.getTarget().level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(
                     ParticleTypes.CRIT,
@@ -209,7 +200,6 @@ public final class StyleCombatHandler {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingHurt(LivingHurtEvent event) {
-        applyBrokenStance(event);
         applyIaidoSpacing(event);
         applyPerfectIaidoBonus(event);
 
@@ -295,8 +285,7 @@ public final class StyleCombatHandler {
         CompoundTag data = entity.getPersistentData();
         boolean modularBlade = entity.getMainHandItem().getItem() instanceof ModularSlashBladeItem;
         boolean hasIaidoState = hasIaidoTickState(data);
-        boolean hasBrokenStanceState = hasBrokenStanceTickState(data);
-        if (!modularBlade && !hasIaidoState && !hasBrokenStanceState) {
+        if (!modularBlade && !hasIaidoState) {
             return;
         }
 
@@ -333,10 +322,6 @@ public final class StyleCombatHandler {
                 && data.getLong(IAIDO_DISRUPTED_UNTIL) < now) {
             data.remove(IAIDO_DISRUPTED_UNTIL);
         }
-        if (data.contains(BROKEN_STANCE_UNTIL, Tag.TAG_LONG)
-                && data.getLong(BROKEN_STANCE_UNTIL) < now) {
-            clearBrokenStance(data);
-        }
         if (modularBlade || hasIaidoState) {
             updateIaidoReadiness(entity, data, now);
         }
@@ -352,36 +337,6 @@ public final class StyleCombatHandler {
                 || data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)
                 || data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)
                 || data.getBoolean(IAIDO_CHAIN_ACTIVE);
-    }
-
-    private static boolean hasBrokenStanceTickState(CompoundTag data) {
-        return data.contains(BROKEN_STANCE_UNTIL, Tag.TAG_LONG)
-                || data.contains(BROKEN_STANCE_READY, Tag.TAG_LONG)
-                || data.hasUUID(BROKEN_STANCE_OWNER);
-    }
-
-    private static void applyBrokenStance(LivingHurtEvent event) {
-        Entity sourceEntity = event.getSource().getEntity();
-        if (!(sourceEntity instanceof LivingEntity attacker)
-                || event.getSource().getDirectEntity() != attacker
-                || !(attacker.getMainHandItem().getItem() instanceof ModularSlashBladeItem)) {
-            return;
-        }
-
-        CompoundTag targetData = event.getEntity().getPersistentData();
-        long now = event.getEntity().level().getGameTime();
-        long until = targetData.getLong(BROKEN_STANCE_UNTIL);
-        if (until < now) {
-            clearBrokenStance(targetData);
-            return;
-        }
-
-        if (now >= targetData.getLong(BROKEN_STANCE_READY)
-                && targetData.hasUUID(BROKEN_STANCE_OWNER)
-                && attacker.getUUID().equals(targetData.getUUID(BROKEN_STANCE_OWNER))) {
-            event.setAmount(event.getAmount() * 1.05F);
-            clearBrokenStance(targetData);
-        }
     }
 
     private static void applyPerfectIaidoBonus(LivingHurtEvent event) {
@@ -454,12 +409,6 @@ public final class StyleCombatHandler {
         return data.getLong(IAIDO_TARGET_UNTIL) >= attacker.level().getGameTime()
                 && data.hasUUID(IAIDO_TARGET)
                 && target.getUUID().equals(data.getUUID(IAIDO_TARGET));
-    }
-
-    private static void clearBrokenStance(CompoundTag targetData) {
-        targetData.remove(BROKEN_STANCE_OWNER);
-        targetData.remove(BROKEN_STANCE_READY);
-        targetData.remove(BROKEN_STANCE_UNTIL);
     }
 
     private static boolean isDangakuArmorWindow(LivingEntity entity) {
