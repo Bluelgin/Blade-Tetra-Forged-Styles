@@ -4,7 +4,9 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.util.InputCommand;
 import mods.flammpfeil.slashblade.util.TargetSelector;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -30,9 +32,10 @@ import java.util.UUID;
  * Keeps Rengeki on Resharped's native B combo while adding bounded movement
  * continuity between successful beats and across confirmed kills.
  *
- * <p>Normal successful hits can earn one conservative short-step on the next B
- * advance; a confirmed kill can instead hand the player off to the next valid
- * target without adding another attack or rewriting combo state.</p>
+ * <p>Normal successful hits can earn one conservative short-step, but ordinary
+ * pursuit only fires when the next real B-to-B advance was initiated by right
+ * click. Left-click B advances keep the native combo with no automatic chase.
+ * A confirmed kill still uses the separate kill hand-off path.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiShortStepHandler {
@@ -126,14 +129,19 @@ public final class RengekiShortStepHandler {
     /**
      * Resharped posts BladeMotionEvent from its authoritative updateComboSeq
      * path before the next combo node is installed. Hooking the real B-to-B
-     * transition avoids guessing at client input synchronization: MoveInput's
-     * raw command packet contains L_DOWN/R_DOWN, while transient L_CLICK/R_CLICK
-     * are injected directly by ItemSlashBlade when progressCombo is called.
+     * transition avoids guessing at client input synchronization.
      *
-     * <p>A pending kill hand-off has priority over the ordinary chase. This is
-     * important when the player presses the next B beat immediately after a
-     * kill: the stronger hand-off happens before that next beat instead of
-     * waiting for the one-tick automatic fallback.</p>
+     * <p>ItemSlashBlade injects transient R_CLICK directly into its server-side
+     * input capability immediately around progressCombo(). BladeMotionEvent is
+     * posted inside that same synchronous call, so reading R_CLICK here is exact
+     * for this one advance even though raw MoveInput packets never carry click
+     * commands. Ordinary pursuit therefore requires both a valid B advance and
+     * a live R_CLICK. Left-click B advances consume the old chase opportunity
+     * without moving the player.</p>
+     *
+     * <p>A pending kill hand-off has priority over the ordinary chase and stays
+     * input-agnostic: kill continuity is a separate mechanic and can still move
+     * before an immediate next B beat or via its one-tick automatic fallback.</p>
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void onBladeMotion(BladeMotionEvent event) {
@@ -155,6 +163,7 @@ public final class RengekiShortStepHandler {
                 .orElse(ComboStateRegistry.NONE.getId());
         ResourceLocation next = event.getCombo();
         boolean expectedBAdvance = isExpectedBAdvance(current, next);
+        boolean rightClickAdvance = expectedBAdvance && isRightClickAdvance(player);
 
         KillTransfer killTransfer = KILL_TRANSFERS.get(playerId);
         if (killTransfer != null) {
@@ -179,6 +188,7 @@ public final class RengekiShortStepHandler {
                 || window.expiresAt() < player.level().getGameTime()
                 || window.blade() != blade
                 || !expectedBAdvance
+                || !rightClickAdvance
                 || !canGroundTransfer(player)) {
             return;
         }
@@ -188,6 +198,18 @@ public final class RengekiShortStepHandler {
                 TARGET_SEARCH_DISTANCE,
                 MIN_TARGET_DOT,
                 MAX_STEP_DISTANCE);
+    }
+
+    /**
+     * Read the transient server-side click command only inside BladeMotionEvent.
+     * ItemSlashBlade.use() adds R_CLICK immediately before progressCombo() and
+     * removes it immediately afterwards, making this a one-call-stack intent
+     * signal rather than stale tick-based input state.
+     */
+    private static boolean isRightClickAdvance(ServerPlayer player) {
+        return player.getCapability(ItemSlashBlade.INPUT_STATE)
+                .map(state -> state.getCommands().contains(InputCommand.R_CLICK))
+                .orElse(false);
     }
 
     /**
