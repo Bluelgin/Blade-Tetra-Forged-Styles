@@ -5,6 +5,7 @@ import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.util.TargetSelector;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -44,7 +45,10 @@ public final class RengekiShortStepHandler {
     private static final double SUPPORT_PROBE = 0.08D;
     private static final double PATH_SAMPLE_SPACING = 0.35D;
     private static final double TARGET_STANDOFF_EXTRA = 0.35D;
+    private static final double CHUNK_EDGE_EPSILON = 1.0E-6D;
 
+    private static final TargetSelector.AttackablePredicate NATIVE_TARGET_FILTER =
+            new TargetSelector.AttackablePredicate();
     private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
 
     /**
@@ -106,6 +110,13 @@ public final class RengekiShortStepHandler {
                 .orElse(ComboStateRegistry.NONE.getId());
         ResourceLocation next = event.getCombo();
         if (!isExpectedBAdvance(current, next)) {
+            return;
+        }
+
+        // Native B nodes can survive a short airborne interval. Pursuit is a
+        // grounded style mechanic, so never use it to snap a falling/riding
+        // player back to ground or erase fall momentum.
+        if (!player.isOnGround() || player.isPassenger()) {
             return;
         }
 
@@ -191,47 +202,61 @@ public final class RengekiShortStepHandler {
         for (LivingEntity candidate : level.getEntitiesOfClass(
                 LivingEntity.class,
                 searchBox,
-                entity -> isValidTarget(player, entity))) {
+                entity -> isBasicTarget(player, entity))) {
+            if (Math.abs(candidate.getY() - player.getY()) > MAX_HEIGHT_DIFFERENCE
+                    || !player.hasLineOfSight(candidate)) {
+                continue;
+            }
+
+            double bodyDistanceSqr = distanceToBoxSqr(player.position(), candidate.getBoundingBox());
+            if (bodyDistanceSqr > TARGET_SEARCH_DISTANCE * TARGET_SEARCH_DISTANCE) {
+                continue;
+            }
+
             Vec3 targetCenter = new Vec3(
                     candidate.getX(),
                     candidate.getY() + candidate.getBbHeight() * 0.5D,
                     candidate.getZ());
             Vec3 toTarget = targetCenter.subtract(eye);
-            double distanceSqr = toTarget.lengthSqr();
-            if (distanceSqr <= 1.0E-6D
-                    || distanceSqr > TARGET_SEARCH_DISTANCE * TARGET_SEARCH_DISTANCE
-                    || Math.abs(candidate.getY() - player.getY()) > MAX_HEIGHT_DIFFERENCE
-                    || !player.hasLineOfSight(candidate)) {
+            if (toTarget.lengthSqr() <= 1.0E-6D) {
                 continue;
             }
 
             double dot = look.dot(toTarget.normalize());
-            if (dot < MIN_TARGET_DOT) {
+            if (dot < MIN_TARGET_DOT || !NATIVE_TARGET_FILTER.test(candidate)) {
                 continue;
             }
 
             if (best == null
                     || dot > bestDot + 1.0E-4D
                     || (Math.abs(dot - bestDot) <= 1.0E-4D
-                            && distanceSqr < bestDistanceSqr)) {
+                            && bodyDistanceSqr < bestDistanceSqr)) {
                 best = candidate;
                 bestDot = dot;
-                bestDistanceSqr = distanceSqr;
+                bestDistanceSqr = bodyDistanceSqr;
             }
         }
 
         return best;
     }
 
-    private static boolean isValidTarget(ServerPlayer player, LivingEntity candidate) {
+    private static boolean isBasicTarget(ServerPlayer player, LivingEntity candidate) {
         if (candidate == player
                 || !candidate.isAlive()
                 || candidate.isSpectator()
                 || !candidate.isAttackable()
-                || candidate.isAlliedTo(player)) {
+                || candidate.isAlliedTo(player)
+                || player.isAlliedTo(candidate)) {
             return false;
         }
         return !(candidate instanceof Player other) || player.canHarmPlayer(other);
+    }
+
+    private static double distanceToBoxSqr(Vec3 point, AABB box) {
+        double dx = Math.max(Math.max(box.minX - point.x, 0.0D), point.x - box.maxX);
+        double dy = Math.max(Math.max(box.minY - point.y, 0.0D), point.y - box.maxY);
+        double dz = Math.max(Math.max(box.minZ - point.z, 0.0D), point.z - box.maxZ);
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private static Vec3 findSafeDestination(ServerPlayer player, LivingEntity target) {
@@ -286,15 +311,13 @@ public final class RengekiShortStepHandler {
         for (int i = 1; i <= samples; i++) {
             double fraction = i / (double) samples;
             Vec3 sample = origin.add(delta.scale(fraction));
-            if (!level.hasChunkAt(BlockPos.containing(sample))) {
-                return false;
-            }
-
             AABB sampleBox = baseBox.move(
                     sample.x - player.getX(),
                     sample.y - player.getY(),
                     sample.z - player.getZ());
-            if (!level.noCollision(player, sampleBox)) {
+
+            if (!isCollisionAreaLoaded(level, sampleBox)
+                    || !level.noCollision(player, sampleBox)) {
                 return false;
             }
             if (level.noCollision(player, sampleBox.move(0.0D, -SUPPORT_PROBE, 0.0D))) {
@@ -303,6 +326,20 @@ public final class RengekiShortStepHandler {
         }
 
         return true;
+    }
+
+    /** A player's box may straddle a neighboring chunk even when its center does not. */
+    private static boolean isCollisionAreaLoaded(ServerLevel level, AABB box) {
+        double minX = box.minX + CHUNK_EDGE_EPSILON;
+        double maxX = box.maxX - CHUNK_EDGE_EPSILON;
+        double minZ = box.minZ + CHUNK_EDGE_EPSILON;
+        double maxZ = box.maxZ - CHUNK_EDGE_EPSILON;
+        double y = box.minY;
+
+        return level.hasChunkAt(BlockPos.containing(minX, y, minZ))
+                && level.hasChunkAt(BlockPos.containing(minX, y, maxZ))
+                && level.hasChunkAt(BlockPos.containing(maxX, y, minZ))
+                && level.hasChunkAt(BlockPos.containing(maxX, y, maxZ));
     }
 
     private record ChaseWindow(long expiresAt, ItemStack blade) {
