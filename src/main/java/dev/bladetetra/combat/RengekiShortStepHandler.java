@@ -2,7 +2,6 @@ package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
-import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -18,9 +17,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -74,87 +70,33 @@ public final class RengekiShortStepHandler {
     private static final Map<UUID, KillTransfer> KILL_TRANSFERS = new HashMap<>();
 
     /**
-     * Slash effects resolve damage a few ticks after they are spawned. Keep the
-     * exact source ItemStack for every native-B effect so a late B2-B7 kill is
-     * still recognized even if the player's combo has already timed out or
-     * advanced when that damage lands.
-     */
-    private static final Map<UUID, ItemStack> RENGEKI_B_SLASH_BLADES = new HashMap<>();
-
-    /**
      * Rengeki's native B chain gets a small per-slash damage reduction in
-     * exchange for its much stronger positioning continuity. Directional,
-     * aerial and Slash Art attacks are intentionally untouched.
+     * exchange for its much stronger positioning continuity. The authored B
+     * recovery nodes can still emit their own finishing slash effects, so they
+     * are included in the same damage tradeoff. Directional, aerial and Slash
+     * Art attacks are intentionally untouched.
      */
     @SubscribeEvent
     public static void onRengekiSlash(SlashBladeEvent.DoSlashEvent event) {
         if (!(event.getBlade().getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
-                || !isNativeBCombo(event.getSlashBladeState().getComboSeq())) {
+                || !isNativeBFlowState(event.getSlashBladeState().getComboSeq())) {
             return;
         }
         event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER);
     }
 
-    /** Record native-B slash provenance at the moment the effect is spawned. */
-    @SubscribeEvent
-    public static void onSlashEffectJoin(EntityJoinLevelEvent event) {
-        if (event.getLevel().isClientSide()
-                || !(event.getEntity() instanceof EntitySlashEffect slashEffect)
-                || !(slashEffect.getShooter() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        ItemStack blade = player.getMainHandItem();
-        if (!(blade.getItem() instanceof ModularSlashBladeItem)
-                || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            return;
-        }
-
-        ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
-                .map(state -> state.getComboSeq())
-                .orElse(ComboStateRegistry.NONE.getId());
-        if (isNativeBCombo(combo)) {
-            RENGEKI_B_SLASH_BLADES.put(slashEffect.getUUID(), blade);
-        }
-    }
-
-    /** Avoid retaining short-lived slash entity UUIDs after the effect despawns. */
-    @SubscribeEvent
-    public static void onSlashEffectLeave(EntityLeaveLevelEvent event) {
-        if (event.getEntity() instanceof EntitySlashEffect slashEffect) {
-            RENGEKI_B_SLASH_BLADES.remove(slashEffect.getUUID());
-        }
-    }
-
     /**
-     * Death carries the actual DamageSource, unlike SlashBlade's later HitEvent.
-     * This lets a delayed native-B slash prove that it caused the kill without
-     * trusting whatever combo happens to be current when Item#hurtEnemy runs.
-     */
-    @SubscribeEvent
-    public static void onRengekiKill(LivingDeathEvent event) {
-        if (!(event.getSource().getDirectEntity() instanceof EntitySlashEffect slashEffect)
-                || !(slashEffect.getShooter() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        ItemStack sourceBlade = RENGEKI_B_SLASH_BLADES.get(slashEffect.getUUID());
-        if (sourceBlade == null
-                || player.getMainHandItem() != sourceBlade
-                || !(sourceBlade.getItem() instanceof ModularSlashBladeItem)
-                || StyleResolver.resolve(sourceBlade) != BladeStyle.RENGEKI) {
-            return;
-        }
-
-        scheduleKillTransfer(player, sourceBlade);
-    }
-
-    /**
-     * Successful non-terminal B hits arm the ordinary chase. A confirmed kill
-     * is already converted into KILL_TRANSFERS by LivingDeathEvent before
-     * ItemSlashBlade emits this HitEvent, so lethal hits cannot accidentally
-     * downgrade the stronger hand-off into an ordinary chase.
+     * HitEvent arrives after Resharped has applied the melee damage. Native B
+     * slash effects can land a few ticks after they were created, so the raw
+     * combo may already be in combo_b1_end / combo_b_end / combo_b7_end when a
+     * late slash lands. Those native B recovery states are therefore treated as
+     * valid B provenance for kill hand-off.
+     *
+     * <p>If the player deliberately interrupts into a directional move, aerial
+     * move or Slash Art, the current state is no longer a B flow state and the
+     * old residual slash cannot force an unexpected teleport. This preserves
+     * player intent while still covering normal delayed B hits.</p>
      */
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
@@ -165,8 +107,19 @@ public final class RengekiShortStepHandler {
             return;
         }
 
-        UUID playerId = player.getUUID();
         ResourceLocation combo = event.getSlashBladeState().getComboSeq();
+        if (!isNativeBFlowState(combo)) {
+            return;
+        }
+
+        UUID playerId = player.getUUID();
+        if (!event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F) {
+            scheduleKillTransfer(player, event.getBlade());
+            return;
+        }
+
+        // Recovery nodes may receive delayed non-lethal hits, but they cannot
+        // advance B1 -> B2 etc. Only active B1-B6 nodes arm ordinary chase.
         if (KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)) {
             return;
         }
@@ -350,6 +303,22 @@ public final class RengekiShortStepHandler {
     static boolean isNativeBCombo(ResourceLocation combo) {
         return canAdvanceBComboId(combo)
                 || ComboStateRegistry.COMBO_B7.getId().equals(combo);
+    }
+
+    /**
+     * Active B nodes plus the authored B recovery states. These tail states are
+     * where delayed native-B slash effects can still land after the attack node
+     * itself has timed out.
+     */
+    static boolean isNativeBFlowState(ResourceLocation combo) {
+        return isNativeBCombo(combo)
+                || ComboStateRegistry.COMBO_B1_END.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B1_END2.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B1_END3.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B_END.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B_END2.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B_END3.getId().equals(combo)
+                || ComboStateRegistry.COMBO_B7_END3.getId().equals(combo);
     }
 
     private static boolean canAdvanceBComboId(ResourceLocation combo) {
