@@ -124,11 +124,17 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintFlowIsIdleGroundedAndRateLimited() throws IOException {
+    void sprintFlowIsIdleGroundedAndUsesSeparateVisualAndHitCadences() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("SPRINT_SLASH_INTERVAL_TICKS = 10"),
-                "Sprint B beats must stay rate-limited instead of dealing a real hit every tick");
+        assertTrue(source.contains("SPRINT_VISUAL_INTERVAL_TICKS = 10"),
+                "B1-B7 visual beats should keep their authored ten-tick rhythm");
+        assertTrue(source.contains("SPRINT_HIT_INTERVAL_TICKS = 4"),
+                "Sprint pressure should resolve a real hit pulse every four ticks instead of once per visual beat");
+        assertTrue(source.contains("nextVisualBeatAt"),
+                "Visual scheduling must stay independent from real hit scheduling");
+        assertTrue(source.contains("nextHitAt"),
+                "Real hit scheduling needs its own cadence state");
         assertTrue(source.contains("ComboStateRegistry.NONE.getId().equals(combo)"),
                 "Sprint flow must be idle-only and never stack on top of active combo damage");
         assertTrue(source.contains("!player.isSprinting()"),
@@ -195,26 +201,28 @@ class RengekiShortStepGuardTest {
                 "The visual should start substantially smaller than a normal B slash");
         assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"),
                 "Visual scaling must have its own hard ceiling");
-        assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.06F"),
-                "Low-speed sprint hit should inherit panel scaling at a conservative 0.06 ratio");
-        assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.14F"),
-                "Only the speed-provided damage ratio should cap, at 0.14");
+        assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.03F"),
+                "Five-hit-per-second sprint pressure needs a conservative low-speed per-hit ratio");
+        assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.07F"),
+                "High-speed per-hit ratio should stay capped at 0.07 when hit frequency is raised");
         assertTrue(source.contains("sprintSlashDamageRatioForSpeed"),
                 "Speed-to-damage scaling should be explicit and share the same capped speed factor");
     }
 
     @Test
-    void sprintVisualFlurryStillDealsOnlyOnePanelScaledHitPerBeat() throws IOException {
+    void sprintVisualFlurryUsesIndependentHighFrequencySingleTargetHits() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("private static LivingEntity selectSprintSlashTarget"),
                 "Sprint flow should select one frontal target instead of becoming passive AoE farming");
+        assertTrue(source.contains("chain.nextHitAt = now + SPRINT_HIT_INTERVAL_TICKS"),
+                "Real damage must use the dedicated four-tick cadence instead of waiting for the next visual beat");
         assertTrue(source.contains("applySprintSlashHit(player, target, damageRatio)"),
-                "Each sprint B beat should resolve exactly one low-ratio real hit after starting its visual burst");
+                "Each due hit pulse should resolve one low-ratio real hit against the selected target");
         assertTrue(source.contains("AttackManager.doMeleeAttack("),
                 "The real hit should reuse Resharped's panel-scaled melee compatibility path");
-        assertTrue(source.contains("false,\n                    false,\n                    damageRatio"),
-                "Sprint hit must respect normal hurt invulnerability and apply the capped speed ratio to panel damage");
+        assertTrue(source.contains("false,\n                    true,\n                    damageRatio"),
+                "Sprint hits must not force through an existing hurt window, but should reset their own post-hit i-frame for the next pulse");
         assertFalse(source.contains("AttackManager.doSlash(player"),
                 "B-style visual cadence must not use native owned slash effects that would secretly multiply damage");
     }
@@ -247,6 +255,8 @@ class RengekiShortStepGuardTest {
                 "Successful compatibility-hit attack sound should be suppressed");
         assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_NODAMAGE"),
                 "Failed compatibility-hit attack sound should be suppressed");
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_SWEEP"),
+                "Future/alternate player sweep attack sounds should remain silent inside the sprint-hit context");
         assertTrue(source.contains("SPRINT_HIT_CONTEXT.get() == null"),
                 "Sound suppression must be scoped only to a live sprint-hit call");
         assertTrue(source.contains("event.setCanceled(true)"),
@@ -254,25 +264,25 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintDurabilityIsOneQuarterOfOrdinarySuccessfulHits() throws IOException {
+    void sprintDurabilityStaysBoundedAfterIncreasingHitFrequency() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("SPRINT_DURABILITY_DIVISOR = 4"),
-                "Sprint durability should consume one normal durability opportunity per four successful hits");
+        assertTrue(source.contains("SPRINT_DURABILITY_DIVISOR = 10"),
+                "Five-hit-per-second sprint pressure should spend one normal durability opportunity per ten successful hits");
         assertTrue(source.contains("SPRINT_DURABILITY_PHASE"),
                 "Durability phase must persist across sprint interruptions instead of resetting for free hits");
         assertTrue(source.contains("onSprintHitDurability(SlashBladeEvent.HitEvent event)"),
-                "Quarter durability should hook the post-damage pre-durability HitEvent boundary");
+                "Reduced durability should hook the post-damage pre-durability HitEvent boundary");
         assertTrue(source.contains("priority = EventPriority.LOWEST, receiveCanceled = true"),
                 "Durability suppression should happen after other HitEvent compatibility listeners have observed the hit");
         assertTrue(source.contains("% SPRINT_DURABILITY_DIVISOR"),
-                "Durability accounting must cycle deterministically every four successful sprint hits");
+                "Durability accounting must cycle deterministically across the ten-hit phase");
         assertTrue(source.contains("if (phase != 0)"),
-                "The first three successful sprint hits should skip durability");
+                "Only the tenth successful sprint hit should enter the normal durability pipeline");
         assertTrue(source.contains("event.setCanceled(true)"),
                 "Skipping a sprint durability opportunity should use Resharped's cancellable HitEvent before hurtAndBreak");
         assertTrue(source.contains("private static void resetSprintChain(UUID playerId) {\n        SPRINT_CHAINS.remove(playerId);\n    }"),
-                "Stopping and restarting sprint must reset only the visual B chain, not the durability phase");
+                "Stopping and restarting sprint must reset only the visual/hit chain, not the durability phase");
         assertTrue(source.contains("private static void clearAllState(UUID playerId)"),
                 "Lifecycle replacement should have an explicit full-state cleanup path");
         assertTrue(source.contains("SPRINT_DURABILITY_PHASE.remove(playerId)"),
