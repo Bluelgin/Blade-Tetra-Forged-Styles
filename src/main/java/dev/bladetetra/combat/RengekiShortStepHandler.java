@@ -116,7 +116,7 @@ public final class RengekiShortStepHandler {
         // Native B nodes can survive a short airborne interval. Pursuit is a
         // grounded style mechanic, so never use it to snap a falling/riding
         // player back to ground or erase fall momentum.
-        if (!player.isOnGround() || player.isPassenger()) {
+        if (!player.onGround() || player.isPassenger()) {
             return;
         }
 
