@@ -14,7 +14,7 @@ import java.util.List;
  */
 public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         LegacyImprintKind tsuka) {
-    /** Resolve source identity from NBT/catalog only; never consult client rendering. */
+    /** Resolve source identity from persisted snapshot first; never consult client rendering. */
     public static NamedLegacyParts fromStack(ItemStack stack) {
         FoxLegacyParts old = FoxLegacyParts.fromStack(stack);
         LegacyImprintKind hilt = variant(stack, "tsuba", old.tsuba());
@@ -35,17 +35,30 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
 
     private static LegacyImprintKind fox(FoxLegacyParts.Color color) {
         if (color == FoxLegacyParts.Color.NONE) return null;
-        return NamedLegacyCatalog.get(
-                color == FoxLegacyParts.Color.BLACK ? "fox_black" : "fox_white");
+        return color == FoxLegacyParts.Color.BLACK
+                ? LegacyImprintKind.BLACK_FOX : LegacyImprintKind.WHITE_FOX;
     }
 
     private static LegacyImprintKind variant(ItemStack stack, String part,
             FoxLegacyParts.Color old) {
+        LegacyImprintKind snapshot = NamedLegacyImprintStorage.snapshot(stack, part);
+        if (snapshot != null) {
+            return snapshot;
+        }
         String id = NamedLegacyImprintStorage.sourceId(stack, part);
         if (id != null) {
-            return NamedLegacyCatalog.get(id);
+            return safeCatalogGet(id);
         }
         return fox(old);
+    }
+
+    /** Old 1.5.x source-only stacks may still need the catalog, but must fail open. */
+    private static LegacyImprintKind safeCatalogGet(String id) {
+        try {
+            return NamedLegacyCatalog.get(id);
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 
     public boolean present() {
@@ -56,12 +69,13 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         return saya != null && saya.equals(tsuba) ? saya : null;
     }
 
-    /** Records survive addon removal; ordinary module visuals become the safe fallback. */
+    /** Source-only legacy records report missing providers; snapshots remain self-contained. */
     public static List<MissingPart> missing(ItemStack stack) {
         List<MissingPart> result = new ArrayList<>();
         for (String part : List.of("saya", "tsuba")) {
             String id = NamedLegacyImprintStorage.sourceId(stack, part);
-            if (id != null && NamedLegacyCatalog.get(id) == null) {
+            if (id != null && NamedLegacyImprintStorage.snapshot(stack, part) == null
+                    && safeCatalogGet(id) == null) {
                 result.add(new MissingPart(part, id));
             }
         }

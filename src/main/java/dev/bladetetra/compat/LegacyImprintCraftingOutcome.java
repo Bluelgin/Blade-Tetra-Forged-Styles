@@ -1,5 +1,7 @@
 package dev.bladetetra.compat;
 
+import dev.bladetetra.forging.LegacyImprintKind;
+import dev.bladetetra.forging.NamedLegacyCatalog;
 import dev.bladetetra.forging.NamedLegacyImprintStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -53,6 +55,25 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             String slot,
             UpgradeSchematic schematic) {
         String key = schematic == null ? null : schematic.getKey();
-        return NamedLegacyImprintStorage.applyCraftResult(upgradedStack, slot, key);
+        boolean changed = NamedLegacyImprintStorage.applyCraftResult(upgradedStack, slot, key);
+        String part = NamedLegacyImprintStorage.partForSlot(slot);
+        String source = NamedLegacyImprintStorage.sourceFromSchematic(key, part);
+        if (part == null || source == null
+                || !source.equals(NamedLegacyImprintStorage.sourceId(upgradedStack, part))) {
+            return changed;
+        }
+
+        // Freeze the pure named-blade semantics at the moment the imitation is
+        // created. Runtime ItemStack queries can then avoid third-party discovery.
+        // Snapshotting is optional hardening: a broken addon catalog must never
+        // turn an otherwise successful Tetra craft into a failure.
+        try {
+            LegacyImprintKind kind = NamedLegacyCatalog.get(source);
+            return kind != null
+                    ? NamedLegacyImprintStorage.putSnapshot(upgradedStack, part, kind) || changed
+                    : changed;
+        } catch (RuntimeException exception) {
+            return changed;
+        }
     }
 }
