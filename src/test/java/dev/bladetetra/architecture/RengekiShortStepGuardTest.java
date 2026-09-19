@@ -10,14 +10,16 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Guardrails for the native-B Rengeki pursuit and kill-flow integration. */
+/** Guardrails for the native-B Rengeki pursuit, kill-flow and momentum layers. */
 class RengekiShortStepGuardTest {
-    private static final Path SOURCE = Path.of(
+    private static final Path MOVEMENT_SOURCE = Path.of(
             "src/main/java/dev/bladetetra/combat/RengekiShortStepHandler.java");
+    private static final Path MOMENTUM_SOURCE = Path.of(
+            "src/main/java/dev/bladetetra/combat/RengekiMomentumHandler.java");
 
     @Test
     void pursuitHooksAuthoritativeComboMotionInsteadOfRawInputSync() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("BladeMotionEvent"),
                 "Rengeki pursuit must hook Resharped's actual combo transition");
@@ -33,7 +35,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void pursuitOnlyRunsOnTheSixNativeBAdvances() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertAdvance(source, "COMBO_B1", "COMBO_B2");
         assertAdvance(source, "COMBO_B2", "COMBO_B3");
@@ -44,14 +46,14 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void nativeBTradingUsesSmallDamagePenaltyAcrossAuthoredTailSlashes() throws IOException {
-        String source = Files.readString(SOURCE);
+    void nativeBTradingUsesStrongerPenaltyAcrossAuthoredTailSlashes() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.92D"),
-                "Rengeki native B damage tradeoff should remain the intended light 8% penalty");
+        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.88D"),
+                "Rengeki native B damage should trade 12% raw damage for its expanded flow tools");
         assertTrue(source.contains("public static void onRengekiSlash"),
-                "Damage tradeoff should stay in the focused Rengeki handler");
-        assertTrue(source.contains("!isNativeBFlowState(event.getSlashBladeState().getComboSeq())"),
+                "Damage tradeoff should stay in the focused Rengeki momentum handler");
+        assertTrue(source.contains("RengekiShortStepHandler.isNativeBFlowState"),
                 "Directional/aerial/Slash Art attacks must not inherit the native-B penalty");
         assertTrue(source.contains("event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER)"),
                 "Native B slash damage should be scaled exactly once at slash creation");
@@ -59,7 +61,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void delayedHitsRemainBFlowOnlyWhileNativeRecoveryIsActive() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("static boolean isNativeBFlowState"),
                 "Delayed native-B hits need an explicit flow-state predicate");
@@ -85,7 +87,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void killsScheduleOneDeferredHandoffIncludingB7AndLateTailHits() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("private static final Map<UUID, KillTransfer> KILL_TRANSFERS"),
                 "Confirmed kills need one dedicated pending hand-off slot per player");
@@ -103,7 +105,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void killHandoffIsStrongerButStillBounded() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("KILL_TRANSFER_SEARCH_DISTANCE = 6.5D"),
                 "Kill hand-off needs a slightly broader target search than ordinary chase");
@@ -114,8 +116,76 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
+    void sprintSlashIsIdleGroundedAndRateLimited() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("SPRINT_SLASH_INTERVAL_TICKS = 10"),
+                "Sprint pressure must stay rate-limited instead of spawning a slash every tick");
+        assertTrue(source.contains("ComboStateRegistry.NONE.getId().equals(combo)"),
+                "Sprint slash must be idle-only and never stack on top of active combo damage");
+        assertTrue(source.contains("!player.isSprinting()"),
+                "Sprint slash must require an actual sprint state");
+        assertTrue(source.contains("!player.onGround()"),
+                "Sprint slash must not become a free aerial attack");
+        assertTrue(source.contains("RengekiShortStepHandler.hasPendingKillTransfer(playerId)"),
+                "Sprint slash must not race a pending kill hand-off");
+    }
+
+    @Test
+    void sprintSlashRangeScalesWithSpeedButHasHardCaps() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("SPRINT_SLASH_MIN_SPEED = 0.12D"),
+                "Tiny movement noise must not trigger the sprint slash");
+        assertTrue(source.contains("SPRINT_SLASH_SPEED_CAP = 0.36D"),
+                "Movement mods or extreme speed effects need a hard scaling cap");
+        assertTrue(source.contains("SPRINT_SLASH_MIN_RANGE = 1.35D"),
+                "Normal sprint should begin with a deliberately small frontal range");
+        assertTrue(source.contains("SPRINT_SLASH_MAX_RANGE = 2.75D"),
+                "Sprint slash range must remain bounded even at extreme speed");
+        assertTrue(source.contains("sprintSlashRangeForSpeed"),
+                "Speed-to-range scaling should stay explicit and testable");
+        assertTrue(source.contains("SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F"),
+                "The visual should start substantially smaller than a normal B slash");
+        assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"),
+                "Visual scaling must have its own hard ceiling");
+    }
+
+    @Test
+    void sprintSlashIsLowDamageSingleTargetAndRespectsIFrames() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("SPRINT_SLASH_DAMAGE_RATIO = 0.08F"),
+                "Sprint slash must remain chip damage instead of replacing the real B chain");
+        assertTrue(source.contains("private static LivingEntity selectSprintSlashTarget"),
+                "Sprint slash should select one frontal target instead of becoming passive AoE farming");
+        assertTrue(source.contains("AttackManager.doMeleeAttack("),
+                "Sprint slash should reuse Resharped's normal melee compatibility path");
+        assertTrue(source.contains("false,\n                    false,\n                    SPRINT_SLASH_DAMAGE_RATIO"),
+                "Sprint slash must respect normal hurt invulnerability and never force-reset i-frames");
+        assertTrue(source.contains("player.setSprinting(false)"),
+                "Sprint-hit knockback must be temporarily suppressed so the passive cannot cancel its own sprint");
+        assertTrue(source.contains("player.setDeltaMovement(momentum)"),
+                "Player momentum must be restored after the tiny passive hit");
+    }
+
+    @Test
+    void sprintSlashVisualCannotSecretlyApplyNativeAreaDamage() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("new EntitySlashEffect("),
+                "Sprint slash should reuse the native visual entity");
+        assertFalse(source.contains("effect.setOwner(player)"),
+                "The visual-only slash must not gain a shooter and run EntitySlashEffect's broad native areaAttack");
+        assertTrue(source.contains("effect.setBaseSize(visualSize)"),
+                "Visual scale should follow the same bounded speed factor");
+        assertTrue(source.contains("selectSprintSlashTarget(player, range)"),
+                "Real hit range must be handled separately from visual BaseSize");
+    }
+
+    @Test
     void movementIsBoundToTheSameBladeAndClearedOnPlayerReplacement() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("window.blade() != blade"),
                 "An ordinary chase earned by one blade must not transfer to another Rengeki blade");
@@ -129,7 +199,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void pursuitKeepsNativeTargetAndGroundSafety() throws IOException {
-        String source = Files.readString(SOURCE);
+        String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("TargetSelector.SlashBladeTargetingConditions"),
                 "Pursuit must preserve Resharped's revenge-target and combat eligibility rules");
