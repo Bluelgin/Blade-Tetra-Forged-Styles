@@ -2,10 +2,9 @@ package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
-import mods.flammpfeil.slashblade.event.handler.InputCommandEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
-import mods.flammpfeil.slashblade.util.InputCommand;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -20,7 +19,6 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,12 +45,11 @@ public final class RengekiShortStepHandler {
     private static final double PATH_SAMPLE_SPACING = 0.35D;
     private static final double TARGET_STANDOFF_EXTRA = 0.35D;
 
-    private static final Map<UUID, Long> CHASE_WINDOWS = new HashMap<>();
+    private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
 
     /**
-     * Only native B-series hits arm the chase. Directional attacks, aerial
-     * attacks and Slash Arts can still be used normally, but do not create a
-     * Rengeki short-step window.
+     * Only successful, non-terminal native B-series hits arm the chase.
+     * B7 is deliberately excluded because it has no following B beat.
      */
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
@@ -60,45 +57,55 @@ public final class RengekiShortStepHandler {
                 || player.level().isClientSide()
                 || !(event.getBlade().getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
-                || !isNativeBCombo(event.getSlashBladeState().getComboSeq())) {
+                || !canAdvanceBComboId(event.getSlashBladeState().getComboSeq())) {
             return;
         }
 
         CHASE_WINDOWS.put(
                 player.getUUID(),
-                player.level().getGameTime() + CHASE_WINDOW_TICKS);
+                new ChaseWindow(
+                        player.level().getGameTime() + CHASE_WINDOW_TICKS,
+                        event.getBlade()));
     }
 
     /**
-     * InputCommandEvent is server-authoritative and fires before the next combo
-     * beat is resolved. We consume the chase on the next fresh attack press so
-     * repeated callbacks cannot teleport the player more than once per hit.
+     * Resharped posts BladeMotionEvent from its authoritative updateComboSeq
+     * path before the next combo node is installed. Hooking the real B-to-B
+     * transition avoids guessing at client input synchronization: MoveInput's
+     * raw command packet contains L_DOWN/R_DOWN, while transient L_CLICK/R_CLICK
+     * are injected directly by ItemSlashBlade when progressCombo is called.
+     *
+     * <p>Any other combo transition consumes the stored opportunity without
+     * pursuit, so direction/aerial/SA/timeout breakouts cannot leave a stale
+     * teleport waiting for a later attack.</p>
      */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onInputChange(InputCommandEvent event) {
-        ServerPlayer player = event.getEntity();
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void onBladeMotion(BladeMotionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        UUID playerId = player.getUUID();
         ItemStack blade = player.getMainHandItem();
-
-        if (!(blade.getItem() instanceof ModularSlashBladeItem)
+        if (event.isCanceled()
+                || !(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            CHASE_WINDOWS.remove(player.getUUID());
+            CHASE_WINDOWS.remove(playerId);
             return;
         }
 
-        if (!isFreshAttackPress(event)) {
+        ChaseWindow window = CHASE_WINDOWS.remove(playerId);
+        if (window == null
+                || window.expiresAt() < player.level().getGameTime()
+                || window.blade() != blade) {
             return;
         }
 
-        Long expiresAt = CHASE_WINDOWS.remove(player.getUUID());
-        if (expiresAt == null || expiresAt < player.level().getGameTime()) {
-            return;
-        }
-
-        // Any deliberate alternate attack consumes the opportunity but does
-        // not receive pursuit. This prevents a stored chase from firing later
-        // after the player intentionally broke out into a direction/aerial move.
-        if (!isOrdinaryGroundAttack(event.getCurrent())
-                || !canAdvanceNativeBCombo(blade)) {
+        ResourceLocation current = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                .map(state -> state.getComboSeq())
+                .orElse(ComboStateRegistry.NONE.getId());
+        ResourceLocation next = event.getCombo();
+        if (!isExpectedBAdvance(current, next)) {
             return;
         }
 
@@ -133,45 +140,30 @@ public final class RengekiShortStepHandler {
         CHASE_WINDOWS.remove(event.getEntity().getUUID());
     }
 
-    private static boolean isFreshAttackPress(InputCommandEvent event) {
-        return (event.getCurrent().contains(InputCommand.L_CLICK)
-                        && !event.getOld().contains(InputCommand.L_CLICK))
-                || (event.getCurrent().contains(InputCommand.R_CLICK)
-                        && !event.getOld().contains(InputCommand.R_CLICK));
+    @SubscribeEvent
+    public static void onClone(PlayerEvent.Clone event) {
+        CHASE_WINDOWS.remove(event.getOriginal().getUUID());
+        CHASE_WINDOWS.remove(event.getEntity().getUUID());
     }
 
-    private static boolean isOrdinaryGroundAttack(EnumSet<InputCommand> commands) {
-        if (!commands.contains(InputCommand.ON_GROUND)
-                || commands.contains(InputCommand.ON_AIR)) {
-            return false;
-        }
-
-        if (commands.contains(InputCommand.R_CLICK)
-                && commands.contains(InputCommand.SNEAK)
-                && (commands.contains(InputCommand.FORWARD)
-                        || commands.contains(InputCommand.BACK))) {
-            return false;
-        }
-
-        return commands.contains(InputCommand.L_CLICK)
-                || commands.contains(InputCommand.R_CLICK);
-    }
-
-    private static boolean canAdvanceNativeBCombo(ItemStack blade) {
-        ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
-                .map(state -> state.getComboSeq())
-                .orElse(ComboStateRegistry.NONE.getId());
-        return ComboStateRegistry.COMBO_B1.getId().equals(combo)
-                || ComboStateRegistry.COMBO_B2.getId().equals(combo)
-                || ComboStateRegistry.COMBO_B3.getId().equals(combo)
-                || ComboStateRegistry.COMBO_B4.getId().equals(combo)
-                || ComboStateRegistry.COMBO_B5.getId().equals(combo)
-                || ComboStateRegistry.COMBO_B6.getId().equals(combo);
-    }
-
-    private static boolean isNativeBCombo(ResourceLocation combo) {
-        return canAdvanceBComboId(combo)
-                || ComboStateRegistry.COMBO_B7.getId().equals(combo);
+    /**
+     * The current combo is still installed while BladeMotionEvent is being
+     * dispatched. Only these six native transitions are ordinary Rengeki
+     * continuation inputs; every other transition is a breakout or timeout.
+     */
+    static boolean isExpectedBAdvance(ResourceLocation current, ResourceLocation next) {
+        return (ComboStateRegistry.COMBO_B1.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B2.getId().equals(next))
+                || (ComboStateRegistry.COMBO_B2.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B3.getId().equals(next))
+                || (ComboStateRegistry.COMBO_B3.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B4.getId().equals(next))
+                || (ComboStateRegistry.COMBO_B4.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B5.getId().equals(next))
+                || (ComboStateRegistry.COMBO_B5.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B6.getId().equals(next))
+                || (ComboStateRegistry.COMBO_B6.getId().equals(current)
+                        && ComboStateRegistry.COMBO_B7.getId().equals(next));
     }
 
     private static boolean canAdvanceBComboId(ResourceLocation combo) {
@@ -311,6 +303,9 @@ public final class RengekiShortStepHandler {
         }
 
         return true;
+    }
+
+    private record ChaseWindow(long expiresAt, ItemStack blade) {
     }
 
     private RengekiShortStepHandler() {
