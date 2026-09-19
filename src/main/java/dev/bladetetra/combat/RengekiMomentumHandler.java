@@ -57,6 +57,7 @@ public final class RengekiMomentumHandler {
     private static final float SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F;
     private static final float SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F;
     private static final double VISUAL_FORWARD_OFFSET = 0.65D;
+    private static final double MAX_CONTINUOUS_SPRINT_DISPLACEMENT = 0.90D;
     private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES = new HashMap<>();
     private static final Map<UUID, SprintChainState> SPRINT_CHAINS = new HashMap<>();
     private static final ThreadLocal<SprintHitContext> SPRINT_HIT_CONTEXT = new ThreadLocal<>();
@@ -117,7 +118,7 @@ public final class RengekiMomentumHandler {
                 || player.isUsingItem()
                 || player.getAbilities().flying
                 || speed < SPRINT_SLASH_MIN_SPEED) {
-            resetSprintChain(playerId);
+            resetSprintVisuals(playerId);
             return;
         }
 
@@ -178,10 +179,10 @@ public final class RengekiMomentumHandler {
     }
 
     /**
-     * Server END-tick deltaMovement is already damped by ground friction, which
-     * made ordinary sprinting fall below the old trigger threshold while a V
-     * rush/teleport left enough residual motion to pass it. Measure real
-     * horizontal displacement between consecutive server ticks instead.
+     * Server END-tick deltaMovement is already damped by ground friction, so use
+     * actual horizontal displacement between consecutive server ticks. A large
+     * discontinuity is treated as a teleport/knockback/pursuit jump rather than
+     * sprint speed, preventing external movement from arming Sprint B.
      */
     private static double sampleHorizontalDisplacement(
             UUID playerId,
@@ -196,7 +197,8 @@ public final class RengekiMomentumHandler {
 
         double dx = position.x - previous.position().x;
         double dz = position.z - previous.position().z;
-        return Math.sqrt(dx * dx + dz * dz);
+        double distance = Math.sqrt(dx * dx + dz * dz);
+        return distance > MAX_CONTINUOUS_SPRINT_DISPLACEMENT ? 0.0D : distance;
     }
 
     /**
@@ -474,8 +476,21 @@ public final class RengekiMomentumHandler {
         return min + (max - min) * value;
     }
 
-    private static void resetSprintChain(UUID playerId) {
-        SPRINT_CHAINS.remove(playerId);
+    /**
+     * Losing sprint eligibility resets only presentation. The real-hit cooldown
+     * stays in the per-player state so tapping sprint/use/combo gates cannot
+     * manufacture extra immediate pulses inside the four-tick cadence.
+     */
+    private static void resetSprintVisuals(UUID playerId) {
+        SprintChainState chain = SPRINT_CHAINS.get(playerId);
+        if (chain == null) {
+            return;
+        }
+        chain.nextVisualBeatAt = Long.MIN_VALUE;
+        chain.nextBeat = 0;
+        chain.activeBeat = -1;
+        chain.burstTick = 0;
+        chain.visualSize = 0.0F;
     }
 
     private static void clearMovementState(UUID playerId) {
