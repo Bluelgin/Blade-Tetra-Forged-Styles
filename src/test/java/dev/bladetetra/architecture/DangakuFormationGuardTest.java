@@ -11,14 +11,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Structural guards for Dangaku's position-first control flow. */
 class DangakuFormationGuardTest {
+    private static final Path FORMATION_SOURCE = Path.of(
+            "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java");
+    private static final Path STYLE_SOURCE = Path.of(
+            "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java");
+
     @Test
     void rightClickIsCapturedBeforeNativeProgressCombo() throws IOException {
         String combos = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/ModComboStates.java"));
         String buffer = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/StyleInputBuffer.java"));
-        String handler = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
+        String handler = Files.readString(FORMATION_SOURCE);
 
         assertTrue(combos.contains("DANGAKU_CHARGED_SWEEP_ID"),
                 "Charged sweep should be an explicit visual combo node");
@@ -39,6 +43,18 @@ class DangakuFormationGuardTest {
                 "A captured but locked right-click must never leak into a native release action");
         assertFalse(handler.contains("onChargeStart(LivingEntityUseItemEvent.Start"),
                 "Charge ownership should come from the pre-use right-click interceptor, not a late Start event");
+    }
+
+    @Test
+    void groundedChargeCannotBeCarriedIntoAerialRelease() throws IOException {
+        String source = Files.readString(FORMATION_SOURCE);
+
+        assertTrue(source.contains("charging.armed() && !player.onGround()"),
+                "Leaving the ground after a captured charge must permanently disarm that release");
+        assertTrue(source.contains("new ChargeState(charging.blade(), charging.startedAt(), false)"),
+                "Airborne charge invalidation should stay transient and reuse the existing charge state");
+        assertTrue(source.contains("!state.armed()"),
+                "The later Stop event must be canceled instead of leaking into native releaseUsing");
     }
 
     @Test
@@ -68,8 +84,7 @@ class DangakuFormationGuardTest {
 
     @Test
     void slashArtOverlaysDangakuSweepWithoutReimplementingSa() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
+        String source = Files.readString(FORMATION_SOURCE);
 
         assertTrue(source.contains("boolean slashArtRelease = canReleaseSlashArt"),
                 "Dangaku should treat native SA as an overlay flag rather than an exclusive release branch");
@@ -93,8 +108,7 @@ class DangakuFormationGuardTest {
 
     @Test
     void chargedSweepUsesHorizontalVisualAndBoundedNativeMelee() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
+        String source = Files.readString(FORMATION_SOURCE);
 
         assertTrue(source.contains("LivingEntityUseItemEvent.Stop"),
                 "Dangaku release should arbitrate the captured held-use stop event");
@@ -125,9 +139,25 @@ class DangakuFormationGuardTest {
     }
 
     @Test
-    void positionReplacesLegacyBrokenStanceAndHudSharesChargeMath() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
+    void chargedSweepSidecarCannotBorrowSaHitEffectOrDurability() throws IOException {
+        String source = Files.readString(FORMATION_SOURCE);
+
+        assertTrue(source.contains("CHARGED_SWEEP_HIT_CONTEXT"),
+                "Charged sidecar hits need an exact synchronous context");
+        assertTrue(source.contains("onChargedSweepHitResolved(SlashBladeEvent.HitEvent event)"),
+                "The post-damage/pre-hitEffect boundary must be owned explicitly");
+        assertTrue(source.contains("event.getBlade() != context.blade"));
+        assertTrue(source.contains("event.getTarget() != context.target"));
+        assertTrue(source.contains("event.setCanceled(true)"),
+                "Canceling only the exact sidecar HitEvent prevents current-SA hitEffect and durability reuse");
+        assertTrue(source.contains("CHARGED_SWEEP_HIT_CONTEXT.remove()"),
+                "The context must not leak past its synchronous melee call");
+    }
+
+    @Test
+    void formationPullSynchronizesPlayersAndLegacyStateIsReadOnlyMigration() throws IOException {
+        String source = Files.readString(FORMATION_SOURCE);
+        String style = Files.readString(STYLE_SOURCE);
         String hud = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/DangakuChargeHud.java"));
 
@@ -136,9 +166,19 @@ class DangakuFormationGuardTest {
         assertTrue(source.contains("CLUSTER_DAMAGE_MULTIPLIER = 1.06F"),
                 "Cluster reward should remain a modest positional payoff");
         assertTrue(source.contains("clearLegacyBrokenStance"),
-                "The obsolete +5% broken-stance tags should be neutralized during migration");
+                "Old save tags may still be removed during migration");
         assertTrue(source.contains("pullTowardFocus"),
                 "Sweep identity should come from enemy repositioning");
+        assertTrue(source.contains("ClientboundSetEntityMotionPacket"),
+                "ServerPlayer pull must explicitly synchronize motion");
+        assertTrue(source.contains("target.hurtMarked = true"),
+                "Non-player living targets should also publish their new motion");
+
+        assertFalse(style.contains("BROKEN_STANCE_OWNER"),
+                "Legacy Dangaku broken-stance state must no longer be written by active combat");
+        assertFalse(style.contains("applyBrokenStance("),
+                "The obsolete +5% timer must not remain in the active damage pipeline");
+
         assertTrue(hud.contains("RenderGuiEvent.Post"),
                 "Charge needs an in-world HUD instead of chat spam");
         assertTrue(hud.contains("DangakuChargeMath.chargeForHeldTicks"),
