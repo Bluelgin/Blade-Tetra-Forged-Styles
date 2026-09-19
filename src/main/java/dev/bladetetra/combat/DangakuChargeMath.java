@@ -2,7 +2,6 @@ package dev.bladetetra.combat;
 
 /** Shared charge/range math for Dangaku's held right-click sweep. */
 public final class DangakuChargeMath {
-    public static final int SHORT_PRESS_TICKS = 8;
     public static final int FULL_CHARGE_TICKS = 44;
     public static final int PEAK_GRACE_TICKS = 5;
     public static final double MIN_DECAYED_CHARGE = 0.25D;

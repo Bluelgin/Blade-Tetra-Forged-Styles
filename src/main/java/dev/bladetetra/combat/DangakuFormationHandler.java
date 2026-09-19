@@ -6,6 +6,7 @@ import dev.bladetetra.visual.MaterialSlashEffectResolver;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
+import mods.flammpfeil.slashblade.item.SwordType;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.util.AttackManager;
 import mods.flammpfeil.slashblade.util.TargetSelector;
@@ -43,10 +44,10 @@ import java.util.UUID;
  * Dangaku's spatial-control layer.
  *
  * <p>Plain grounded right-click is captured before ItemSlashBlade.use can run
- * its native progressCombo path. The captured input enters the normal held-item
- * state directly: quick release performs the gathering sweep and a deliberate
- * hold performs the panel-scaled charged sweep. No charge state is serialized
- * to the blade or player.</p>
+ * its native progressCombo path. The held input has three release bands: a tap
+ * performs the gathering sweep, the native Slash Art charge band is handed back
+ * to Resharped unchanged, and reaching Dangaku's full charge releases the
+ * panel-scaled grand sweep. No charge state is serialized to the blade or player.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DangakuFormationHandler {
@@ -128,7 +129,10 @@ public final class DangakuFormationHandler {
         player.startUsingItem(hand);
     }
 
-    /** Cancel Resharped's normal charge-release/Slash-Art path for every captured use. */
+    /**
+     * Resolve the captured release without duplicating Slash Art internals.
+     * Native SA owns its normal timing band; full Dangaku charge takes priority.
+     */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onChargeStop(LivingEntityUseItemEvent.Stop event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -140,17 +144,27 @@ public final class DangakuFormationHandler {
             return;
         }
 
-        event.setCanceled(true);
         ItemStack blade = player.getMainHandItem();
         if (blade != state.blade()
                 || !isDangakuBlade(blade)
                 || !player.isAlive()
                 || !state.armed()) {
+            event.setCanceled(true);
             return;
         }
 
         long heldTicks = Math.max(0L, player.level().getGameTime() - state.startedAt());
-        if (heldTicks < DangakuChargeMath.SHORT_PRESS_TICKS) {
+        if (shouldYieldToSlashArt(player, blade, heldTicks)) {
+            // Leave Stop uncanceled: ItemSlashBlade.releaseUsing keeps SA timing,
+            // cost, ChargeActionEvent and third-party compatibility authoritative.
+            return;
+        }
+
+        event.setCanceled(true);
+        int nativeChargeTicks = Math.min(
+                nativeSlashArtStartTicks(player, blade),
+                DangakuChargeMath.FULL_CHARGE_TICKS);
+        if (heldTicks < nativeChargeTicks) {
             beginCombo(player, blade, ModComboStates.getDangakuSweepId());
             return;
         }
@@ -410,6 +424,29 @@ public final class DangakuFormationHandler {
         return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> ComboStateRegistry.NONE.getId().equals(
                         state.resolvCurrentComboState(player)))
+                .orElse(false);
+    }
+
+    private static int nativeSlashArtStartTicks(
+            LivingEntity user,
+            ItemStack blade) {
+        return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                .map(state -> state.getFullChargeTicks(user))
+                .orElse(DangakuChargeMath.FULL_CHARGE_TICKS);
+    }
+
+    private static boolean shouldYieldToSlashArt(
+            LivingEntity user,
+            ItemStack blade,
+            long heldTicks) {
+        if (heldTicks >= DangakuChargeMath.FULL_CHARGE_TICKS
+                || !SwordType.from(blade).contains(SwordType.ENCHANTED)) {
+            return false;
+        }
+        return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                .map(state -> !state.isBroken()
+                        && !state.isSealed()
+                        && heldTicks >= state.getFullChargeTicks(user))
                 .orElse(false);
     }
 

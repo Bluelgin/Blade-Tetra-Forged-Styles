@@ -58,6 +58,27 @@ class DangakuFormationGuardTest {
                 "Panel scaling must remain hard-capped");
         assertTrue(math.contains("Math.sqrt(Math.max(1.0D, panelDamage)"),
                 "Panel scaling should be soft rather than linear runaway");
+        assertFalse(math.contains("SHORT_PRESS_TICKS"),
+                "Tap/SA arbitration should follow the blade's native full-charge threshold, not a duplicate constant");
+    }
+
+    @Test
+    void slashArtKeepsNativeReleasePathUntilDangakuFullCharge() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
+
+        assertTrue(source.contains("shouldYieldToSlashArt(player, blade, heldTicks)"),
+                "Medium held releases should explicitly yield back to native Slash Art");
+        assertTrue(source.contains("state.getFullChargeTicks(user)"),
+                "Dangaku should reuse the blade's native SA threshold instead of hardcoding another timer");
+        assertTrue(source.contains("SwordType.ENCHANTED"),
+                "Only releases that native SlashBlade can actually treat as SA should be handed off");
+        assertTrue(source.contains("heldTicks >= DangakuChargeMath.FULL_CHARGE_TICKS"),
+                "Full Dangaku charge must take priority over the native SA release band");
+        assertTrue(source.contains("Leave Stop uncanceled"),
+                "Native SA handoff must continue through ItemSlashBlade.releaseUsing");
+        assertFalse(source.contains(".doChargeAction("),
+                "Dangaku must not duplicate native SA timing, cost or ChargeActionEvent logic");
     }
 
     @Test
@@ -66,9 +87,9 @@ class DangakuFormationGuardTest {
                 "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
 
         assertTrue(source.contains("LivingEntityUseItemEvent.Stop"),
-                "Dangaku release should own the captured held-use stop event");
+                "Dangaku release should arbitrate the captured held-use stop event");
         assertTrue(source.contains("event.setCanceled(true);"),
-                "Owned release must not also trigger Resharped's Slash-Art release path");
+                "Non-SA releases must stop Resharped from also running a second release action");
         assertTrue(source.contains("effect.setRotationRoll(-10.0F);"),
                 "Charged sweep visual should match the ordinary A1 horizontal sweep plane");
         assertFalse(source.contains("effect.setRotationRoll(90.0F);"),
