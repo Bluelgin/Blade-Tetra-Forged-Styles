@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -27,6 +28,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -40,11 +42,11 @@ import java.util.UUID;
 /**
  * Dangaku's spatial-control layer.
  *
- * <p>Plain grounded right-click deliberately enters SlashBlade's native held-use
- * state without committing an attack. Releasing quickly performs the ordinary
- * gathering sweep; holding at least a short threshold releases a manually bounded
- * charged sweep whose range and ratio scale softly from the player's panel damage.
- * No charge state is serialized to the blade or player.</p>
+ * <p>Plain grounded right-click is captured before ItemSlashBlade.use can run
+ * its native progressCombo path. The captured input enters the normal held-item
+ * state directly: quick release performs the gathering sweep and a deliberate
+ * hold performs the panel-scaled charged sweep. No charge state is serialized
+ * to the blade or player.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DangakuFormationHandler {
@@ -90,31 +92,43 @@ public final class DangakuFormationHandler {
     }
 
     /**
-     * ItemSlashBlade.use already starts the held-use state. A neutral Dangaku
-     * right-click leaves the combo at NONE, which is the exact signal that this
-     * use belongs to formation charging rather than a directional native action.
+     * Capture plain grounded Dangaku right-click before ItemSlashBlade.use can
+     * add R_CLICK and call progressCombo. Sneak-directional inputs stay native.
+     *
+     * <p>If the previous Dangaku attack has not actually returned to neutral,
+     * the use is still captured so it cannot leak into the native combo tree,
+     * but release is intentionally disarmed instead of becoming an animation
+     * cancel / sweep-spam shortcut.</p>
      */
-    @SubscribeEvent
-    public static void onChargeStart(LivingEntityUseItemEvent.Start event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        ItemStack blade = event.getItem();
-        if (!isDangakuBlade(blade)
-                || blade != player.getMainHandItem()
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        Player player = event.getEntity();
+        InteractionHand hand = event.getHand();
+        ItemStack blade = player.getItemInHand(hand);
+        if (hand != InteractionHand.MAIN_HAND
+                || !isDangakuBlade(blade)
                 || !player.onGround()
-                || player.isShiftKeyDown()
-                || !ComboStateRegistry.NONE.getId().equals(currentCombo(blade))) {
+                || player.isShiftKeyDown()) {
             return;
         }
 
-        ACTIVE_CHARGES.put(
-                player.getUUID(),
-                new ChargeState(blade, player.level().getGameTime()));
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+
+        if (player instanceof ServerPlayer serverPlayer) {
+            boolean armed = isNeutralForCharge(serverPlayer, blade);
+            ACTIVE_CHARGES.put(
+                    serverPlayer.getUUID(),
+                    new ChargeState(
+                            blade,
+                            serverPlayer.level().getGameTime(),
+                            armed));
+        }
+
+        player.startUsingItem(hand);
     }
 
-    /** Cancel Resharped's normal charge-release/Slash-Art path only for our owned use. */
+    /** Cancel Resharped's normal charge-release/Slash-Art path for every captured use. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onChargeStop(LivingEntityUseItemEvent.Stop event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -130,7 +144,8 @@ public final class DangakuFormationHandler {
         ItemStack blade = player.getMainHandItem();
         if (blade != state.blade()
                 || !isDangakuBlade(blade)
-                || !player.isAlive()) {
+                || !player.isAlive()
+                || !state.armed()) {
             return;
         }
 
@@ -345,7 +360,8 @@ public final class DangakuFormationHandler {
         effect.setPos(position.x, position.y, position.z);
         effect.setYRot(player.getYRot());
         effect.setXRot(0.0F);
-        effect.setRotationRoll(90.0F);
+        // Match COMBO_A1 / ordinary Dangaku sweep instead of the vertical 90° plane.
+        effect.setRotationRoll(-10.0F);
         effect.setColor(MaterialSlashEffectResolver.resolve(blade).color());
         effect.setIsCritical(charge >= 0.98D);
         effect.setBaseSize(DangakuChargeMath.visualSize(range));
@@ -386,6 +402,15 @@ public final class DangakuFormationHandler {
     private static boolean isDangakuBlade(ItemStack blade) {
         return blade.getItem() instanceof ModularSlashBladeItem
                 && StyleResolver.resolve(blade) == BladeStyle.DANGAKU;
+    }
+
+    private static boolean isNeutralForCharge(
+            ServerPlayer player,
+            ItemStack blade) {
+        return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                .map(state -> ComboStateRegistry.NONE.getId().equals(
+                        state.resolvCurrentComboState(player)))
+                .orElse(false);
     }
 
     private static ResourceLocation currentCombo(ItemStack blade) {
@@ -453,7 +478,10 @@ public final class DangakuFormationHandler {
         clearState(event.getEntity().getUUID());
     }
 
-    private record ChargeState(ItemStack blade, long startedAt) {
+    private record ChargeState(
+            ItemStack blade,
+            long startedAt,
+            boolean armed) {
     }
 
     private record PendingStrike(

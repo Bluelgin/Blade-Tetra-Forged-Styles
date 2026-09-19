@@ -12,22 +12,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Structural guards for Dangaku's position-first control flow. */
 class DangakuFormationGuardTest {
     @Test
-    void rightClickIsOwnedByChargeReleaseInsteadOfAutomaticAlternation() throws IOException {
+    void rightClickIsCapturedBeforeNativeProgressCombo() throws IOException {
         String combos = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/ModComboStates.java"));
         String buffer = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/StyleInputBuffer.java"));
+        String handler = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
 
         assertTrue(combos.contains("DANGAKU_CHARGED_SWEEP_ID"),
                 "Charged sweep should be an explicit visual combo node");
         assertTrue(combos.contains("if (commands.contains(InputCommand.L_CLICK))"),
                 "Left click should deliberately select Dangaku cleave");
-        assertTrue(combos.contains("if (commands.contains(InputCommand.R_CLICK))"),
-                "Right click should have its own held-use branch");
-        assertTrue(combos.contains("return ComboStateRegistry.NONE.getId();"),
-                "Plain right click should remain neutral until release");
         assertFalse(buffer.contains("BladeStyle.DANGAKU"),
                 "The old automatic cleave/sweep input buffer must not fight held right-click");
+
+        assertTrue(handler.contains("PlayerInteractEvent.RightClickItem"),
+                "Plain Dangaku right-click must be intercepted before ItemSlashBlade.use");
+        assertTrue(handler.contains("event.setCancellationResult(InteractionResult.SUCCESS)"),
+                "Captured right-click must terminate the native item-use dispatch cleanly");
+        assertTrue(handler.contains("player.startUsingItem(hand);"),
+                "Dangaku should enter the held-use state without calling native progressCombo");
+        assertTrue(handler.contains("boolean armed = isNeutralForCharge"),
+                "Rapid clicks during a locked attack should be swallowed rather than animation-cancel spam");
+        assertTrue(handler.contains("|| !state.armed()"),
+                "A captured but locked right-click must never leak into a native release action");
+        assertFalse(handler.contains("onChargeStart(LivingEntityUseItemEvent.Start"),
+                "Charge ownership should come from the pre-use right-click interceptor, not a late Start event");
     }
 
     @Test
@@ -50,14 +61,18 @@ class DangakuFormationGuardTest {
     }
 
     @Test
-    void chargedSweepUsesBoundedNativeMeleeAndNoPersistentChargeNbt() throws IOException {
+    void chargedSweepUsesHorizontalVisualAndBoundedNativeMelee() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
 
         assertTrue(source.contains("LivingEntityUseItemEvent.Stop"),
-                "Dangaku release should own the native held-use stop event");
+                "Dangaku release should own the captured held-use stop event");
         assertTrue(source.contains("event.setCanceled(true);"),
                 "Owned release must not also trigger Resharped's Slash-Art release path");
+        assertTrue(source.contains("effect.setRotationRoll(-10.0F);"),
+                "Charged sweep visual should match the ordinary A1 horizontal sweep plane");
+        assertFalse(source.contains("effect.setRotationRoll(90.0F);"),
+                "The old 90-degree visual plane reads as a vertical cleave");
         assertTrue(source.contains("MAX_CHARGED_TARGETS = 24"),
                 "Large sweep still needs a hard target budget");
         assertTrue(source.contains("AttackManager.doMeleeAttack(player, target, false, false, damageRatio)"),
