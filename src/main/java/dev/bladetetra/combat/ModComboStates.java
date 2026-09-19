@@ -43,6 +43,8 @@ public final class ModComboStates {
             new ResourceLocation(BladeTetra.MOD_ID, "dangaku_rise");
     private static final ResourceLocation DANGAKU_CLEAVE_ID =
             new ResourceLocation(BladeTetra.MOD_ID, "dangaku_cleave");
+    private static final ResourceLocation DANGAKU_CHARGED_SWEEP_ID =
+            new ResourceLocation(BladeTetra.MOD_ID, "dangaku_charged_sweep");
     private static final ResourceLocation TWIN_PHASE_DRAW_ID =
             new ResourceLocation(BladeTetra.MOD_ID, "twin_phase_draw");
 
@@ -85,24 +87,28 @@ public final class ModComboStates {
     public static final RegistryObject<ComboState> DANGAKU_SWEEP =
             COMBOS.register("dangaku_sweep", () -> copyAttack(
                     ComboStateRegistry.COMBO_A1,
-                    entity -> selectFollowUp(entity, DANGAKU_CLEAVE_ID),
+                    ModComboStates::selectDangakuFollowUp,
                     ComboStateRegistry.COMBO_A1_END.getId(),
                     5,
                     0));
     public static final RegistryObject<ComboState> DANGAKU_RISE =
             COMBOS.register("dangaku_rise", () -> copyAttack(
                     ComboStateRegistry.COMBO_A3,
-                    entity -> selectFollowUp(entity, DANGAKU_CLEAVE_ID),
+                    ModComboStates::selectDangakuFollowUp,
                     ComboStateRegistry.COMBO_A3_END.getId(),
                     9,
                     450));
     public static final RegistryObject<ComboState> DANGAKU_CLEAVE =
             COMBOS.register("dangaku_cleave", () -> copyAttack(
                     ComboStateRegistry.COMBO_A4_EX,
-                    entity -> selectFollowUp(entity, DANGAKU_SWEEP_ID),
+                    ModComboStates::selectDangakuFollowUp,
                     ComboStateRegistry.COMBO_A4_EX_END.getId(),
                     22,
                     0));
+    /** Charged Dangaku uses the native sweep motion but owns its hit logic. */
+    public static final RegistryObject<ComboState> DANGAKU_CHARGED_SWEEP =
+            COMBOS.register("dangaku_charged_sweep", () -> visualMotion(
+                    ComboStateRegistry.COMBO_A1, 18));
 
     /** Native SlashBlade draw motion with every attack callback deliberately removed. */
     public static final RegistryObject<ComboState> TWIN_PHASE_DRAW =
@@ -205,7 +211,50 @@ public final class ModComboStates {
     }
 
     private static ResourceLocation selectDangakuOpener(LivingEntity entity) {
-        return selectOpener(entity, DANGAKU_CLEAVE.getId());
+        return selectDangakuGroundChoice(entity);
+    }
+
+    private static ResourceLocation selectDangakuFollowUp(LivingEntity entity) {
+        return selectDangakuGroundChoice(entity);
+    }
+
+    /**
+     * Dangaku leaves ordinary right-click in NONE so ItemSlashBlade can enter
+     * its native held-use state without committing an attack. Release is owned
+     * by DangakuFormationHandler: tap -> sweep, hold -> charged sweep. Left-click
+     * remains the deliberate cleave. Directional and aerial commands stay native.
+     */
+    private static ResourceLocation selectDangakuGroundChoice(LivingEntity entity) {
+        EnumSet<InputCommand> commands = entity.getCapability(CapabilityInputState.INPUT_STATE)
+                .map(state -> state.getCommands(entity))
+                .orElseGet(() -> EnumSet.noneOf(InputCommand.class));
+
+        if (commands.contains(InputCommand.ON_GROUND)) {
+            if (commands.containsAll(EnumSet.of(
+                    InputCommand.SNEAK, InputCommand.FORWARD, InputCommand.R_CLICK))) {
+                return ComboStateRegistry.RAPID_SLASH.getId();
+            }
+            if (commands.containsAll(EnumSet.of(
+                    InputCommand.SNEAK, InputCommand.BACK, InputCommand.R_CLICK))) {
+                return ComboStateRegistry.UPPERSLASH.getId();
+            }
+            if (commands.contains(InputCommand.L_CLICK)) {
+                return DANGAKU_CLEAVE_ID;
+            }
+            if (commands.contains(InputCommand.R_CLICK)) {
+                return ComboStateRegistry.NONE.getId();
+            }
+        }
+
+        if (commands.contains(InputCommand.ON_AIR)) {
+            if (commands.containsAll(EnumSet.of(
+                    InputCommand.SNEAK, InputCommand.BACK, InputCommand.R_CLICK))) {
+                return ComboStateRegistry.AERIAL_CLEAVE.getId();
+            }
+            return ComboStateRegistry.AERIAL_RAVE_A1.getId();
+        }
+
+        return ComboStateRegistry.NONE.getId();
     }
 
     /**
@@ -228,6 +277,10 @@ public final class ModComboStates {
 
     public static boolean isDangakuSweep(ResourceLocation combo) {
         return DANGAKU_SWEEP_ID.equals(combo);
+    }
+
+    public static boolean isDangakuChargedSweep(ResourceLocation combo) {
+        return DANGAKU_CHARGED_SWEEP_ID.equals(combo);
     }
 
     public static boolean isIaidoSheathe(ResourceLocation combo) {
@@ -259,6 +312,10 @@ public final class ModComboStates {
 
     public static ResourceLocation getDangakuSweepId() {
         return DANGAKU_SWEEP_ID;
+    }
+
+    public static ResourceLocation getDangakuChargedSweepId() {
+        return DANGAKU_CHARGED_SWEEP_ID;
     }
 
     /**
