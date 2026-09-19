@@ -45,8 +45,10 @@ class ArchitectureDebtGuardTest {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java"));
         assertTrue(source.contains(
-                "if (!modularBlade && !hasIaidoState && !hasBrokenStanceState)"),
+                "if (!modularBlade && !hasIaidoState)"),
                 "Unrelated living entities must leave StyleCombatHandler.onLivingTick early");
+        assertFalse(source.contains("hasBrokenStanceState"),
+                "Removed Dangaku broken-stance state must not keep unrelated entities in the living-tick path");
         assertTrue(source.contains("hasIaidoTickState(CompoundTag data)"),
                 "Iaido transient-state detection must stay explicit and allocation-free");
         assertTrue(source.contains("data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)"),
