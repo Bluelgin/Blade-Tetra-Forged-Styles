@@ -18,7 +18,7 @@ class RengekiShortStepGuardTest {
             "src/main/java/dev/bladetetra/combat/RengekiMomentumHandler.java");
 
     @Test
-    void pursuitHooksAuthoritativeComboMotionInsteadOfRawInputSync() throws IOException {
+    void pursuitHooksAuthoritativeComboMotionAndReadsOnlySynchronousRightClick() throws IOException {
         String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("BladeMotionEvent"),
@@ -26,9 +26,15 @@ class RengekiShortStepGuardTest {
         assertFalse(source.contains("InputCommandEvent"),
                 "Raw MoveInput synchronization does not carry transient L_CLICK/R_CLICK");
         assertFalse(source.contains("InputCommand.L_CLICK"),
-                "L_CLICK is injected transiently by ItemSlashBlade, not MoveInputHandler");
-        assertFalse(source.contains("InputCommand.R_CLICK"),
-                "R_CLICK is injected transiently by ItemSlashBlade, not MoveInputHandler");
+                "Ordinary pursuit should not opt into left-click movement");
+        assertTrue(source.contains("InputCommand.R_CLICK"),
+                "Right-click pursuit should read Resharped's transient R_CLICK during BladeMotionEvent");
+        assertTrue(source.contains("player.getCapability(ItemSlashBlade.INPUT_STATE)"),
+                "Right-click intent must come from the same server-side capability used by ItemSlashBlade.use()");
+        assertTrue(source.contains("boolean rightClickAdvance = expectedBAdvance && isRightClickAdvance(player)"),
+                "Only a real B advance initiated by right click may consume ordinary pursuit");
+        assertTrue(source.contains("|| !rightClickAdvance"),
+                "Left-click B advances must consume the old chase opportunity without teleporting");
         assertTrue(source.contains("receiveCanceled = true"),
                 "Canceled combo transitions must clear pending movement state");
     }
@@ -49,8 +55,8 @@ class RengekiShortStepGuardTest {
     void nativeBTradingUsesStrongerPenaltyAcrossAuthoredTailSlashes() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.88D"),
-                "Rengeki native B damage should trade 12% raw damage for its expanded flow tools");
+        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.85D"),
+                "Rengeki native B damage should trade 15% raw damage for its expanded flow tools");
         assertTrue(source.contains("public static void onRengekiSlash"),
                 "Damage tradeoff should stay in the focused Rengeki momentum handler");
         assertTrue(source.contains("RengekiShortStepHandler.isNativeBFlowState"),
@@ -101,6 +107,8 @@ class RengekiShortStepGuardTest {
                 "A proven Rengeki B kill should schedule exactly one hand-off request");
         assertTrue(source.contains("public static void onPlayerTick(TickEvent.PlayerTickEvent event)"),
                 "A kill must still auto-transfer when the player does not immediately press the next B beat");
+        assertFalse(source.contains("killTransfer != null && rightClickAdvance"),
+                "Kill continuity is separate from ordinary pursuit and must not become right-click-only");
     }
 
     @Test
@@ -221,6 +229,50 @@ class RengekiShortStepGuardTest {
                 "Player momentum must be restored after the passive hit");
         assertTrue(source.contains("player.setSprinting(sprinting)"),
                 "The exact pre-hit sprint flag must be restored so the passive cannot cancel sprinting");
+        assertTrue(source.contains("SPRINT_HIT_CONTEXT.remove()"),
+                "Sprint-hit context must never leak beyond the synchronous compatibility attack");
+    }
+
+    @Test
+    void sprintFlowIsSilentWithoutMutingNormalRengekiAttacks() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("effect.setMute(true)"),
+                "Every ownerless sprint-B visual slash must be muted");
+        assertFalse(source.contains("effect.setMute(mute)"),
+                "No sprint visual should retain a per-slash audible branch");
+        assertTrue(source.contains("PlayLevelSoundEvent.AtPosition"),
+                "The real melee compatibility hit needs a narrow sound suppression hook");
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_CRIT"),
+                "Successful compatibility-hit attack sound should be suppressed");
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_NODAMAGE"),
+                "Failed compatibility-hit attack sound should be suppressed");
+        assertTrue(source.contains("SPRINT_HIT_CONTEXT.get() == null"),
+                "Sound suppression must be scoped only to a live sprint-hit call");
+        assertTrue(source.contains("event.setCanceled(true)"),
+                "Scoped sprint attack sounds should be canceled rather than globally remapped");
+    }
+
+    @Test
+    void sprintDurabilityIsOneQuarterOfOrdinarySuccessfulHits() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("SPRINT_DURABILITY_DIVISOR = 4"),
+                "Sprint durability should consume one normal durability opportunity per four successful hits");
+        assertTrue(source.contains("SPRINT_DURABILITY_PHASE"),
+                "Durability phase must persist across sprint interruptions instead of resetting for free hits");
+        assertTrue(source.contains("onSprintHitDurability(SlashBladeEvent.HitEvent event)"),
+                "Quarter durability should hook the post-damage pre-durability HitEvent boundary");
+        assertTrue(source.contains("priority = EventPriority.LOWEST, receiveCanceled = true"),
+                "Durability suppression should happen after other HitEvent compatibility listeners have observed the hit");
+        assertTrue(source.contains("% SPRINT_DURABILITY_DIVISOR"),
+                "Durability accounting must cycle deterministically every four successful sprint hits");
+        assertTrue(source.contains("if (phase != 0)"),
+                "The first three successful sprint hits should skip durability");
+        assertTrue(source.contains("event.setCanceled(true)"),
+                "Skipping a sprint durability opportunity should use Resharped's cancellable HitEvent before hurtAndBreak");
+        assertFalse(source.contains("SPRINT_DURABILITY_PHASE.remove(playerId)"),
+                "Ordinary sprint stop/reset must not clear the durability phase and enable free-hit abuse");
     }
 
     @Test
