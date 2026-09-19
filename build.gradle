@@ -211,6 +211,17 @@ dependencies {
         runtimeOnly fg.deobf("local:EndingLibrary:1.20.1-2.1.19fix-all")
         runtimeOnly fg.deobf("local:GoetyRevelation:2.3.3fix")
     }
+
+    // SlashBlade add-on pressure-test profile. Production jars live in the
+    // ignored local test library so ForgeGradle can remap them for userdev.
+    // They are never bundled into Blade Tetra or exposed as dependencies.
+    if (project.hasProperty('addonStressTest')) {
+        runtimeOnly fg.deobf("local:recasting2:1.20.1-1.0.45")
+        runtimeOnly fg.deobf("local:legendreliclib:1.4.7")
+        runtimeOnly fg.deobf("local:stellar_decay:1.1.6-forge")
+        runtimeOnly fg.deobf("local:last_smith:1.1.10-1.20.1")
+        runtimeOnly fg.deobf("local:mysterious_mountain_lib:1.5.22-1.20.1")
+    }
 }
 
 tasks.named('test', Test).configure {
