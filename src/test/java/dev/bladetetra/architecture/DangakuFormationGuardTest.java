@@ -56,6 +56,10 @@ class DangakuFormationGuardTest {
                 "Even a low-panel full charge should feel meaningfully large");
         assertTrue(math.contains("CHARGED_RANGE_MAX = 12.0D"),
                 "Panel scaling must remain hard-capped");
+        assertTrue(math.contains("DAMAGE_RATIO_FLOOR = 0.42F"),
+                "Dangaku charged sweep should prioritize control over raw damage");
+        assertTrue(math.contains("DAMAGE_RATIO_MAX = 0.68F"),
+                "Even a high-panel full charge should remain below the old damage ceiling");
         assertTrue(math.contains("Math.sqrt(Math.max(1.0D, panelDamage)"),
                 "Panel scaling should be soft rather than linear runaway");
         assertFalse(math.contains("SHORT_PRESS_TICKS"),
@@ -63,20 +67,26 @@ class DangakuFormationGuardTest {
     }
 
     @Test
-    void slashArtKeepsNativeReleasePathUntilDangakuFullCharge() throws IOException {
+    void slashArtOverlaysDangakuSweepWithoutReimplementingSa() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/DangakuFormationHandler.java"));
 
-        assertTrue(source.contains("shouldYieldToSlashArt(player, blade, heldTicks)"),
-                "Medium held releases should explicitly yield back to native Slash Art");
+        assertTrue(source.contains("boolean slashArtRelease = canReleaseSlashArt"),
+                "Dangaku should treat native SA as an overlay flag rather than an exclusive release branch");
+        assertTrue(source.contains("new PendingStrike("),
+                "Charged formation sweep should be scheduled regardless of SA overlay");
+        assertTrue(source.contains("slashArtRelease));"),
+                "Pending sweep should remember only whether SA is sharing the release");
+        assertTrue(source.contains("if (!slashArtRelease)"),
+                "Only non-SA releases should take over the visual ComboState");
+        assertTrue(source.contains("pending.withSlashArt()"),
+                "SA overlay sweep should survive the native SA ComboState transition");
         assertTrue(source.contains("state.getFullChargeTicks(user)"),
                 "Dangaku should reuse the blade's native SA threshold instead of hardcoding another timer");
         assertTrue(source.contains("SwordType.ENCHANTED"),
-                "Only releases that native SlashBlade can actually treat as SA should be handed off");
-        assertTrue(source.contains("heldTicks >= DangakuChargeMath.FULL_CHARGE_TICKS"),
-                "Full Dangaku charge must take priority over the native SA release band");
-        assertTrue(source.contains("Leave Stop uncanceled"),
-                "Native SA handoff must continue through ItemSlashBlade.releaseUsing");
+                "Only releases that native SlashBlade can actually treat as SA should remain uncanceled");
+        assertFalse(source.contains("shouldYieldToSlashArt"),
+                "SA should no longer replace Dangaku sweep through an exclusive yield branch");
         assertFalse(source.contains(".doChargeAction("),
                 "Dangaku must not duplicate native SA timing, cost or ChargeActionEvent logic");
     }
@@ -96,6 +106,12 @@ class DangakuFormationGuardTest {
                 "The old 90-degree visual plane reads as a vertical cleave");
         assertTrue(source.contains("MAX_CHARGED_TARGETS = 24"),
                 "Large sweep still needs a hard target budget");
+        assertTrue(source.contains("SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.72F"),
+                "SA overlay sweep should deal reduced sidecar damage");
+        assertTrue(source.contains("ORDINARY_SWEEP_DAMAGE_FACTOR = 0.68D"),
+                "Ordinary sweep damage should stay secondary to formation control");
+        assertTrue(source.contains("CLEAVE_DAMAGE_FACTOR = 0.95D"),
+                "Dangaku cleave should be toned down from the previous multiplier");
         assertTrue(source.contains("AttackManager.doMeleeAttack(player, target, false, false, damageRatio)"),
                 "Charged hits must preserve existing hurt windows");
         assertTrue(source.contains("TargetSelector.SlashBladeTargetingConditions"),
@@ -117,6 +133,8 @@ class DangakuFormationGuardTest {
 
         assertTrue(source.contains("CLUSTER_REQUIRED_TARGETS = 3"),
                 "Cleave payoff should read the current enemy formation");
+        assertTrue(source.contains("CLUSTER_DAMAGE_MULTIPLIER = 1.06F"),
+                "Cluster reward should remain a modest positional payoff");
         assertTrue(source.contains("clearLegacyBrokenStance"),
                 "The obsolete +5% broken-stance tags should be neutralized during migration");
         assertTrue(source.contains("pullTowardFocus"),
