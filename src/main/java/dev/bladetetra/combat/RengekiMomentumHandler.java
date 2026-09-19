@@ -28,17 +28,21 @@ import java.util.UUID;
 
 /**
  * Rengeki's momentum layer: a stronger damage tradeoff for the native B chain
- * plus a small speed-scaled frontal slash while the player is sprinting idle.
+ * plus a speed-scaled, B-styled visual flurry while the player keeps sprinting
+ * in neutral.
  *
- * <p>The sprint slash is intentionally independent from combo progression. It
- * never rewrites ComboState, never grants ordinary chase / kill hand-off, and
- * respects normal hurt invulnerability instead of force-hitting every tick.</p>
+ * <p>The sprint flow deliberately does not install or advance a real ComboState.
+ * It borrows the authored B-series visual rhythm while resolving only one low
+ * ratio, single-target melee hit per beat. This preserves B-like motion without
+ * secretly multiplying passive damage by every visual slash.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiMomentumHandler {
     static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.88D;
 
     static final int SPRINT_SLASH_INTERVAL_TICKS = 10;
+    static final int SPRINT_B_CHAIN_LENGTH = 7;
+    static final int SPRINT_B_BURST_TICKS = 7;
     static final double SPRINT_SLASH_MIN_SPEED = 0.12D;
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
@@ -51,7 +55,8 @@ public final class RengekiMomentumHandler {
     private static final float SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F;
     private static final float SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F;
     private static final double VISUAL_FORWARD_OFFSET = 0.65D;
-    private static final Map<UUID, Long> NEXT_SPRINT_SLASH_AT = new HashMap<>();
+    private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES = new HashMap<>();
+    private static final Map<UUID, SprintChainState> SPRINT_CHAINS = new HashMap<>();
 
     private static final TargetingConditions NATIVE_TARGET_FILTER =
             new TargetSelector.SlashBladeTargetingConditions()
@@ -91,12 +96,13 @@ public final class RengekiMomentumHandler {
         ItemStack blade = player.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            NEXT_SPRINT_SLASH_AT.remove(playerId);
+            clearMomentumState(playerId);
             return;
         }
 
-        // The momentum slash is an idle-running tool, not a second damage layer
-        // on top of B1-B7, directionals, aerials or Slash Arts.
+        long now = player.level().getGameTime();
+        double speed = sampleHorizontalDisplacement(playerId, player.position(), now);
+
         ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.getComboSeq())
                 .orElse(ComboStateRegistry.NONE.getId());
@@ -106,21 +112,33 @@ public final class RengekiMomentumHandler {
                 || !player.onGround()
                 || player.isPassenger()
                 || player.isUsingItem()
-                || player.getAbilities().flying) {
+                || player.getAbilities().flying
+                || speed < SPRINT_SLASH_MIN_SPEED) {
+            resetSprintChain(playerId);
             return;
         }
 
-        double speed = horizontalSpeed(player);
-        if (speed < SPRINT_SLASH_MIN_SPEED) {
-            return;
+        SprintChainState chain = SPRINT_CHAINS.computeIfAbsent(
+                playerId,
+                ignored -> new SprintChainState());
+
+        if (chain.activeBeat >= 0) {
+            emitSprintBVisualTick(
+                    player,
+                    blade,
+                    chain.activeBeat,
+                    chain.burstTick,
+                    chain.visualSize);
+            chain.burstTick++;
+            if (chain.burstTick >= SPRINT_B_BURST_TICKS) {
+                chain.activeBeat = -1;
+                chain.burstTick = 0;
+            }
         }
 
-        long now = player.level().getGameTime();
-        long nextAllowed = NEXT_SPRINT_SLASH_AT.getOrDefault(playerId, Long.MIN_VALUE);
-        if (now < nextAllowed) {
+        if (chain.activeBeat >= 0 || now < chain.nextBeatAt) {
             return;
         }
-        NEXT_SPRINT_SLASH_AT.put(playerId, now + SPRINT_SLASH_INTERVAL_TICKS);
 
         double speedScale = speedScale(speed);
         double range = lerp(
@@ -133,7 +151,19 @@ public final class RengekiMomentumHandler {
                 speedScale);
         float damageRatio = sprintSlashDamageRatioForSpeed(speed);
 
-        spawnSprintSlashVisual(player, blade, visualSize, now);
+        chain.activeBeat = chain.nextBeat;
+        chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH;
+        chain.burstTick = 0;
+        chain.visualSize = visualSize;
+        chain.nextBeatAt = now + SPRINT_SLASH_INTERVAL_TICKS;
+
+        emitSprintBVisualTick(
+                player,
+                blade,
+                chain.activeBeat,
+                chain.burstTick,
+                chain.visualSize);
+        chain.burstTick++;
 
         LivingEntity target = selectSprintSlashTarget(player, range);
         if (target != null) {
@@ -142,21 +172,93 @@ public final class RengekiMomentumHandler {
     }
 
     /**
-     * Visual-only Resharped slash. It deliberately has no shooter/owner, so the
-     * base EntitySlashEffect never performs its own broad areaAttack. Real hit
-     * range is handled by selectSprintSlashTarget instead of being faked by
-     * BaseSize, which in Resharped is only visual scale.
+     * Server END-tick deltaMovement is already damped by ground friction, which
+     * made ordinary sprinting fall below the old trigger threshold while a V
+     * rush/teleport left enough residual motion to pass it. Measure real
+     * horizontal displacement between consecutive server ticks instead.
      */
-    private static void spawnSprintSlashVisual(
+    private static double sampleHorizontalDisplacement(
+            UUID playerId,
+            Vec3 position,
+            long gameTime) {
+        MovementSample previous = MOVEMENT_SAMPLES.put(
+                playerId,
+                new MovementSample(position, gameTime));
+        if (previous == null || gameTime - previous.gameTime() != 1L) {
+            return 0.0D;
+        }
+
+        double dx = position.x - previous.position().x;
+        double dz = position.z - previous.position().z;
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    /**
+     * Visually follows the authored B-series language without installing the
+     * actual native combo: B1 opens with a crossed pair, B2-B6 use the same
+     * alternating random-roll rush cadence, and B7 adds a compact finisher.
+     * All spawned slash entities remain visual-only (no owner/shooter).
+     */
+    private static void emitSprintBVisualTick(
+            ServerPlayer player,
+            ItemStack blade,
+            int beat,
+            int burstTick,
+            float visualSize) {
+        if (beat == 0 && burstTick == 0) {
+            spawnBVisual(player, blade, visualSize, -30.0F, -0.08D, 0.00D, 0.00D, false);
+            spawnBVisual(player, blade, visualSize, 145.0F, 0.08D, 0.02D, 0.00D, true);
+            return;
+        }
+
+        int rushTick = beat == 0 ? burstTick - 1 : burstTick;
+        if (rushTick >= 0) {
+            boolean mirrored = (rushTick & 1) != 0;
+            float roll = (mirrored ? 90.0F : -90.0F)
+                    + 180.0F * player.getRandom().nextFloat();
+            double sideOffset = (player.getRandom().nextDouble() - 0.5D) * 0.85D;
+            double heightOffset = (player.getRandom().nextDouble() - 0.5D) * 0.45D;
+            double forwardOffset = 0.10D + player.getRandom().nextDouble() * 0.20D;
+            spawnBVisual(
+                    player,
+                    blade,
+                    visualSize,
+                    roll,
+                    sideOffset,
+                    heightOffset,
+                    forwardOffset,
+                    mirrored);
+        }
+
+        if (beat == SPRINT_B_CHAIN_LENGTH - 1
+                && burstTick == SPRINT_B_BURST_TICKS - 1) {
+            double side = (player.getRandom().nextDouble() - 0.5D) * 0.20D;
+            spawnBVisual(player, blade, visualSize, 0.0F, side, 0.34D, 0.05D, false);
+            spawnBVisual(player, blade, visualSize, 5.0F, -side, 0.38D, 0.08D, true);
+        }
+    }
+
+    /**
+     * Visual-only slash effect. No shooter/owner means EntitySlashEffect cannot
+     * run its built-in broad areaAttack; real damage is resolved once per beat
+     * by selectSprintSlashTarget + applySprintSlashHit.
+     */
+    private static void spawnBVisual(
             ServerPlayer player,
             ItemStack blade,
             float visualSize,
-            long gameTime) {
+            float roll,
+            double sideOffset,
+            double heightOffset,
+            double forwardOffset,
+            boolean mute) {
         ServerLevel level = player.serverLevel();
         Vec3 forward = horizontalLook(player);
+        Vec3 right = new Vec3(-forward.z, 0.0D, forward.x);
         Vec3 position = player.position()
-                .add(0.0D, player.getBbHeight() * 0.55D, 0.0D)
-                .add(forward.scale(VISUAL_FORWARD_OFFSET));
+                .add(0.0D, player.getBbHeight() * 0.55D + heightOffset, 0.0D)
+                .add(forward.scale(VISUAL_FORWARD_OFFSET + forwardOffset))
+                .add(right.scale(sideOffset));
 
         EntitySlashEffect effect = new EntitySlashEffect(
                 SlashBlade.RegistryEvents.SlashEffect,
@@ -164,21 +266,18 @@ public final class RengekiMomentumHandler {
         effect.setPos(position.x, position.y, position.z);
         effect.setYRot(player.getYRot());
         effect.setXRot(0.0F);
-        effect.setRotationRoll((gameTime & 1L) == 0L ? -35.0F : 35.0F);
+        effect.setRotationRoll(roll);
         effect.setColor(blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.getColorCode())
                 .orElse(0xFFFFFF));
-        effect.setMute(true);
+        effect.setMute(mute);
         effect.setIsCritical(false);
         effect.setBaseSize(visualSize);
         effect.setLifetime(3);
         level.addFreshEntity(effect);
     }
 
-    /**
-     * Select one target closest to the player's forward intent. Keeping this to
-     * one target prevents a passive sprint from becoming a free mob-farm AoE.
-     */
+    /** Select one legal frontal target; the visual flurry itself never damages. */
     private static LivingEntity selectSprintSlashTarget(
             ServerPlayer player,
             double range) {
@@ -240,14 +339,12 @@ public final class RengekiMomentumHandler {
     }
 
     /**
-     * Reuse Resharped's melee attack path so the sprint slash scales from the
-     * blade/player damage stack instead of using a fixed raw-damage ceiling.
-     * Only the speed contribution is capped: the combo ratio grows from 0.06
-     * to 0.14 across the bounded speed window.
+     * Reuse Resharped's melee attack path so damage scales from the normal
+     * weapon/player panel path. Only the speed-provided ratio is capped.
      *
-     * <p>The vanilla sprint-hit knockback branch is suppressed temporarily, then
-     * both momentum and the exact pre-hit sprint flag are restored in finally.
-     * Normal hurt invulnerability is respected: forceHit=false/resetHit=false.</p>
+     * <p>Temporarily suppress vanilla sprint-hit knockback, then restore both
+     * the exact pre-hit motion vector and sprint flag in finally so the passive
+     * cannot cancel or visibly slow the sprint that powered it.</p>
      */
     private static void applySprintSlashHit(
             ServerPlayer player,
@@ -305,11 +402,6 @@ public final class RengekiMomentumHandler {
                 / (SPRINT_SLASH_SPEED_CAP - SPRINT_SLASH_MIN_SPEED);
     }
 
-    private static double horizontalSpeed(ServerPlayer player) {
-        Vec3 movement = player.getDeltaMovement();
-        return Math.sqrt(movement.x * movement.x + movement.z * movement.z);
-    }
-
     private static Vec3 horizontalLook(ServerPlayer player) {
         Vec3 look = player.getViewVector(1.0F);
         Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -329,20 +421,40 @@ public final class RengekiMomentumHandler {
         return min + (max - min) * value;
     }
 
+    private static void resetSprintChain(UUID playerId) {
+        SPRINT_CHAINS.remove(playerId);
+    }
+
+    private static void clearMomentumState(UUID playerId) {
+        MOVEMENT_SAMPLES.remove(playerId);
+        SPRINT_CHAINS.remove(playerId);
+    }
+
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        NEXT_SPRINT_SLASH_AT.remove(event.getEntity().getUUID());
+        clearMomentumState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        NEXT_SPRINT_SLASH_AT.remove(event.getEntity().getUUID());
+        clearMomentumState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event) {
-        NEXT_SPRINT_SLASH_AT.remove(event.getOriginal().getUUID());
-        NEXT_SPRINT_SLASH_AT.remove(event.getEntity().getUUID());
+        clearMomentumState(event.getOriginal().getUUID());
+        clearMomentumState(event.getEntity().getUUID());
+    }
+
+    private record MovementSample(Vec3 position, long gameTime) {
+    }
+
+    private static final class SprintChainState {
+        private long nextBeatAt = Long.MIN_VALUE;
+        private int nextBeat;
+        private int activeBeat = -1;
+        private int burstTick;
+        private float visualSize;
     }
 
     private RengekiMomentumHandler() {
