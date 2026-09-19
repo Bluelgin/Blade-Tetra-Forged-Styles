@@ -72,7 +72,7 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             return kind != null
                     ? NamedLegacyImprintStorage.putSnapshot(upgradedStack, part, kind) || changed
                     : changed;
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException | LinkageError failure) {
             return changed;
         }
     }

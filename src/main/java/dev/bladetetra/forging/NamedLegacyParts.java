@@ -56,7 +56,7 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
     private static LegacyImprintKind safeCatalogGet(String id) {
         try {
             return NamedLegacyCatalog.get(id);
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException | LinkageError failure) {
             return null;
         }
     }

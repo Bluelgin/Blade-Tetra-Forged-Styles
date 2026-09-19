@@ -82,6 +82,8 @@ class NamedLegacyIsolationGuardTest {
         int catalogFallback = parts.indexOf("safeCatalogGet(id)");
         assertTrue(snapshotLookup >= 0 && catalogFallback > snapshotLookup,
                 "Snapshot-backed stacks must resolve before old-stack catalog fallback");
+        assertTrue(parts.contains("catch (RuntimeException | LinkageError failure)"),
+                "Old source-only stacks must also fail open across addon ABI failures");
         int semanticStart = parts.indexOf("public static NamedLegacyParts fromStack");
         int visualStart = parts.indexOf("public static NamedLegacyParts visualFromStack");
         assertTrue(semanticStart >= 0 && visualStart > semanticStart);
@@ -106,7 +108,7 @@ class NamedLegacyIsolationGuardTest {
                 "src/main/java/dev/bladetetra/compat/LegacyImprintCraftingOutcome.java"));
         assertTrue(outcome.contains("NamedLegacyImprintStorage.putSnapshot"),
                 "Successful named-imprint crafts must capture a self-contained snapshot");
-        assertTrue(outcome.contains("catch (RuntimeException exception)"),
+        assertTrue(outcome.contains("catch (RuntimeException | LinkageError failure)"),
                 "Snapshot hardening must fail open when optional addon discovery breaks");
     }
 
