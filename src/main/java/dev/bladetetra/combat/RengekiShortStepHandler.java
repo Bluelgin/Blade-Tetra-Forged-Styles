@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
@@ -47,8 +48,16 @@ public final class RengekiShortStepHandler {
     private static final double TARGET_STANDOFF_EXTRA = 0.35D;
     private static final double CHUNK_EDGE_EPSILON = 1.0E-6D;
 
-    private static final TargetSelector.AttackablePredicate NATIVE_TARGET_FILTER =
-            new TargetSelector.AttackablePredicate();
+    /**
+     * Preserve Resharped's full area-attack eligibility semantics (including
+     * PVP/friendly config and its revenge-target exception) while leaving the
+     * actual 5.5-block pursuit range to our collision-box distance check.
+     */
+    private static final TargetingConditions NATIVE_TARGET_FILTER =
+            new TargetSelector.SlashBladeTargetingConditions()
+                    .range(64.0D)
+                    .ignoreInvisibilityTesting()
+                    .selector(new TargetSelector.AttackablePredicate());
     private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
 
     /**
@@ -223,7 +232,7 @@ public final class RengekiShortStepHandler {
             }
 
             double dot = look.dot(toTarget.normalize());
-            if (dot < MIN_TARGET_DOT || !NATIVE_TARGET_FILTER.test(candidate)) {
+            if (dot < MIN_TARGET_DOT || !NATIVE_TARGET_FILTER.test(player, candidate)) {
                 continue;
             }
 
