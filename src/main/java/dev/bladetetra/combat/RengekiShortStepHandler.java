@@ -16,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -26,21 +27,28 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Keeps Rengeki on Resharped's native B combo while adding one bounded,
- * hit-gated positioning correction between successful beats.
+ * Keeps Rengeki on Resharped's native B combo while adding bounded movement
+ * continuity between successful beats and across confirmed kills.
  *
- * <p>The short-step is deliberately conservative: it never replaces combo
- * state, never adds damage, never crosses an unsupported path, and simply does
- * nothing when no safe destination exists. A failed short-step therefore falls
- * back to the untouched native B combo.</p>
+ * <p>The style deliberately trades a small amount of native-B damage for
+ * stronger flow. Normal successful hits can earn one conservative short-step
+ * on the next B advance; a confirmed kill can instead hand the player off to
+ * the next valid target without adding another attack or rewriting combo
+ * state.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiShortStepHandler {
+    static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.92D;
     static final int CHASE_WINDOW_TICKS = 10;
+    static final int KILL_TRANSFER_DELAY_TICKS = 1;
+    static final int KILL_TRANSFER_WINDOW_TICKS = 6;
     static final double TARGET_SEARCH_DISTANCE = 5.5D;
+    static final double KILL_TRANSFER_SEARCH_DISTANCE = 6.5D;
     static final double MAX_STEP_DISTANCE = 2.75D;
+    static final double MAX_KILL_TRANSFER_DISTANCE = 4.5D;
     static final double MAX_HEIGHT_DIFFERENCE = 1.25D;
     static final double MIN_TARGET_DOT = Math.cos(Math.toRadians(50.0D));
+    static final double MIN_KILL_TRANSFER_DOT = Math.cos(Math.toRadians(80.0D));
 
     private static final double MIN_STEP_DISTANCE = 0.15D;
     private static final double SUPPORT_PROBE = 0.08D;
@@ -50,8 +58,8 @@ public final class RengekiShortStepHandler {
 
     /**
      * Preserve Resharped's full area-attack eligibility semantics (including
-     * PVP/friendly config and its revenge-target exception) while leaving the
-     * actual 5.5-block pursuit range to our collision-box distance check.
+     * PVP/friendly config and its revenge-target exception) while leaving our
+     * pursuit ranges to the collision-box distance checks below.
      */
     private static final TargetingConditions NATIVE_TARGET_FILTER =
             new TargetSelector.SlashBladeTargetingConditions()
@@ -59,26 +67,66 @@ public final class RengekiShortStepHandler {
                     .ignoreInvisibilityTesting()
                     .selector(new TargetSelector.AttackablePredicate());
     private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
+    private static final Map<UUID, KillTransfer> KILL_TRANSFERS = new HashMap<>();
 
     /**
-     * Only successful, non-terminal native B-series hits arm the chase.
-     * B7 is deliberately excluded because it has no following B beat.
+     * Rengeki's native B chain gets a small per-slash damage reduction in
+     * exchange for its much stronger positioning continuity. Directional,
+     * aerial and Slash Art attacks are intentionally untouched.
+     */
+    @SubscribeEvent
+    public static void onRengekiSlash(SlashBladeEvent.DoSlashEvent event) {
+        if (!(event.getBlade().getItem() instanceof ModularSlashBladeItem)
+                || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
+                || !isNativeBCombo(event.getSlashBladeState().getComboSeq())) {
+            return;
+        }
+        event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER);
+    }
+
+    /**
+     * Successful non-terminal B hits arm the ordinary chase. Any native B hit
+     * which actually kills its target instead schedules a kill hand-off; B7 is
+     * allowed to do this even though it cannot arm another ordinary chase.
      */
     @SubscribeEvent
     public static void onBladeHit(SlashBladeEvent.HitEvent event) {
         if (!(event.getUser() instanceof ServerPlayer player)
                 || player.level().isClientSide()
                 || !(event.getBlade().getItem() instanceof ModularSlashBladeItem)
-                || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
-                || !canAdvanceBComboId(event.getSlashBladeState().getComboSeq())) {
+                || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI) {
+            return;
+        }
+
+        ResourceLocation combo = event.getSlashBladeState().getComboSeq();
+        if (!isNativeBCombo(combo)) {
+            return;
+        }
+
+        UUID playerId = player.getUUID();
+        long now = player.level().getGameTime();
+        boolean killed = !event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F;
+        if (killed) {
+            CHASE_WINDOWS.remove(playerId);
+            KILL_TRANSFERS.put(
+                    playerId,
+                    new KillTransfer(
+                            now + KILL_TRANSFER_DELAY_TICKS,
+                            now + KILL_TRANSFER_WINDOW_TICKS,
+                            event.getBlade()));
+            return;
+        }
+
+        // A multi-hit B node may continue resolving more targets after one of
+        // them was killed. Do not let those later hits replace the pending
+        // kill hand-off with a weaker ordinary chase window.
+        if (KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)) {
             return;
         }
 
         CHASE_WINDOWS.put(
-                player.getUUID(),
-                new ChaseWindow(
-                        player.level().getGameTime() + CHASE_WINDOW_TICKS,
-                        event.getBlade()));
+                playerId,
+                new ChaseWindow(now + CHASE_WINDOW_TICKS, event.getBlade()));
     }
 
     /**
@@ -88,9 +136,10 @@ public final class RengekiShortStepHandler {
      * raw command packet contains L_DOWN/R_DOWN, while transient L_CLICK/R_CLICK
      * are injected directly by ItemSlashBlade when progressCombo is called.
      *
-     * <p>Any other combo transition consumes the stored opportunity without
-     * pursuit, so direction/aerial/SA/timeout breakouts cannot leave a stale
-     * teleport waiting for a later attack.</p>
+     * <p>A pending kill hand-off has priority over the ordinary chase. This is
+     * important when the player presses the next B beat immediately after a
+     * kill: the stronger hand-off happens before that next beat instead of
+     * waiting for the one-tick automatic fallback.</p>
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void onBladeMotion(BladeMotionEvent event) {
@@ -103,14 +152,7 @@ public final class RengekiShortStepHandler {
         if (event.isCanceled()
                 || !(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            CHASE_WINDOWS.remove(playerId);
-            return;
-        }
-
-        ChaseWindow window = CHASE_WINDOWS.remove(playerId);
-        if (window == null
-                || window.expiresAt() < player.level().getGameTime()
-                || window.blade() != blade) {
+            clearTransientState(playerId);
             return;
         }
 
@@ -118,52 +160,110 @@ public final class RengekiShortStepHandler {
                 .map(state -> state.getComboSeq())
                 .orElse(ComboStateRegistry.NONE.getId());
         ResourceLocation next = event.getCombo();
-        if (!isExpectedBAdvance(current, next)) {
+        boolean expectedBAdvance = isExpectedBAdvance(current, next);
+
+        KillTransfer killTransfer = KILL_TRANSFERS.get(playerId);
+        if (killTransfer != null) {
+            if (killTransfer.expiresAt() < player.level().getGameTime()
+                    || killTransfer.blade() != blade
+                    || !expectedBAdvance) {
+                KILL_TRANSFERS.remove(playerId);
+            } else if (canGroundTransfer(player)) {
+                KILL_TRANSFERS.remove(playerId);
+                CHASE_WINDOWS.remove(playerId);
+                tryMoveToTarget(
+                        player,
+                        KILL_TRANSFER_SEARCH_DISTANCE,
+                        MIN_KILL_TRANSFER_DOT,
+                        MAX_KILL_TRANSFER_DISTANCE);
+                return;
+            }
+        }
+
+        ChaseWindow window = CHASE_WINDOWS.remove(playerId);
+        if (window == null
+                || window.expiresAt() < player.level().getGameTime()
+                || window.blade() != blade
+                || !expectedBAdvance
+                || !canGroundTransfer(player)) {
             return;
         }
 
-        // Native B nodes can survive a short airborne interval. Pursuit is a
-        // grounded style mechanic, so never use it to snap a falling/riding
-        // player back to ground or erase fall momentum.
-        if (!player.onGround() || player.isPassenger()) {
+        tryMoveToTarget(
+                player,
+                TARGET_SEARCH_DISTANCE,
+                MIN_TARGET_DOT,
+                MAX_STEP_DISTANCE);
+    }
+
+    /**
+     * If the player does not immediately press the next B beat after a kill,
+     * perform the hand-off one server tick later. Deferring by one tick avoids
+     * moving the attacker while Resharped is still iterating the current
+     * slash-effect hit list.
+     */
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END
+                || !(event.player instanceof ServerPlayer player)) {
             return;
         }
 
-        LivingEntity target = selectTarget(player);
-        if (target == null) {
+        UUID playerId = player.getUUID();
+        KillTransfer transfer = KILL_TRANSFERS.get(playerId);
+        if (transfer == null) {
             return;
         }
 
-        Vec3 destination = findSafeDestination(player, target);
-        if (destination == null) {
+        long now = player.level().getGameTime();
+        if (now < transfer.readyAt()) {
             return;
         }
 
-        player.connection.teleport(
-                destination.x,
-                destination.y,
-                destination.z,
-                player.getYRot(),
-                player.getXRot());
-        player.setDeltaMovement(Vec3.ZERO);
-        player.setOnGround(true);
-        player.fallDistance = 0.0F;
+        KILL_TRANSFERS.remove(playerId);
+        CHASE_WINDOWS.remove(playerId);
+        ItemStack blade = player.getMainHandItem();
+        if (now > transfer.expiresAt()
+                || transfer.blade() != blade
+                || !(blade.getItem() instanceof ModularSlashBladeItem)
+                || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
+                || !canGroundTransfer(player)) {
+            return;
+        }
+
+        tryMoveToTarget(
+                player,
+                KILL_TRANSFER_SEARCH_DISTANCE,
+                MIN_KILL_TRANSFER_DOT,
+                MAX_KILL_TRANSFER_DISTANCE);
     }
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        CHASE_WINDOWS.remove(event.getEntity().getUUID());
+        clearTransientState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        CHASE_WINDOWS.remove(event.getEntity().getUUID());
+        clearTransientState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event) {
-        CHASE_WINDOWS.remove(event.getOriginal().getUUID());
-        CHASE_WINDOWS.remove(event.getEntity().getUUID());
+        clearTransientState(event.getOriginal().getUUID());
+        clearTransientState(event.getEntity().getUUID());
+    }
+
+    private static void clearTransientState(UUID playerId) {
+        CHASE_WINDOWS.remove(playerId);
+        KILL_TRANSFERS.remove(playerId);
+    }
+
+    private static boolean canGroundTransfer(ServerPlayer player) {
+        // Native B nodes can survive a short airborne interval. Pursuit is a
+        // grounded style mechanic, so never use it to snap a falling/riding
+        // player back to ground or erase fall momentum.
+        return player.onGround() && !player.isPassenger();
     }
 
     /**
@@ -186,6 +286,11 @@ public final class RengekiShortStepHandler {
                         && ComboStateRegistry.COMBO_B7.getId().equals(next));
     }
 
+    static boolean isNativeBCombo(ResourceLocation combo) {
+        return canAdvanceBComboId(combo)
+                || ComboStateRegistry.COMBO_B7.getId().equals(combo);
+    }
+
     private static boolean canAdvanceBComboId(ResourceLocation combo) {
         return ComboStateRegistry.COMBO_B1.getId().equals(combo)
                 || ComboStateRegistry.COMBO_B2.getId().equals(combo)
@@ -195,17 +300,47 @@ public final class RengekiShortStepHandler {
                 || ComboStateRegistry.COMBO_B6.getId().equals(combo);
     }
 
-    private static LivingEntity selectTarget(ServerPlayer player) {
+    private static boolean tryMoveToTarget(
+            ServerPlayer player,
+            double searchDistance,
+            double minDot,
+            double maxStepDistance) {
+        LivingEntity target = selectTarget(player, searchDistance, minDot);
+        if (target == null) {
+            return false;
+        }
+
+        Vec3 destination = findSafeDestination(player, target, maxStepDistance);
+        if (destination == null) {
+            return false;
+        }
+
+        player.connection.teleport(
+                destination.x,
+                destination.y,
+                destination.z,
+                player.getYRot(),
+                player.getXRot());
+        player.setDeltaMovement(Vec3.ZERO);
+        player.setOnGround(true);
+        player.fallDistance = 0.0F;
+        return true;
+    }
+
+    private static LivingEntity selectTarget(
+            ServerPlayer player,
+            double searchDistance,
+            double minDot) {
         ServerLevel level = player.serverLevel();
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getViewVector(1.0F).normalize();
         AABB searchBox = player.getBoundingBox().inflate(
-                TARGET_SEARCH_DISTANCE,
+                searchDistance,
                 MAX_HEIGHT_DIFFERENCE + 1.0D,
-                TARGET_SEARCH_DISTANCE);
+                searchDistance);
 
         LivingEntity best = null;
-        double bestDot = MIN_TARGET_DOT;
+        double bestDot = minDot;
         double bestDistanceSqr = Double.MAX_VALUE;
 
         for (LivingEntity candidate : level.getEntitiesOfClass(
@@ -218,7 +353,7 @@ public final class RengekiShortStepHandler {
             }
 
             double bodyDistanceSqr = distanceToBoxSqr(player.position(), candidate.getBoundingBox());
-            if (bodyDistanceSqr > TARGET_SEARCH_DISTANCE * TARGET_SEARCH_DISTANCE) {
+            if (bodyDistanceSqr > searchDistance * searchDistance) {
                 continue;
             }
 
@@ -232,7 +367,7 @@ public final class RengekiShortStepHandler {
             }
 
             double dot = look.dot(toTarget.normalize());
-            if (dot < MIN_TARGET_DOT || !NATIVE_TARGET_FILTER.test(player, candidate)) {
+            if (dot < minDot || !NATIVE_TARGET_FILTER.test(player, candidate)) {
                 continue;
             }
 
@@ -268,7 +403,10 @@ public final class RengekiShortStepHandler {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private static Vec3 findSafeDestination(ServerPlayer player, LivingEntity target) {
+    private static Vec3 findSafeDestination(
+            ServerPlayer player,
+            LivingEntity target,
+            double maxStepDistance) {
         if (Math.abs(target.getY() - player.getY()) > MAX_HEIGHT_DIFFERENCE) {
             return null;
         }
@@ -289,7 +427,7 @@ public final class RengekiShortStepHandler {
                         + player.getBbWidth() * 0.5D
                         + TARGET_STANDOFF_EXTRA);
         double requestedStep = Math.min(
-                MAX_STEP_DISTANCE,
+                maxStepDistance,
                 Math.max(0.0D, horizontalDistance - standOff));
         if (requestedStep < MIN_STEP_DISTANCE) {
             return null;
@@ -303,7 +441,7 @@ public final class RengekiShortStepHandler {
     }
 
     /**
-     * Sample the complete short-step path instead of validating only the end
+     * Sample the complete movement path instead of validating only the end
      * point. A wall, unloaded chunk, missing floor or gap at any sample cancels
      * the movement and leaves the native B combo untouched.
      */
@@ -352,6 +490,9 @@ public final class RengekiShortStepHandler {
     }
 
     private record ChaseWindow(long expiresAt, ItemStack blade) {
+    }
+
+    private record KillTransfer(long readyAt, long expiresAt, ItemStack blade) {
     }
 
     private RengekiShortStepHandler() {
