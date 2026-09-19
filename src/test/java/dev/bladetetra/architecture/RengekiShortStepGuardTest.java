@@ -110,6 +110,24 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
+    void sprintCadenceCannotBeResetSpamOrTeleportPowered() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("MAX_CONTINUOUS_SPRINT_DISPLACEMENT = 0.90D"),
+                "Large movement discontinuities should never count as sprint speed");
+        assertTrue(source.contains("distance > MAX_CONTINUOUS_SPRINT_DISPLACEMENT ? 0.0D : distance"),
+                "Teleport/pursuit/large knockback deltas must be rejected by the speed sampler");
+        assertTrue(source.contains("resetSprintVisuals(playerId);"),
+                "Temporary eligibility loss should reset presentation only");
+        assertFalse(source.contains("private static void resetSprintChain"),
+                "Resetting the entire chain would recreate an immediately-ready hit cooldown");
+        assertTrue(source.contains("SprintChainState chain = SPRINT_CHAINS.get(playerId)"),
+                "Visual reset should preserve the existing per-player cadence state");
+        assertTrue(source.contains("SPRINT_CHAINS.remove(playerId)"),
+                "A full lifecycle/style clear must still discard the cooldown state");
+    }
+
+    @Test
     void sprintSpeedRangeDamageAndVisualsStayHardCapped() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
