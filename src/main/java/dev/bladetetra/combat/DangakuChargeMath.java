@@ -13,9 +13,9 @@ public final class DangakuChargeMath {
     static final double CHARGED_RANGE_BASE = 8.50D;
     static final double CHARGED_RANGE_MAX = 12.0D;
     static final double PARTIAL_RANGE_FLOOR = 5.50D;
-    static final float DAMAGE_RATIO_FLOOR = 0.55F;
-    static final float DAMAGE_RATIO_BASE = 0.72F;
-    static final float DAMAGE_RATIO_MAX = 0.86F;
+    static final float DAMAGE_RATIO_FLOOR = 0.42F;
+    static final float DAMAGE_RATIO_BASE = 0.58F;
+    static final float DAMAGE_RATIO_MAX = 0.68F;
 
     public static double chargeForHeldTicks(long heldTicks) {
         if (heldTicks <= 0L) {
