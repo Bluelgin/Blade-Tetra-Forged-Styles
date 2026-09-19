@@ -71,6 +71,8 @@ class RengekiShortStepGuardTest {
     void pursuitKeepsNativeTargetAndGroundSafety() throws IOException {
         String source = Files.readString(SOURCE);
 
+        assertTrue(source.contains("TargetSelector.SlashBladeTargetingConditions"),
+                "Pursuit must preserve Resharped's revenge-target and combat eligibility rules");
         assertTrue(source.contains("TargetSelector.AttackablePredicate"),
                 "Pursuit targets must honor Resharped PVP/friendly targeting rules");
         assertTrue(source.contains("!player.onGround() || player.isPassenger()"),
