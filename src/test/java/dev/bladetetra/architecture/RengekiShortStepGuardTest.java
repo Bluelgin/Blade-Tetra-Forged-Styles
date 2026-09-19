@@ -58,6 +58,30 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
+    void delayedNativeBSlashKeepsReliableKillProvenance() throws IOException {
+        String source = Files.readString(SOURCE);
+
+        assertTrue(source.contains("private static final Map<UUID, ItemStack> RENGEKI_B_SLASH_BLADES"),
+                "Late slash hits need exact native-B source blade provenance");
+        assertTrue(source.contains("public static void onSlashEffectJoin(EntityJoinLevelEvent event)"),
+                "Native-B provenance must be captured when the slash effect is spawned");
+        assertTrue(source.contains("RENGEKI_B_SLASH_BLADES.put(slashEffect.getUUID(), blade)"),
+                "Each native-B slash entity should remember the ItemStack that created it");
+        assertTrue(source.contains("public static void onSlashEffectLeave(EntityLeaveLevelEvent event)"),
+                "Short-lived slash provenance must be cleaned when the effect despawns");
+        assertTrue(source.contains("RENGEKI_B_SLASH_BLADES.remove(slashEffect.getUUID())"),
+                "Slash provenance must not leak entity UUIDs");
+        assertTrue(source.contains("public static void onRengekiKill(LivingDeathEvent event)"),
+                "Kill flow must use the actual death DamageSource rather than current combo timing");
+        assertTrue(source.contains("event.getSource().getDirectEntity() instanceof EntitySlashEffect"),
+                "Death must be attributed to the exact slash effect that dealt lethal damage");
+        assertTrue(source.contains("player.getMainHandItem() != sourceBlade"),
+                "A delayed slash must not transfer kill flow to a different blade after a swap");
+        assertTrue(source.contains("scheduleKillTransfer(player, sourceBlade)"),
+                "A proven native-B kill should schedule exactly one hand-off request");
+    }
+
+    @Test
     void killsScheduleOneDeferredHandoffIncludingB7() throws IOException {
         String source = Files.readString(SOURCE);
 
@@ -65,14 +89,12 @@ class RengekiShortStepGuardTest {
                 "Confirmed kills need one dedicated pending hand-off slot per player");
         assertTrue(source.contains("KILL_TRANSFER_DELAY_TICKS = 1"),
                 "Kill movement must be deferred out of the current slash hit iteration");
-        assertTrue(source.contains("!event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F"),
-                "Kill hand-off must be armed only by a confirmed dead target");
-        assertTrue(source.contains("if (!isNativeBCombo(combo))"),
-                "All native B nodes, including terminal B7, should be eligible to hand off after a kill");
         assertTrue(source.contains("KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)"),
-                "Later multi-hit callbacks must not replace a pending kill hand-off with ordinary chase");
+                "HitEvent must not downgrade an already-proven lethal hit into ordinary chase");
         assertTrue(source.contains("public static void onPlayerTick(TickEvent.PlayerTickEvent event)"),
                 "A kill must still auto-transfer when the player does not immediately press the next B beat");
+        assertTrue(source.contains("isNativeBCombo(combo)"),
+                "Slash provenance must include terminal B7 as well as B1-B6");
     }
 
     @Test
