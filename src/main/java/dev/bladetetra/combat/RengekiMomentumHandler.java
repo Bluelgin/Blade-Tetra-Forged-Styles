@@ -11,14 +11,12 @@ import mods.flammpfeil.slashblade.util.TargetSelector;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.PlayLevelSoundEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -37,7 +35,7 @@ import java.util.UUID;
  * <p>The sprint flow deliberately does not install or advance a real ComboState.
  * Its B1-B7 visual rhythm is decoupled from a denser single-target hit pulse, so
  * the passive feels like an actual running flurry instead of many visual slashes
- * hiding one sparse damage event. Real hits remain bounded, frontal and silent.</p>
+ * hiding one sparse damage event. Real hits remain bounded and frontal.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiMomentumHandler {
@@ -205,7 +203,7 @@ public final class RengekiMomentumHandler {
      * Visually follows the authored B-series language without installing the
      * actual native combo: B1 opens with a crossed pair, B2-B6 use the same
      * alternating random-roll rush cadence, and B7 adds a compact finisher.
-     * All spawned slash entities remain visual-only, ownerless and silent.
+     * All spawned slash entities remain visual-only and ownerless.
      */
     private static void emitSprintBVisualTick(
             ServerPlayer player,
@@ -248,7 +246,7 @@ public final class RengekiMomentumHandler {
     /**
      * Visual-only slash effect. No shooter/owner means EntitySlashEffect cannot
      * run its built-in broad areaAttack; real damage is resolved by the separate
-     * sprint hit cadence. Every visual is muted.
+     * sprint hit cadence.
      */
     private static void spawnBVisual(
             ServerPlayer player,
@@ -276,7 +274,6 @@ public final class RengekiMomentumHandler {
         effect.setColor(blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.getColorCode())
                 .orElse(0xFFFFFF));
-        effect.setMute(true);
         effect.setIsCritical(false);
         effect.setBaseSize(visualSize);
         effect.setLifetime(3);
@@ -351,8 +348,8 @@ public final class RengekiMomentumHandler {
      * <p>Temporarily suppress vanilla sprint-hit knockback, then restore both
      * the exact pre-hit motion vector and sprint flag in finally so the passive
      * cannot cancel or visibly slow the sprint that powered it. A synchronous
-     * sprint-hit context also scopes silence, no-durability and successful-hit
-     * detection to this exact player/blade/target triplet.</p>
+     * sprint-hit context scopes no-durability and successful-hit detection to
+     * this exact player/blade/target triplet.</p>
      *
      * <p>Both forceHit and resetHit stay false. Resharped's resetHit flag clears
      * target.invulnerableTime even when the attempted attack itself was rejected,
@@ -418,28 +415,6 @@ public final class RengekiMomentumHandler {
 
         context.hitSucceeded = true;
         if (!event.isCanceled()) {
-            event.setCanceled(true);
-        }
-    }
-
-    /**
-     * The visual slash entities are already muted. Resharped's compatibility
-     * melee path still emits vanilla player attack sounds, so suppress only
-     * those synchronous attack sounds while a sprint hit context is active.
-     * Target hurt/death sounds and ordinary Rengeki attacks remain untouched.
-     */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onSprintHitSound(PlayLevelSoundEvent.AtPosition event) {
-        if (SPRINT_HIT_CONTEXT.get() == null || event.getSound() == null) {
-            return;
-        }
-
-        if (event.getSound() == SoundEvents.PLAYER_ATTACK_CRIT
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_NODAMAGE
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_KNOCKBACK
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_STRONG
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_WEAK
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_SWEEP) {
             event.setCanceled(true);
         }
     }
