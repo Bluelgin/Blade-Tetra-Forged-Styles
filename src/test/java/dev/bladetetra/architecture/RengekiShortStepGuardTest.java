@@ -44,57 +44,61 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void nativeBTradingUsesSmallDamagePenaltyOnly() throws IOException {
+    void nativeBTradingUsesSmallDamagePenaltyAcrossAuthoredTailSlashes() throws IOException {
         String source = Files.readString(SOURCE);
 
         assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.92D"),
                 "Rengeki native B damage tradeoff should remain the intended light 8% penalty");
         assertTrue(source.contains("public static void onRengekiSlash"),
                 "Damage tradeoff should stay in the focused Rengeki handler");
-        assertTrue(source.contains("!isNativeBCombo(event.getSlashBladeState().getComboSeq())"),
+        assertTrue(source.contains("!isNativeBFlowState(event.getSlashBladeState().getComboSeq())"),
                 "Directional/aerial/Slash Art attacks must not inherit the native-B penalty");
         assertTrue(source.contains("event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER)"),
                 "Native B slash damage should be scaled exactly once at slash creation");
     }
 
     @Test
-    void delayedNativeBSlashKeepsReliableKillProvenance() throws IOException {
+    void delayedHitsRemainBFlowOnlyWhileNativeRecoveryIsActive() throws IOException {
         String source = Files.readString(SOURCE);
 
-        assertTrue(source.contains("private static final Map<UUID, ItemStack> RENGEKI_B_SLASH_BLADES"),
-                "Late slash hits need exact native-B source blade provenance");
-        assertTrue(source.contains("public static void onSlashEffectJoin(EntityJoinLevelEvent event)"),
-                "Native-B provenance must be captured when the slash effect is spawned");
-        assertTrue(source.contains("RENGEKI_B_SLASH_BLADES.put(slashEffect.getUUID(), blade)"),
-                "Each native-B slash entity should remember the ItemStack that created it");
-        assertTrue(source.contains("public static void onSlashEffectLeave(EntityLeaveLevelEvent event)"),
-                "Short-lived slash provenance must be cleaned when the effect despawns");
-        assertTrue(source.contains("RENGEKI_B_SLASH_BLADES.remove(slashEffect.getUUID())"),
-                "Slash provenance must not leak entity UUIDs");
-        assertTrue(source.contains("public static void onRengekiKill(LivingDeathEvent event)"),
-                "Kill flow must use the actual death DamageSource rather than current combo timing");
-        assertTrue(source.contains("event.getSource().getDirectEntity() instanceof EntitySlashEffect"),
-                "Death must be attributed to the exact slash effect that dealt lethal damage");
-        assertTrue(source.contains("player.getMainHandItem() != sourceBlade"),
-                "A delayed slash must not transfer kill flow to a different blade after a swap");
-        assertTrue(source.contains("scheduleKillTransfer(player, sourceBlade)"),
-                "A proven native-B kill should schedule exactly one hand-off request");
+        assertTrue(source.contains("static boolean isNativeBFlowState"),
+                "Delayed native-B hits need an explicit flow-state predicate");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END.getId().equals(combo)"),
+                "B1 recovery must retain native-B provenance for delayed slash hits");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END2.getId().equals(combo)"),
+                "B1 end2 must retain delayed-hit provenance");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END3.getId().equals(combo)"),
+                "B1 end3 must retain delayed-hit provenance");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END.getId().equals(combo)"),
+                "B2-B6 shared recovery must retain delayed-hit provenance");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END2.getId().equals(combo)"),
+                "B2-B6 end2 must retain delayed-hit provenance");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END3.getId().equals(combo)"),
+                "B2-B6 end3 must retain delayed-hit provenance");
+        assertTrue(source.contains("ComboStateRegistry.COMBO_B7_END3.getId().equals(combo)"),
+                "B7 recovery must retain delayed-hit provenance");
+        assertFalse(source.contains("LivingDeathEvent"),
+                "Resharped slash effects resolve damage through the shooter, so direct-entity death attribution is invalid here");
+        assertFalse(source.contains("RENGEKI_B_SLASH_BLADES"),
+                "Do not retain slash-entity provenance maps for a damage path that reports the shooter as attacker");
     }
 
     @Test
-    void killsScheduleOneDeferredHandoffIncludingB7() throws IOException {
+    void killsScheduleOneDeferredHandoffIncludingB7AndLateTailHits() throws IOException {
         String source = Files.readString(SOURCE);
 
         assertTrue(source.contains("private static final Map<UUID, KillTransfer> KILL_TRANSFERS"),
                 "Confirmed kills need one dedicated pending hand-off slot per player");
         assertTrue(source.contains("KILL_TRANSFER_DELAY_TICKS = 1"),
                 "Kill movement must be deferred out of the current slash hit iteration");
-        assertTrue(source.contains("KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)"),
-                "HitEvent must not downgrade an already-proven lethal hit into ordinary chase");
+        assertTrue(source.contains("!event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F"),
+                "Kill hand-off must arm only after HitEvent confirms the target is dead");
+        assertTrue(source.contains("if (!isNativeBFlowState(combo))"),
+                "Active B nodes and their native recovery states should both recognize delayed lethal hits");
+        assertTrue(source.contains("scheduleKillTransfer(player, event.getBlade())"),
+                "A proven Rengeki B kill should schedule exactly one hand-off request");
         assertTrue(source.contains("public static void onPlayerTick(TickEvent.PlayerTickEvent event)"),
                 "A kill must still auto-transfer when the player does not immediately press the next B beat");
-        assertTrue(source.contains("isNativeBCombo(combo)"),
-                "Slash provenance must include terminal B7 as well as B1-B6");
     }
 
     @Test
