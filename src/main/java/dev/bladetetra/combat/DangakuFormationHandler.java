@@ -44,20 +44,21 @@ import java.util.UUID;
  * Dangaku's spatial-control layer.
  *
  * <p>Plain grounded right-click is captured before ItemSlashBlade.use can run
- * its native progressCombo path. The held input has three release bands: a tap
- * performs the gathering sweep, the native Slash Art charge band is handed back
- * to Resharped unchanged, and reaching Dangaku's full charge releases the
- * panel-scaled grand sweep. No charge state is serialized to the blade or player.</p>
+ * its native progressCombo path. Every armed release resolves Dangaku's own
+ * formation sweep; when the blade also qualifies for a native Slash Art, the
+ * Stop event remains uncanceled so Resharped releases that SA on top. No charge
+ * state is serialized to the blade or player.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DangakuFormationHandler {
-    static final double ORDINARY_SWEEP_DAMAGE_FACTOR = 0.82D;
-    static final double CLEAVE_DAMAGE_FACTOR = 1.05D;
+    static final double ORDINARY_SWEEP_DAMAGE_FACTOR = 0.68D;
+    static final double CLEAVE_DAMAGE_FACTOR = 0.95D;
     static final double ORDINARY_FOCUS_DISTANCE = 2.70D;
     static final double ORDINARY_PULL_STRENGTH = 0.52D;
     static final double CLUSTER_RADIUS = 1.80D;
     static final int CLUSTER_REQUIRED_TARGETS = 3;
-    static final float CLUSTER_DAMAGE_MULTIPLIER = 1.10F;
+    static final float CLUSTER_DAMAGE_MULTIPLIER = 1.06F;
+    static final float SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.72F;
     static final int CHARGED_STRIKE_DELAY_TICKS = 4;
     static final int MAX_CHARGED_TARGETS = 24;
     static final double CHARGED_MAX_HEIGHT_DIFFERENCE = 3.0D;
@@ -130,8 +131,8 @@ public final class DangakuFormationHandler {
     }
 
     /**
-     * Resolve the captured release without duplicating Slash Art internals.
-     * Native SA owns its normal timing band; full Dangaku charge takes priority.
+     * Resolve Dangaku's sweep first, then optionally let native Slash Art release
+     * continue through ItemSlashBlade.releaseUsing. Dangaku never reimplements SA.
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onChargeStop(LivingEntityUseItemEvent.Stop event) {
@@ -154,31 +155,34 @@ public final class DangakuFormationHandler {
         }
 
         long heldTicks = Math.max(0L, player.level().getGameTime() - state.startedAt());
-        if (shouldYieldToSlashArt(player, blade, heldTicks)) {
-            // Leave Stop uncanceled: ItemSlashBlade.releaseUsing keeps SA timing,
-            // cost, ChargeActionEvent and third-party compatibility authoritative.
-            return;
-        }
-
-        event.setCanceled(true);
-        int nativeChargeTicks = Math.min(
+        int chargedSweepStartTicks = Math.min(
                 nativeSlashArtStartTicks(player, blade),
                 DangakuChargeMath.FULL_CHARGE_TICKS);
-        if (heldTicks < nativeChargeTicks) {
+        boolean slashArtRelease = canReleaseSlashArt(player, blade, heldTicks);
+
+        if (heldTicks < chargedSweepStartTicks) {
+            event.setCanceled(true);
             beginCombo(player, blade, ModComboStates.getDangakuSweepId());
             return;
         }
 
         double charge = DangakuChargeMath.chargeForHeldTicks(heldTicks);
         double panelDamage = player.getAttributeValue(Attributes.ATTACK_DAMAGE);
-        beginCombo(player, blade, ModComboStates.getDangakuChargedSweepId());
+        if (!slashArtRelease) {
+            event.setCanceled(true);
+            beginCombo(player, blade, ModComboStates.getDangakuChargedSweepId());
+        }
+
         PENDING_STRIKES.put(
                 player.getUUID(),
                 new PendingStrike(
                         blade,
                         player.level().getGameTime() + CHARGED_STRIKE_DELAY_TICKS,
                         charge,
-                        panelDamage));
+                        panelDamage,
+                        slashArtRelease));
+        // If SA is valid, leave Stop uncanceled. Resharped remains authoritative
+        // for SA timing, cost, ChargeActionEvent and third-party modifications.
     }
 
     @SubscribeEvent
@@ -206,11 +210,16 @@ public final class DangakuFormationHandler {
         ItemStack blade = player.getMainHandItem();
         if (blade != pending.blade()
                 || !isDangakuBlade(blade)
-                || !ModComboStates.isDangakuChargedSweep(currentCombo(blade))) {
+                || !player.isAlive()) {
             return;
         }
 
-        executeChargedSweep(player, blade, pending.charge(), pending.panelDamage());
+        executeChargedSweep(
+                player,
+                blade,
+                pending.charge(),
+                pending.panelDamage(),
+                pending.withSlashArt());
     }
 
     /**
@@ -270,10 +279,14 @@ public final class DangakuFormationHandler {
             ServerPlayer player,
             ItemStack blade,
             double charge,
-            double panelDamage) {
+            double panelDamage,
+            boolean withSlashArt) {
         ServerLevel level = player.serverLevel();
         double range = DangakuChargeMath.sweepRange(panelDamage, charge);
         float damageRatio = DangakuChargeMath.sweepDamageRatio(panelDamage, charge);
+        if (withSlashArt) {
+            damageRatio *= SLASH_ART_SWEEP_DAMAGE_FACTOR;
+        }
         Vec3 look = horizontalLook(player);
         Vec3 focus = player.position()
                 .add(look.scale(DangakuChargeMath.focusDistance(range)));
@@ -435,12 +448,11 @@ public final class DangakuFormationHandler {
                 .orElse(DangakuChargeMath.FULL_CHARGE_TICKS);
     }
 
-    private static boolean shouldYieldToSlashArt(
+    private static boolean canReleaseSlashArt(
             LivingEntity user,
             ItemStack blade,
             long heldTicks) {
-        if (heldTicks >= DangakuChargeMath.FULL_CHARGE_TICKS
-                || !SwordType.from(blade).contains(SwordType.ENCHANTED)) {
+        if (!SwordType.from(blade).contains(SwordType.ENCHANTED)) {
             return false;
         }
         return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
@@ -525,7 +537,8 @@ public final class DangakuFormationHandler {
             ItemStack blade,
             long executeAt,
             double charge,
-            double panelDamage) {
+            double panelDamage,
+            boolean withSlashArt) {
     }
 
     private DangakuFormationHandler() {
