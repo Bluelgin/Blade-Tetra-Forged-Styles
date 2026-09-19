@@ -132,7 +132,7 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintSlashRangeScalesWithSpeedButHasHardCaps() throws IOException {
+    void sprintSlashRangeAndDamageScaleWithSpeedButHaveHardSpeedCaps() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("SPRINT_SLASH_MIN_SPEED = 0.12D"),
@@ -149,24 +149,32 @@ class RengekiShortStepGuardTest {
                 "The visual should start substantially smaller than a normal B slash");
         assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"),
                 "Visual scaling must have its own hard ceiling");
+        assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.06F"),
+                "Low-speed sprint slash should inherit panel scaling at a conservative 0.06 ratio");
+        assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.14F"),
+                "Only the speed-provided damage ratio should cap, at 0.14");
+        assertTrue(source.contains("sprintSlashDamageRatioForSpeed"),
+                "Speed-to-damage scaling should be explicit and share the same capped speed factor");
+        assertFalse(source.contains("SPRINT_SLASH_DAMAGE_RATIO = 0.08F"),
+                "Sprint damage must no longer use one fixed ratio at every speed");
     }
 
     @Test
-    void sprintSlashIsLowDamageSingleTargetAndRespectsIFrames() throws IOException {
+    void sprintSlashUsesPanelDamageSingleTargetAndPreservesSprint() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("SPRINT_SLASH_DAMAGE_RATIO = 0.08F"),
-                "Sprint slash must remain chip damage instead of replacing the real B chain");
         assertTrue(source.contains("private static LivingEntity selectSprintSlashTarget"),
                 "Sprint slash should select one frontal target instead of becoming passive AoE farming");
         assertTrue(source.contains("AttackManager.doMeleeAttack("),
-                "Sprint slash should reuse Resharped's normal melee compatibility path");
-        assertTrue(source.contains("false,\n                    false,\n                    SPRINT_SLASH_DAMAGE_RATIO"),
-                "Sprint slash must respect normal hurt invulnerability and never force-reset i-frames");
+                "Sprint slash should reuse Resharped's panel-scaled melee compatibility path");
+        assertTrue(source.contains("false,\n                    false,\n                    damageRatio"),
+                "Sprint slash must respect normal hurt invulnerability and apply the capped speed ratio to panel damage");
         assertTrue(source.contains("player.setSprinting(false)"),
-                "Sprint-hit knockback must be temporarily suppressed so the passive cannot cancel its own sprint");
+                "Sprint-hit knockback must be suppressed during the compatibility attack call");
         assertTrue(source.contains("player.setDeltaMovement(momentum)"),
-                "Player momentum must be restored after the tiny passive hit");
+                "Player momentum must be restored after the passive hit");
+        assertTrue(source.contains("player.setSprinting(sprinting)"),
+                "The exact pre-hit sprint flag must be restored so the passive cannot cancel sprinting");
     }
 
     @Test
