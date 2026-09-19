@@ -139,7 +139,6 @@ class RengekiShortStepGuardTest {
         assertTrue(source.contains("mirrored ? 90.0F : -90.0F"));
         assertTrue(source.contains("beat == SPRINT_B_CHAIN_LENGTH - 1"));
         assertTrue(source.contains("new EntitySlashEffect("));
-        assertTrue(source.contains("effect.setMute(true)"));
         assertFalse(source.contains("effect.setOwner(player)"),
                 "Visual-only slashes must remain ownerless and unable to run native areaAttack");
         assertFalse(source.contains("AttackManager.doSlash(player"),
@@ -186,7 +185,7 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintHitPreservesMomentumAndIsScopedSilent() throws IOException {
+    void sprintHitPreservesMomentumAndAvoidsAudioInterception() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("player.setSprinting(false)"),
@@ -196,13 +195,12 @@ class RengekiShortStepGuardTest {
         assertTrue(source.contains("SPRINT_HIT_CONTEXT.remove()"),
                 "Sprint context must not leak beyond the synchronous attack call");
 
-        assertTrue(source.contains("PlayLevelSoundEvent.AtPosition"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_CRIT"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_NODAMAGE"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_KNOCKBACK"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_STRONG"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_WEAK"));
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_SWEEP"));
+        assertFalse(source.contains("PlayLevelSoundEvent"),
+                "Sprint flow should not intercept Forge sound events");
+        assertFalse(source.contains("SoundEvents.PLAYER_ATTACK_"),
+                "Sprint flow should leave attack audio to the native combat path");
+        assertFalse(source.contains("effect.setMute(true)"),
+                "Visual slash audio should not carry a separate muting branch");
     }
 
     @Test
