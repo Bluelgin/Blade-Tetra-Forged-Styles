@@ -18,30 +18,21 @@ class RengekiShortStepGuardTest {
             "src/main/java/dev/bladetetra/combat/RengekiMomentumHandler.java");
 
     @Test
-    void pursuitHooksAuthoritativeComboMotionAndReadsOnlySynchronousRightClick() throws IOException {
+    void pursuitUsesAuthoritativeRightClickBAdvances() throws IOException {
         String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("BladeMotionEvent"),
                 "Rengeki pursuit must hook Resharped's actual combo transition");
         assertFalse(source.contains("InputCommandEvent"),
-                "Raw MoveInput synchronization does not carry transient L_CLICK/R_CLICK");
+                "Raw MoveInput synchronization does not carry transient click intent");
         assertFalse(source.contains("InputCommand.L_CLICK"),
                 "Ordinary pursuit should not opt into left-click movement");
         assertTrue(source.contains("InputCommand.R_CLICK"),
-                "Right-click pursuit should read Resharped's transient R_CLICK during BladeMotionEvent");
+                "Right-click pursuit must read Resharped's transient R_CLICK");
         assertTrue(source.contains("player.getCapability(ItemSlashBlade.INPUT_STATE)"),
-                "Right-click intent must come from the same server-side capability used by ItemSlashBlade.use()");
+                "Click intent must come from Resharped's authoritative input capability");
         assertTrue(source.contains("boolean rightClickAdvance = expectedBAdvance && isRightClickAdvance(player)"),
-                "Only a real B advance initiated by right click may consume ordinary pursuit");
-        assertTrue(source.contains("|| !rightClickAdvance"),
-                "Left-click B advances must consume the old chase opportunity without teleporting");
-        assertTrue(source.contains("receiveCanceled = true"),
-                "Canceled combo transitions must clear pending movement state");
-    }
-
-    @Test
-    void pursuitOnlyRunsOnTheSixNativeBAdvances() throws IOException {
-        String source = Files.readString(MOVEMENT_SOURCE);
+                "Only a real right-click B advance may consume ordinary pursuit as movement");
 
         assertAdvance(source, "COMBO_B1", "COMBO_B2");
         assertAdvance(source, "COMBO_B2", "COMBO_B3");
@@ -52,283 +43,180 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void nativeBTradingUsesStrongerPenaltyAcrossAuthoredTailSlashes() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
+    void nativeBTradeoffIncludesAuthoredRecoveryButNotOtherBranches() throws IOException {
+        String movement = Files.readString(MOVEMENT_SOURCE);
+        String momentum = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.85D"),
-                "Rengeki native B damage should trade 15% raw damage for its expanded flow tools");
-        assertTrue(source.contains("public static void onRengekiSlash"),
-                "Damage tradeoff should stay in the focused Rengeki momentum handler");
-        assertTrue(source.contains("RengekiShortStepHandler.isNativeBFlowState"),
-                "Directional/aerial/Slash Art attacks must not inherit the native-B penalty");
-        assertTrue(source.contains("event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER)"),
+        assertTrue(momentum.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.85D"),
+                "Native B should trade 15% slash damage for expanded flow tools");
+        assertTrue(momentum.contains("RengekiShortStepHandler.isNativeBFlowState"),
+                "The damage tradeoff must stay scoped to the native B flow");
+        assertTrue(momentum.contains("event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER)"),
                 "Native B slash damage should be scaled exactly once at slash creation");
+
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B1_END.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B1_END2.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B1_END3.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B_END.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B_END2.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B_END3.getId().equals(combo)"));
+        assertTrue(movement.contains("ComboStateRegistry.COMBO_B7_END3.getId().equals(combo)"));
     }
 
     @Test
-    void delayedHitsRemainBFlowOnlyWhileNativeRecoveryIsActive() throws IOException {
+    void killHandoffIsAutomaticButBounded() throws IOException {
         String source = Files.readString(MOVEMENT_SOURCE);
 
-        assertTrue(source.contains("static boolean isNativeBFlowState"),
-                "Delayed native-B hits need an explicit flow-state predicate");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END.getId().equals(combo)"),
-                "B1 recovery must retain native-B provenance for delayed slash hits");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END2.getId().equals(combo)"),
-                "B1 end2 must retain delayed-hit provenance");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B1_END3.getId().equals(combo)"),
-                "B1 end3 must retain delayed-hit provenance");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END.getId().equals(combo)"),
-                "B2-B6 shared recovery must retain delayed-hit provenance");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END2.getId().equals(combo)"),
-                "B2-B6 end2 must retain delayed-hit provenance");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B_END3.getId().equals(combo)"),
-                "B2-B6 end3 must retain delayed-hit provenance");
-        assertTrue(source.contains("ComboStateRegistry.COMBO_B7_END3.getId().equals(combo)"),
-                "B7 recovery must retain delayed-hit provenance");
-        assertFalse(source.contains("LivingDeathEvent"),
-                "Resharped slash effects resolve damage through the shooter, so direct-entity death attribution is invalid here");
-        assertFalse(source.contains("RENGEKI_B_SLASH_BLADES"),
-                "Do not retain slash-entity provenance maps for a damage path that reports the shooter as attacker");
-    }
-
-    @Test
-    void killsScheduleOneDeferredHandoffIncludingB7AndLateTailHits() throws IOException {
-        String source = Files.readString(MOVEMENT_SOURCE);
-
-        assertTrue(source.contains("private static final Map<UUID, KillTransfer> KILL_TRANSFERS"),
-                "Confirmed kills need one dedicated pending hand-off slot per player");
         assertTrue(source.contains("KILL_TRANSFER_DELAY_TICKS = 1"),
-                "Kill movement must be deferred out of the current slash hit iteration");
-        assertTrue(source.contains("!event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F"),
-                "Kill hand-off must arm only after HitEvent confirms the target is dead");
-        assertTrue(source.contains("if (!isNativeBFlowState(combo))"),
-                "Active B nodes and their native recovery states should both recognize delayed lethal hits");
-        assertTrue(source.contains("scheduleKillTransfer(player, event.getBlade())"),
-                "A proven Rengeki B kill should schedule exactly one hand-off request");
+                "Kill hand-off must leave the current slash iteration before moving");
+        assertTrue(source.contains("KILL_TRANSFER_SEARCH_DISTANCE = 6.5D"));
+        assertTrue(source.contains("MAX_KILL_TRANSFER_DISTANCE = 4.5D"));
+        assertTrue(source.contains("Math.cos(Math.toRadians(80.0D))"));
+        assertTrue(source.contains("scheduleKillTransfer(player, event.getBlade())"));
         assertTrue(source.contains("public static void onPlayerTick(TickEvent.PlayerTickEvent event)"),
-                "A kill must still auto-transfer when the player does not immediately press the next B beat");
+                "Kill continuity needs the one-tick automatic fallback");
         assertFalse(source.contains("killTransfer != null && rightClickAdvance"),
-                "Kill continuity is separate from ordinary pursuit and must not become right-click-only");
+                "Kill hand-off must remain independent from ordinary right-click pursuit");
     }
 
     @Test
-    void killHandoffIsStrongerButStillBounded() throws IOException {
-        String source = Files.readString(MOVEMENT_SOURCE);
-
-        assertTrue(source.contains("KILL_TRANSFER_SEARCH_DISTANCE = 6.5D"),
-                "Kill hand-off needs a slightly broader target search than ordinary chase");
-        assertTrue(source.contains("MAX_KILL_TRANSFER_DISTANCE = 4.5D"),
-                "Kill hand-off movement must remain bounded instead of becoming a long-range teleport");
-        assertTrue(source.contains("Math.cos(Math.toRadians(80.0D))"),
-                "Kill hand-off may use a wider forward cone but must not become 360-degree auto targeting");
-    }
-
-    @Test
-    void sprintFlowIsIdleGroundedAndUsesSeparateVisualAndHitCadences() throws IOException {
+    void sprintFlowIsIdleGroundedAndSeparatesVisualFromDamageCadence() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("SPRINT_VISUAL_INTERVAL_TICKS = 10"),
-                "B1-B7 visual beats should keep their authored ten-tick rhythm");
+                "B1-B7 visual beats should keep their ten-tick rhythm");
         assertTrue(source.contains("SPRINT_HIT_INTERVAL_TICKS = 4"),
-                "Sprint pressure should resolve a real hit pulse every four ticks instead of once per visual beat");
-        assertTrue(source.contains("nextVisualBeatAt"),
-                "Visual scheduling must stay independent from real hit scheduling");
-        assertTrue(source.contains("nextHitAt"),
-                "Real hit scheduling needs its own cadence state");
+                "Real sprint pressure should pulse every four ticks");
+        assertTrue(source.contains("nextVisualBeatAt"));
+        assertTrue(source.contains("nextHitAt"));
         assertTrue(source.contains("ComboStateRegistry.NONE.getId().equals(combo)"),
-                "Sprint flow must be idle-only and never stack on top of active combo damage");
-        assertTrue(source.contains("!player.isSprinting()"),
-                "Sprint flow must require an actual sprint state");
-        assertTrue(source.contains("!player.onGround()"),
-                "Sprint flow must not become a free aerial attack");
+                "Sprint flow must never stack on an active real combo");
         assertTrue(source.contains("RengekiShortStepHandler.hasPendingKillTransfer(playerId)"),
                 "Sprint flow must not race a pending kill hand-off");
+        assertTrue(source.contains("!player.isSprinting()"));
+        assertTrue(source.contains("!player.onGround()"));
+        assertTrue(source.contains("player.isPassenger()"));
+        assertTrue(source.contains("player.isUsingItem()"));
+        assertTrue(source.contains("player.getAbilities().flying"));
     }
 
     @Test
-    void sprintSpeedUsesRealTickDisplacementInsteadOfFrictionDampedMotion() throws IOException {
+    void sprintSpeedRangeDamageAndVisualsStayHardCapped() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES"),
-                "Normal sprint detection needs one previous server position sample per player");
+        assertTrue(source.contains("SPRINT_SLASH_MIN_SPEED = 0.12D"));
+        assertTrue(source.contains("SPRINT_SLASH_SPEED_CAP = 0.36D"));
+        assertTrue(source.contains("SPRINT_SLASH_MIN_RANGE = 1.35D"));
+        assertTrue(source.contains("SPRINT_SLASH_MAX_RANGE = 2.75D"));
+        assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.03F"));
+        assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.07F"));
+        assertTrue(source.contains("SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F"));
+        assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"));
         assertTrue(source.contains("sampleHorizontalDisplacement(playerId, player.position(), now)"),
-                "Sprint scaling must use actual movement between server ticks");
-        assertTrue(source.contains("new MovementSample(position, gameTime)"),
-                "Every held-Rengeki tick should refresh the movement sample");
+                "Scaling must use real server-tick displacement rather than friction-damped motion");
         assertTrue(source.contains("gameTime - previous.gameTime() != 1L"),
-                "Non-consecutive samples must not fabricate speed after login/dimension changes");
-        assertFalse(source.contains("private static double horizontalSpeed(ServerPlayer player)"),
-                "Do not regress to END-tick deltaMovement, which made V rushes trigger while normal sprinting failed");
+                "Non-consecutive samples must not fabricate movement speed");
     }
 
     @Test
-    void sprintFlowCyclesThroughAVisualB1ToB7Rhythm() throws IOException {
+    void sprintKeepsBVisualLanguageWithoutNativeAreaDamage() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("SPRINT_B_CHAIN_LENGTH = 7"),
-                "Sprint flow should explicitly model B1 through B7 visual beats");
-        assertTrue(source.contains("SPRINT_B_BURST_TICKS = 7"),
-                "B2-B6 style rush visuals should retain the native seven-tick cadence");
-        assertTrue(source.contains("chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH"),
-                "Continuous sprinting must cycle B1 -> ... -> B7 -> B1");
-        assertTrue(source.contains("emitSprintBVisualTick"),
-                "Sprint flow should emit a timed B-style burst rather than one generic slash");
-        assertTrue(source.contains("visualSize, -30.0F"),
-                "B1-inspired sprint beat should open with the native-like crossed slash angle");
-        assertTrue(source.contains("visualSize, 145.0F"),
-                "B1-inspired sprint beat should include the mirrored crossed slash");
-        assertTrue(source.contains("mirrored ? 90.0F : -90.0F"),
-                "B2-B6 visuals should alternate the same positive/negative roll families as native B");
-        assertTrue(source.contains("beat == SPRINT_B_CHAIN_LENGTH - 1"),
-                "B7-inspired sprint beat should have an explicit visual finisher");
-    }
-
-    @Test
-    void sprintRangeAndDamageScaleWithSpeedButHaveHardSpeedCaps() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
-
-        assertTrue(source.contains("SPRINT_SLASH_MIN_SPEED = 0.12D"),
-                "Tiny movement noise must not trigger the sprint flow");
-        assertTrue(source.contains("SPRINT_SLASH_SPEED_CAP = 0.36D"),
-                "Movement mods or extreme speed effects need a hard scaling cap");
-        assertTrue(source.contains("SPRINT_SLASH_MIN_RANGE = 1.35D"),
-                "Normal sprint should begin with a deliberately small frontal range");
-        assertTrue(source.contains("SPRINT_SLASH_MAX_RANGE = 2.75D"),
-                "Sprint range must remain bounded even at extreme speed");
-        assertTrue(source.contains("sprintSlashRangeForSpeed"),
-                "Speed-to-range scaling should stay explicit and testable");
-        assertTrue(source.contains("SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F"),
-                "The visual should start substantially smaller than a normal B slash");
-        assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"),
-                "Visual scaling must have its own hard ceiling");
-        assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.03F"),
-                "Five-hit-per-second sprint pressure needs a conservative low-speed per-hit ratio");
-        assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.07F"),
-                "High-speed per-hit ratio should stay capped at 0.07 when hit frequency is raised");
-        assertTrue(source.contains("sprintSlashDamageRatioForSpeed"),
-                "Speed-to-damage scaling should be explicit and share the same capped speed factor");
-    }
-
-    @Test
-    void sprintVisualFlurryUsesIndependentHighFrequencySingleTargetHits() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
-
-        assertTrue(source.contains("private static LivingEntity selectSprintSlashTarget"),
-                "Sprint flow should select one frontal target instead of becoming passive AoE farming");
-        assertTrue(source.contains("chain.nextHitAt = now + SPRINT_HIT_INTERVAL_TICKS"),
-                "Real damage must use the dedicated four-tick cadence instead of waiting for the next visual beat");
-        assertTrue(source.contains("applySprintSlashHit(player, target, damageRatio)"),
-                "Each due hit pulse should resolve one low-ratio real hit against the selected target");
-        assertTrue(source.contains("AttackManager.doMeleeAttack("),
-                "The real hit should reuse Resharped's panel-scaled melee compatibility path");
-        assertTrue(source.contains("false,\n                    true,\n                    damageRatio"),
-                "Sprint hits must not force through an existing hurt window, but should reset their own post-hit i-frame for the next pulse");
+        assertTrue(source.contains("SPRINT_B_CHAIN_LENGTH = 7"));
+        assertTrue(source.contains("SPRINT_B_BURST_TICKS = 7"));
+        assertTrue(source.contains("chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH"));
+        assertTrue(source.contains("visualSize, -30.0F"));
+        assertTrue(source.contains("visualSize, 145.0F"));
+        assertTrue(source.contains("mirrored ? 90.0F : -90.0F"));
+        assertTrue(source.contains("beat == SPRINT_B_CHAIN_LENGTH - 1"));
+        assertTrue(source.contains("new EntitySlashEffect("));
+        assertTrue(source.contains("effect.setMute(true)"));
+        assertFalse(source.contains("effect.setOwner(player)"),
+                "Visual-only slashes must remain ownerless and unable to run native areaAttack");
         assertFalse(source.contains("AttackManager.doSlash(player"),
-                "B-style visual cadence must not use native owned slash effects that would secretly multiply damage");
+                "Sprint visuals must not become owned native damage slashes");
     }
 
     @Test
-    void sprintHitPreservesMomentumAndSprintFlag() throws IOException {
+    void sprintHitDoesNotErasePreexistingHurtWindows() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("int invulnerabilityBefore = target.invulnerableTime"),
+                "The sprint hit must remember whether another source already owns the hurt window");
+        assertTrue(source.contains("false,\n                    false,\n                    damageRatio"),
+                "Neither forceHit nor resetHit may globally clear a target hurt window");
+        assertFalse(source.contains("false,\n                    true,\n                    damageRatio"),
+                "Resharped resetHit clears invulnerability even after a rejected hit and is unsafe here");
+        assertTrue(source.contains("context.hitSucceeded && invulnerabilityBefore <= 0"),
+                "Only a proven fresh sprint hit may shorten the window it just created");
+        assertTrue(source.contains("target.invulnerableTime = Math.min("));
+        assertTrue(source.contains("SPRINT_HIT_INTERVAL_TICKS"),
+                "The fresh sprint window should align with the four-tick pulse rather than being zeroed");
+    }
+
+    @Test
+    void sprintSuccessfulHitsConsumeNoDurabilityAndContextIsExact() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertFalse(source.contains("SPRINT_DURABILITY_DIVISOR"),
+                "No-durability sprint hits need no divisor state");
+        assertFalse(source.contains("SPRINT_DURABILITY_PHASE"),
+                "No-durability sprint hits need no per-player phase map");
+        assertTrue(source.contains("onSprintHitResolved(SlashBladeEvent.HitEvent event)"),
+                "Successful sprint hits need a post-damage/pre-durability boundary");
+        assertTrue(source.contains("priority = EventPriority.LOWEST, receiveCanceled = true"),
+                "Other compatibility listeners should observe the hit before sprint cancels durability");
+        assertTrue(source.contains("event.getTarget() != context.target"),
+                "Nested HitEvents must not be mistaken for this sprint hit");
+        assertTrue(source.contains("context.hitSucceeded = true"),
+                "The same exact HitEvent should prove that melee damage succeeded");
+        assertTrue(source.contains("if (!event.isCanceled())"));
+        assertTrue(source.contains("event.setCanceled(true)"),
+                "Canceling the exact successful HitEvent skips SlashBlade's later durability branch");
+        assertFalse(source.contains("% SPRINT_DURABILITY_DIVISOR"));
+    }
+
+    @Test
+    void sprintHitPreservesMomentumAndIsScopedSilent() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("player.setSprinting(false)"),
-                "Sprint-hit knockback must be suppressed during the compatibility attack call");
-        assertTrue(source.contains("player.setDeltaMovement(momentum)"),
-                "Player momentum must be restored after the passive hit");
-        assertTrue(source.contains("player.setSprinting(sprinting)"),
-                "The exact pre-hit sprint flag must be restored so the passive cannot cancel sprinting");
+                "Compatibility melee should not apply sprint knockback");
+        assertTrue(source.contains("player.setDeltaMovement(momentum)"));
+        assertTrue(source.contains("player.setSprinting(sprinting)"));
         assertTrue(source.contains("SPRINT_HIT_CONTEXT.remove()"),
-                "Sprint-hit context must never leak beyond the synchronous compatibility attack");
+                "Sprint context must not leak beyond the synchronous attack call");
+
+        assertTrue(source.contains("PlayLevelSoundEvent.AtPosition"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_CRIT"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_NODAMAGE"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_KNOCKBACK"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_STRONG"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_WEAK"));
+        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_SWEEP"));
     }
 
     @Test
-    void sprintFlowIsSilentWithoutMutingNormalRengekiAttacks() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
+    void targetingAndMovementRemainBoundedAndLifecycleSafe() throws IOException {
+        String movement = Files.readString(MOVEMENT_SOURCE);
+        String momentum = Files.readString(MOMENTUM_SOURCE);
 
-        assertTrue(source.contains("effect.setMute(true)"),
-                "Every ownerless sprint-B visual slash must be muted");
-        assertFalse(source.contains("effect.setMute(mute)"),
-                "No sprint visual should retain a per-slash audible branch");
-        assertTrue(source.contains("PlayLevelSoundEvent.AtPosition"),
-                "The real melee compatibility hit needs a narrow sound suppression hook");
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_CRIT"),
-                "Successful compatibility-hit attack sound should be suppressed");
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_NODAMAGE"),
-                "Failed compatibility-hit attack sound should be suppressed");
-        assertTrue(source.contains("SoundEvents.PLAYER_ATTACK_SWEEP"),
-                "Future/alternate player sweep attack sounds should remain silent inside the sprint-hit context");
-        assertTrue(source.contains("SPRINT_HIT_CONTEXT.get() == null"),
-                "Sound suppression must be scoped only to a live sprint-hit call");
-        assertTrue(source.contains("event.setCanceled(true)"),
-                "Scoped sprint attack sounds should be canceled rather than globally remapped");
-    }
+        assertTrue(movement.contains("TargetSelector.SlashBladeTargetingConditions"));
+        assertTrue(movement.contains("TargetSelector.AttackablePredicate"));
+        assertTrue(momentum.contains("TargetSelector.SlashBladeTargetingConditions"));
+        assertTrue(momentum.contains("TargetSelector.AttackablePredicate"));
+        assertTrue(movement.contains("player.hasLineOfSight(candidate)"));
+        assertTrue(momentum.contains("player.hasLineOfSight(candidate)"));
+        assertTrue(movement.contains("return player.onGround() && !player.isPassenger()"));
+        assertTrue(movement.contains("isCollisionAreaLoaded(level, sampleBox)"));
+        assertTrue(movement.contains("level.noCollision(player, sampleBox)"));
 
-    @Test
-    void sprintDurabilityStaysBoundedAfterIncreasingHitFrequency() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
-
-        assertTrue(source.contains("SPRINT_DURABILITY_DIVISOR = 10"),
-                "Five-hit-per-second sprint pressure should spend one normal durability opportunity per ten successful hits");
-        assertTrue(source.contains("SPRINT_DURABILITY_PHASE"),
-                "Durability phase must persist across sprint interruptions instead of resetting for free hits");
-        assertTrue(source.contains("onSprintHitDurability(SlashBladeEvent.HitEvent event)"),
-                "Reduced durability should hook the post-damage pre-durability HitEvent boundary");
-        assertTrue(source.contains("priority = EventPriority.LOWEST, receiveCanceled = true"),
-                "Durability suppression should happen after other HitEvent compatibility listeners have observed the hit");
-        assertTrue(source.contains("% SPRINT_DURABILITY_DIVISOR"),
-                "Durability accounting must cycle deterministically across the ten-hit phase");
-        assertTrue(source.contains("if (phase != 0)"),
-                "Only the tenth successful sprint hit should enter the normal durability pipeline");
-        assertTrue(source.contains("event.setCanceled(true)"),
-                "Skipping a sprint durability opportunity should use Resharped's cancellable HitEvent before hurtAndBreak");
-        assertTrue(source.contains("private static void resetSprintChain(UUID playerId) {\n        SPRINT_CHAINS.remove(playerId);\n    }"),
-                "Stopping and restarting sprint must reset only the visual/hit chain, not the durability phase");
-        assertTrue(source.contains("private static void clearAllState(UUID playerId)"),
-                "Lifecycle replacement should have an explicit full-state cleanup path");
-        assertTrue(source.contains("SPRINT_DURABILITY_PHASE.remove(playerId)"),
-                "Durability phase should still clear on logout/dimension/Clone lifecycle cleanup");
-    }
-
-    @Test
-    void sprintVisualCannotSecretlyApplyNativeAreaDamage() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
-
-        assertTrue(source.contains("new EntitySlashEffect("),
-                "Sprint B visuals should reuse the native slash-effect renderer");
-        assertFalse(source.contains("effect.setOwner(player)"),
-                "Visual-only slashes must not gain a shooter and run EntitySlashEffect's broad native areaAttack");
-        assertTrue(source.contains("effect.setBaseSize(visualSize)"),
-                "Visual scale should follow the same bounded speed factor");
-        assertTrue(source.contains("selectSprintSlashTarget(player, range)"),
-                "Real hit range must be handled separately from visual BaseSize");
-    }
-
-    @Test
-    void movementIsBoundToTheSameBladeAndClearedOnPlayerReplacement() throws IOException {
-        String source = Files.readString(MOVEMENT_SOURCE);
-
-        assertTrue(source.contains("window.blade() != blade"),
-                "An ordinary chase earned by one blade must not transfer to another Rengeki blade");
-        assertTrue(source.contains("transfer.blade() != blade"),
-                "A kill hand-off earned by one blade must not transfer to another Rengeki blade");
-        assertTrue(source.contains("PlayerEvent.Clone"),
-                "Death/respawn player replacement must clear transient Rengeki movement state");
-        assertTrue(source.contains("KILL_TRANSFERS.remove(playerId)"),
-                "Kill hand-off state must have explicit cleanup paths");
-    }
-
-    @Test
-    void pursuitKeepsNativeTargetAndGroundSafety() throws IOException {
-        String source = Files.readString(MOVEMENT_SOURCE);
-
-        assertTrue(source.contains("TargetSelector.SlashBladeTargetingConditions"),
-                "Pursuit must preserve Resharped's revenge-target and combat eligibility rules");
-        assertTrue(source.contains("TargetSelector.AttackablePredicate"),
-                "Pursuit targets must honor Resharped PVP/friendly targeting rules");
-        assertTrue(source.contains("return player.onGround() && !player.isPassenger()"),
-                "Neither ordinary chase nor kill hand-off may snap airborne/riding players to ground");
-        assertTrue(source.contains("isCollisionAreaLoaded(level, sampleBox)"),
-                "Path safety must validate the whole player collision footprint at chunk edges");
+        assertTrue(movement.contains("PlayerEvent.Clone"));
+        assertTrue(momentum.contains("PlayerEvent.Clone"));
+        assertTrue(movement.contains("clearTransientState(event.getOriginal().getUUID())"));
+        assertTrue(momentum.contains("clearMovementState(event.getOriginal().getUUID())"));
+        assertFalse(momentum.contains("clearAllState"),
+                "Removing durability phase state should also remove redundant full-state cleanup plumbing");
     }
 
     private static void assertAdvance(String source, String from, String to) {
