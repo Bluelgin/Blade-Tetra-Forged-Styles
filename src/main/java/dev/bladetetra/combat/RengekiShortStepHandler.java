@@ -140,8 +140,9 @@ public final class RengekiShortStepHandler {
      * without moving the player.</p>
      *
      * <p>A pending kill hand-off has priority over the ordinary chase and stays
-     * input-agnostic: kill continuity is a separate mechanic and can still move
-     * before an immediate next B beat or via its one-tick automatic fallback.</p>
+     * input-agnostic. Passive native-B recovery/timeout transitions are allowed
+     * to keep the one-tick pending hand-off alive; a deliberate transition into
+     * a non-B branch still clears it so old damage cannot steal player control.</p>
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void onBladeMotion(BladeMotionEvent event) {
@@ -167,19 +168,23 @@ public final class RengekiShortStepHandler {
 
         KillTransfer killTransfer = KILL_TRANSFERS.get(playerId);
         if (killTransfer != null) {
-            if (killTransfer.expiresAt() < player.level().getGameTime()
-                    || killTransfer.blade() != blade
-                    || !expectedBAdvance) {
+            long now = player.level().getGameTime();
+            if (killTransfer.expiresAt() < now
+                    || killTransfer.blade() != blade) {
                 KILL_TRANSFERS.remove(playerId);
-            } else if (canGroundTransfer(player)) {
+            } else if (expectedBAdvance) {
+                if (canGroundTransfer(player)) {
+                    KILL_TRANSFERS.remove(playerId);
+                    CHASE_WINDOWS.remove(playerId);
+                    tryMoveToTarget(
+                            player,
+                            KILL_TRANSFER_SEARCH_DISTANCE,
+                            MIN_KILL_TRANSFER_DOT,
+                            MAX_KILL_TRANSFER_DISTANCE);
+                    return;
+                }
+            } else if (!isPassiveBFlowTransition(current, next)) {
                 KILL_TRANSFERS.remove(playerId);
-                CHASE_WINDOWS.remove(playerId);
-                tryMoveToTarget(
-                        player,
-                        KILL_TRANSFER_SEARCH_DISTANCE,
-                        MIN_KILL_TRANSFER_DOT,
-                        MAX_KILL_TRANSFER_DISTANCE);
-                return;
             }
         }
 
@@ -304,6 +309,18 @@ public final class RengekiShortStepHandler {
                         && ComboStateRegistry.COMBO_B6.getId().equals(next))
                 || (ComboStateRegistry.COMBO_B6.getId().equals(current)
                         && ComboStateRegistry.COMBO_B7.getId().equals(next));
+    }
+
+    /**
+     * Native B timeout/recovery motion is not a player breakout. Keep a pending
+     * delayed-kill hand-off alive through those passive transitions until its
+     * one-tick fallback runs. Entering a different authored branch still clears
+     * the transfer immediately.
+     */
+    static boolean isPassiveBFlowTransition(ResourceLocation current, ResourceLocation next) {
+        return isNativeBFlowState(current)
+                && (isNativeBFlowState(next)
+                        || ComboStateRegistry.NONE.getId().equals(next));
     }
 
     static boolean isNativeBCombo(ResourceLocation combo) {
