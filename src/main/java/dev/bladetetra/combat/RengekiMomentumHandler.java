@@ -35,24 +35,25 @@ import java.util.UUID;
  * in neutral.
  *
  * <p>The sprint flow deliberately does not install or advance a real ComboState.
- * It borrows the authored B-series visual rhythm while resolving only one low
- * ratio, single-target melee hit per beat. This preserves B-like motion without
- * secretly multiplying passive damage by every visual slash.</p>
+ * Its B1-B7 visual rhythm is decoupled from a denser single-target hit pulse, so
+ * the passive feels like an actual running flurry instead of many visual slashes
+ * hiding one sparse damage event. Real hits remain bounded, frontal and silent.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiMomentumHandler {
     static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.85D;
 
-    static final int SPRINT_SLASH_INTERVAL_TICKS = 10;
+    static final int SPRINT_VISUAL_INTERVAL_TICKS = 10;
+    static final int SPRINT_HIT_INTERVAL_TICKS = 4;
     static final int SPRINT_B_CHAIN_LENGTH = 7;
     static final int SPRINT_B_BURST_TICKS = 7;
-    static final int SPRINT_DURABILITY_DIVISOR = 4;
+    static final int SPRINT_DURABILITY_DIVISOR = 10;
     static final double SPRINT_SLASH_MIN_SPEED = 0.12D;
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
     static final double SPRINT_SLASH_MAX_RANGE = 2.75D;
-    static final float SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.06F;
-    static final float SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.14F;
+    static final float SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.03F;
+    static final float SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.07F;
     static final double MIN_SPRINT_SLASH_DOT = Math.cos(Math.toRadians(55.0D));
 
     private static final double SPRINT_SLASH_MAX_HEIGHT_DIFFERENCE = 1.25D;
@@ -128,6 +129,17 @@ public final class RengekiMomentumHandler {
                 playerId,
                 ignored -> new SprintChainState());
 
+        double speedScale = speedScale(speed);
+        double range = lerp(
+                SPRINT_SLASH_MIN_RANGE,
+                SPRINT_SLASH_MAX_RANGE,
+                speedScale);
+        float visualSize = (float) lerp(
+                SPRINT_SLASH_MIN_VISUAL_SIZE,
+                SPRINT_SLASH_MAX_VISUAL_SIZE,
+                speedScale);
+        float damageRatio = sprintSlashDamageRatioForSpeed(speed);
+
         if (chain.activeBeat >= 0) {
             emitSprintBVisualTick(
                     player,
@@ -142,34 +154,26 @@ public final class RengekiMomentumHandler {
             }
         }
 
-        if (chain.activeBeat >= 0 || now < chain.nextBeatAt) {
-            return;
+        if (chain.activeBeat < 0 && now >= chain.nextVisualBeatAt) {
+            chain.activeBeat = chain.nextBeat;
+            chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH;
+            chain.burstTick = 0;
+            chain.visualSize = visualSize;
+            chain.nextVisualBeatAt = now + SPRINT_VISUAL_INTERVAL_TICKS;
+
+            emitSprintBVisualTick(
+                    player,
+                    blade,
+                    chain.activeBeat,
+                    chain.burstTick,
+                    chain.visualSize);
+            chain.burstTick++;
         }
 
-        double speedScale = speedScale(speed);
-        double range = lerp(
-                SPRINT_SLASH_MIN_RANGE,
-                SPRINT_SLASH_MAX_RANGE,
-                speedScale);
-        float visualSize = (float) lerp(
-                SPRINT_SLASH_MIN_VISUAL_SIZE,
-                SPRINT_SLASH_MAX_VISUAL_SIZE,
-                speedScale);
-        float damageRatio = sprintSlashDamageRatioForSpeed(speed);
-
-        chain.activeBeat = chain.nextBeat;
-        chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH;
-        chain.burstTick = 0;
-        chain.visualSize = visualSize;
-        chain.nextBeatAt = now + SPRINT_SLASH_INTERVAL_TICKS;
-
-        emitSprintBVisualTick(
-                player,
-                blade,
-                chain.activeBeat,
-                chain.burstTick,
-                chain.visualSize);
-        chain.burstTick++;
+        if (now < chain.nextHitAt) {
+            return;
+        }
+        chain.nextHitAt = now + SPRINT_HIT_INTERVAL_TICKS;
 
         LivingEntity target = selectSprintSlashTarget(player, range);
         if (target != null) {
@@ -245,8 +249,8 @@ public final class RengekiMomentumHandler {
 
     /**
      * Visual-only slash effect. No shooter/owner means EntitySlashEffect cannot
-     * run its built-in broad areaAttack; real damage is resolved once per beat
-     * by selectSprintSlashTarget + applySprintSlashHit. Every visual is muted.
+     * run its built-in broad areaAttack; real damage is resolved by the separate
+     * sprint hit cadence. Every visual is muted.
      */
     private static void spawnBVisual(
             ServerPlayer player,
@@ -351,6 +355,11 @@ public final class RengekiMomentumHandler {
      * cannot cancel or visibly slow the sprint that powered it. A synchronous
      * sprint-hit context also lets the sound and durability hooks below identify
      * this one passive hit without touching ordinary left/right attacks.</p>
+     *
+     * <p>forceHit stays false so a sprint pulse does not bulldoze an unrelated
+     * pre-existing hurt window. resetHit is true so, after this pulse resolves,
+     * Rengeki's own four-tick cadence can continue instead of being throttled by
+     * the ten-tick vanilla hurt window.</p>
      */
     private static void applySprintSlashHit(
             ServerPlayer player,
@@ -366,7 +375,7 @@ public final class RengekiMomentumHandler {
                     player,
                     target,
                     false,
-                    false,
+                    true,
                     damageRatio);
         } finally {
             player.setDeltaMovement(momentum);
@@ -381,10 +390,9 @@ public final class RengekiMomentumHandler {
 
     /**
      * Resharped posts HitEvent after damage succeeds but before ItemSlashBlade
-     * spends durability. Cancelling three of every four sprint-hit events at
-     * LOWEST therefore leaves the already-applied damage intact while skipping
-     * only that hit's normal hitEffect/durability branch. Every fourth hit is
-     * left untouched and goes through the original durability pipeline.
+     * spends durability. The denser sprint cadence uses one normal durability
+     * opportunity per ten successful hits, keeping wear near the old per-second
+     * budget instead of multiplying it with the new hit frequency.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void onSprintHitDurability(SlashBladeEvent.HitEvent event) {
@@ -409,7 +417,7 @@ public final class RengekiMomentumHandler {
      * The visual slash entities are already muted. Resharped's compatibility
      * melee path still emits vanilla player attack sounds, so suppress only
      * those synchronous attack sounds while a sprint hit context is active.
-     * Target hurt sounds and ordinary Rengeki attacks remain untouched.
+     * Target hurt/death sounds and ordinary Rengeki attacks remain untouched.
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onSprintHitSound(PlayLevelSoundEvent.AtPosition event) {
@@ -419,7 +427,10 @@ public final class RengekiMomentumHandler {
 
         if (event.getSound() == SoundEvents.PLAYER_ATTACK_CRIT
                 || event.getSound() == SoundEvents.PLAYER_ATTACK_NODAMAGE
-                || event.getSound() == SoundEvents.PLAYER_ATTACK_KNOCKBACK) {
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_KNOCKBACK
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_STRONG
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_WEAK
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_SWEEP) {
             event.setCanceled(true);
         }
     }
@@ -516,7 +527,8 @@ public final class RengekiMomentumHandler {
     }
 
     private static final class SprintChainState {
-        private long nextBeatAt = Long.MIN_VALUE;
+        private long nextVisualBeatAt = Long.MIN_VALUE;
+        private long nextHitAt = Long.MIN_VALUE;
         private int nextBeat;
         private int activeBeat = -1;
         private int burstTick;
