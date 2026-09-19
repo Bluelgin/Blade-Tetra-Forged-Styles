@@ -271,8 +271,12 @@ class RengekiShortStepGuardTest {
                 "The first three successful sprint hits should skip durability");
         assertTrue(source.contains("event.setCanceled(true)"),
                 "Skipping a sprint durability opportunity should use Resharped's cancellable HitEvent before hurtAndBreak");
-        assertFalse(source.contains("SPRINT_DURABILITY_PHASE.remove(playerId)"),
-                "Ordinary sprint stop/reset must not clear the durability phase and enable free-hit abuse");
+        assertTrue(source.contains("private static void resetSprintChain(UUID playerId) {\n        SPRINT_CHAINS.remove(playerId);\n    }"),
+                "Stopping and restarting sprint must reset only the visual B chain, not the durability phase");
+        assertTrue(source.contains("private static void clearAllState(UUID playerId)"),
+                "Lifecycle replacement should have an explicit full-state cleanup path");
+        assertTrue(source.contains("SPRINT_DURABILITY_PHASE.remove(playerId)"),
+                "Durability phase should still clear on logout/dimension/Clone lifecycle cleanup");
     }
 
     @Test
