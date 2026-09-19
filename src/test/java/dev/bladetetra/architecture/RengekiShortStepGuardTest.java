@@ -165,7 +165,7 @@ class RengekiShortStepGuardTest {
 
     @Test
     void sprintHitDoesNotErasePreexistingHurtWindows() throws IOException {
-        String source = Files.readString(MOMENTUM_SOURCE);
+        String source = Files.readString(MOMENTUM_SOURCE).replace("\r\n", "\n");
 
         assertTrue(source.contains("int invulnerabilityBefore = target.invulnerableTime"),
                 "The sprint hit must remember whether another source already owns the hurt window");
