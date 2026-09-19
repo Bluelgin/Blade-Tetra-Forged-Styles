@@ -43,7 +43,8 @@ public final class RengekiMomentumHandler {
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
     static final double SPRINT_SLASH_MAX_RANGE = 2.75D;
-    static final float SPRINT_SLASH_DAMAGE_RATIO = 0.08F;
+    static final float SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.06F;
+    static final float SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.14F;
     static final double MIN_SPRINT_SLASH_DOT = Math.cos(Math.toRadians(55.0D));
 
     private static final double SPRINT_SLASH_MAX_HEIGHT_DIFFERENCE = 1.25D;
@@ -130,12 +131,13 @@ public final class RengekiMomentumHandler {
                 SPRINT_SLASH_MIN_VISUAL_SIZE,
                 SPRINT_SLASH_MAX_VISUAL_SIZE,
                 speedScale);
+        float damageRatio = sprintSlashDamageRatioForSpeed(speed);
 
         spawnSprintSlashVisual(player, blade, visualSize, now);
 
         LivingEntity target = selectSprintSlashTarget(player, range);
         if (target != null) {
-            applySprintSlashHit(player, target);
+            applySprintSlashHit(player, target, damageRatio);
         }
     }
 
@@ -238,15 +240,19 @@ public final class RengekiMomentumHandler {
     }
 
     /**
-     * Reuse Resharped's melee attack path for enchantments, durability and
-     * compatibility hooks, but temporarily suppress the vanilla sprint-hit
-     * knockback branch. Momentum and the sprint flag are restored immediately
-     * afterwards so this passive cannot cancel the sprint that powered it.
-     * Normal hurt invulnerability is respected: forceHit=false/resetHit=false.
+     * Reuse Resharped's melee attack path so the sprint slash scales from the
+     * blade/player damage stack instead of using a fixed raw-damage ceiling.
+     * Only the speed contribution is capped: the combo ratio grows from 0.06
+     * to 0.14 across the bounded speed window.
+     *
+     * <p>The vanilla sprint-hit knockback branch is suppressed temporarily, then
+     * both momentum and the exact pre-hit sprint flag are restored in finally.
+     * Normal hurt invulnerability is respected: forceHit=false/resetHit=false.</p>
      */
     private static void applySprintSlashHit(
             ServerPlayer player,
-            LivingEntity target) {
+            LivingEntity target,
+            float damageRatio) {
         Vec3 momentum = player.getDeltaMovement();
         boolean sprinting = player.isSprinting();
         player.setSprinting(false);
@@ -256,7 +262,7 @@ public final class RengekiMomentumHandler {
                     target,
                     false,
                     false,
-                    SPRINT_SLASH_DAMAGE_RATIO);
+                    damageRatio);
         } finally {
             player.setDeltaMovement(momentum);
             player.setSprinting(sprinting);
@@ -281,6 +287,13 @@ public final class RengekiMomentumHandler {
         return lerp(
                 SPRINT_SLASH_MIN_RANGE,
                 SPRINT_SLASH_MAX_RANGE,
+                speedScale(speed));
+    }
+
+    static float sprintSlashDamageRatioForSpeed(double speed) {
+        return (float) lerp(
+                SPRINT_SLASH_MIN_DAMAGE_RATIO,
+                SPRINT_SLASH_MAX_DAMAGE_RATIO,
                 speedScale(speed));
     }
 
