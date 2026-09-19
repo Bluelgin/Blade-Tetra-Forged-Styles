@@ -116,33 +116,71 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintSlashIsIdleGroundedAndRateLimited() throws IOException {
+    void sprintFlowIsIdleGroundedAndRateLimited() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("SPRINT_SLASH_INTERVAL_TICKS = 10"),
-                "Sprint pressure must stay rate-limited instead of spawning a slash every tick");
+                "Sprint B beats must stay rate-limited instead of dealing a real hit every tick");
         assertTrue(source.contains("ComboStateRegistry.NONE.getId().equals(combo)"),
-                "Sprint slash must be idle-only and never stack on top of active combo damage");
+                "Sprint flow must be idle-only and never stack on top of active combo damage");
         assertTrue(source.contains("!player.isSprinting()"),
-                "Sprint slash must require an actual sprint state");
+                "Sprint flow must require an actual sprint state");
         assertTrue(source.contains("!player.onGround()"),
-                "Sprint slash must not become a free aerial attack");
+                "Sprint flow must not become a free aerial attack");
         assertTrue(source.contains("RengekiShortStepHandler.hasPendingKillTransfer(playerId)"),
-                "Sprint slash must not race a pending kill hand-off");
+                "Sprint flow must not race a pending kill hand-off");
     }
 
     @Test
-    void sprintSlashRangeAndDamageScaleWithSpeedButHaveHardSpeedCaps() throws IOException {
+    void sprintSpeedUsesRealTickDisplacementInsteadOfFrictionDampedMotion() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES"),
+                "Normal sprint detection needs one previous server position sample per player");
+        assertTrue(source.contains("sampleHorizontalDisplacement(playerId, player.position(), now)"),
+                "Sprint scaling must use actual movement between server ticks");
+        assertTrue(source.contains("new MovementSample(position, gameTime)"),
+                "Every held-Rengeki tick should refresh the movement sample");
+        assertTrue(source.contains("gameTime - previous.gameTime() != 1L"),
+                "Non-consecutive samples must not fabricate speed after login/dimension changes");
+        assertFalse(source.contains("private static double horizontalSpeed(ServerPlayer player)"),
+                "Do not regress to END-tick deltaMovement, which made V rushes trigger while normal sprinting failed");
+    }
+
+    @Test
+    void sprintFlowCyclesThroughAVisualB1ToB7Rhythm() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
+        assertTrue(source.contains("SPRINT_B_CHAIN_LENGTH = 7"),
+                "Sprint flow should explicitly model B1 through B7 visual beats");
+        assertTrue(source.contains("SPRINT_B_BURST_TICKS = 7"),
+                "B2-B6 style rush visuals should retain the native seven-tick cadence");
+        assertTrue(source.contains("chain.nextBeat = (chain.nextBeat + 1) % SPRINT_B_CHAIN_LENGTH"),
+                "Continuous sprinting must cycle B1 -> ... -> B7 -> B1");
+        assertTrue(source.contains("emitSprintBVisualTick"),
+                "Sprint flow should emit a timed B-style burst rather than one generic slash");
+        assertTrue(source.contains("visualSize, -30.0F"),
+                "B1-inspired sprint beat should open with the native-like crossed slash angle");
+        assertTrue(source.contains("visualSize, 145.0F"),
+                "B1-inspired sprint beat should include the mirrored crossed slash");
+        assertTrue(source.contains("mirrored ? 90.0F : -90.0F"),
+                "B2-B6 visuals should alternate the same positive/negative roll families as native B");
+        assertTrue(source.contains("beat == SPRINT_B_CHAIN_LENGTH - 1"),
+                "B7-inspired sprint beat should have an explicit visual finisher");
+    }
+
+    @Test
+    void sprintRangeAndDamageScaleWithSpeedButHaveHardSpeedCaps() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("SPRINT_SLASH_MIN_SPEED = 0.12D"),
-                "Tiny movement noise must not trigger the sprint slash");
+                "Tiny movement noise must not trigger the sprint flow");
         assertTrue(source.contains("SPRINT_SLASH_SPEED_CAP = 0.36D"),
                 "Movement mods or extreme speed effects need a hard scaling cap");
         assertTrue(source.contains("SPRINT_SLASH_MIN_RANGE = 1.35D"),
                 "Normal sprint should begin with a deliberately small frontal range");
         assertTrue(source.contains("SPRINT_SLASH_MAX_RANGE = 2.75D"),
-                "Sprint slash range must remain bounded even at extreme speed");
+                "Sprint range must remain bounded even at extreme speed");
         assertTrue(source.contains("sprintSlashRangeForSpeed"),
                 "Speed-to-range scaling should stay explicit and testable");
         assertTrue(source.contains("SPRINT_SLASH_MIN_VISUAL_SIZE = 0.28F"),
@@ -150,25 +188,33 @@ class RengekiShortStepGuardTest {
         assertTrue(source.contains("SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F"),
                 "Visual scaling must have its own hard ceiling");
         assertTrue(source.contains("SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.06F"),
-                "Low-speed sprint slash should inherit panel scaling at a conservative 0.06 ratio");
+                "Low-speed sprint hit should inherit panel scaling at a conservative 0.06 ratio");
         assertTrue(source.contains("SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.14F"),
                 "Only the speed-provided damage ratio should cap, at 0.14");
         assertTrue(source.contains("sprintSlashDamageRatioForSpeed"),
                 "Speed-to-damage scaling should be explicit and share the same capped speed factor");
-        assertFalse(source.contains("SPRINT_SLASH_DAMAGE_RATIO = 0.08F"),
-                "Sprint damage must no longer use one fixed ratio at every speed");
     }
 
     @Test
-    void sprintSlashUsesPanelDamageSingleTargetAndPreservesSprint() throws IOException {
+    void sprintVisualFlurryStillDealsOnlyOnePanelScaledHitPerBeat() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("private static LivingEntity selectSprintSlashTarget"),
-                "Sprint slash should select one frontal target instead of becoming passive AoE farming");
+                "Sprint flow should select one frontal target instead of becoming passive AoE farming");
+        assertTrue(source.contains("applySprintSlashHit(player, target, damageRatio)"),
+                "Each sprint B beat should resolve exactly one low-ratio real hit after starting its visual burst");
         assertTrue(source.contains("AttackManager.doMeleeAttack("),
-                "Sprint slash should reuse Resharped's panel-scaled melee compatibility path");
+                "The real hit should reuse Resharped's panel-scaled melee compatibility path");
         assertTrue(source.contains("false,\n                    false,\n                    damageRatio"),
-                "Sprint slash must respect normal hurt invulnerability and apply the capped speed ratio to panel damage");
+                "Sprint hit must respect normal hurt invulnerability and apply the capped speed ratio to panel damage");
+        assertFalse(source.contains("AttackManager.doSlash(player"),
+                "B-style visual cadence must not use native owned slash effects that would secretly multiply damage");
+    }
+
+    @Test
+    void sprintHitPreservesMomentumAndSprintFlag() throws IOException {
+        String source = Files.readString(MOMENTUM_SOURCE);
+
         assertTrue(source.contains("player.setSprinting(false)"),
                 "Sprint-hit knockback must be suppressed during the compatibility attack call");
         assertTrue(source.contains("player.setDeltaMovement(momentum)"),
@@ -178,13 +224,13 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void sprintSlashVisualCannotSecretlyApplyNativeAreaDamage() throws IOException {
+    void sprintVisualCannotSecretlyApplyNativeAreaDamage() throws IOException {
         String source = Files.readString(MOMENTUM_SOURCE);
 
         assertTrue(source.contains("new EntitySlashEffect("),
-                "Sprint slash should reuse the native visual entity");
+                "Sprint B visuals should reuse the native slash-effect renderer");
         assertFalse(source.contains("effect.setOwner(player)"),
-                "The visual-only slash must not gain a shooter and run EntitySlashEffect's broad native areaAttack");
+                "Visual-only slashes must not gain a shooter and run EntitySlashEffect's broad native areaAttack");
         assertTrue(source.contains("effect.setBaseSize(visualSize)"),
                 "Visual scale should follow the same bounded speed factor");
         assertTrue(source.contains("selectSprintSlashTarget(player, range)"),
