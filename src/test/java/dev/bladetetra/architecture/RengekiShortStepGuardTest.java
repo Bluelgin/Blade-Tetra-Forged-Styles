@@ -64,7 +64,7 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void killHandoffIsAutomaticButBounded() throws IOException {
+    void killHandoffIsAutomaticBoundedAndSurvivesPassiveRecovery() throws IOException {
         String source = Files.readString(MOVEMENT_SOURCE);
 
         assertTrue(source.contains("KILL_TRANSFER_DELAY_TICKS = 1"),
@@ -77,6 +77,15 @@ class RengekiShortStepGuardTest {
                 "Kill continuity needs the one-tick automatic fallback");
         assertFalse(source.contains("killTransfer != null && rightClickAdvance"),
                 "Kill hand-off must remain independent from ordinary right-click pursuit");
+
+        assertTrue(source.contains("isPassiveBFlowTransition(current, next)"),
+                "A delayed kill must not be erased by a same-tick B recovery transition");
+        assertTrue(source.contains("return isNativeBFlowState(current)"),
+                "Only a transition originating in the native B flow may preserve the pending hand-off");
+        assertTrue(source.contains("isNativeBFlowState(next)"),
+                "Native B recovery-to-recovery transitions should preserve the hand-off");
+        assertTrue(source.contains("ComboStateRegistry.NONE.getId().equals(next)"),
+                "A passive recovery timeout to NONE should still allow the next-tick hand-off fallback");
     }
 
     @Test
