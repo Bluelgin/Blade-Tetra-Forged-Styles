@@ -30,15 +30,12 @@ import java.util.UUID;
  * Keeps Rengeki on Resharped's native B combo while adding bounded movement
  * continuity between successful beats and across confirmed kills.
  *
- * <p>The style deliberately trades a small amount of native-B damage for
- * stronger flow. Normal successful hits can earn one conservative short-step
- * on the next B advance; a confirmed kill can instead hand the player off to
- * the next valid target without adding another attack or rewriting combo
- * state.</p>
+ * <p>Normal successful hits can earn one conservative short-step on the next B
+ * advance; a confirmed kill can instead hand the player off to the next valid
+ * target without adding another attack or rewriting combo state.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiShortStepHandler {
-    static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.92D;
     static final int CHASE_WINDOW_TICKS = 10;
     static final int KILL_TRANSFER_DELAY_TICKS = 1;
     static final int KILL_TRANSFER_WINDOW_TICKS = 6;
@@ -68,23 +65,6 @@ public final class RengekiShortStepHandler {
                     .selector(new TargetSelector.AttackablePredicate());
     private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
     private static final Map<UUID, KillTransfer> KILL_TRANSFERS = new HashMap<>();
-
-    /**
-     * Rengeki's native B chain gets a small per-slash damage reduction in
-     * exchange for its much stronger positioning continuity. The authored B
-     * recovery nodes can still emit their own finishing slash effects, so they
-     * are included in the same damage tradeoff. Directional, aerial and Slash
-     * Art attacks are intentionally untouched.
-     */
-    @SubscribeEvent
-    public static void onRengekiSlash(SlashBladeEvent.DoSlashEvent event) {
-        if (!(event.getBlade().getItem() instanceof ModularSlashBladeItem)
-                || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
-                || !isNativeBFlowState(event.getSlashBladeState().getComboSeq())) {
-            return;
-        }
-        event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER);
-    }
 
     /**
      * HitEvent arrives after Resharped has applied the melee damage. Native B
@@ -266,6 +246,10 @@ public final class RengekiShortStepHandler {
     public static void onClone(PlayerEvent.Clone event) {
         clearTransientState(event.getOriginal().getUUID());
         clearTransientState(event.getEntity().getUUID());
+    }
+
+    static boolean hasPendingKillTransfer(UUID playerId) {
+        return KILL_TRANSFERS.containsKey(playerId);
     }
 
     private static void clearTransientState(UUID playerId) {
