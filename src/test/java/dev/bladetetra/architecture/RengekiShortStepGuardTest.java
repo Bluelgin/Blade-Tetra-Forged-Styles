@@ -67,6 +67,18 @@ class RengekiShortStepGuardTest {
                 "Death/respawn player replacement must clear transient pursuit state");
     }
 
+    @Test
+    void pursuitKeepsNativeTargetAndGroundSafety() throws IOException {
+        String source = Files.readString(SOURCE);
+
+        assertTrue(source.contains("TargetSelector.AttackablePredicate"),
+                "Pursuit targets must honor Resharped PVP/friendly targeting rules");
+        assertTrue(source.contains("!player.isOnGround() || player.isPassenger()"),
+                "Pursuit must not turn an airborne or riding B transition into a ground teleport");
+        assertTrue(source.contains("isCollisionAreaLoaded(level, sampleBox)"),
+                "Path safety must validate the whole player collision footprint at chunk edges");
+    }
+
     private static void assertAdvance(String source, String from, String to) {
         Pattern transition = Pattern.compile(
                 "ComboStateRegistry\\." + from
