@@ -83,20 +83,6 @@ public final class StyleInputBuffer {
                     ModComboStates.IAIDO_SHEATHE_MINIMUM_NEXT_FRAME,
                     now);
         }
-        if (style == BladeStyle.DANGAKU && ModComboStates.isDangakuCleave(combo)) {
-            return transition(
-                    combo,
-                    ModComboStates.getDangakuSweepId(),
-                    22,
-                    now);
-        }
-        if (style == BladeStyle.DANGAKU && ModComboStates.isDangakuSweep(combo)) {
-            return transition(
-                    combo,
-                    ModComboStates.getDangakuCleaveId(),
-                    5,
-                    now);
-        }
         return null;
     }
 
