@@ -73,7 +73,7 @@ class RengekiShortStepGuardTest {
 
         assertTrue(source.contains("TargetSelector.AttackablePredicate"),
                 "Pursuit targets must honor Resharped PVP/friendly targeting rules");
-        assertTrue(source.contains("!player.isOnGround() || player.isPassenger()"),
+        assertTrue(source.contains("!player.onGround() || player.isPassenger()"),
                 "Pursuit must not turn an airborne or riding B transition into a ground teleport");
         assertTrue(source.contains("isCollisionAreaLoaded(level, sampleBox)"),
                 "Path safety must validate the whole player collision footprint at chunk edges");
