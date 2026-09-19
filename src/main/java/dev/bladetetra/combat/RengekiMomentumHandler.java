@@ -47,7 +47,6 @@ public final class RengekiMomentumHandler {
     static final int SPRINT_HIT_INTERVAL_TICKS = 4;
     static final int SPRINT_B_CHAIN_LENGTH = 7;
     static final int SPRINT_B_BURST_TICKS = 7;
-    static final int SPRINT_DURABILITY_DIVISOR = 10;
     static final double SPRINT_SLASH_MIN_SPEED = 0.12D;
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
@@ -62,7 +61,6 @@ public final class RengekiMomentumHandler {
     private static final double VISUAL_FORWARD_OFFSET = 0.65D;
     private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES = new HashMap<>();
     private static final Map<UUID, SprintChainState> SPRINT_CHAINS = new HashMap<>();
-    private static final Map<UUID, Integer> SPRINT_DURABILITY_PHASE = new HashMap<>();
     private static final ThreadLocal<SprintHitContext> SPRINT_HIT_CONTEXT = new ThreadLocal<>();
 
     private static final TargetingConditions NATIVE_TARGET_FILTER =
@@ -353,13 +351,15 @@ public final class RengekiMomentumHandler {
      * <p>Temporarily suppress vanilla sprint-hit knockback, then restore both
      * the exact pre-hit motion vector and sprint flag in finally so the passive
      * cannot cancel or visibly slow the sprint that powered it. A synchronous
-     * sprint-hit context also lets the sound and durability hooks below identify
-     * this one passive hit without touching ordinary left/right attacks.</p>
+     * sprint-hit context also scopes silence, no-durability and successful-hit
+     * detection to this exact player/blade/target triplet.</p>
      *
-     * <p>forceHit stays false so a sprint pulse does not bulldoze an unrelated
-     * pre-existing hurt window. resetHit is true so, after this pulse resolves,
-     * Rengeki's own four-tick cadence can continue instead of being throttled by
-     * the ten-tick vanilla hurt window.</p>
+     * <p>Both forceHit and resetHit stay false. Resharped's resetHit flag clears
+     * target.invulnerableTime even when the attempted attack itself was rejected,
+     * which can erase an unrelated hurt window. Instead, remember the target's
+     * pre-hit timer and shorten the new window only after HitEvent proves that a
+     * fresh sprint hit actually succeeded. Existing external hurt windows are
+     * never cleared by a failed sprint pulse.</p>
      */
     private static void applySprintSlashHit(
             ServerPlayer player,
@@ -367,16 +367,26 @@ public final class RengekiMomentumHandler {
             float damageRatio) {
         Vec3 momentum = player.getDeltaMovement();
         boolean sprinting = player.isSprinting();
+        int invulnerabilityBefore = target.invulnerableTime;
         SprintHitContext previousContext = SPRINT_HIT_CONTEXT.get();
-        SPRINT_HIT_CONTEXT.set(new SprintHitContext(player.getUUID(), player.getMainHandItem()));
+        SprintHitContext context = new SprintHitContext(
+                player.getUUID(),
+                player.getMainHandItem(),
+                target);
+        SPRINT_HIT_CONTEXT.set(context);
         player.setSprinting(false);
         try {
             AttackManager.doMeleeAttack(
                     player,
                     target,
                     false,
-                    true,
+                    false,
                     damageRatio);
+            if (context.hitSucceeded && invulnerabilityBefore <= 0) {
+                target.invulnerableTime = Math.min(
+                        target.invulnerableTime,
+                        SPRINT_HIT_INTERVAL_TICKS);
+            }
         } finally {
             player.setDeltaMovement(momentum);
             player.setSprinting(sprinting);
@@ -389,26 +399,25 @@ public final class RengekiMomentumHandler {
     }
 
     /**
-     * Resharped posts HitEvent after damage succeeds but before ItemSlashBlade
-     * spends durability. The denser sprint cadence uses one normal durability
-     * opportunity per ten successful hits, keeping wear near the old per-second
-     * budget instead of multiplying it with the new hit frequency.
+     * HitEvent is posted only after Resharped's melee damage succeeds and before
+     * the native combo hit-effect/durability branch. Sprint B is gated to combo
+     * NONE, whose native hit effect is empty, so canceling this exact successful
+     * hit at LOWEST removes durability wear without changing sprint damage.
+     * Earlier compatibility listeners still get to observe the successful hit.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    public static void onSprintHitDurability(SlashBladeEvent.HitEvent event) {
+    public static void onSprintHitResolved(SlashBladeEvent.HitEvent event) {
         SprintHitContext context = SPRINT_HIT_CONTEXT.get();
         if (context == null
-                || event.isCanceled()
                 || !(event.getUser() instanceof ServerPlayer player)
-                || !player.getUUID().equals(context.playerId())
-                || event.getBlade() != context.blade()) {
+                || !player.getUUID().equals(context.playerId)
+                || event.getBlade() != context.blade
+                || event.getTarget() != context.target) {
             return;
         }
 
-        int phase = (SPRINT_DURABILITY_PHASE.getOrDefault(context.playerId(), 0) + 1)
-                % SPRINT_DURABILITY_DIVISOR;
-        SPRINT_DURABILITY_PHASE.put(context.playerId(), phase);
-        if (phase != 0) {
+        context.hitSucceeded = true;
+        if (!event.isCanceled()) {
             event.setCanceled(true);
         }
     }
@@ -499,31 +508,36 @@ public final class RengekiMomentumHandler {
         SPRINT_CHAINS.remove(playerId);
     }
 
-    private static void clearAllState(UUID playerId) {
-        clearMovementState(playerId);
-        SPRINT_DURABILITY_PHASE.remove(playerId);
-    }
-
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        clearAllState(event.getEntity().getUUID());
+        clearMovementState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        clearAllState(event.getEntity().getUUID());
+        clearMovementState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event) {
-        clearAllState(event.getOriginal().getUUID());
-        clearAllState(event.getEntity().getUUID());
+        clearMovementState(event.getOriginal().getUUID());
+        clearMovementState(event.getEntity().getUUID());
     }
 
     private record MovementSample(Vec3 position, long gameTime) {
     }
 
-    private record SprintHitContext(UUID playerId, ItemStack blade) {
+    private static final class SprintHitContext {
+        private final UUID playerId;
+        private final ItemStack blade;
+        private final LivingEntity target;
+        private boolean hitSucceeded;
+
+        private SprintHitContext(UUID playerId, ItemStack blade, LivingEntity target) {
+            this.playerId = playerId;
+            this.blade = blade;
+            this.target = target;
+        }
     }
 
     private static final class SprintChainState {
