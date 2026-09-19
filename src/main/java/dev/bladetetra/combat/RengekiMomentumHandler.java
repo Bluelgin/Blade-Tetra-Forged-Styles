@@ -11,14 +11,17 @@ import mods.flammpfeil.slashblade.util.TargetSelector;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.PlayLevelSoundEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -38,11 +41,12 @@ import java.util.UUID;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiMomentumHandler {
-    static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.88D;
+    static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.85D;
 
     static final int SPRINT_SLASH_INTERVAL_TICKS = 10;
     static final int SPRINT_B_CHAIN_LENGTH = 7;
     static final int SPRINT_B_BURST_TICKS = 7;
+    static final int SPRINT_DURABILITY_DIVISOR = 4;
     static final double SPRINT_SLASH_MIN_SPEED = 0.12D;
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
@@ -57,6 +61,8 @@ public final class RengekiMomentumHandler {
     private static final double VISUAL_FORWARD_OFFSET = 0.65D;
     private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES = new HashMap<>();
     private static final Map<UUID, SprintChainState> SPRINT_CHAINS = new HashMap<>();
+    private static final Map<UUID, Integer> SPRINT_DURABILITY_PHASE = new HashMap<>();
+    private static final ThreadLocal<SprintHitContext> SPRINT_HIT_CONTEXT = new ThreadLocal<>();
 
     private static final TargetingConditions NATIVE_TARGET_FILTER =
             new TargetSelector.SlashBladeTargetingConditions()
@@ -96,7 +102,7 @@ public final class RengekiMomentumHandler {
         ItemStack blade = player.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            clearMomentumState(playerId);
+            clearMovementState(playerId);
             return;
         }
 
@@ -197,7 +203,7 @@ public final class RengekiMomentumHandler {
      * Visually follows the authored B-series language without installing the
      * actual native combo: B1 opens with a crossed pair, B2-B6 use the same
      * alternating random-roll rush cadence, and B7 adds a compact finisher.
-     * All spawned slash entities remain visual-only (no owner/shooter).
+     * All spawned slash entities remain visual-only, ownerless and silent.
      */
     private static void emitSprintBVisualTick(
             ServerPlayer player,
@@ -206,8 +212,8 @@ public final class RengekiMomentumHandler {
             int burstTick,
             float visualSize) {
         if (beat == 0 && burstTick == 0) {
-            spawnBVisual(player, blade, visualSize, -30.0F, -0.08D, 0.00D, 0.00D, false);
-            spawnBVisual(player, blade, visualSize, 145.0F, 0.08D, 0.02D, 0.00D, true);
+            spawnBVisual(player, blade, visualSize, -30.0F, -0.08D, 0.00D, 0.00D);
+            spawnBVisual(player, blade, visualSize, 145.0F, 0.08D, 0.02D, 0.00D);
             return;
         }
 
@@ -226,22 +232,21 @@ public final class RengekiMomentumHandler {
                     roll,
                     sideOffset,
                     heightOffset,
-                    forwardOffset,
-                    mirrored);
+                    forwardOffset);
         }
 
         if (beat == SPRINT_B_CHAIN_LENGTH - 1
                 && burstTick == SPRINT_B_BURST_TICKS - 1) {
             double side = (player.getRandom().nextDouble() - 0.5D) * 0.20D;
-            spawnBVisual(player, blade, visualSize, 0.0F, side, 0.34D, 0.05D, false);
-            spawnBVisual(player, blade, visualSize, 5.0F, -side, 0.38D, 0.08D, true);
+            spawnBVisual(player, blade, visualSize, 0.0F, side, 0.34D, 0.05D);
+            spawnBVisual(player, blade, visualSize, 5.0F, -side, 0.38D, 0.08D);
         }
     }
 
     /**
      * Visual-only slash effect. No shooter/owner means EntitySlashEffect cannot
      * run its built-in broad areaAttack; real damage is resolved once per beat
-     * by selectSprintSlashTarget + applySprintSlashHit.
+     * by selectSprintSlashTarget + applySprintSlashHit. Every visual is muted.
      */
     private static void spawnBVisual(
             ServerPlayer player,
@@ -250,8 +255,7 @@ public final class RengekiMomentumHandler {
             float roll,
             double sideOffset,
             double heightOffset,
-            double forwardOffset,
-            boolean mute) {
+            double forwardOffset) {
         ServerLevel level = player.serverLevel();
         Vec3 forward = horizontalLook(player);
         Vec3 right = new Vec3(-forward.z, 0.0D, forward.x);
@@ -270,7 +274,7 @@ public final class RengekiMomentumHandler {
         effect.setColor(blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.getColorCode())
                 .orElse(0xFFFFFF));
-        effect.setMute(mute);
+        effect.setMute(true);
         effect.setIsCritical(false);
         effect.setBaseSize(visualSize);
         effect.setLifetime(3);
@@ -344,7 +348,9 @@ public final class RengekiMomentumHandler {
      *
      * <p>Temporarily suppress vanilla sprint-hit knockback, then restore both
      * the exact pre-hit motion vector and sprint flag in finally so the passive
-     * cannot cancel or visibly slow the sprint that powered it.</p>
+     * cannot cancel or visibly slow the sprint that powered it. A synchronous
+     * sprint-hit context also lets the sound and durability hooks below identify
+     * this one passive hit without touching ordinary left/right attacks.</p>
      */
     private static void applySprintSlashHit(
             ServerPlayer player,
@@ -352,6 +358,8 @@ public final class RengekiMomentumHandler {
             float damageRatio) {
         Vec3 momentum = player.getDeltaMovement();
         boolean sprinting = player.isSprinting();
+        SprintHitContext previousContext = SPRINT_HIT_CONTEXT.get();
+        SPRINT_HIT_CONTEXT.set(new SprintHitContext(player.getUUID(), player.getMainHandItem()));
         player.setSprinting(false);
         try {
             AttackManager.doMeleeAttack(
@@ -363,6 +371,56 @@ public final class RengekiMomentumHandler {
         } finally {
             player.setDeltaMovement(momentum);
             player.setSprinting(sprinting);
+            if (previousContext == null) {
+                SPRINT_HIT_CONTEXT.remove();
+            } else {
+                SPRINT_HIT_CONTEXT.set(previousContext);
+            }
+        }
+    }
+
+    /**
+     * Resharped posts HitEvent after damage succeeds but before ItemSlashBlade
+     * spends durability. Cancelling three of every four sprint-hit events at
+     * LOWEST therefore leaves the already-applied damage intact while skipping
+     * only that hit's normal hitEffect/durability branch. Every fourth hit is
+     * left untouched and goes through the original durability pipeline.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void onSprintHitDurability(SlashBladeEvent.HitEvent event) {
+        SprintHitContext context = SPRINT_HIT_CONTEXT.get();
+        if (context == null
+                || event.isCanceled()
+                || !(event.getUser() instanceof ServerPlayer player)
+                || !player.getUUID().equals(context.playerId())
+                || event.getBlade() != context.blade()) {
+            return;
+        }
+
+        int phase = (SPRINT_DURABILITY_PHASE.getOrDefault(context.playerId(), 0) + 1)
+                % SPRINT_DURABILITY_DIVISOR;
+        SPRINT_DURABILITY_PHASE.put(context.playerId(), phase);
+        if (phase != 0) {
+            event.setCanceled(true);
+        }
+    }
+
+    /**
+     * The visual slash entities are already muted. Resharped's compatibility
+     * melee path still emits vanilla player attack sounds, so suppress only
+     * those synchronous attack sounds while a sprint hit context is active.
+     * Target hurt sounds and ordinary Rengeki attacks remain untouched.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onSprintHitSound(PlayLevelSoundEvent.AtPosition event) {
+        if (SPRINT_HIT_CONTEXT.get() == null || event.getSound() == null) {
+            return;
+        }
+
+        if (event.getSound() == SoundEvents.PLAYER_ATTACK_CRIT
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_NODAMAGE
+                || event.getSound() == SoundEvents.PLAYER_ATTACK_KNOCKBACK) {
+            event.setCanceled(true);
         }
     }
 
@@ -425,28 +483,36 @@ public final class RengekiMomentumHandler {
         SPRINT_CHAINS.remove(playerId);
     }
 
-    private static void clearMomentumState(UUID playerId) {
+    private static void clearMovementState(UUID playerId) {
         MOVEMENT_SAMPLES.remove(playerId);
         SPRINT_CHAINS.remove(playerId);
     }
 
+    private static void clearAllState(UUID playerId) {
+        clearMovementState(playerId);
+        SPRINT_DURABILITY_PHASE.remove(playerId);
+    }
+
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        clearMomentumState(event.getEntity().getUUID());
+        clearAllState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        clearMomentumState(event.getEntity().getUUID());
+        clearAllState(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event) {
-        clearMomentumState(event.getOriginal().getUUID());
-        clearMomentumState(event.getEntity().getUUID());
+        clearAllState(event.getOriginal().getUUID());
+        clearAllState(event.getEntity().getUUID());
     }
 
     private record MovementSample(Vec3 position, long gameTime) {
+    }
+
+    private record SprintHitContext(UUID playerId, ItemStack blade) {
     }
 
     private static final class SprintChainState {
