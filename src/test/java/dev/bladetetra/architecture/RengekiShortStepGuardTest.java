@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Guardrails for the native-B Rengeki pursuit integration. */
+/** Guardrails for the native-B Rengeki pursuit and kill-flow integration. */
 class RengekiShortStepGuardTest {
     private static final Path SOURCE = Path.of(
             "src/main/java/dev/bladetetra/combat/RengekiShortStepHandler.java");
@@ -28,7 +28,7 @@ class RengekiShortStepGuardTest {
         assertFalse(source.contains("InputCommand.R_CLICK"),
                 "R_CLICK is injected transiently by ItemSlashBlade, not MoveInputHandler");
         assertTrue(source.contains("receiveCanceled = true"),
-                "Canceled combo transitions must still clear a pending chase window");
+                "Canceled combo transitions must clear pending movement state");
     }
 
     @Test
@@ -44,27 +44,61 @@ class RengekiShortStepGuardTest {
     }
 
     @Test
-    void terminalB7DoesNotArmAnotherChase() throws IOException {
+    void nativeBTradingUsesSmallDamagePenaltyOnly() throws IOException {
         String source = Files.readString(SOURCE);
-        int start = source.indexOf("public static void onBladeHit");
-        int end = source.indexOf("/**", start + 1);
-        assertTrue(start >= 0 && end > start, "onBladeHit source block must remain discoverable");
 
-        String hitHandler = source.substring(start, end);
-        assertTrue(hitHandler.contains("canAdvanceBComboId"),
-                "Only non-terminal B nodes should arm pursuit");
-        assertFalse(hitHandler.contains("COMBO_B7"),
-                "B7 is terminal and must not create a post-finisher teleport window");
+        assertTrue(source.contains("NATIVE_B_DAMAGE_MULTIPLIER = 0.92D"),
+                "Rengeki native B damage tradeoff should remain the intended light 8% penalty");
+        assertTrue(source.contains("public static void onRengekiSlash"),
+                "Damage tradeoff should stay in the focused Rengeki handler");
+        assertTrue(source.contains("!isNativeBCombo(event.getSlashBladeState().getComboSeq())"),
+                "Directional/aerial/Slash Art attacks must not inherit the native-B penalty");
+        assertTrue(source.contains("event.setDamage(event.getDamage() * NATIVE_B_DAMAGE_MULTIPLIER)"),
+                "Native B slash damage should be scaled exactly once at slash creation");
     }
 
     @Test
-    void pursuitIsBoundToTheSameBladeAndClearedOnPlayerReplacement() throws IOException {
+    void killsScheduleOneDeferredHandoffIncludingB7() throws IOException {
+        String source = Files.readString(SOURCE);
+
+        assertTrue(source.contains("private static final Map<UUID, KillTransfer> KILL_TRANSFERS"),
+                "Confirmed kills need one dedicated pending hand-off slot per player");
+        assertTrue(source.contains("KILL_TRANSFER_DELAY_TICKS = 1"),
+                "Kill movement must be deferred out of the current slash hit iteration");
+        assertTrue(source.contains("!event.getTarget().isAlive() || event.getTarget().getHealth() <= 0.0F"),
+                "Kill hand-off must be armed only by a confirmed dead target");
+        assertTrue(source.contains("if (!isNativeBCombo(combo))"),
+                "All native B nodes, including terminal B7, should be eligible to hand off after a kill");
+        assertTrue(source.contains("KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)"),
+                "Later multi-hit callbacks must not replace a pending kill hand-off with ordinary chase");
+        assertTrue(source.contains("public static void onPlayerTick(TickEvent.PlayerTickEvent event)"),
+                "A kill must still auto-transfer when the player does not immediately press the next B beat");
+    }
+
+    @Test
+    void killHandoffIsStrongerButStillBounded() throws IOException {
+        String source = Files.readString(SOURCE);
+
+        assertTrue(source.contains("KILL_TRANSFER_SEARCH_DISTANCE = 6.5D"),
+                "Kill hand-off needs a slightly broader target search than ordinary chase");
+        assertTrue(source.contains("MAX_KILL_TRANSFER_DISTANCE = 4.5D"),
+                "Kill hand-off movement must remain bounded instead of becoming a long-range teleport");
+        assertTrue(source.contains("Math.cos(Math.toRadians(80.0D))"),
+                "Kill hand-off may use a wider forward cone but must not become 360-degree auto targeting");
+    }
+
+    @Test
+    void movementIsBoundToTheSameBladeAndClearedOnPlayerReplacement() throws IOException {
         String source = Files.readString(SOURCE);
 
         assertTrue(source.contains("window.blade() != blade"),
-                "A chase earned by one blade must not transfer to another Rengeki blade");
+                "An ordinary chase earned by one blade must not transfer to another Rengeki blade");
+        assertTrue(source.contains("transfer.blade() != blade"),
+                "A kill hand-off earned by one blade must not transfer to another Rengeki blade");
         assertTrue(source.contains("PlayerEvent.Clone"),
-                "Death/respawn player replacement must clear transient pursuit state");
+                "Death/respawn player replacement must clear transient Rengeki movement state");
+        assertTrue(source.contains("KILL_TRANSFERS.remove(playerId)"),
+                "Kill hand-off state must have explicit cleanup paths");
     }
 
     @Test
@@ -75,8 +109,8 @@ class RengekiShortStepGuardTest {
                 "Pursuit must preserve Resharped's revenge-target and combat eligibility rules");
         assertTrue(source.contains("TargetSelector.AttackablePredicate"),
                 "Pursuit targets must honor Resharped PVP/friendly targeting rules");
-        assertTrue(source.contains("!player.onGround() || player.isPassenger()"),
-                "Pursuit must not turn an airborne or riding B transition into a ground teleport");
+        assertTrue(source.contains("return player.onGround() && !player.isPassenger()"),
+                "Neither ordinary chase nor kill hand-off may snap airborne/riding players to ground");
         assertTrue(source.contains("isCollisionAreaLoaded(level, sampleBox)"),
                 "Path safety must validate the whole player collision footprint at chunk edges");
     }
