@@ -50,7 +50,8 @@ public final class ProgrammaticFusionProfiles {
     public static void register(ResourceLocation ability,
             ProgrammaticFusionProfile profile) {
         if (ability == null || profile == null) {
-            throw new IllegalArgumentException("Programmatic fusion profile requires id and profile");
+            throw new IllegalArgumentException(
+                    "Programmatic fusion profile requires id and profile");
         }
         EXPLICIT.put(ability, profile);
     }
@@ -78,41 +79,56 @@ public final class ProgrammaticFusionProfiles {
             return explicit;
         }
 
-        // Third-party fallback stays intentionally conservative. Compatibility
-        // modules can register an exact profile without defining pair-specific code.
+        // Unknown add-ons are resolved lazily only when one of their abilities is
+        // actually present on a discovered named blade. Keep this vocabulary
+        // deliberately generic and bounded; popular add-ons use exact dictionaries.
         String path = ability.getPath().toLowerCase(Locale.ROOT);
-        if (containsAny(path, "pierc", "thrust", "stab")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
-                    ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 0.78D);
+        if (containsAny(path, "pierc", "thrust", "stab", "lunge")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.PIERCING,
+                    ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 0.76D);
         }
-        if (containsAny(path, "sakura", "circle", "round", "moon", "wheel")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
-                    ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.74D);
+        if (containsAny(path, "sakura", "bloom", "flower", "cross", "twin",
+                "double", "dual")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.SAKURA_END,
+                    ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.72D);
         }
-        if (containsAny(path, "judg", "dimension", "space", "teleport")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+        if (containsAny(path, "circle", "round", "moon", "wheel", "spiral",
+                "ring", "matrix")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.CIRCLE_SLASH,
+                    ProgrammaticFusionProfile.Response.CIRCLE_RING, 0.72D);
+        }
+        if (containsAny(path, "judg", "dimension", "space", "teleport",
+                "lightning", "thunder", "verdict")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
                     ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 0.72D);
         }
-        if (containsAny(path, "void", "nihil", "abyss")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+        if (containsAny(path, "void", "nihil", "abyss", "wither", "soul",
+                "black_hole", "supernova")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.VOID_SLASH,
                     ProgrammaticFusionProfile.Response.VOID_TRIDENT, 0.72D);
         }
-        if (containsAny(path, "rain", "summon", "storm", "barrage", "wave")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+        if (containsAny(path, "rain", "summon", "storm", "barrage", "wave",
+                "phantom", "star", "gale", "wind", "sword_rain")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.WAVE_EDGE,
                     ProgrammaticFusionProfile.Response.WAVE_EDGE, 0.70D);
         }
-        if (containsAny(path, "cross", "twin", "double", "dual")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
-                    ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.70D);
-        }
-        if (containsAny(path, "drive", "beam", "projectile")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+        if (containsAny(path, "drive", "beam", "projectile", "laser",
+                "shot", "boost")) {
+            return new ProgrammaticFusionProfile(
+                    ProgrammaticFusionProfile.Entry.DRIVE_HORIZONTAL,
                     ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE, 0.68D);
         }
         return ProgrammaticFusionProfile.SAFE;
     }
 
-    private static void nativeArt(String path, ProgrammaticFusionProfile.Entry entry,
+    private static void nativeArt(String path,
+            ProgrammaticFusionProfile.Entry entry,
             ProgrammaticFusionProfile.Response response, double intensity) {
         register(new ResourceLocation("slashblade", path),
                 new ProgrammaticFusionProfile(entry, response, intensity));
