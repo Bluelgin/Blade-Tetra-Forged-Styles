@@ -13,7 +13,7 @@ import net.minecraft.world.phys.Vec3;
 final class ProgrammaticFusionHandler {
     static final float DRIVE_SPEED = 2.0F;
     static final int DRIVE_LIFETIME = 12;
-    static final double FAN_ANGLE_DEGREES = 16.0D;
+    static final double FAN_ANGLE_DEGREES = 12.0D;
 
     static void onSlashArt(ServerPlayer player, ItemStack blade,
             ISlashBladeState state) {
@@ -28,24 +28,65 @@ final class ProgrammaticFusionHandler {
 
         Vec3 forward = player.getLookAngle();
         if (plan.primaryDriveDamage() > 0.0D) {
-            spawnDrive(player, forward, plan.primaryDriveDamage(), 0, -90.0F);
+            spawnDrive(player, forward, plan.primaryDriveDamage(), 0, -90.0F,
+                    DRIVE_SPEED);
         }
 
-        int count = plan.responseCount();
-        for (int index = 0; index < count; index++) {
-            double offset = spreadOffset(index, count);
-            Vec3 direction = rotateHorizontal(forward, offset);
-            spawnDrive(player, direction, plan.responseDriveDamage(), index * 2,
-                    (float) (45.0D + offset));
+        ProgrammaticFusionProfile.Response response = plan.response().response();
+        for (int index = 0; index < plan.responseCount(); index++) {
+            Vec3 direction = rotateHorizontal(forward, responseYaw(response, index));
+            spawnDrive(player, direction, plan.responseDriveDamage(),
+                    responseDelay(response, index), responseRoll(response, index),
+                    responseSpeed(response, index));
         }
     }
 
-    static double spreadOffset(int index, int count) {
+    static double responseYaw(ProgrammaticFusionProfile.Response response, int index) {
+        return switch (response) {
+            case SAKURA_CROSS -> index == 0 ? -10.0D : 10.0D;
+            case JUDGEMENT_ECHO -> spreadOffset(index, 3, 6.0D);
+            case VOID_TRIDENT -> spreadOffset(index, 3, FAN_ANGLE_DEGREES);
+            case CIRCLE_RING -> index * 90.0D;
+            default -> 0.0D;
+        };
+    }
+
+    static int responseDelay(ProgrammaticFusionProfile.Response response, int index) {
+        return switch (response) {
+            case JUDGEMENT_ECHO -> index * 3;
+            case VOID_TRIDENT -> index;
+            case WAVE_EDGE -> index * 2;
+            default -> 0;
+        };
+    }
+
+    static float responseSpeed(ProgrammaticFusionProfile.Response response, int index) {
+        return switch (response) {
+            case JUDGEMENT_ECHO -> 1.55F;
+            case VOID_TRIDENT -> 2.15F;
+            case CIRCLE_RING -> 1.60F;
+            case WAVE_EDGE -> 1.20F + index * 0.28F;
+            default -> DRIVE_SPEED;
+        };
+    }
+
+    static float responseRoll(ProgrammaticFusionProfile.Response response, int index) {
+        return switch (response) {
+            case HORIZONTAL_DRIVE -> 0.0F;
+            case VERTICAL_DRIVE, PIERCING_FOCUS, WAVE_EDGE, FOCUSED_DRIVE -> -90.0F;
+            case SAKURA_CROSS -> index == 0 ? 22.5F : 157.5F;
+            case JUDGEMENT_ECHO -> 45.0F + index * 120.0F;
+            case VOID_TRIDENT -> -20.0F + index * 20.0F;
+            case CIRCLE_RING -> index * 90.0F;
+        };
+    }
+
+    static double spreadOffset(int index, int count, double spacing) {
         if (count <= 1) {
             return 0.0D;
         }
         double center = (count - 1) * 0.5D;
-        return (index - center) * FAN_ANGLE_DEGREES;
+        return (index - center) * spacing;
     }
 
     static Vec3 rotateHorizontal(Vec3 direction, double degrees) {
@@ -59,16 +100,16 @@ final class ProgrammaticFusionHandler {
     }
 
     private static void spawnDrive(ServerPlayer player, Vec3 direction,
-            double damage, int delay, float roll) {
+            double damage, int delay, float roll, float speed) {
         EntityDrive drive = Drive.doSlash(player, roll, DRIVE_LIFETIME, Vec3.ZERO,
-                false, damage, DRIVE_SPEED);
+                false, damage, speed);
         if (drive == null) {
             return;
         }
         drive.setDelay(delay);
         SoulLegacyDamageGuard.markSecondary(drive);
         Vec3 normalized = direction.normalize();
-        drive.shoot(normalized.x, normalized.y, normalized.z, DRIVE_SPEED, 0.0F);
+        drive.shoot(normalized.x, normalized.y, normalized.z, speed, 0.0F);
     }
 
     private ProgrammaticFusionHandler() {
