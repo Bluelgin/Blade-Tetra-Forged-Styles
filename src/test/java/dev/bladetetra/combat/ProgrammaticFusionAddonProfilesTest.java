@@ -4,10 +4,17 @@ import dev.bladetetra.compat.fusion.LastSmithFusionProfiles;
 import dev.bladetetra.compat.fusion.RecastingFusionProfiles;
 import dev.bladetetra.compat.fusion.SjapFusionProfiles;
 import dev.bladetetra.compat.fusion.YakumoFusionProfiles;
+import dev.bladetetra.forging.LegacyCalibrationProfile;
+import dev.bladetetra.forging.LegacyImprintKind;
+import dev.bladetetra.forging.NamedLegacyParts;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProgrammaticFusionAddonProfilesTest {
     @Test
@@ -65,6 +72,30 @@ class ProgrammaticFusionAddonProfilesTest {
                 ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO);
     }
 
+    @Test
+    void easterEggMarkerOnlyAppliesToThirdPartyFallbackPresentation() {
+        LegacyImprintKind nativePiercing = kind("native_piercing", "slashblade:piercing");
+        LegacyImprintKind nativeWave = kind("native_wave", "slashblade:wave_edge");
+        LegacyImprintKind yakumo = kind("yakumo_cut", "yakumoblade:judgement_cut");
+        LegacyImprintKind sjap = kind("sjap_swords",
+                "slashblade_addon:rapid_blistering_swords");
+
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+                new NamedLegacyParts(nativePiercing, nativeWave, nativeWave)));
+        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+                new NamedLegacyParts(nativePiercing, yakumo, yakumo)));
+        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+                new NamedLegacyParts(yakumo, sjap, sjap)));
+
+        // A third-party named blade that actually uses a native SlashBlade SA is
+        // already covered by the native presentation and should not get the joke.
+        LegacyImprintKind addonBladeUsingNativeArt = kind("addon_native_wave",
+                "slashblade:wave_edge");
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+                new NamedLegacyParts(nativePiercing,
+                        addonBladeUsingNativeArt, addonBladeUsingNativeArt)));
+    }
+
     private static void assertProfile(String id,
             ProgrammaticFusionProfile.Entry entry,
             ProgrammaticFusionProfile.Response response) {
@@ -72,5 +103,18 @@ class ProgrammaticFusionAddonProfilesTest {
                 new ResourceLocation(id));
         assertEquals(entry, profile.entry(), id);
         assertEquals(response, profile.response(), id);
+    }
+
+    private static LegacyImprintKind kind(String id, String slashArt) {
+        return new LegacyImprintKind(id,
+                new ResourceLocation("example", id),
+                new ResourceLocation("example", "model/" + id + ".obj"),
+                new ResourceLocation("example", "texture/" + id + ".png"),
+                "example:material",
+                LegacyCalibrationProfile.DEFAULT,
+                5.0D,
+                70,
+                ResourceLocation.tryParse(slashArt),
+                List.of());
     }
 }
