@@ -25,9 +25,11 @@ public final class ModSlashBladeAbilities {
      */
     public static final RegistryObject<SlashArts> PROGRAMMATIC_FUSION =
             SLASH_ARTS.register("programmatic_fusion", () -> new SlashArts(entity ->
-                    programmaticCombo(entity, false))
-                    .setComboStateJust(entity -> programmaticCombo(entity, true))
-                    .setComboStateSuper(entity -> programmaticCombo(entity, true))
+                    programmaticCombo(entity, ProgrammaticTrigger.NORMAL))
+                    .setComboStateJust(entity -> programmaticCombo(
+                            entity, ProgrammaticTrigger.JUST))
+                    .setComboStateSuper(entity -> programmaticCombo(
+                            entity, ProgrammaticTrigger.SUPER))
                     .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> TWIN_FOX_PIERCING =
@@ -102,18 +104,31 @@ public final class ModSlashBladeAbilities {
             SPECIAL_EFFECTS.register("life_erosion",
                     () -> new SpecialEffect(0, false, false));
 
-    private static ResourceLocation programmaticCombo(LivingEntity entity, boolean just) {
+    private static ResourceLocation programmaticCombo(LivingEntity entity,
+            ProgrammaticTrigger trigger) {
         ProgrammaticFusionPlan plan = ProgrammaticFusionPlan.from(entity.getMainHandItem());
         if (plan == null) {
             return ComboStateRegistry.NONE.getId();
         }
         return switch (plan.release().entry()) {
-            case DASH -> just
-                    ? ComboStateRegistry.PIERCING_JUST.getId()
-                    : ComboStateRegistry.PIERCING.getId();
-            case ARC -> entity.onGround()
+            case JUDGEMENT_CUT -> switch (trigger) {
+                case JUST -> ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId();
+                case SUPER -> ComboStateRegistry.JUDGEMENT_CUT_END.getId();
+                case NORMAL -> entity.onGround()
+                        ? ComboStateRegistry.JUDGEMENT_CUT.getId()
+                        : ComboStateRegistry.JUDGEMENT_CUT_SLASH_AIR.getId();
+            };
+            case SAKURA_END -> entity.onGround()
                     ? ComboStateRegistry.SAKURA_END_LEFT.getId()
                     : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId();
+            case VOID_SLASH -> ComboStateRegistry.VOID_SLASH.getId();
+            case CIRCLE_SLASH -> ComboStateRegistry.CIRCLE_SLASH.getId();
+            case DRIVE_VERTICAL -> ComboStateRegistry.DRIVE_VERTICAL.getId();
+            case DRIVE_HORIZONTAL -> ComboStateRegistry.DRIVE_HORIZONTAL.getId();
+            case WAVE_EDGE -> ComboStateRegistry.WAVE_EDGE_VERTICAL.getId();
+            case PIERCING -> trigger == ProgrammaticTrigger.NORMAL
+                    ? ComboStateRegistry.PIERCING.getId()
+                    : ComboStateRegistry.PIERCING_JUST.getId();
             case DIRECT -> ComboStateRegistry.STANDBY.getId();
         };
     }
@@ -166,6 +181,12 @@ public final class ModSlashBladeAbilities {
     private static boolean isActive(net.minecraft.world.item.ItemStack stack,
             LegacyFusion expected) {
         return LegacyFusion.active(stack) == expected;
+    }
+
+    private enum ProgrammaticTrigger {
+        NORMAL,
+        JUST,
+        SUPER
     }
 
     private ModSlashBladeAbilities() {
