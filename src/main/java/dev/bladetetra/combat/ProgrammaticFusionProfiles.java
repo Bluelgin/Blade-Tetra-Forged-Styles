@@ -13,12 +13,33 @@ public final class ProgrammaticFusionProfiles {
             new ConcurrentHashMap<>();
 
     static {
-        register(new ResourceLocation("slashblade", "piercing"),
-                new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DASH,
-                        ProgrammaticFusionProfile.Response.FOCUSED_DRIVE, 0.90D));
-        register(new ResourceLocation("slashblade", "sakura_end"),
-                new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.ARC,
-                        ProgrammaticFusionProfile.Response.CROSS_DRIVE, 0.85D));
+        // SlashBlade: Resharped 1.20.1 native SA dictionary. These are semantic
+        // descriptions, not pair recipes, so N native arts still produce N*(N-1)
+        // ordered mixed combinations without a quadratic catalog.
+        nativeArt("judgement_cut",
+                ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
+                ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 1.00D);
+        nativeArt("sakura_end",
+                ProgrammaticFusionProfile.Entry.SAKURA_END,
+                ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.90D);
+        nativeArt("void_slash",
+                ProgrammaticFusionProfile.Entry.VOID_SLASH,
+                ProgrammaticFusionProfile.Response.VOID_TRIDENT, 0.95D);
+        nativeArt("circle_slash",
+                ProgrammaticFusionProfile.Entry.CIRCLE_SLASH,
+                ProgrammaticFusionProfile.Response.CIRCLE_RING, 0.86D);
+        nativeArt("drive_vertical",
+                ProgrammaticFusionProfile.Entry.DRIVE_VERTICAL,
+                ProgrammaticFusionProfile.Response.VERTICAL_DRIVE, 0.82D);
+        nativeArt("drive_horizontal",
+                ProgrammaticFusionProfile.Entry.DRIVE_HORIZONTAL,
+                ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE, 0.82D);
+        nativeArt("wave_edge",
+                ProgrammaticFusionProfile.Entry.WAVE_EDGE,
+                ProgrammaticFusionProfile.Response.WAVE_EDGE, 0.84D);
+        nativeArt("piercing",
+                ProgrammaticFusionProfile.Entry.PIERCING,
+                ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 0.90D);
     }
 
     /**
@@ -57,24 +78,44 @@ public final class ProgrammaticFusionProfiles {
             return explicit;
         }
 
+        // Third-party fallback stays intentionally conservative. Compatibility
+        // modules can register an exact profile without defining pair-specific code.
         String path = ability.getPath().toLowerCase(Locale.ROOT);
-        if (containsAny(path, "pierc", "thrust", "stab", "drive")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DASH,
-                    ProgrammaticFusionProfile.Response.FOCUSED_DRIVE, 0.80D);
+        if (containsAny(path, "pierc", "thrust", "stab")) {
+            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+                    ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 0.78D);
         }
         if (containsAny(path, "sakura", "circle", "round", "moon", "wheel")) {
-            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.ARC,
-                    ProgrammaticFusionProfile.Response.CROSS_DRIVE, 0.76D);
-        }
-        if (containsAny(path, "rain", "judg", "summon", "storm", "barrage")) {
             return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
-                    ProgrammaticFusionProfile.Response.FAN_DRIVE, 0.72D);
+                    ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.74D);
+        }
+        if (containsAny(path, "judg", "dimension", "space", "teleport")) {
+            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+                    ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 0.72D);
+        }
+        if (containsAny(path, "void", "nihil", "abyss")) {
+            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+                    ProgrammaticFusionProfile.Response.VOID_TRIDENT, 0.72D);
+        }
+        if (containsAny(path, "rain", "summon", "storm", "barrage", "wave")) {
+            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+                    ProgrammaticFusionProfile.Response.WAVE_EDGE, 0.70D);
         }
         if (containsAny(path, "cross", "twin", "double", "dual")) {
             return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
-                    ProgrammaticFusionProfile.Response.CROSS_DRIVE, 0.70D);
+                    ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0.70D);
+        }
+        if (containsAny(path, "drive", "beam", "projectile")) {
+            return new ProgrammaticFusionProfile(ProgrammaticFusionProfile.Entry.DIRECT,
+                    ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE, 0.68D);
         }
         return ProgrammaticFusionProfile.SAFE;
+    }
+
+    private static void nativeArt(String path, ProgrammaticFusionProfile.Entry entry,
+            ProgrammaticFusionProfile.Response response, double intensity) {
+        register(new ResourceLocation("slashblade", path),
+                new ProgrammaticFusionProfile(entry, response, intensity));
     }
 
     private static boolean containsAny(String value, String... needles) {
