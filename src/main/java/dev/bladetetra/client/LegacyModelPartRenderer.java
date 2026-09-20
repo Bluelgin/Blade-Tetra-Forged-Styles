@@ -19,8 +19,6 @@ import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -29,8 +27,10 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Runtime view over SlashBlade's own OBJ resources. Faces are referenced from
- * the source model and never copied into Blade Tetra's jar.
+ * Runtime view over SlashBlade's own OBJ resources. Faces are selected from
+ * the source model and rebuilt as immutable Wavefront views whose final geometry
+ * already exists during construction, so constructor-time render optimizers can
+ * safely snapshot/bake them.
  */
 public final class LegacyModelPartRenderer {
     private static final ResourceLocation FOX_MODEL = ResourceLocation.fromNamespaceAndPath(
@@ -297,12 +297,7 @@ public final class LegacyModelPartRenderer {
             return null;
         }
         try {
-            WavefrontObject result = new WavefrontObject("blade_tetra_runtime_part",
-                    new ByteArrayInputStream("# runtime part\n".getBytes(StandardCharsets.UTF_8)));
-            result.groupObjects.clear();
-            GroupObject group = new GroupObject(target);
-            group.faces.addAll(faces);
-            result.groupObjects.add(group);
+            WavefrontObject result = RuntimeWavefrontViewFactory.create(target, faces);
             VIEWS.put(key, result);
             return result;
         } catch (RuntimeException exception) {
