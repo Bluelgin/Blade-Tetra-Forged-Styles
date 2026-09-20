@@ -10,78 +10,75 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.lang.reflect.Method;
+import java.io.InputStream;
 
 /**
  * Keeps Blade Tetra's runtime Wavefront views compatible with render optimizers
- * that bake SlashBlade geometry at model construction time.
+ * that snapshot SlashBlade geometry during model construction.
  *
- * <p>Blade Tetra creates a tiny {@link WavefrontObject} and then replaces its
- * group list with selected/clipped faces. A Belated Gift 1.0.x snapshots that
- * list from a constructor-return mixin, before Blade Tetra installs those
- * runtime groups. Its optimized render path therefore sees an empty baked
- * model and falls back to {@code tessellateOnly}, where the stale snapshot
- * would otherwise render nothing.</p>
+ * <p>Blade Tetra creates a tiny {@link WavefrontObject} named
+ * {@code blade_tetra_runtime_part} and replaces its group list after the
+ * constructor returns. Optimizers such as A Belated Gift can therefore cache
+ * the intentionally empty constructor-time geometry and never see the live
+ * selected/clipped faces installed by Blade Tetra.</p>
  *
- * <p>This hook runs before the optimizer's own {@code tessellateOnly} injector.
- * If the requested group really exists in the live Wavefront object, it asks
- * the optional optimizer to rebuild its private baked snapshot once. There is
- * no compile-time dependency on A Belated Gift, and ordinary SlashBlade clients
- * only pay one failed reflective lookup for a model that reaches this fallback.</p>
+ * <p>Do not try to mutate or rebuild another mod's private cache here. Instead,
+ * mark only Blade Tetra's synthetic runtime objects at construction time and
+ * reproduce SlashBlade's vanilla {@code tessellateOnly} loop for those objects.
+ * The callback is then cancelled before lower-priority optimizer hooks can use
+ * their stale snapshot. Normal SlashBlade models are untouched and keep using
+ * the optimizer normally.</p>
  */
 @Mixin(value = WavefrontObject.class, remap = false, priority = 2000)
 public abstract class WavefrontRuntimeBakeCompatMixin {
     @Unique
-    private boolean bladeTetra$runtimeBakeSynchronized;
+    private boolean bladeTetra$runtimeView;
 
-    @Inject(method = "tessellateOnly", at = @At("HEAD"), require = 0)
-    private void bladeTetra$refreshOptionalRuntimeBake(
+    @Inject(
+            method = "<init>(Ljava/lang/String;Ljava/io/InputStream;)V",
+            at = @At("RETURN"),
+            require = 0)
+    private void bladeTetra$markRuntimeView(
+            String filename,
+            InputStream inputStream,
+            CallbackInfo callback) {
+        bladeTetra$runtimeView = "blade_tetra_runtime_part".equals(filename);
+    }
+
+    @Inject(
+            method = "tessellateOnly",
+            at = @At("HEAD"),
+            cancellable = true,
+            require = 0)
+    private void bladeTetra$renderRuntimeViewFromLiveGroups(
             VertexConsumer consumer,
             PoseStack poses,
             int packedLight,
             int packedOverlay,
             String[] groupNames,
             CallbackInfo callback) {
-        if (bladeTetra$runtimeBakeSynchronized) {
+        if (!bladeTetra$runtimeView) {
             return;
         }
 
         WavefrontObject self = (WavefrontObject) (Object) this;
-        if (!bladeTetra$containsRenderableGroup(self, groupNames)) {
-            return;
-        }
-
-        // The optional optimization mod is fixed for the lifetime of this class,
-        // so do not repeat reflection on every frame after the first relevant draw.
-        bladeTetra$runtimeBakeSynchronized = true;
-        try {
-            Method rebake = self.getClass().getDeclaredMethod("abg$bake");
-            if (rebake.trySetAccessible()) {
-                rebake.invoke(self);
-            }
-        } catch (NoSuchMethodException ignored) {
-            // A Belated Gift is optional. Vanilla/Resharped rendering needs no work.
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-            // Compatibility must fail open. SlashBlade's normal fallback still runs.
-        }
-    }
-
-    @Unique
-    private static boolean bladeTetra$containsRenderableGroup(
-            WavefrontObject model, String[] groupNames) {
-        if (model.groupObjects == null || groupNames == null || groupNames.length == 0) {
-            return false;
-        }
-        for (GroupObject group : model.groupObjects) {
-            if (group == null || group.name == null || group.faces == null || group.faces.isEmpty()) {
-                continue;
-            }
-            for (String requested : groupNames) {
-                if (requested != null && group.name.equalsIgnoreCase(requested)) {
-                    return true;
+        if (self.groupObjects != null && groupNames != null) {
+            for (GroupObject group : self.groupObjects) {
+                if (group == null || group.name == null) {
+                    continue;
+                }
+                for (String requested : groupNames) {
+                    if (requested != null && requested.equalsIgnoreCase(group.name)) {
+                        // This is the original SlashBlade tessellateOnly behavior,
+                        // deliberately reading Blade Tetra's post-construction groups.
+                        group.render(consumer, poses, packedLight, packedOverlay);
+                    }
                 }
             }
         }
-        return false;
+
+        // Runtime views are fully handled above, including the no-matching-group case.
+        // Returning now prevents A Belated Gift from substituting its stale baked copy.
+        callback.cancel();
     }
 }
