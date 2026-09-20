@@ -66,7 +66,7 @@ class ProgrammaticFusionAddonProfilesTest {
         assertPresentation("recasting:blade_storm_lambda", true, true);
 
         assertPresentation("closed_addon:stellar_sword_rain", false, false);
-        assertPresentation("slashblade:wave_edge", false, false);
+        assertPresentation("slashblade:wave_edge", true, true);
     }
 
     @Test
