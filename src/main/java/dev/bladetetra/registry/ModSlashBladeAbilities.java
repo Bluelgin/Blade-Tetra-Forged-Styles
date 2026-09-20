@@ -2,10 +2,13 @@ package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.ModComboStates;
+import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import dev.bladetetra.forging.LegacyFusion;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.specialeffects.SpecialEffect;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -15,6 +18,17 @@ public final class ModSlashBladeAbilities {
             DeferredRegister.create(SlashArts.REGISTRY_KEY, BladeTetra.MOD_ID);
     public static final DeferredRegister<SpecialEffect> SPECIAL_EFFECTS =
             DeferredRegister.create(SpecialEffect.REGISTRY_KEY, BladeTetra.MOD_ID);
+
+    /**
+     * Single runtime SA for all non-authored mixed named-blade fittings. The ordered
+     * pair is resolved from the item at cast time rather than registered per pair.
+     */
+    public static final RegistryObject<SlashArts> PROGRAMMATIC_FUSION =
+            SLASH_ARTS.register("programmatic_fusion", () -> new SlashArts(entity ->
+                    programmaticCombo(entity, false))
+                    .setComboStateJust(entity -> programmaticCombo(entity, true))
+                    .setComboStateSuper(entity -> programmaticCombo(entity, true))
+                    .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> TWIN_FOX_PIERCING =
             SLASH_ARTS.register("twin_fox_piercing", () -> new SlashArts(entity ->
@@ -87,6 +101,22 @@ public final class ModSlashBladeAbilities {
     public static final RegistryObject<SpecialEffect> LIFE_EROSION =
             SPECIAL_EFFECTS.register("life_erosion",
                     () -> new SpecialEffect(0, false, false));
+
+    private static ResourceLocation programmaticCombo(LivingEntity entity, boolean just) {
+        ProgrammaticFusionPlan plan = ProgrammaticFusionPlan.from(entity.getMainHandItem());
+        if (plan == null) {
+            return ComboStateRegistry.NONE.getId();
+        }
+        return switch (plan.release().entry()) {
+            case DASH -> just
+                    ? ComboStateRegistry.PIERCING_JUST.getId()
+                    : ComboStateRegistry.PIERCING.getId();
+            case ARC -> entity.onGround()
+                    ? ComboStateRegistry.SAKURA_END_LEFT.getId()
+                    : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId();
+            case DIRECT -> ComboStateRegistry.STANDBY.getId();
+        };
+    }
 
     private static SlashArts standbyArt(LegacyFusion fusion, int proudSoulCost) {
         return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)

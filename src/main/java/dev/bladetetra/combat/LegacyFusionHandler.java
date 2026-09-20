@@ -36,6 +36,11 @@ public final class LegacyFusionHandler {
         }
         ItemStack blade = player.getMainHandItem();
         var art = event.getSlashBladeState().getSlashArtsKey();
+        if (ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId().equals(art)) {
+            ProgrammaticFusionHandler.onSlashArt(
+                    player, blade, event.getSlashBladeState());
+            return;
+        }
         if (ModSlashBladeAbilities.TSUKUMO_CROSS.getId().equals(art)) {
             TsukumoCrossNativeHandler.onSlashArt(player, blade);
             return;
