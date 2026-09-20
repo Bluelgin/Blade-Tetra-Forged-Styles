@@ -2,7 +2,7 @@ package dev.bladetetra.combat;
 
 /**
  * Small semantic description used by the generic legacy-fusion executor.
- * Profiles describe intent only; they never call a third-party Slash Art.
+ * Profiles describe intent only; third-party profiles never invoke their source SA.
  */
 public record ProgrammaticFusionProfile(Entry entry, Response response,
         double intensity) {
@@ -15,16 +15,36 @@ public record ProgrammaticFusionProfile(Entry entry, Response response,
         intensity = Math.max(0.25D, Math.min(1.0D, intensity));
     }
 
+    /**
+     * Saya/release grammar. Native SlashBlade entries map back to their original
+     * ComboState while DIRECT remains the conservative compatibility fallback.
+     */
     public enum Entry {
         DIRECT,
-        DASH,
-        ARC
+        JUDGEMENT_CUT,
+        SAKURA_END,
+        VOID_SLASH,
+        CIRCLE_SLASH,
+        DRIVE_VERTICAL,
+        DRIVE_HORIZONTAL,
+        WAVE_EDGE,
+        PIERCING
     }
 
+    /**
+     * Tsuba/response grammar. Every response has a fixed bounded primitive count;
+     * ProgrammaticFusionPlan divides one shared damage budget across that count.
+     */
     public enum Response {
         FOCUSED_DRIVE(1),
-        CROSS_DRIVE(2),
-        FAN_DRIVE(3);
+        JUDGEMENT_ECHO(3),
+        SAKURA_CROSS(2),
+        VOID_TRIDENT(3),
+        CIRCLE_RING(4),
+        VERTICAL_DRIVE(1),
+        HORIZONTAL_DRIVE(1),
+        WAVE_EDGE(4),
+        PIERCING_FOCUS(1);
 
         private final int projectileCount;
 
