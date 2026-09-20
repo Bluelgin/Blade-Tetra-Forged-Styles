@@ -37,7 +37,7 @@ public final class LegacyFusionHandler {
         ItemStack blade = player.getMainHandItem();
         var art = event.getSlashBladeState().getSlashArtsKey();
         if (ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId().equals(art)) {
-            ProgrammaticFusionHandler.onSlashArt(
+            ProgrammaticFusionHandler.onSlashArt(event,
                     player, blade, event.getSlashBladeState());
             return;
         }
@@ -96,6 +96,7 @@ public final class LegacyFusionHandler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        ProgrammaticFusionHandler.tick(event);
         TwinFoxFusionHandler.tick(event);
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
@@ -107,6 +108,7 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel level) {
+            ProgrammaticFusionHandler.onLevelUnload(level);
             TwinFoxFusionHandler.onLevelUnload(level);
             TwinPhaseFusionHandler.onLevelUnload(level);
             DouwariFusionHandler.onLevelUnload(level);
@@ -118,6 +120,7 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
+        ProgrammaticFusionHandler.clear();
         TwinFoxFusionHandler.clear();
         TwinPhaseFusionHandler.clear();
         RustReleaseFusionHandler.clear();

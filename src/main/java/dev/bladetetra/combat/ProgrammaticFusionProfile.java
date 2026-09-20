@@ -2,7 +2,9 @@ package dev.bladetetra.combat;
 
 /**
  * Small semantic description used by the generic legacy-fusion executor.
- * Profiles describe intent only; third-party profiles never invoke their source SA.
+ * Profiles describe intent only. Exact third-party presentation, when explicitly
+ * allow-listed, is handled by a separate runtime layer and can always fall back
+ * to this bounded semantic grammar.
  */
 public record ProgrammaticFusionProfile(Entry entry, Response response,
         double intensity) {

@@ -19,10 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ProgrammaticFusionAddonProfilesTest {
     @Test
     void popularAddonDictionariesResolveKnownSlashArtsExactly() {
-        SjapFusionProfiles.register();
-        YakumoFusionProfiles.register();
-        LastSmithFusionProfiles.register();
-        RecastingFusionProfiles.register();
+        registerExactAddons();
 
         assertProfile("slashblade_addon:spiral_edge",
                 ProgrammaticFusionProfile.Entry.CIRCLE_SLASH,
@@ -60,6 +57,19 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
+    void exactAddonDictionariesAlsoAllowSourcePresentationInBothDirections() {
+        registerExactAddons();
+
+        assertPresentation("slashblade_addon:rapid_blistering_swords", true, true);
+        assertPresentation("yakumoblade:gigantjudgement_cut", true, true);
+        assertPresentation("last_smith:iai_cross", true, true);
+        assertPresentation("recasting:blade_storm_lambda", true, true);
+
+        assertPresentation("closed_addon:stellar_sword_rain", false, false);
+        assertPresentation("slashblade:wave_edge", false, false);
+    }
+
+    @Test
     void unknownAddonStillGetsLazyConservativeSemantics() {
         assertProfile("closed_addon:stellar_sword_rain",
                 ProgrammaticFusionProfile.Entry.WAVE_EDGE,
@@ -73,19 +83,24 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
-    void easterEggMarkerOnlyAppliesToThirdPartyFallbackPresentation() {
+    void easterEggMarkerOnlyAppliesWhenThirdPartyPresentationStillFallsBack() {
+        registerExactAddons();
         LegacyImprintKind nativePiercing = kind("native_piercing", "slashblade:piercing");
         LegacyImprintKind nativeWave = kind("native_wave", "slashblade:wave_edge");
         LegacyImprintKind yakumo = kind("yakumo_cut", "yakumoblade:judgement_cut");
         LegacyImprintKind sjap = kind("sjap_swords",
                 "slashblade_addon:rapid_blistering_swords");
+        LegacyImprintKind unknown = kind("unknown_star",
+                "closed_addon:stellar_sword_rain");
 
         assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, nativeWave, nativeWave)));
-        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, yakumo, yakumo)));
-        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(yakumo, sjap, sjap)));
+        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+                new NamedLegacyParts(yakumo, unknown, unknown)));
 
         // A third-party named blade that actually uses a native SlashBlade SA is
         // already covered by the native presentation and should not get the joke.
@@ -96,6 +111,23 @@ class ProgrammaticFusionAddonProfilesTest {
                         addonBladeUsingNativeArt, addonBladeUsingNativeArt)));
     }
 
+    @Test
+    void delegatedResponseBlendDelayIsBoundedAndLeavesSignatureWindow() {
+        assertEquals(3,
+                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(0));
+        assertEquals(14,
+                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(2000));
+        assertEquals(16,
+                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(10000));
+    }
+
+    private static void registerExactAddons() {
+        SjapFusionProfiles.register();
+        YakumoFusionProfiles.register();
+        LastSmithFusionProfiles.register();
+        RecastingFusionProfiles.register();
+    }
+
     private static void assertProfile(String id,
             ProgrammaticFusionProfile.Entry entry,
             ProgrammaticFusionProfile.Response response) {
@@ -103,6 +135,13 @@ class ProgrammaticFusionAddonProfilesTest {
                 new ResourceLocation(id));
         assertEquals(entry, profile.entry(), id);
         assertEquals(response, profile.response(), id);
+    }
+
+    private static void assertPresentation(String id, boolean release, boolean response) {
+        ProgrammaticFusionPresentation presentation =
+                ProgrammaticFusionPresentations.resolve(new ResourceLocation(id));
+        assertEquals(release, presentation.delegateRelease(), id + " release");
+        assertEquals(response, presentation.delegateResponse(), id + " response");
     }
 
     private static LegacyImprintKind kind(String id, String slashArt) {

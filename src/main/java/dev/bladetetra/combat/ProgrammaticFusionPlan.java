@@ -12,8 +12,12 @@ import net.minecraft.world.item.ItemStack;
  * Authored LegacyFusion entries always take precedence over this fallback.
  */
 public record ProgrammaticFusionPlan(String key,
+        ResourceLocation releaseAbility,
+        ResourceLocation responseAbility,
         ProgrammaticFusionProfile release,
         ProgrammaticFusionProfile response,
+        ProgrammaticFusionPresentation releasePresentation,
+        ProgrammaticFusionPresentation responsePresentation,
         double primaryDriveDamage,
         double responseDriveDamage,
         int responseCount) {
@@ -26,19 +30,22 @@ public record ProgrammaticFusionPlan(String key,
     }
 
     /**
-     * True when this generic fusion contains at least one non-native Slash Art and
-     * therefore currently uses Blade Tetra's bounded presentation instead of the
-     * source add-on's own runtime effect executor.
+     * True when at least one third-party side of this generic fusion lacks an exact
+     * source-presentation executor and therefore falls back to Blade Tetra semantics.
      */
     public static boolean hasUnadaptedThirdPartyArt(ItemStack stack) {
         return stack != null && hasUnadaptedThirdPartyArt(NamedLegacyParts.fromStack(stack));
     }
 
     static boolean hasUnadaptedThirdPartyArt(NamedLegacyParts parts) {
-        if (!eligible(parts)) {
+        ProgrammaticFusionPlan plan = from(parts);
+        if (plan == null) {
             return false;
         }
-        return isThirdPartyArt(parts.saya()) || isThirdPartyArt(parts.tsuba());
+        return isThirdPartyArt(plan.releaseAbility())
+                && !plan.releasePresentation().delegateRelease()
+                || isThirdPartyArt(plan.responseAbility())
+                && !plan.responsePresentation().delegateResponse();
     }
 
     static ProgrammaticFusionPlan from(NamedLegacyParts parts) {
@@ -47,19 +54,31 @@ public record ProgrammaticFusionPlan(String key,
         }
         LegacyImprintKind saya = parts.saya();
         LegacyImprintKind hilt = parts.tsuba();
-        ProgrammaticFusionProfile release = ProgrammaticFusionProfiles.resolve(saya);
-        ProgrammaticFusionProfile response = ProgrammaticFusionProfiles.resolve(hilt);
+        ResourceLocation releaseAbility = ProgrammaticFusionProfiles.abilityOf(saya);
+        ResourceLocation responseAbility = ProgrammaticFusionProfiles.abilityOf(hilt);
+        ProgrammaticFusionProfile release = ProgrammaticFusionProfiles.resolve(releaseAbility);
+        ProgrammaticFusionProfile response = ProgrammaticFusionProfiles.resolve(responseAbility);
+        ProgrammaticFusionPresentation releasePresentation =
+                ProgrammaticFusionPresentations.resolve(releaseAbility);
+        ProgrammaticFusionPresentation responsePresentation =
+                ProgrammaticFusionPresentations.resolve(responseAbility);
         int count = response.response().projectileCount();
         boolean nativePrimary = release.entry() != ProgrammaticFusionProfile.Entry.DIRECT;
-        double primaryBudget = nativePrimary ? 0.0D : DIRECT_PRIMARY_BUDGET;
-        double responseBudget = nativePrimary
+        boolean delegatedPrimary = releasePresentation.delegateRelease();
+        double primaryBudget = nativePrimary || delegatedPrimary
+                ? 0.0D : DIRECT_PRIMARY_BUDGET;
+        double responseBudget = nativePrimary || delegatedPrimary
                 ? RESPONSE_BUDGET_WITH_NATIVE_PRIMARY
                 : RESPONSE_BUDGET_WITH_DIRECT_PRIMARY;
         double intensity = 0.75D + 0.25D * ((release.intensity() + response.intensity()) * 0.5D);
         return new ProgrammaticFusionPlan(
                 saya.id() + "->" + hilt.id(),
+                releaseAbility,
+                responseAbility,
                 release,
                 response,
+                releasePresentation,
+                responsePresentation,
                 primaryBudget * intensity,
                 responseBudget * intensity / count,
                 count);
@@ -81,25 +100,15 @@ public record ProgrammaticFusionPlan(String key,
         return release.entry() != ProgrammaticFusionProfile.Entry.DIRECT;
     }
 
-    private static boolean isThirdPartyArt(LegacyImprintKind kind) {
-        ResourceLocation ability = semanticAbility(kind);
+    boolean hasDelegatedPrimary() {
+        return releasePresentation.delegateRelease();
+    }
+
+    private static boolean isThirdPartyArt(ResourceLocation ability) {
         if (ability == null) {
             return false;
         }
         String namespace = ability.getNamespace();
         return !"slashblade".equals(namespace) && !BladeTetra.MOD_ID.equals(namespace);
-    }
-
-    private static ResourceLocation semanticAbility(LegacyImprintKind kind) {
-        if (kind == null) {
-            return null;
-        }
-        if (kind.slashArt() != null) {
-            return kind.slashArt();
-        }
-        if (!kind.specialEffects().isEmpty()) {
-            return kind.specialEffects().get(0);
-        }
-        return kind.name();
     }
 }

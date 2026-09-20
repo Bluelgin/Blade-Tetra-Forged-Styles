@@ -4,19 +4,25 @@ import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.entity.EntityDrive;
+import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.slasharts.Drive;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
 
-/** Executes bounded Blade Tetra-owned primitives for a generated fusion plan. */
+/**
+ * Executes mixed named-blade fusions. Exact allow-listed add-on presentations are
+ * delegated first; the bounded Blade Tetra grammar remains the fallback path.
+ */
 final class ProgrammaticFusionHandler {
     static final float DRIVE_SPEED = 2.0F;
     static final int DRIVE_LIFETIME = 12;
     static final double FAN_ANGLE_DEGREES = 12.0D;
 
-    static void onSlashArt(ServerPlayer player, ItemStack blade,
-            ISlashBladeState state) {
+    static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
+            ServerPlayer player, ItemStack blade, ISlashBladeState state) {
         if (!ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
                 .equals(state.getSlashArtsKey())) {
             return;
@@ -26,12 +32,33 @@ final class ProgrammaticFusionHandler {
             return;
         }
 
+        boolean delegatedRelease = ProgrammaticFusionPresentationRuntime.delegateRelease(
+                event, player, plan);
         Vec3 forward = player.getLookAngle();
-        if (plan.primaryDriveDamage() > 0.0D) {
+        if (!delegatedRelease && plan.primaryDriveDamage() > 0.0D) {
             spawnDrive(player, forward, plan.primaryDriveDamage(), 0, -90.0F,
                     DRIVE_SPEED);
         }
 
+        if (!ProgrammaticFusionPresentationRuntime.scheduleResponse(event, player, plan)) {
+            executeSemanticResponse(player, plan);
+        }
+    }
+
+    static void tick(TickEvent.ServerTickEvent event) {
+        ProgrammaticFusionPresentationRuntime.tick(event);
+    }
+
+    static void onLevelUnload(ServerLevel level) {
+        ProgrammaticFusionPresentationRuntime.onLevelUnload(level);
+    }
+
+    static void clear() {
+        ProgrammaticFusionPresentationRuntime.clear();
+    }
+
+    static void executeSemanticResponse(ServerPlayer player, ProgrammaticFusionPlan plan) {
+        Vec3 forward = player.getLookAngle();
         ProgrammaticFusionProfile.Response response = plan.response().response();
         for (int index = 0; index < plan.responseCount(); index++) {
             Vec3 direction = rotateHorizontal(forward, responseYaw(response, index));

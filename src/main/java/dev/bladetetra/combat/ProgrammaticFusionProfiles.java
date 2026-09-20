@@ -7,7 +7,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Resolves named-blade abilities into conservative, composable semantics. */
+/**
+ * Resolves named-blade abilities into conservative, composable semantics. Exact
+ * presentation delegation is a separate allow-listed layer; this registry always
+ * remains usable as the fallback when source execution is unavailable.
+ */
 public final class ProgrammaticFusionProfiles {
     private static final Map<ResourceLocation, ProgrammaticFusionProfile> EXPLICIT =
             new ConcurrentHashMap<>();
@@ -57,17 +61,21 @@ public final class ProgrammaticFusionProfiles {
     }
 
     static ProgrammaticFusionProfile resolve(LegacyImprintKind kind) {
+        return resolve(abilityOf(kind));
+    }
+
+    /** Stable semantic source identity used by both planning and presentation. */
+    static ResourceLocation abilityOf(LegacyImprintKind kind) {
         if (kind == null) {
-            return ProgrammaticFusionProfile.SAFE;
+            return null;
         }
-        ResourceLocation semantic = kind.slashArt();
-        if (semantic == null && !kind.specialEffects().isEmpty()) {
-            semantic = kind.specialEffects().get(0);
+        if (kind.slashArt() != null) {
+            return kind.slashArt();
         }
-        if (semantic == null) {
-            semantic = kind.name();
+        if (!kind.specialEffects().isEmpty()) {
+            return kind.specialEffects().get(0);
         }
-        return resolve(semantic);
+        return kind.name();
     }
 
     static ProgrammaticFusionProfile resolve(ResourceLocation ability) {
