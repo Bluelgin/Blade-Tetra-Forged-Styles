@@ -3,8 +3,10 @@ package dev.bladetetra.compat.fusion;
 import dev.bladetetra.combat.ProgrammaticFusionProfile;
 
 /**
- * Exact ID dictionary for YakumoBlade. The source SA itself is never invoked;
- * each entry is reduced to a bounded native Blade Tetra semantic.
+ * Exact ID dictionary for YakumoBlade. The audited 1.20.1 SlashArts are simple
+ * registry-backed ComboState selectors, so loaded entries are allowed to delegate
+ * their original release/response presentation. The semantic profile remains the
+ * bounded fallback if the source registry changes or execution fails.
  */
 public final class YakumoFusionProfiles {
     public static final String MOD_ID = "yakumoblade";

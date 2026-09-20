@@ -31,6 +31,7 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
         if (!(event.getEntityLiving() instanceof ServerPlayer player)
+                || event.getType() == null
                 || event.getType() == SlashArts.ArtsType.Fail) {
             return;
         }
