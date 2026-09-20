@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,7 +46,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
 
         JsonObject en = new JsonObject();
         JsonObject zh = new JsonObject();
-        JsonArray historicalImprovements = new JsonArray();
+        List<JsonObject> historicalImprovements = new ArrayList<>();
         List<LegacyImprintKind> accepted = new ArrayList<>();
         List<LegacyImprintKind> discovered;
 
@@ -79,8 +80,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
             }
         }
 
-        putUnique("data/tetra/improvements/slashblade/tsuka/legacy_auto.json",
-                historicalImprovements.toString());
+        putHistoricalImprovements(historicalImprovements);
         putGenericModule("saya");
         putGenericModule("tsuba");
 
@@ -110,6 +110,18 @@ public final class NamedLegacyPack extends AbstractPackResources {
         LogUtils.getLogger().info(
                 "Blade Tetra named-pattern pack staged {} blades using 2 generic module variants",
                 accepted.size());
+    }
+
+    private void putHistoricalImprovements(List<JsonObject> historicalImprovements) {
+        List<JsonArray> chunks = HistoricalImprovementChunker.chunk(historicalImprovements);
+        for (int i = 0; i < chunks.size(); i++) {
+            String chunk = String.format(Locale.ROOT, "%03d", i);
+            putUnique("data/tetra/improvements/slashblade/tsuka/legacy_auto/"
+                    + chunk + ".json", chunks.get(i).toString());
+        }
+        LogUtils.getLogger().debug(
+                "Blade Tetra split {} historical named-imprint improvements into {} sync-safe resources",
+                historicalImprovements.size(), chunks.size());
     }
 
     private Map<String, byte[]> buildKindResources(LegacyImprintKind kind) {
