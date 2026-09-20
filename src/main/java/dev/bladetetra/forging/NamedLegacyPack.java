@@ -47,8 +47,18 @@ public final class NamedLegacyPack extends AbstractPackResources {
         JsonObject zh = new JsonObject();
         JsonArray historicalImprovements = new JsonArray();
         List<LegacyImprintKind> accepted = new ArrayList<>();
+        List<LegacyImprintKind> discovered;
 
-        for (LegacyImprintKind kind : NamedLegacyCatalog.values()) {
+        try {
+            discovered = List.copyOf(NamedLegacyCatalog.values());
+        } catch (RuntimeException | LinkageError failure) {
+            LogUtils.getLogger().warn(
+                    "Named-blade discovery failed; loading the generic Blade Tetra pack without addon imprints",
+                    failure);
+            discovered = List.of();
+        }
+
+        for (LegacyImprintKind kind : discovered) {
             try {
                 Map<String, byte[]> staged = buildKindResources(kind);
                 ensureNoCollisions(staged);
@@ -62,10 +72,10 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 improvement.addProperty("key", kind.improvement());
                 improvement.addProperty("level", 1);
                 historicalImprovements.add(improvement);
-            } catch (RuntimeException exception) {
+            } catch (RuntimeException | LinkageError failure) {
                 LogUtils.getLogger().warn(
                         "Skipping named imprint pack resources for {} without affecting other blades",
-                        kind.id(), exception);
+                        kind.id(), failure);
             }
         }
 

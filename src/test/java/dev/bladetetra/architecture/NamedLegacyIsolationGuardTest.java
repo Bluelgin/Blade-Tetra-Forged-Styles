@@ -43,6 +43,8 @@ class NamedLegacyIsolationGuardTest {
         assertTrue(storage.contains("/imprinted"));
         assertTrue(storage.contains("sourceFromSchematic"),
                 "Existing per-blade schematic ids should feed the generic NBT identity bridge");
+        assertTrue(storage.contains("_snapshot"),
+                "Named-imprint semantics should be persisted beside the soft source id");
     }
 
     @Test
@@ -76,8 +78,12 @@ class NamedLegacyIsolationGuardTest {
                 "src/main/java/dev/bladetetra/forging/NamedLegacyParts.java"));
         assertTrue(parts.contains("public static NamedLegacyParts visualFromStack"),
                 "Rendering must have a separate presentation view");
-        assertTrue(parts.contains("return NamedLegacyCatalog.get(id);"),
-                "Semantic source resolution must use catalog identity directly");
+        int snapshotLookup = parts.indexOf("NamedLegacyImprintStorage.snapshot(stack, part)");
+        int catalogFallback = parts.indexOf("safeCatalogGet(id)");
+        assertTrue(snapshotLookup >= 0 && catalogFallback > snapshotLookup,
+                "Snapshot-backed stacks must resolve before old-stack catalog fallback");
+        assertTrue(parts.contains("catch (RuntimeException | LinkageError failure)"),
+                "Old source-only stacks must also fail open across addon ABI failures");
         int semanticStart = parts.indexOf("public static NamedLegacyParts fromStack");
         int visualStart = parts.indexOf("public static NamedLegacyParts visualFromStack");
         assertTrue(semanticStart >= 0 && visualStart > semanticStart);
@@ -86,6 +92,24 @@ class NamedLegacyIsolationGuardTest {
         assertFalse(semanticPath.contains("visualProfile"));
         assertFalse(semanticPath.contains("LegacyImprintProfileResolver"),
                 "Gameplay identity must never consult client geometry");
+    }
+
+    @Test
+    void craftedIdentitySnapshotsPureRuntimeData() throws IOException {
+        String storage = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/forging/NamedLegacyImprintStorage.java"));
+        assertTrue(storage.contains("public static LegacyImprintKind snapshot"));
+        assertTrue(storage.contains("kind.defaultProfile().write()"),
+                "The pure calibration profile belongs in the persisted snapshot");
+        assertTrue(storage.contains("kind.specialEffects()"),
+                "Orthodox inherited effects must survive without a catalog lookup");
+
+        String outcome = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/compat/LegacyImprintCraftingOutcome.java"));
+        assertTrue(outcome.contains("NamedLegacyImprintStorage.putSnapshot"),
+                "Successful named-imprint crafts must capture a self-contained snapshot");
+        assertTrue(outcome.contains("catch (RuntimeException | LinkageError failure)"),
+                "Snapshot hardening must fail open when optional addon discovery breaks");
     }
 
     @Test
