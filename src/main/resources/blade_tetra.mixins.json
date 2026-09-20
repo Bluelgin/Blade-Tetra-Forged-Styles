@@ -8,9 +8,6 @@
     "MirrorIceMixin",
     "SwordTypeMixin"
   ],
-  "client": [
-    "WavefrontRuntimeBakeCompatMixin"
-  ],
   "injectors": {
     "defaultRequire": 1
   }
