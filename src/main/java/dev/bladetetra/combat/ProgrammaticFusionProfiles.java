@@ -17,9 +17,9 @@ public final class ProgrammaticFusionProfiles {
             new ConcurrentHashMap<>();
 
     static {
-        // SlashBlade: Resharped 1.20.1 native SA dictionary. These are semantic
-        // descriptions, not pair recipes, so N native arts still produce N*(N-1)
-        // ordered mixed combinations without a quadratic catalog.
+        // SlashBlade: Resharped 1.20.1 native SA dictionary. Native arts are also
+        // exact source-presentation entries, so base/base and base/add-on fusions
+        // use the same release/response delegation framework as audited add-ons.
         nativeArt("judgement_cut",
                 ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
                 ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 1.00D);
@@ -138,8 +138,10 @@ public final class ProgrammaticFusionProfiles {
     private static void nativeArt(String path,
             ProgrammaticFusionProfile.Entry entry,
             ProgrammaticFusionProfile.Response response, double intensity) {
-        register(new ResourceLocation("slashblade", path),
-                new ProgrammaticFusionProfile(entry, response, intensity));
+        ResourceLocation ability = new ResourceLocation("slashblade", path);
+        register(ability, new ProgrammaticFusionProfile(entry, response, intensity));
+        ProgrammaticFusionPresentations.register(
+                ability, ProgrammaticFusionPresentation.FULL);
     }
 
     private static boolean containsAny(String value, String... needles) {
