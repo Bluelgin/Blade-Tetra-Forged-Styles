@@ -45,12 +45,14 @@ class ProgrammaticFusionPlanTest {
     @Test
     void nativeSlashBladeDictionaryCoversEveryBaseSlashArt() {
         for (NativeArt expected : NATIVE_ARTS) {
-            ProgrammaticFusionProfile profile = ProgrammaticFusionProfiles.resolve(
-                    new ResourceLocation("slashblade", expected.id()));
+            ResourceLocation ability = new ResourceLocation("slashblade", expected.id());
+            ProgrammaticFusionProfile profile = ProgrammaticFusionProfiles.resolve(ability);
             assertEquals(expected.entry(), profile.entry(), expected.id());
             assertEquals(expected.response(), profile.response(), expected.id());
             assertEquals(expected.responseCount(), profile.response().projectileCount(),
                     expected.id());
+            assertEquals(ProgrammaticFusionPresentation.FULL,
+                    ProgrammaticFusionPresentations.resolve(ability), expected.id());
         }
     }
 
@@ -75,7 +77,13 @@ class ProgrammaticFusionPlanTest {
                 assertEquals(sayaArt.entry(), plan.release().entry());
                 assertEquals(hiltArt.response(), plan.response().response());
                 assertEquals(hiltArt.responseCount(), plan.responseCount());
+                assertEquals(ProgrammaticFusionPresentation.FULL,
+                        plan.releasePresentation());
+                assertEquals(ProgrammaticFusionPresentation.FULL,
+                        plan.responsePresentation());
                 assertTrue(plan.hasNativePrimary());
+                assertTrue(plan.hasDelegatedPrimary());
+                assertEquals(0.0D, plan.primaryDriveDamage(), 0.0001D);
             }
         }
     }
