@@ -5,7 +5,6 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,8 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ProgrammaticFusionProfiles {
     private static final Map<ResourceLocation, ProgrammaticFusionProfile> EXPLICIT =
             new ConcurrentHashMap<>();
-    private static final Set<ResourceLocation> SOURCE_PRESENTATION =
-            ConcurrentHashMap.newKeySet();
 
     static {
         // SlashBlade: Resharped 1.20.1 native SA dictionary. These are semantic
@@ -49,7 +46,11 @@ public final class ProgrammaticFusionProfiles {
                 ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 0.90D);
     }
 
-    /** Semantic-only registration seam. */
+    /**
+     * Extension seam for compatibility modules. Registration describes an ability;
+     * it does not define any ordered A+B pair and therefore does not reintroduce a
+     * quadratic fusion catalog.
+     */
     public static void register(ResourceLocation ability,
             ProgrammaticFusionProfile profile) {
         if (ability == null || profile == null) {
@@ -59,19 +60,8 @@ public final class ProgrammaticFusionProfiles {
         EXPLICIT.put(ability, profile);
     }
 
-    /**
-     * Registers an audited optional ability whose own SlashArts/ComboState chain is
-     * safe to delegate to when the owning add-on is loaded. No optional Java type is
-     * referenced here; delegation is resolved through SlashBlade's shared registry.
-     */
-    public static void registerSourcePresentation(ResourceLocation ability,
-            ProgrammaticFusionProfile profile) {
-        register(ability, profile);
-        SOURCE_PRESENTATION.add(ability);
-    }
-
-    static boolean supportsSourcePresentation(ResourceLocation ability) {
-        return ability != null && SOURCE_PRESENTATION.contains(ability);
+    static ProgrammaticFusionProfile resolve(LegacyImprintKind kind) {
+        return resolve(abilityOf(kind));
     }
 
     /** Stable semantic source identity used by both planning and presentation. */
@@ -86,10 +76,6 @@ public final class ProgrammaticFusionProfiles {
             return kind.specialEffects().get(0);
         }
         return kind.name();
-    }
-
-    static ProgrammaticFusionProfile resolve(LegacyImprintKind kind) {
-        return resolve(abilityOf(kind));
     }
 
     static ProgrammaticFusionProfile resolve(ResourceLocation ability) {
