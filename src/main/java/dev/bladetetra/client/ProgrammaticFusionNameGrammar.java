@@ -2,8 +2,11 @@ package dev.bladetetra.client;
 
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import dev.bladetetra.combat.ProgrammaticFusionProfile;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.EnumMap;
 import java.util.Locale;
@@ -13,13 +16,13 @@ import java.util.Objects;
 /**
  * Client-side naming grammar for runtime-generated legacy fusions.
  *
- * <p>The combat layer already reduces every source ability to an ordered
- * release/response semantic pair. This class gives those semantics a small,
- * bounded display vocabulary so one structural programmatic Slash Art can still
- * present a distinct name for every generated combination without registering
- * A+B-specific arts.</p>
+ * <p>Native SlashBlade arts are deliberately restyled through Blade Tetra's
+ * compact semantic vocabulary. Third-party arts keep their own localized source
+ * names when available so add-on identity is not flattened into generic generated
+ * names. Missing third-party translations fall back to the same bounded grammar.</p>
  */
 public final class ProgrammaticFusionNameGrammar {
+    private static final String NATIVE_NAMESPACE = "slashblade";
     private static final Map<ProgrammaticFusionProfile.Entry, Term> ENTRY_TERMS =
             new EnumMap<>(ProgrammaticFusionProfile.Entry.class);
     private static final Map<ProgrammaticFusionProfile.Response, Term> RESPONSE_TERMS =
@@ -51,24 +54,62 @@ public final class ProgrammaticFusionNameGrammar {
         Objects.requireNonNull(plan, "programmatic fusion plan");
         String language = Minecraft.getInstance().getLanguageManager().getSelected();
         return Component.literal(compose(
-                plan.release().entry(), plan.response().response(), language));
+                plan.releaseAbility(),
+                plan.release().entry(),
+                sourceName(plan.releaseAbility()),
+                plan.responseAbility(),
+                plan.response().response(),
+                sourceName(plan.responseAbility()),
+                language));
     }
 
+    /** Pure semantic composition retained for native/native naming and tests. */
     static String compose(ProgrammaticFusionProfile.Entry entry,
             ProgrammaticFusionProfile.Response response, String language) {
+        return compose(
+                new ResourceLocation(NATIVE_NAMESPACE, "release"), entry, null,
+                new ResourceLocation(NATIVE_NAMESPACE, "response"), response, null,
+                language);
+    }
+
+    static String compose(ResourceLocation releaseAbility,
+            ProgrammaticFusionProfile.Entry entry, String releaseSourceName,
+            ResourceLocation responseAbility,
+            ProgrammaticFusionProfile.Response response, String responseSourceName,
+            String language) {
         Term release = Objects.requireNonNull(ENTRY_TERMS.get(entry),
                 () -> "Missing release naming term for " + entry);
         Term reply = Objects.requireNonNull(RESPONSE_TERMS.get(response),
                 () -> "Missing response naming term for " + response);
         boolean chinese = "zh_cn".equals(normalizeLanguage(language));
-        return chinese
-                ? release.zh() + "·" + reply.zh()
-                : release.en() + " · " + reply.en();
+        String left = displayTerm(releaseAbility, releaseSourceName, release, chinese);
+        String right = displayTerm(responseAbility, responseSourceName, reply, chinese);
+        return chinese ? left + "·" + right : left + " · " + right;
     }
 
     static boolean coversEverySemantic() {
         return ENTRY_TERMS.size() == ProgrammaticFusionProfile.Entry.values().length
                 && RESPONSE_TERMS.size() == ProgrammaticFusionProfile.Response.values().length;
+    }
+
+    private static String sourceName(ResourceLocation ability) {
+        if (ability == null || isNative(ability)) {
+            return null;
+        }
+        String key = Util.makeDescriptionId("slash_art", ability);
+        return I18n.exists(key) ? I18n.get(key) : null;
+    }
+
+    private static String displayTerm(ResourceLocation ability, String sourceName,
+            Term fallback, boolean chinese) {
+        if (!isNative(ability) && sourceName != null && !sourceName.isBlank()) {
+            return sourceName;
+        }
+        return chinese ? fallback.zh() : fallback.en();
+    }
+
+    private static boolean isNative(ResourceLocation ability) {
+        return ability != null && NATIVE_NAMESPACE.equals(ability.getNamespace());
     }
 
     private static void entry(ProgrammaticFusionProfile.Entry entry, String en, String zh) {
