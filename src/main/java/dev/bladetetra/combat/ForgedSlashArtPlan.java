@@ -1,6 +1,5 @@
 package dev.bladetetra.combat;
 
-import dev.bladetetra.item.ModularSlashBladeItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -10,12 +9,11 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Compiled runtime description of a player-authored Tetra Slash Art.
+ * Compiled runtime description of a player-authored Slash Art.
  *
- * <p>Core material owns the total combat budget, the primary technique owns the
- * native SlashBlade motion and first geometry, the secondary technique owns the
- * follow-up geometry, and the modifier changes topology/timing. No source
- * SlashArt callback is executed and no per-combination registry entry is made.</p>
+ * <p>The editable composition lives on a Tetra Slash Art Orb. A blade receives a
+ * versioned {@link ForgedSlashArtSpec} snapshot; this class compiles that snapshot
+ * into bounded runtime damage, timing and topology.</p>
  */
 public record ForgedSlashArtPlan(
         String key,
@@ -36,35 +34,20 @@ public record ForgedSlashArtPlan(
     private static final double PRIMARY_SHARE = 0.55D;
     private static final double SECONDARY_SHARE = 0.45D;
 
+    /** Compile an inscription already stored on a blade. */
     public static ForgedSlashArtPlan from(ItemStack stack) {
-        if (stack == null
-                || !ComponentEffectResolver.hasModule(stack,
-                        ModularSlashBladeItem.SA_CORE_SLOT,
-                        ModularSlashBladeItem.SA_CORE_MODULE)
-                || !ComponentEffectResolver.hasModule(stack,
-                        ModularSlashBladeItem.SA_PRIMARY_SLOT,
-                        ModularSlashBladeItem.SA_PRIMARY_MODULE)
-                || !ComponentEffectResolver.hasModule(stack,
-                        ModularSlashBladeItem.SA_SECONDARY_SLOT,
-                        ModularSlashBladeItem.SA_SECONDARY_MODULE)
-                || !ComponentEffectResolver.hasModule(stack,
-                        ModularSlashBladeItem.SA_MODIFIER_SLOT,
-                        ModularSlashBladeItem.SA_MODIFIER_MODULE)) {
-            return null;
-        }
+        return compose(ForgedSlashArtSpec.fromBlade(stack));
+    }
 
-        String core = ComponentEffectResolver.moduleVariant(
-                stack, ModularSlashBladeItem.SA_CORE_SLOT);
-        Technique primary = Technique.fromVariant(ComponentEffectResolver.moduleVariant(
-                stack, ModularSlashBladeItem.SA_PRIMARY_SLOT));
-        Technique secondary = Technique.fromVariant(ComponentEffectResolver.moduleVariant(
-                stack, ModularSlashBladeItem.SA_SECONDARY_SLOT));
-        Modifier modifier = Modifier.fromVariant(ComponentEffectResolver.moduleVariant(
-                stack, ModularSlashBladeItem.SA_MODIFIER_SLOT));
-        if (core.isBlank() || primary == null || secondary == null || modifier == null) {
-            return null;
-        }
-        return compose(core, primary, secondary, modifier);
+    /** Compile the current editable module state of a Slash Art Orb. */
+    public static ForgedSlashArtPlan fromOrb(ItemStack stack) {
+        return compose(ForgedSlashArtSpec.fromOrb(stack));
+    }
+
+    static ForgedSlashArtPlan compose(ForgedSlashArtSpec spec) {
+        return spec == null
+                ? null
+                : compose(spec.coreVariant(), spec.primary(), spec.secondary(), spec.modifier());
     }
 
     static ForgedSlashArtPlan compose(String coreVariant,
@@ -138,17 +121,29 @@ public record ForgedSlashArtPlan(
                 + secondaryDamagePerHit * secondaryCount * secondaryCycles;
     }
 
+    /** Detailed tooltip for an inscribed SlashBlade stack. */
     public static void appendTooltip(ItemStack stack, List<Component> tooltip) {
         ForgedSlashArtPlan plan = from(stack);
+        if (plan != null) {
+            appendPlanTooltip(plan, tooltip);
+        }
+    }
+
+    /** Detailed tooltip for the editable Tetra carrier. */
+    public static void appendOrbTooltip(ItemStack stack, List<Component> tooltip) {
+        ForgedSlashArtPlan plan = fromOrb(stack);
         if (plan == null) {
-            int installed = installedComponentCount(stack);
-            if (installed > 0) {
-                tooltip.add(Component.translatable(
-                                "tooltip.blade_tetra.forged.incomplete", installed, 4)
-                        .withStyle(ChatFormatting.DARK_GRAY));
-            }
+            int installed = ForgedSlashArtSpec.installedOrbComponentCount(stack);
+            tooltip.add(Component.translatable(
+                            "tooltip.blade_tetra.forged.incomplete", installed, 4)
+                    .withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
+        appendPlanTooltip(plan, tooltip);
+    }
+
+    private static void appendPlanTooltip(
+            ForgedSlashArtPlan plan, List<Component> tooltip) {
         tooltip.add(Component.translatable(
                         "tooltip.blade_tetra.forged.title",
                         Component.translatable(plan.primary().translationKey()),
@@ -166,31 +161,6 @@ public record ForgedSlashArtPlan(
                         String.format(Locale.ROOT, "%.2f", plan.powerBudget()),
                         plan.totalHits())
                 .withStyle(ChatFormatting.DARK_GRAY));
-    }
-
-    private static int installedComponentCount(ItemStack stack) {
-        int count = 0;
-        if (ComponentEffectResolver.hasModule(stack,
-                ModularSlashBladeItem.SA_CORE_SLOT,
-                ModularSlashBladeItem.SA_CORE_MODULE)) {
-            count++;
-        }
-        if (ComponentEffectResolver.hasModule(stack,
-                ModularSlashBladeItem.SA_PRIMARY_SLOT,
-                ModularSlashBladeItem.SA_PRIMARY_MODULE)) {
-            count++;
-        }
-        if (ComponentEffectResolver.hasModule(stack,
-                ModularSlashBladeItem.SA_SECONDARY_SLOT,
-                ModularSlashBladeItem.SA_SECONDARY_MODULE)) {
-            count++;
-        }
-        if (ComponentEffectResolver.hasModule(stack,
-                ModularSlashBladeItem.SA_MODIFIER_SLOT,
-                ModularSlashBladeItem.SA_MODIFIER_MODULE)) {
-            count++;
-        }
-        return count;
     }
 
     private String coreDisplayName() {
