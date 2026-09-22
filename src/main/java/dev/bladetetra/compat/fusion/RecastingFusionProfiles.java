@@ -17,6 +17,12 @@ public final class RecastingFusionProfiles {
         focused();
         crosses();
         drives();
+        // ExtendedSlashArts tick 0 creates independent entities / actor timers.
+        // The remaining entries have semantic knowledge only, not a lifecycle audit.
+        for (String art : new String[] { "void_hole_pitch_black",
+                "lightning_chain_3_lambda", "blade_storm_lambda" }) {
+            AddonFusionDictionary.signature(MOD_ID, art, art, 1923, 1928, .5F, 2);
+        }
     }
 
     private static void judgement() {

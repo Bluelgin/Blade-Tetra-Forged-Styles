@@ -65,8 +65,9 @@ public record ProgrammaticFusionPlan(String key,
         int count = response.response().projectileCount();
         boolean nativePrimary = release.entry() != ProgrammaticFusionProfile.Entry.DIRECT;
         boolean delegatedPrimary = releasePresentation.delegateRelease();
-        double primaryBudget = nativePrimary || delegatedPrimary
-                ? 0.0D : DIRECT_PRIMARY_BUDGET;
+        // Reserve the direct fallback even when exact release was advertised: runtime
+        // registry/linkage failure must not silently remove the primary attack.
+        double primaryBudget = nativePrimary ? 0.0D : DIRECT_PRIMARY_BUDGET;
         double responseBudget = nativePrimary || delegatedPrimary
                 ? RESPONSE_BUDGET_WITH_NATIVE_PRIMARY
                 : RESPONSE_BUDGET_WITH_DIRECT_PRIMARY;
@@ -112,3 +113,4 @@ public record ProgrammaticFusionPlan(String key,
         return !"slashblade".equals(namespace) && !BladeTetra.MOD_ID.equals(namespace);
     }
 }
+

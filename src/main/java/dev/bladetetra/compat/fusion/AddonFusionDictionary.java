@@ -4,14 +4,15 @@ import dev.bladetetra.combat.ProgrammaticFusionPresentation;
 import dev.bladetetra.combat.ProgrammaticFusionPresentations;
 import dev.bladetetra.combat.ProgrammaticFusionProfile;
 import dev.bladetetra.combat.ProgrammaticFusionProfiles;
+import dev.bladetetra.combat.FusionHandoff;
+import dev.bladetetra.combat.NativeFusionPresentationAudit;
 import net.minecraft.resources.ResourceLocation;
 
 /** Small data helper shared by optional SlashBlade add-on dictionaries. */
 final class AddonFusionDictionary {
     /**
-     * Registers both semantic fallback data and an exact presentation allow-list.
-     * Callers use this only for source registries whose SlashArts -> ComboState
-     * contract has been inspected; unknown add-ons never reach source execution.
+     * Semantic registry knowledge does not imply a safe presentation lifecycle.
+     * Exact presentation must be registered separately with per-SA audit data.
      */
     static void register(String namespace,
             ProgrammaticFusionProfile.Entry entry,
@@ -24,10 +25,19 @@ final class AddonFusionDictionary {
             ResourceLocation ability = new ResourceLocation(namespace, path);
             ProgrammaticFusionProfiles.register(ability, profile);
             ProgrammaticFusionPresentations.register(
-                    ability, ProgrammaticFusionPresentation.FULL);
+                    ability, ProgrammaticFusionPresentation.NONE);
         }
     }
 
     private AddonFusionDictionary() {
+    }
+
+    static void signature(String namespace, String ability, String combo,
+            int start, int end, float speed, int safeAfterTicks) {
+        ProgrammaticFusionPresentations.register(new ResourceLocation(namespace, ability),
+                ProgrammaticFusionPresentation.audited(
+                        NativeFusionPresentationAudit.route(new FusionHandoff.Stage(
+                                namespace + ":" + combo, start, end, speed, 0, safeAfterTicks)),
+                        NativeFusionPresentationAudit.superRoute()));
     }
 }

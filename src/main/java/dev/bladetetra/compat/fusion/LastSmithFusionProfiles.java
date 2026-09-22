@@ -15,6 +15,10 @@ public final class LastSmithFusionProfiles {
                 ProgrammaticFusionProfile.Entry.WAVE_EDGE,
                 ProgrammaticFusionProfile.Response.WAVE_EDGE, 0.86D,
                 "sakura_blistering_swords");
+        AddonFusionDictionary.signature(MOD_ID, "iai_cross", "iai_cross_slash",
+                200, 218, 1F, 8);
+        AddonFusionDictionary.signature(MOD_ID, "sakura_blistering_swords",
+                "sakura_blistering_swords", 400, 459, 1F, 5);
     }
 
     private LastSmithFusionProfiles() {

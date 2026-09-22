@@ -3,10 +3,9 @@ package dev.bladetetra.compat.fusion;
 import dev.bladetetra.combat.ProgrammaticFusionProfile;
 
 /**
- * Exact ID dictionary for YakumoBlade. The audited 1.20.1 SlashArts are simple
- * registry-backed ComboState selectors, so loaded entries are allowed to delegate
- * their original release/response presentation. The semantic profile remains the
- * bounded fallback if the source registry changes or execution fails.
+ * Exact semantic IDs for YakumoBlade. Registry-backed selectors alone do not
+ * prove signature completion. These entries remain semantic-only until the
+ * corresponding 1.1.4 combo chains and independent effects can be audited.
  */
 public final class YakumoFusionProfiles {
     public static final String MOD_ID = "yakumoblade";

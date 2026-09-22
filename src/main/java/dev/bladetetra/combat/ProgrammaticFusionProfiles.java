@@ -141,7 +141,7 @@ public final class ProgrammaticFusionProfiles {
         ResourceLocation ability = new ResourceLocation("slashblade", path);
         register(ability, new ProgrammaticFusionProfile(entry, response, intensity));
         ProgrammaticFusionPresentations.register(
-                ability, ProgrammaticFusionPresentation.FULL);
+                ability, NativeFusionPresentationAudit.presentation(path));
     }
 
     private static boolean containsAny(String value, String... needles) {

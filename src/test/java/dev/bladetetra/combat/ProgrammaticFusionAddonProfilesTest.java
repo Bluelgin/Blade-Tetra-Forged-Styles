@@ -57,11 +57,15 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
-    void exactAddonDictionariesAlsoAllowSourcePresentationInBothDirections() {
+    void onlyLifecycleAuditedEntriesAllowSourcePresentation() {
         registerExactAddons();
 
         assertPresentation("slashblade_addon:rapid_blistering_swords", true, true);
-        assertPresentation("yakumoblade:gigantjudgement_cut", true, true);
+        assertPresentation("yakumoblade:gigantjudgement_cut", false, false);
+        assertPresentation("yakumoblade:spiral_sword_ex", false, false);
+        assertPresentation("yakumoblade:thrust_swords", false, false);
+        assertPresentation("yakumoblade:combo_a5", false, false);
+        assertPresentation("slashblade_addon:gale_swords", false, false);
         assertPresentation("last_smith:iai_cross", true, true);
         assertPresentation("recasting:blade_storm_lambda", true, true);
 
@@ -95,9 +99,9 @@ class ProgrammaticFusionAddonProfilesTest {
 
         assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, nativeWave, nativeWave)));
-        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, yakumo, yakumo)));
-        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(yakumo, sjap, sjap)));
         assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(yakumo, unknown, unknown)));
@@ -112,13 +116,22 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
-    void delegatedResponseBlendDelayIsBoundedAndLeavesSignatureWindow() {
-        assertEquals(3,
-                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(0));
-        assertEquals(14,
-                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(2000));
-        assertEquals(16,
-                ProgrammaticFusionPresentationRuntime.responseDelayTicksForTimeout(10000));
+    void addonSignatureWindowsArePerSourceRatherThanPerPair() {
+        registerExactAddons();
+        assertWindow("slashblade_addon:rapid_blistering_swords", "slashblade_addon:rapid_blistering_swords", 5);
+        assertWindow("slashblade_addon:spiral_edge", "slashblade_addon:spiral_edge", 9);
+        assertWindow("last_smith:iai_cross", "last_smith:iai_cross_slash", 8);
+        assertWindow("last_smith:sakura_blistering_swords", "last_smith:sakura_blistering_swords", 5);
+        assertWindow("recasting:void_hole_pitch_black", "recasting:void_hole_pitch_black", 2);
+        assertWindow("recasting:lightning_chain_3_lambda", "recasting:lightning_chain_3_lambda", 2);
+        assertWindow("recasting:blade_storm_lambda", "recasting:blade_storm_lambda", 2);
+    }
+
+    private static void assertWindow(String art, String combo, int ticks) {
+        var presentation = ProgrammaticFusionPresentations.resolve(new ResourceLocation(art));
+        assertEquals(ticks, presentation.route(combo).stages().get(0).safeAfterTicks());
+        assertEquals(FusionHandoff.Policy.SIGNATURE_WINDOW, presentation.route(combo).policy());
+        assertEquals(null, presentation.route("changed_addon:unaudited_combo"));
     }
 
     private static void registerExactAddons() {
@@ -157,3 +170,4 @@ class ProgrammaticFusionAddonProfilesTest {
                 List.of());
     }
 }
+

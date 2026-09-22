@@ -23,6 +23,12 @@ public final class SjapFusionProfiles {
                 ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
                 ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 0.86D,
                 "lighting_swords");
+        // Independent swords are spawned at timeline tick 3; all four spiral
+        // slashes must run through tick 7. Two ticks cover first-inventory-tick offset.
+        AddonFusionDictionary.signature(MOD_ID, "rapid_blistering_swords",
+                "rapid_blistering_swords", 400, 459, 1F, 5);
+        AddonFusionDictionary.signature(MOD_ID, "spiral_edge",
+                "spiral_edge", 400, 459, 1F, 9);
     }
 
     private SjapFusionProfiles() {

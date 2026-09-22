@@ -40,7 +40,7 @@ final class ProgrammaticFusionHandler {
                     DRIVE_SPEED);
         }
 
-        if (!ProgrammaticFusionPresentationRuntime.scheduleResponse(event, player, plan)) {
+        if (!ProgrammaticFusionPresentationRuntime.scheduleResponse(event, player, plan, delegatedRelease)) {
             executeSemanticResponse(player, plan);
         }
     }

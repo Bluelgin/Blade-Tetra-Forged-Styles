@@ -51,8 +51,8 @@ class ProgrammaticFusionPlanTest {
             assertEquals(expected.response(), profile.response(), expected.id());
             assertEquals(expected.responseCount(), profile.response().projectileCount(),
                     expected.id());
-            assertEquals(ProgrammaticFusionPresentation.FULL,
-                    ProgrammaticFusionPresentations.resolve(ability), expected.id());
+            assertTrue(ProgrammaticFusionPresentations.resolve(ability).delegateRelease(), expected.id());
+            assertFalse(ProgrammaticFusionPresentations.resolve(ability).routes().isEmpty());
         }
     }
 
@@ -77,10 +77,8 @@ class ProgrammaticFusionPlanTest {
                 assertEquals(sayaArt.entry(), plan.release().entry());
                 assertEquals(hiltArt.response(), plan.response().response());
                 assertEquals(hiltArt.responseCount(), plan.responseCount());
-                assertEquals(ProgrammaticFusionPresentation.FULL,
-                        plan.releasePresentation());
-                assertEquals(ProgrammaticFusionPresentation.FULL,
-                        plan.responsePresentation());
+                assertTrue(plan.releasePresentation().delegateRelease());
+                assertTrue(plan.responsePresentation().delegateResponse());
                 assertTrue(plan.hasNativePrimary());
                 assertTrue(plan.hasDelegatedPrimary());
                 assertEquals(0.0D, plan.primaryDriveDamage(), 0.0001D);
@@ -181,3 +179,4 @@ class ProgrammaticFusionPlanTest {
             ProgrammaticFusionProfile.Response response, int responseCount) {
     }
 }
+
