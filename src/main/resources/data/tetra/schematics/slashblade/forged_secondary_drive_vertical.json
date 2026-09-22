@@ -1,0 +1,8 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_secondary" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 56, "textureY": 112, "tint": "6BA6FF" },
+  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_secondary", "moduleVariant": "sa_secondary/drive_vertical" } ]
+}

@@ -1,0 +1,15 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_secondary" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    { "key": "sa_secondary/judgement_cut", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "7E74FF" } },
+    { "key": "sa_secondary/sakura_end", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "F08FB8" } },
+    { "key": "sa_secondary/void_slash", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "6C5B8E" } },
+    { "key": "sa_secondary/circle_slash", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "79C8D8" } },
+    { "key": "sa_secondary/drive_vertical", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "6BA6FF" } },
+    { "key": "sa_secondary/drive_horizontal", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "D9B45B" } },
+    { "key": "sa_secondary/wave_edge", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "67D1C4" } },
+    { "key": "sa_secondary/piercing", "integrity": 0, "glyph": { "textureX": 56, "textureY": 112, "tint": "D77A7A" } }
+  ]
+}

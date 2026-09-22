@@ -7,6 +7,7 @@ import com.google.common.collect.Multimap;
 import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ComponentEffectResolver;
+import dev.bladetetra.combat.ForgedSlashArtPlan;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.PotatoBladeHandler;
 import dev.bladetetra.combat.StyleInputBuffer;
@@ -87,6 +88,10 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String KASHIRA_SLOT = "slashblade/kashira";
     public static final String FULLER_SLOT = "slashblade/fuller";
     public static final String INSCRIPTION_SLOT = "slashblade/inscription";
+    public static final String SA_CORE_SLOT = "slashblade/sa_core";
+    public static final String SA_PRIMARY_SLOT = "slashblade/sa_primary";
+    public static final String SA_SECONDARY_SLOT = "slashblade/sa_secondary";
+    public static final String SA_MODIFIER_SLOT = "slashblade/sa_modifier";
 
     public static final String BLADE_MODULE = "slashblade/katana_blade";
     public static final String ORTHODOX_BLADE_MODULE = "slashblade/orthodox_blade";
@@ -115,6 +120,10 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             "slashblade/awakened_soul_inscription";
     public static final String FOX_SAYA_MODULE = "slashblade/fox_saya";
     public static final String FOX_TSUBA_MODULE = "slashblade/fox_tsuba";
+    public static final String SA_CORE_MODULE = "slashblade/sa_core";
+    public static final String SA_PRIMARY_MODULE = "slashblade/sa_primary";
+    public static final String SA_SECONDARY_MODULE = "slashblade/sa_secondary";
+    public static final String SA_MODIFIER_MODULE = "slashblade/sa_modifier";
 
     private static final String[] MAJOR_MODULES = { BLADE_SLOT, TSUKA_SLOT };
     private static final String[] MINOR_MODULES = {
@@ -123,7 +132,11 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             HABAKI_SLOT,
             KASHIRA_SLOT,
             FULLER_SLOT,
-            INSCRIPTION_SLOT
+            INSCRIPTION_SLOT,
+            SA_CORE_SLOT,
+            SA_PRIMARY_SLOT,
+            SA_SECONDARY_SLOT,
+            SA_MODIFIER_SLOT
     };
     private static final String[] REQUIRED_MODULES = { BLADE_SLOT, TSUKA_SLOT, SAYA_SLOT };
     private static final GuiModuleOffsets MAJOR_GUI_OFFSETS =
@@ -135,7 +148,11 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
                     -21, 1,
                     -21, 14,
                     -21, 27,
-                    -21, 40);
+                    -21, 40,
+                    45, -25,
+                    45, -12,
+                    45, 1,
+                    45, 14);
     private static final String MODULE_SCHEMA_KEY = "blade_tetra_module_schema";
     private static final String SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY =
             "blade_tetra_soul_contract_previous_default";
@@ -532,6 +549,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         super.appendHoverText(stack, level, tooltip, flag);
         PotatoBladeHandler.appendTooltip(stack, level, tooltip, flag);
         BoundaryForging.appendTooltip(stack, tooltip);
+        ForgedSlashArtPlan.appendTooltip(stack, tooltip);
         boolean expanded = TooltipKeyState.isAltDown();
         if (expanded) {
             BladeDetailTooltip.append(stack, tooltip);

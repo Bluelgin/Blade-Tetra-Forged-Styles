@@ -1,0 +1,8 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_modifier" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 64, "textureY": 112, "tint": "8FD98C" },
+  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/haste" } ]
+}

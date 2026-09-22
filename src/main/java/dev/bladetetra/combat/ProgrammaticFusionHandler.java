@@ -1,11 +1,8 @@
 package dev.bladetetra.combat;
 
-import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
-import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
-import mods.flammpfeil.slashblade.slasharts.Drive;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -17,9 +14,9 @@ import net.minecraftforge.event.TickEvent;
  * delegated first; the bounded Blade Tetra grammar remains the fallback path.
  */
 final class ProgrammaticFusionHandler {
-    static final float DRIVE_SPEED = 2.0F;
-    static final int DRIVE_LIFETIME = 12;
-    static final double FAN_ANGLE_DEGREES = 12.0D;
+    static final float DRIVE_SPEED = ProceduralSlashArtExecutor.DRIVE_SPEED;
+    static final int DRIVE_LIFETIME = ProceduralSlashArtExecutor.DRIVE_LIFETIME;
+    static final double FAN_ANGLE_DEGREES = ProceduralSlashArtExecutor.FAN_ANGLE_DEGREES;
 
     static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
             ServerPlayer player, ItemStack blade, ISlashBladeState state) {
@@ -36,11 +33,12 @@ final class ProgrammaticFusionHandler {
                 event, player, plan);
         Vec3 forward = player.getLookAngle();
         if (!delegatedRelease && plan.primaryDriveDamage() > 0.0D) {
-            spawnDrive(player, forward, plan.primaryDriveDamage(), 0, -90.0F,
-                    DRIVE_SPEED);
+            ProceduralSlashArtExecutor.spawnDrive(player, forward,
+                    plan.primaryDriveDamage(), 0, -90.0F, DRIVE_SPEED);
         }
 
-        if (!ProgrammaticFusionPresentationRuntime.scheduleResponse(event, player, plan, delegatedRelease)) {
+        if (!ProgrammaticFusionPresentationRuntime.scheduleResponse(
+                event, player, plan, delegatedRelease)) {
             executeSemanticResponse(player, plan);
         }
     }
@@ -58,85 +56,36 @@ final class ProgrammaticFusionHandler {
     }
 
     static void executeSemanticResponse(ServerPlayer player, ProgrammaticFusionPlan plan) {
-        Vec3 forward = player.getLookAngle();
         ProgrammaticFusionProfile.Response response = plan.response().response();
-        for (int index = 0; index < plan.responseCount(); index++) {
-            Vec3 direction = rotateHorizontal(forward, responseYaw(response, index));
-            spawnDrive(player, direction, plan.responseDriveDamage(),
-                    responseDelay(response, index), responseRoll(response, index),
-                    responseSpeed(response, index));
-        }
+        ProceduralSlashArtExecutor.execute(player, response, plan.responseCount(),
+                plan.responseDriveDamage(), 0, 1.0D);
     }
 
+    // Compatibility seams retained for focused geometry tests and older callers.
     static double responseYaw(ProgrammaticFusionProfile.Response response, int index) {
-        return switch (response) {
-            case SAKURA_CROSS -> index == 0 ? -10.0D : 10.0D;
-            case JUDGEMENT_ECHO -> spreadOffset(index, 3, 6.0D);
-            case VOID_TRIDENT -> spreadOffset(index, 3, FAN_ANGLE_DEGREES);
-            case CIRCLE_RING -> index * 90.0D;
-            default -> 0.0D;
-        };
+        return ProceduralSlashArtExecutor.responseYaw(
+                response, index, response.projectileCount(), 1.0D);
     }
 
     static int responseDelay(ProgrammaticFusionProfile.Response response, int index) {
-        return switch (response) {
-            case JUDGEMENT_ECHO -> index * 3;
-            case VOID_TRIDENT -> index;
-            case WAVE_EDGE -> index * 2;
-            default -> 0;
-        };
+        return ProceduralSlashArtExecutor.responseDelay(response, index);
     }
 
     static float responseSpeed(ProgrammaticFusionProfile.Response response, int index) {
-        return switch (response) {
-            case JUDGEMENT_ECHO -> 1.55F;
-            case VOID_TRIDENT -> 2.15F;
-            case CIRCLE_RING -> 1.60F;
-            case WAVE_EDGE -> 1.20F + index * 0.28F;
-            default -> DRIVE_SPEED;
-        };
+        return ProceduralSlashArtExecutor.responseSpeed(response, index);
     }
 
     static float responseRoll(ProgrammaticFusionProfile.Response response, int index) {
-        return switch (response) {
-            case HORIZONTAL_DRIVE -> 0.0F;
-            case VERTICAL_DRIVE, PIERCING_FOCUS, WAVE_EDGE, FOCUSED_DRIVE -> -90.0F;
-            case SAKURA_CROSS -> index == 0 ? 22.5F : 157.5F;
-            case JUDGEMENT_ECHO -> 45.0F + index * 120.0F;
-            case VOID_TRIDENT -> -20.0F + index * 20.0F;
-            case CIRCLE_RING -> index * 90.0F;
-        };
+        return ProceduralSlashArtExecutor.responseRoll(
+                response, index, response.projectileCount());
     }
 
     static double spreadOffset(int index, int count, double spacing) {
-        if (count <= 1) {
-            return 0.0D;
-        }
-        double center = (count - 1) * 0.5D;
-        return (index - center) * spacing;
+        return ProceduralSlashArtExecutor.spreadOffset(index, count, spacing);
     }
 
     static Vec3 rotateHorizontal(Vec3 direction, double degrees) {
-        double radians = Math.toRadians(degrees);
-        double cosine = Math.cos(radians);
-        double sine = Math.sin(radians);
-        double x = direction.x * cosine - direction.z * sine;
-        double z = direction.x * sine + direction.z * cosine;
-        Vec3 rotated = new Vec3(x, direction.y, z);
-        return rotated.lengthSqr() < 1.0E-8D ? direction : rotated.normalize();
-    }
-
-    private static void spawnDrive(ServerPlayer player, Vec3 direction,
-            double damage, int delay, float roll, float speed) {
-        EntityDrive drive = Drive.doSlash(player, roll, DRIVE_LIFETIME, Vec3.ZERO,
-                false, damage, speed);
-        if (drive == null) {
-            return;
-        }
-        drive.setDelay(delay);
-        SoulLegacyDamageGuard.markSecondary(drive);
-        Vec3 normalized = direction.normalize();
-        drive.shoot(normalized.x, normalized.y, normalized.z, speed, 0.0F);
+        return ProceduralSlashArtExecutor.rotateHorizontal(direction, degrees);
     }
 
     private ProgrammaticFusionHandler() {

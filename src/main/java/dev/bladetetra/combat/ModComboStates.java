@@ -17,9 +17,8 @@ import java.util.function.Supplier;
 
 /**
  * Style combo graphs reuse Resharped's animation and combat timelines while
- * replacing their transitions. This keeps hit timing compatible with
- * Resharped, but prevents a style root from replaying one signature attack for
- * every click.
+ * replacing their transitions. Forged Slash Art states are stricter: they copy
+ * only visual motion metadata and never copy source attack callbacks.
  */
 public final class ModComboStates {
     static final int IAIDO_SHEATHE_MINIMUM_NEXT_FRAME = 7;
@@ -115,6 +114,57 @@ public final class ModComboStates {
             COMBOS.register("twin_phase_draw", () -> visualMotion(
                     ComboStateRegistry.COMBO_C, 18));
 
+    // Forged Slash Arts copy native motion only. Normal and Haste states are
+    // separate registry entries so animation speed remains state-machine native.
+    public static final RegistryObject<ComboState> FORGED_JUDGEMENT =
+            COMBOS.register("forged_judgement", () -> forgedVisual(
+                    ComboStateRegistry.JUDGEMENT_CUT, false));
+    public static final RegistryObject<ComboState> FORGED_JUDGEMENT_HASTE =
+            COMBOS.register("forged_judgement_haste", () -> forgedVisual(
+                    ComboStateRegistry.JUDGEMENT_CUT, true));
+    public static final RegistryObject<ComboState> FORGED_SAKURA =
+            COMBOS.register("forged_sakura", () -> forgedVisual(
+                    ComboStateRegistry.SAKURA_END_LEFT, false));
+    public static final RegistryObject<ComboState> FORGED_SAKURA_HASTE =
+            COMBOS.register("forged_sakura_haste", () -> forgedVisual(
+                    ComboStateRegistry.SAKURA_END_LEFT, true));
+    public static final RegistryObject<ComboState> FORGED_VOID =
+            COMBOS.register("forged_void", () -> forgedVisual(
+                    ComboStateRegistry.VOID_SLASH, false));
+    public static final RegistryObject<ComboState> FORGED_VOID_HASTE =
+            COMBOS.register("forged_void_haste", () -> forgedVisual(
+                    ComboStateRegistry.VOID_SLASH, true));
+    public static final RegistryObject<ComboState> FORGED_CIRCLE =
+            COMBOS.register("forged_circle", () -> forgedVisual(
+                    ComboStateRegistry.CIRCLE_SLASH, false));
+    public static final RegistryObject<ComboState> FORGED_CIRCLE_HASTE =
+            COMBOS.register("forged_circle_haste", () -> forgedVisual(
+                    ComboStateRegistry.CIRCLE_SLASH, true));
+    public static final RegistryObject<ComboState> FORGED_DRIVE_VERTICAL =
+            COMBOS.register("forged_drive_vertical", () -> forgedVisual(
+                    ComboStateRegistry.DRIVE_VERTICAL, false));
+    public static final RegistryObject<ComboState> FORGED_DRIVE_VERTICAL_HASTE =
+            COMBOS.register("forged_drive_vertical_haste", () -> forgedVisual(
+                    ComboStateRegistry.DRIVE_VERTICAL, true));
+    public static final RegistryObject<ComboState> FORGED_DRIVE_HORIZONTAL =
+            COMBOS.register("forged_drive_horizontal", () -> forgedVisual(
+                    ComboStateRegistry.DRIVE_HORIZONTAL, false));
+    public static final RegistryObject<ComboState> FORGED_DRIVE_HORIZONTAL_HASTE =
+            COMBOS.register("forged_drive_horizontal_haste", () -> forgedVisual(
+                    ComboStateRegistry.DRIVE_HORIZONTAL, true));
+    public static final RegistryObject<ComboState> FORGED_WAVE_EDGE =
+            COMBOS.register("forged_wave_edge", () -> forgedVisual(
+                    ComboStateRegistry.WAVE_EDGE_VERTICAL, false));
+    public static final RegistryObject<ComboState> FORGED_WAVE_EDGE_HASTE =
+            COMBOS.register("forged_wave_edge_haste", () -> forgedVisual(
+                    ComboStateRegistry.WAVE_EDGE_VERTICAL, true));
+    public static final RegistryObject<ComboState> FORGED_PIERCING =
+            COMBOS.register("forged_piercing", () -> forgedVisual(
+                    ComboStateRegistry.PIERCING, false));
+    public static final RegistryObject<ComboState> FORGED_PIERCING_HASTE =
+            COMBOS.register("forged_piercing_haste", () -> forgedVisual(
+                    ComboStateRegistry.PIERCING, true));
+
     public static final RegistryObject<ComboState> IAIDO_ROOT =
             COMBOS.register("iaido_root", () -> root(ModComboStates::selectIaidoOpener));
     public static final RegistryObject<ComboState> RENGEKI_ROOT =
@@ -128,6 +178,28 @@ public final class ModComboStates {
             case RENGEKI -> RENGEKI_ROOT.getId();
             case DANGAKU -> DANGAKU_ROOT.getId();
             default -> ComboStateRegistry.STANDBY.getId();
+        };
+    }
+
+    public static ResourceLocation getForgedMotion(
+            ForgedSlashArtPlan.Technique technique, boolean haste) {
+        return switch (technique) {
+            case JUDGEMENT_CUT -> haste
+                    ? FORGED_JUDGEMENT_HASTE.getId() : FORGED_JUDGEMENT.getId();
+            case SAKURA_END -> haste
+                    ? FORGED_SAKURA_HASTE.getId() : FORGED_SAKURA.getId();
+            case VOID_SLASH -> haste
+                    ? FORGED_VOID_HASTE.getId() : FORGED_VOID.getId();
+            case CIRCLE_SLASH -> haste
+                    ? FORGED_CIRCLE_HASTE.getId() : FORGED_CIRCLE.getId();
+            case DRIVE_VERTICAL -> haste
+                    ? FORGED_DRIVE_VERTICAL_HASTE.getId() : FORGED_DRIVE_VERTICAL.getId();
+            case DRIVE_HORIZONTAL -> haste
+                    ? FORGED_DRIVE_HORIZONTAL_HASTE.getId() : FORGED_DRIVE_HORIZONTAL.getId();
+            case WAVE_EDGE -> haste
+                    ? FORGED_WAVE_EDGE_HASTE.getId() : FORGED_WAVE_EDGE.getId();
+            case PIERCING -> haste
+                    ? FORGED_PIERCING_HASTE.getId() : FORGED_PIERCING.getId();
         };
     }
 
@@ -200,6 +272,28 @@ public final class ModComboStates {
                 .next(entity -> ComboStateRegistry.NONE.getId())
                 .nextOfTimeout(entity -> ComboStateRegistry.NONE.getId())
                 .build();
+    }
+
+    private static ComboState forgedVisual(Supplier<ComboState> source,
+            boolean haste) {
+        ComboState original = source.get();
+        float speedScale = haste ? 1.25F : 1.0F;
+        float timeoutScale = haste ? 0.75F : 1.0F;
+        ComboState.Builder builder = ComboState.Builder.newInstance()
+                .startAndEnd(original.getStartFrame(), original.getEndFrame())
+                .priority(original.getPriority())
+                .speed(original.getSpeed() * speedScale)
+                .timeout(Math.max(0, Math.round(original.timeout * timeoutScale)))
+                .motionLoc(original.getMotionLoc())
+                .next(entity -> ComboStateRegistry.NONE.getId())
+                .nextOfTimeout(entity -> ComboStateRegistry.NONE.getId());
+        if (original.getLoop()) {
+            builder.loop();
+        }
+        if (original.isAerial()) {
+            builder.aerial();
+        }
+        return builder.build();
     }
 
     private static ResourceLocation selectIaidoOpener(LivingEntity entity) {

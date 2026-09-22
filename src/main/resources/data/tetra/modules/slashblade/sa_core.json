@@ -1,0 +1,18 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_core" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "materials": [ "tetra:stone/", "tetra:metal/", "tetra:gem/" ],
+      "key": "sa_core/",
+      "extract": {
+        "integrity": 0,
+        "magicCapacity": 0,
+        "glyph": {
+          "textureX": 48
+        }
+      }
+    }
+  ]
+}
