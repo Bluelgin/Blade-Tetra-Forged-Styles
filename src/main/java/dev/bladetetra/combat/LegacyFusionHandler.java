@@ -31,11 +31,17 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
         if (!(event.getEntityLiving() instanceof ServerPlayer player)
+                || event.getType() == null
                 || event.getType() == SlashArts.ArtsType.Fail) {
             return;
         }
         ItemStack blade = player.getMainHandItem();
         var art = event.getSlashBladeState().getSlashArtsKey();
+        if (ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId().equals(art)) {
+            ProgrammaticFusionHandler.onSlashArt(event,
+                    player, blade, event.getSlashBladeState());
+            return;
+        }
         if (ModSlashBladeAbilities.TSUKUMO_CROSS.getId().equals(art)) {
             TsukumoCrossNativeHandler.onSlashArt(player, blade);
             return;
@@ -91,6 +97,7 @@ public final class LegacyFusionHandler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        ProgrammaticFusionHandler.tick(event);
         TwinFoxFusionHandler.tick(event);
         TwinPhaseFusionHandler.tick(event);
         DouwariFusionHandler.tick(event);
@@ -102,6 +109,7 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel level) {
+            ProgrammaticFusionHandler.onLevelUnload(level);
             TwinFoxFusionHandler.onLevelUnload(level);
             TwinPhaseFusionHandler.onLevelUnload(level);
             DouwariFusionHandler.onLevelUnload(level);
@@ -113,6 +121,7 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
+        ProgrammaticFusionHandler.clear();
         TwinFoxFusionHandler.clear();
         TwinPhaseFusionHandler.clear();
         RustReleaseFusionHandler.clear();

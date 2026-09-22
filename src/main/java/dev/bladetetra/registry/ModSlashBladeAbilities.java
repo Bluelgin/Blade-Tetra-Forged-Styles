@@ -2,10 +2,13 @@ package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.ModComboStates;
+import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import dev.bladetetra.forging.LegacyFusion;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.specialeffects.SpecialEffect;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -15,6 +18,19 @@ public final class ModSlashBladeAbilities {
             DeferredRegister.create(SlashArts.REGISTRY_KEY, BladeTetra.MOD_ID);
     public static final DeferredRegister<SpecialEffect> SPECIAL_EFFECTS =
             DeferredRegister.create(SpecialEffect.REGISTRY_KEY, BladeTetra.MOD_ID);
+
+    /**
+     * Single runtime SA for all non-authored mixed named-blade fittings. The ordered
+     * pair is resolved from the item at cast time rather than registered per pair.
+     */
+    public static final RegistryObject<SlashArts> PROGRAMMATIC_FUSION =
+            SLASH_ARTS.register("programmatic_fusion", () -> new SlashArts(entity ->
+                    programmaticCombo(entity, ProgrammaticTrigger.NORMAL))
+                    .setComboStateJust(entity -> programmaticCombo(
+                            entity, ProgrammaticTrigger.JUST))
+                    .setComboStateSuper(entity -> programmaticCombo(
+                            entity, ProgrammaticTrigger.SUPER))
+                    .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> TWIN_FOX_PIERCING =
             SLASH_ARTS.register("twin_fox_piercing", () -> new SlashArts(entity ->
@@ -88,6 +104,35 @@ public final class ModSlashBladeAbilities {
             SPECIAL_EFFECTS.register("life_erosion",
                     () -> new SpecialEffect(0, false, false));
 
+    private static ResourceLocation programmaticCombo(LivingEntity entity,
+            ProgrammaticTrigger trigger) {
+        ProgrammaticFusionPlan plan = ProgrammaticFusionPlan.from(entity.getMainHandItem());
+        if (plan == null) {
+            return ComboStateRegistry.NONE.getId();
+        }
+        return switch (plan.release().entry()) {
+            case JUDGEMENT_CUT -> switch (trigger) {
+                case JUST -> ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId();
+                case SUPER -> ComboStateRegistry.JUDGEMENT_CUT_END.getId();
+                case NORMAL -> entity.onGround()
+                        ? ComboStateRegistry.JUDGEMENT_CUT.getId()
+                        : ComboStateRegistry.JUDGEMENT_CUT_SLASH_AIR.getId();
+            };
+            case SAKURA_END -> entity.onGround()
+                    ? ComboStateRegistry.SAKURA_END_LEFT.getId()
+                    : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId();
+            case VOID_SLASH -> ComboStateRegistry.VOID_SLASH.getId();
+            case CIRCLE_SLASH -> ComboStateRegistry.CIRCLE_SLASH.getId();
+            case DRIVE_VERTICAL -> ComboStateRegistry.DRIVE_VERTICAL.getId();
+            case DRIVE_HORIZONTAL -> ComboStateRegistry.DRIVE_HORIZONTAL.getId();
+            case WAVE_EDGE -> ComboStateRegistry.WAVE_EDGE_VERTICAL.getId();
+            case PIERCING -> trigger == ProgrammaticTrigger.NORMAL
+                    ? ComboStateRegistry.PIERCING.getId()
+                    : ComboStateRegistry.PIERCING_JUST.getId();
+            case DIRECT -> ComboStateRegistry.STANDBY.getId();
+        };
+    }
+
     private static SlashArts standbyArt(LegacyFusion fusion, int proudSoulCost) {
         return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
                 ? ComboStateRegistry.STANDBY.getId()
@@ -136,6 +181,12 @@ public final class ModSlashBladeAbilities {
     private static boolean isActive(net.minecraft.world.item.ItemStack stack,
             LegacyFusion expected) {
         return LegacyFusion.active(stack) == expected;
+    }
+
+    private enum ProgrammaticTrigger {
+        NORMAL,
+        JUST,
+        SUPER
     }
 
     private ModSlashBladeAbilities() {

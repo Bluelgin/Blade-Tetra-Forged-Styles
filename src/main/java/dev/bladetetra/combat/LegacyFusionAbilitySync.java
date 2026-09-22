@@ -34,23 +34,33 @@ final class LegacyFusionAbilitySync {
         }
 
         ResourceLocation piercing = ModSlashBladeAbilities.TWIN_FOX_PIERCING.getId();
-        LegacyImprintKind orthodox = active == null
-                ? NamedLegacyParts.fromStack(blade).completeSet() : null;
+        NamedLegacyParts parts = NamedLegacyParts.fromStack(blade);
+        ProgrammaticFusionPlan programmatic = active == null
+                ? ProgrammaticFusionPlan.from(parts) : null;
+        LegacyImprintKind orthodox = active == null && programmatic == null
+                ? parts.completeSet() : null;
         if (orthodox != null && !orthodox.supportsOrthodoxInheritance()) {
             orthodox = null;
         }
 
         String owner = active != null
                 ? "fusion:" + active.id()
-                : orthodox == null ? "" : "orthodox:" + orthodox.id();
+                : programmatic != null
+                        ? "programmatic:" + programmatic.key()
+                        : orthodox == null ? "" : "orthodox:" + orthodox.id();
         ResourceLocation desiredSlashArt = active != null
                 ? active.slashArt()
-                : orthodox == null ? null
-                : LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
+                : programmatic != null
+                        ? ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
+                        : orthodox == null ? null
+                                : LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
         List<ResourceLocation> desiredEffects = active != null
                 ? active.specialEffects()
-                : orthodox == null ? List.of()
-                : LegacyAbilityResolver.registeredSpecialEffects(orthodox.specialEffects());
+                : programmatic != null
+                        ? List.of()
+                        : orthodox == null ? List.of()
+                                : LegacyAbilityResolver.registeredSpecialEffects(
+                                        orthodox.specialEffects());
 
         String previousOwner = tag.getString(ABILITY_OWNER);
         // Migrate the first fusion build without losing the SA it displaced.
