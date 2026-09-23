@@ -57,20 +57,34 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
-    void onlyLifecycleAuditedEntriesAllowSourcePresentation() {
+    void knownAddonEntriesPreferRealSourceExecution() {
         registerExactAddons();
 
         assertPresentation("slashblade_addon:rapid_blistering_swords", true, true);
-        assertPresentation("yakumoblade:gigantjudgement_cut", false, false);
-        assertPresentation("yakumoblade:spiral_sword_ex", false, false);
-        assertPresentation("yakumoblade:thrust_swords", false, false);
-        assertPresentation("yakumoblade:combo_a5", false, false);
-        assertPresentation("slashblade_addon:gale_swords", false, false);
+        assertPresentation("slashblade_addon:gale_swords", true, true);
+        assertPresentation("yakumoblade:gigantjudgement_cut", true, true);
+        assertPresentation("yakumoblade:spiral_sword_ex", true, true);
+        assertPresentation("yakumoblade:thrust_swords", true, true);
+        assertPresentation("yakumoblade:combo_a5", true, true);
         assertPresentation("last_smith:iai_cross", true, true);
+        assertPresentation("last_smith:fushigiri", true, true);
         assertPresentation("recasting:blade_storm_lambda", true, true);
+        assertPresentation("recasting:multiple_judgement_cut", true, true);
+
+        // Exact add-on audits retain dynamic observation as a version-drift fallback.
+        assertDynamic("slashblade_addon:rapid_blistering_swords", true);
+        assertDynamic("last_smith:iai_cross", true);
+        assertDynamic("recasting:blade_storm_lambda", true);
+        // Semantic-only known entries now use the same conservative real-source path.
+        assertDynamic("slashblade_addon:gale_swords", true);
+        assertDynamic("yakumoblade:gigantjudgement_cut", true);
+        assertDynamic("last_smith:fushigiri", true);
+        assertDynamic("recasting:multiple_judgement_cut", true);
 
         assertPresentation("closed_addon:stellar_sword_rain", false, false);
+        assertDynamic("closed_addon:stellar_sword_rain", false);
         assertPresentation("slashblade:wave_edge", true, true);
+        assertDynamic("slashblade:wave_edge", false);
     }
 
     @Test
@@ -87,7 +101,7 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
-    void easterEggMarkerOnlyAppliesWhenThirdPartyPresentationStillFallsBack() {
+    void easterEggMarkerOnlyAppliesToUnknownThirdPartyPresentation() {
         registerExactAddons();
         LegacyImprintKind nativePiercing = kind("native_piercing", "slashblade:piercing");
         LegacyImprintKind nativeWave = kind("native_wave", "slashblade:wave_edge");
@@ -99,9 +113,9 @@ class ProgrammaticFusionAddonProfilesTest {
 
         assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, nativeWave, nativeWave)));
-        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(nativePiercing, yakumo, yakumo)));
-        assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
+        assertFalse(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(yakumo, sjap, sjap)));
         assertTrue(ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(
                 new NamedLegacyParts(yakumo, unknown, unknown)));
@@ -155,6 +169,12 @@ class ProgrammaticFusionAddonProfilesTest {
                 ProgrammaticFusionPresentations.resolve(new ResourceLocation(id));
         assertEquals(release, presentation.delegateRelease(), id + " release");
         assertEquals(response, presentation.delegateResponse(), id + " response");
+    }
+
+    private static void assertDynamic(String id, boolean expected) {
+        ProgrammaticFusionPresentation presentation =
+                ProgrammaticFusionPresentations.resolve(new ResourceLocation(id));
+        assertEquals(expected, presentation.dynamicObservation(), id + " dynamic");
     }
 
     private static LegacyImprintKind kind(String id, String slashArt) {
