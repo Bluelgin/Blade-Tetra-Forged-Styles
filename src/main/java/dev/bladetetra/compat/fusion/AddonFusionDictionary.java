@@ -36,7 +36,7 @@ final class AddonFusionDictionary {
     static void signature(String namespace, String ability, String combo,
             int start, int end, float speed, int safeAfterTicks) {
         ProgrammaticFusionPresentations.register(new ResourceLocation(namespace, ability),
-                ProgrammaticFusionPresentation.audited(
+                ProgrammaticFusionPresentation.auditedDynamic(
                         NativeFusionPresentationAudit.route(new FusionHandoff.Stage(
                                 namespace + ":" + combo, start, end, speed, 0, safeAfterTicks)),
                         NativeFusionPresentationAudit.superRoute()));
