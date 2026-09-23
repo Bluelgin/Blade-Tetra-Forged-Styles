@@ -26,7 +26,7 @@ final class AddonFusionDictionary {
             ResourceLocation ability = new ResourceLocation(namespace, path);
             ProgrammaticFusionProfiles.register(ability, profile);
             ProgrammaticFusionPresentations.register(
-                    ability, ProgrammaticFusionPresentation.softOverlap());
+                    ability, ProgrammaticFusionPresentation.boundedOverlap());
         }
     }
 
