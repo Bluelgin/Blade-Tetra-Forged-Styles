@@ -71,20 +71,20 @@ class ProgrammaticFusionAddonProfilesTest {
         assertPresentation("recasting:blade_storm_lambda", true, true);
         assertPresentation("recasting:multiple_judgement_cut", true, true);
 
-        // Exact add-on audits retain dynamic observation as a version-drift fallback.
-        assertDynamic("slashblade_addon:rapid_blistering_swords", true);
-        assertDynamic("last_smith:iai_cross", true);
-        assertDynamic("recasting:blade_storm_lambda", true);
-        // Semantic-only known entries now use the same conservative real-source path.
-        assertDynamic("slashblade_addon:gale_swords", true);
-        assertDynamic("yakumoblade:gigantjudgement_cut", true);
-        assertDynamic("last_smith:fushigiri", true);
-        assertDynamic("recasting:multiple_judgement_cut", true);
+        // Exact add-on audits retain soft overlap as a version-drift fallback.
+        assertSoftOverlap("slashblade_addon:rapid_blistering_swords", true);
+        assertSoftOverlap("last_smith:iai_cross", true);
+        assertSoftOverlap("recasting:blade_storm_lambda", true);
+        // Known unaudited entries use the same bounded real-source overlap path.
+        assertSoftOverlap("slashblade_addon:gale_swords", true);
+        assertSoftOverlap("yakumoblade:gigantjudgement_cut", true);
+        assertSoftOverlap("last_smith:fushigiri", true);
+        assertSoftOverlap("recasting:multiple_judgement_cut", true);
 
         assertPresentation("closed_addon:stellar_sword_rain", false, false);
-        assertDynamic("closed_addon:stellar_sword_rain", false);
+        assertSoftOverlap("closed_addon:stellar_sword_rain", false);
         assertPresentation("slashblade:wave_edge", true, true);
-        assertDynamic("slashblade:wave_edge", false);
+        assertSoftOverlap("slashblade:wave_edge", false);
     }
 
     @Test
@@ -171,10 +171,10 @@ class ProgrammaticFusionAddonProfilesTest {
         assertEquals(response, presentation.delegateResponse(), id + " response");
     }
 
-    private static void assertDynamic(String id, boolean expected) {
+    private static void assertSoftOverlap(String id, boolean expected) {
         ProgrammaticFusionPresentation presentation =
                 ProgrammaticFusionPresentations.resolve(new ResourceLocation(id));
-        assertEquals(expected, presentation.dynamicObservation(), id + " dynamic");
+        assertEquals(expected, presentation.softOverlap(), id + " soft overlap");
     }
 
     private static LegacyImprintKind kind(String id, String slashArt) {
