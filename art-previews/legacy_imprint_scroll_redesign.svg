@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <title>空白映锻卷 · 美术预览</title>
+  <desc>旧金卷轴包着暖色宣纸，纸面留有青色刀形定位线和一枚朱砂封印。</desc>
+
+  <!-- Rolled silhouette, matching the dark outlines of Blade Tetra items. -->
+  <path fill="#211d2a" d="M2 2h3v1h6V2h3v2h1v9h-1v2h-3v-1H5v1H2v-2H1V4h1z"/>
+  <path fill="#916344" d="M3 3h2v1H4v9h1v1H3v-1H2V4h1zM11 3h2v1h1v9h-1v1h-2v-1h1V4h-1z"/>
+  <path fill="#d4a367" d="M3 4h1v9H3zM12 4h1v9h-1z"/>
+  <path fill="#f6dba1" d="M3 4h1v2H3zM12 4h1v2h-1zM3 11h1v2H3z"/>
+
+  <!-- Parchment and restrained edge shading. -->
+  <path fill="#bd916b" d="M4 4h8v9H4z"/>
+  <path fill="#f2dfb8" d="M5 4h6v8H5z"/>
+  <path fill="#fff0cb" d="M5 4h5v1H5zM5 5h1v5H5z"/>
+  <path fill="#dbc296" d="M10 5h1v7h-1zM5 11h5v1H5z"/>
+
+  <!-- Faint blade calibration mark: a blueprint, not a completed inscription. -->
+  <path fill="#96b8b4" d="M9 5h1v2H9v1H8v1H7v1H6V9h1V8h1V7h1z"/>
+  <path fill="#466f7a" d="M9 5h1v1H9v1H8v1H7v1H6V8h1V7h1V6h1z"/>
+  <path fill="#568892" d="M6 9h3v1H8v2H7v-2H6z"/>
+  <path fill="#2d4658" d="M7 10h1v2H7z"/>
+
+  <!-- Vermilion seal and the two exposed rod tips. -->
+  <path fill="#7c3040" d="M10 9h2v3h-2z"/>
+  <path fill="#e16b66" d="M10 9h1v2h-1z"/>
+  <path fill="#ffc6a0" d="M10 9h1v1h-1z"/>
+  <path fill="#e7bc7b" d="M3 3h1v1H3zM12 3h1v1h-1zM3 13h1v1H3zM12 13h1v1h-1z"/>
+</svg>
