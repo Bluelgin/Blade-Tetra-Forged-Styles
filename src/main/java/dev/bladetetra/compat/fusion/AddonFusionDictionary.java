@@ -12,8 +12,8 @@ import net.minecraft.resources.ResourceLocation;
 final class AddonFusionDictionary {
     /**
      * Exact dictionary knowledge is enough to attempt the real source through
-     * conservative dynamic lifecycle observation. Exact presentation audits are
-     * still registered separately and replace the dynamic policy when available.
+     * a bounded soft-overlap window. Exact presentation audits are
+     * still registered separately and replace its timing when available.
      */
     static void register(String namespace,
             ProgrammaticFusionProfile.Entry entry,
@@ -26,7 +26,7 @@ final class AddonFusionDictionary {
             ResourceLocation ability = new ResourceLocation(namespace, path);
             ProgrammaticFusionProfiles.register(ability, profile);
             ProgrammaticFusionPresentations.register(
-                    ability, ProgrammaticFusionPresentation.dynamic());
+                    ability, ProgrammaticFusionPresentation.softOverlap());
         }
     }
 
@@ -36,7 +36,7 @@ final class AddonFusionDictionary {
     static void signature(String namespace, String ability, String combo,
             int start, int end, float speed, int safeAfterTicks) {
         ProgrammaticFusionPresentations.register(new ResourceLocation(namespace, ability),
-                ProgrammaticFusionPresentation.auditedDynamic(
+                ProgrammaticFusionPresentation.auditedSoftOverlap(
                         NativeFusionPresentationAudit.route(new FusionHandoff.Stage(
                                 namespace + ":" + combo, start, end, speed, 0, safeAfterTicks)),
                         NativeFusionPresentationAudit.superRoute()));
