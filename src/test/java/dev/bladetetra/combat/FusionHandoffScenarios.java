@@ -59,28 +59,29 @@ public final class FusionHandoffScenarios {
         var tracker = new FusionHandoff.Tracker(route, List.of(200, 30), 0);
         equal(FusionHandoff.Decision.EXPIRED, tracker.observe("loop", 0, 10));
     }
-    static void dynamicNaturalCompletion() {
-        var tracker = new FusionHandoff.DynamicTracker("addon:A", 5, 0, 100);
+    static void softOverlapWindow() {
+        var tracker = new FusionHandoff.SoftOverlapTracker("addon:A", 20, 0, 5, 20);
         equal(FusionHandoff.Decision.WAIT,
-                tracker.observe("addon:A", 0, 4, 5, false));
-        equal(FusionHandoff.Decision.WAIT,
-                tracker.observe("addon:A_end", 5, 5, 4, false));
+                tracker.observe("addon:A", 0, 4, 20));
         equal(FusionHandoff.Decision.READY,
-                tracker.observe("slashblade:none", 9, 9, 1, true));
+                tracker.observe("addon:A", 0, 5, 20));
+        equal(5L, tracker.due());
     }
 
-    static void dynamicInterruptionAndWatchdog() {
-        var interrupted = new FusionHandoff.DynamicTracker("addon:A", 10, 0, 100);
-        equal(FusionHandoff.Decision.INTERRUPTED,
-                interrupted.observe("slashblade:none", 3, 3, 1, true));
+    static void softOverlapProgressionAndInterruption() {
+        var progressed = new FusionHandoff.SoftOverlapTracker("addon:A", 3, 0, 5, 20);
+        equal(FusionHandoff.Decision.WAIT,
+                progressed.observe("addon:A_end", 3, 3, 10));
+        equal(FusionHandoff.Decision.READY,
+                progressed.observe("addon:A_end", 3, 5, 10));
 
-        var restarted = new FusionHandoff.DynamicTracker("addon:A", 10, 0, 100);
+        var interrupted = new FusionHandoff.SoftOverlapTracker("addon:A", 10, 0, 5, 20);
         equal(FusionHandoff.Decision.INTERRUPTED,
-                restarted.observe("addon:A", 2, 2, 10, false));
+                interrupted.observe("player:other", 3, 3, 8));
 
-        var watchdog = new FusionHandoff.DynamicTracker("addon:A", 200, 0, 10);
-        equal(FusionHandoff.Decision.EXPIRED,
-                watchdog.observe("addon:A", 0, 10, 200, false));
+        var restarted = new FusionHandoff.SoftOverlapTracker("addon:A", 10, 0, 5, 20);
+        equal(FusionHandoff.Decision.INTERRUPTED,
+                restarted.observe("addon:A", 2, 2, 10));
     }
 
     static final class Source {
@@ -145,7 +146,7 @@ public final class FusionHandoffScenarios {
     }
     public static void main(String[] args) {
         shortSignature(); delayedSignature(); longRecovery(); multiStage(); firstPollAfterProgression();
-        interruption(); watchdog(); dynamicNaturalCompletion(); dynamicInterruptionAndWatchdog();
+        interruption(); watchdog(); softOverlapWindow(); softOverlapProgressionAndInterruption();
         responseLifecycle(); orderedIdentity(); missingAndCancelled(); nativeAudits();
         System.out.println("PASS: 13 fusion handoff lifecycle scenarios");
     }
