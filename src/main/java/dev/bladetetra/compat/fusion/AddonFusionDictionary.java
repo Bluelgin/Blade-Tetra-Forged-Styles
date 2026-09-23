@@ -11,8 +11,9 @@ import net.minecraft.resources.ResourceLocation;
 /** Small data helper shared by optional SlashBlade add-on dictionaries. */
 final class AddonFusionDictionary {
     /**
-     * Semantic registry knowledge does not imply a safe presentation lifecycle.
-     * Exact presentation must be registered separately with per-SA audit data.
+     * Exact dictionary knowledge is enough to attempt the real source through
+     * conservative dynamic lifecycle observation. Exact presentation audits are
+     * still registered separately and replace the dynamic policy when available.
      */
     static void register(String namespace,
             ProgrammaticFusionProfile.Entry entry,
@@ -25,7 +26,7 @@ final class AddonFusionDictionary {
             ResourceLocation ability = new ResourceLocation(namespace, path);
             ProgrammaticFusionProfiles.register(ability, profile);
             ProgrammaticFusionPresentations.register(
-                    ability, ProgrammaticFusionPresentation.NONE);
+                    ability, ProgrammaticFusionPresentation.dynamic());
         }
     }
 
