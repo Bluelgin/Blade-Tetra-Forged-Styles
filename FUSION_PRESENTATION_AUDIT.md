@@ -42,13 +42,13 @@ Read `SlashArts`, `ISlashBladeState`, `ItemSlashBlade`, `ComboState`,
 ## Architecture
 
 `ProgrammaticFusionPresentation` now separates three policies: **NONE** for
-unknown sources, **dynamic observation** for exact dictionary-known add-on Slash
-Arts, and audited **returned-combo routes** where lifecycle data is available.
-Audited routes still pin combo IDs, animation shape, signature safe points and
-legal timeout edges. If an add-on audit no longer matches because a compatible
-version changed its registry shape, the runtime degrades to dynamic observation
-instead of immediately replacing the real SA with Blade Tetra semantics.
-Unknown abilities are never dynamically executed.
+unknown sources, **soft overlap** for exact dictionary-known add-on Slash Arts,
+and audited **returned-combo routes** where lifecycle data is available. Audited
+routes still pin combo IDs, animation shape, signature safe points and legal
+timeout edges. If an add-on audit no longer matches because a compatible version
+changed its registry shape, the runtime degrades to bounded soft overlap instead
+of immediately replacing the real SA with Blade Tetra semantics. Unknown abilities
+are never executed merely from name-based semantic inference.
 
 `FusionHandoff` observes game time and the real state clock at server tick END:
 
@@ -65,15 +65,18 @@ Unknown abilities are never dynamically executed.
   or redirected B commit is detected. There is no pending task which cuts off B;
   ordinary SlashBlade inventory ticks and transitions continue it.
 * For known but unaudited add-on A, the runtime executes the real Slash Art and
-  observes the actual committed ComboState clock. It never calls getNext or
-  getNextOfTimeout speculatively and never advances the chain itself. A transition
-  is accepted as source-owned only after the previous registry timeout; B is
-  authorized only after the source naturally reaches NONE/STANDBY.
+  gives it a short **soft-overlap window** before B takes over the single player
+  ComboState. The window is `clamp(timeoutTicks / 4, 3, 6)`: enough time for many
+  early entity/particle/signature effects to spawn, while deliberately accepting
+  that late state-bound callbacks from A can be cut off.
+* During that 3-6 tick window, timeout-owned source progression is accepted, while
+  early state changes and same-combo clock restarts are treated as external input
+  and cancel B. The runtime still never calls getNext/getNextOfTimeout or advances
+  source callbacks itself.
 * Known add-on B executes its real doArts and commits the returned registered
   ComboState. Exact audits are preferred when they still match. Missing source
   registry entries, invalid/neutral selections, runtime/linkage failures and
-  bounded dynamic-watchdog expiry retain semantic fallback. Unknown source arts
-  are not executed.
+  invalid overlap state retain semantic fallback. Unknown source arts are not executed.
 
 The two-tick timeline margin covers initial inventory-tick offset. These are
 source-code safe windows, not a claim that entity spawning cannot be cancelled
@@ -121,25 +124,27 @@ Audit sources:
   extensions attach to ItemSlashBlade, which ModularSlashBladeItem extends.
   No optional classes/capabilities are added or invoked by Blade Tetra.
 
-### Dynamic known-source coverage
+### Soft-overlap known-source coverage
 
 Every SA explicitly listed in the SJAP, Yakumo, The Last Smith, and Recasting
 dictionaries is now permitted to execute its **real registered Slash Art**.
 
 The seven entries listed in the audit table above still use their exact signature
-windows when the runtime ComboState shape matches. They also retain dynamic
-observation as a compatibility fallback if a newer compatible add-on version
-changes frame bounds, speed, or timeout metadata.
+windows when the runtime ComboState shape matches. They also retain soft overlap
+as a compatibility fallback if a newer compatible add-on version changes frame
+bounds, speed, or timeout metadata.
 
-Known entries without a lifecycle audit use the conservative dynamic policy:
-the source runs normally until its observed timeout-owned ComboState chain reaches
-SlashBlade NONE/STANDBY. This can hand off later than an exact audit, but it does
-not truncate the source animation or guess callback timing.
+Known entries without a lifecycle audit use the generic overlap policy: A gets
+3-6 ticks based on one quarter of its registered timeout, then real B takes over.
+Already spawned entities/effects from A may continue beside B; late A callbacks
+that still depend on the player ComboState may be lost by design. This trades a
+small amount of presentation completeness for broad compatibility and a visibly
+fused A+B result without maintaining per-SA timing metadata.
 
 Yakumo therefore no longer falls back merely because its source lifecycle was not
-available for a static audit. Its exact dictionary IDs authorize real execution;
-the dynamic observer supplies the safety boundary. The same applies to the other
-SJAP, TLS, and Recasting dictionary entries.
+available for a static audit. Its exact dictionary IDs authorize real execution
+through the same bounded overlap policy. The same applies to the other SJAP, TLS,
+and Recasting dictionary entries.
 
 Unknown add-ons remain semantic/Safe only. Name-based semantic inference still
 does **not** grant permission to execute arbitrary third-party runtime code.
@@ -167,8 +172,9 @@ Priority matrix:
 4. add-on/add-on: SJAP rapid_blistering_swords <-> spiral_edge;
    Recasting blade_storm_lambda <-> void_hole_pitch_black;
    lightning_chain_3_lambda <-> TLS sakura_blistering_swords.
-5. Yakumo + native and reverse must execute the real Yakumo SA through dynamic
-   observation; verify that natural timeout chains complete before B begins.
+5. Yakumo + native and reverse must execute the real Yakumo SA through soft
+   overlap; verify that B begins after the expected 3-6 tick window and that
+   already spawned A effects remain visible where the source implementation allows.
 
 No authored fusions, save format, packet, capability, damage formulas, source
 implementation, or A+B registry catalog are introduced or redesigned.
