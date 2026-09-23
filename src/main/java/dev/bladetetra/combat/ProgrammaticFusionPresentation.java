@@ -45,7 +45,7 @@ public record ProgrammaticFusionPresentation(
                 softOverlap);
     }
 
-    public static ProgrammaticFusionPresentation softOverlap() {
+    public static ProgrammaticFusionPresentation boundedOverlap() {
         return SOFT_OVERLAP;
     }
 
