@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/ender_eye"
+    "layer0": "blade_tetra:item/forged_slash_art_orb"
   }
 }
