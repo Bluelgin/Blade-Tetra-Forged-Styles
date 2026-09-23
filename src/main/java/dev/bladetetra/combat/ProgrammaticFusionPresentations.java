@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Presentation policy registry. Exact audits use pinned ComboState routes; known
- * add-on dictionary entries may use conservative dynamic observation. Unknown
+ * add-on dictionary entries may use bounded soft overlap. Unknown
  * abilities never execute third-party runtime code.
  */
 public final class ProgrammaticFusionPresentations {
