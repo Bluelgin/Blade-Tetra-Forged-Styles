@@ -88,6 +88,15 @@ class ProgrammaticFusionAddonProfilesTest {
     }
 
     @Test
+    void softOverlapWindowIsQuarterTimeoutClampedToThreeSix() {
+        assertEquals(3, ProgrammaticFusionPresentationRuntime.softOverlapTicks(1));
+        assertEquals(3, ProgrammaticFusionPresentationRuntime.softOverlapTicks(12));
+        assertEquals(5, ProgrammaticFusionPresentationRuntime.softOverlapTicks(20));
+        assertEquals(6, ProgrammaticFusionPresentationRuntime.softOverlapTicks(24));
+        assertEquals(6, ProgrammaticFusionPresentationRuntime.softOverlapTicks(200));
+    }
+
+    @Test
     void unknownAddonStillGetsLazyConservativeSemantics() {
         assertProfile("closed_addon:stellar_sword_rain",
                 ProgrammaticFusionProfile.Entry.WAVE_EDGE,
