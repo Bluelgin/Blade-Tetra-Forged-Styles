@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Resolves named-blade abilities into conservative, composable semantics. Exact
  * presentation delegation is a separate policy layer; exact audits and known
- * add-on dynamic observation both live there. This registry always remains usable
+ * add-on soft overlap both live there. This registry always remains usable
  * as the fallback when source execution is unavailable.
  */
 public final class ProgrammaticFusionProfiles {
