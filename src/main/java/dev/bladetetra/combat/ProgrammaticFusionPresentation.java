@@ -30,9 +30,18 @@ public record ProgrammaticFusionPresentation(
     }
 
     public static ProgrammaticFusionPresentation audited(FusionHandoff.Route... routes) {
+        return audited(false, routes);
+    }
+
+    public static ProgrammaticFusionPresentation auditedDynamic(FusionHandoff.Route... routes) {
+        return audited(true, routes);
+    }
+
+    private static ProgrammaticFusionPresentation audited(boolean dynamicObservation,
+            FusionHandoff.Route... routes) {
         return new ProgrammaticFusionPresentation(List.of(routes).stream().collect(
                 Collectors.toUnmodifiableMap(route -> route.stages().get(0).combo(), route -> route)),
-                false);
+                dynamicObservation);
     }
 
     public static ProgrammaticFusionPresentation dynamic() {
