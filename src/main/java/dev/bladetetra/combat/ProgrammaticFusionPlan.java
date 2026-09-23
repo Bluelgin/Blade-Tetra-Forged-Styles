@@ -32,8 +32,8 @@ public record ProgrammaticFusionPlan(String key,
     /**
      * True when at least one third-party side has no permitted real-source
      * presentation path and therefore must fall back to Blade Tetra semantics.
-     * Known dictionary entries may use conservative dynamic observation even when
-     * they do not have an exact lifecycle audit.
+     * Known dictionary entries may use bounded soft overlap even when they do not
+     * have an exact lifecycle audit.
      */
     public static boolean hasUnadaptedThirdPartyArt(ItemStack stack) {
         return stack != null && hasUnadaptedThirdPartyArt(NamedLegacyParts.fromStack(stack));
