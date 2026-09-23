@@ -30,6 +30,65 @@ public final class FusionHandoff {
         }
     }
 
+    /**
+     * Conservative observer for known third-party sources without an exact route.
+     * It never predicts or advances callbacks. A stage change is accepted only
+     * after the previous real registry timeout, and handoff is authorized only
+     * once the source naturally reaches a neutral ComboState.
+     */
+    public static final class DynamicTracker {
+        private final long created;
+        private final int deadlineTicks;
+        private String combo;
+        private long actionTime;
+        private int timeoutTicks;
+
+        public DynamicTracker(String combo, int timeoutTicks, long created,
+                int deadlineTicks) {
+            this.combo = Objects.requireNonNull(combo);
+            if (timeoutTicks < 1 || deadlineTicks < 1) {
+                throw new IllegalArgumentException("Invalid dynamic handoff bounds");
+            }
+            this.timeoutTicks = timeoutTicks;
+            this.created = created;
+            this.actionTime = created;
+            this.deadlineTicks = deadlineTicks;
+        }
+
+        public Decision observe(String observedCombo, long committedAt, long now,
+                int observedTimeoutTicks, boolean terminal) {
+            if (committedAt < created || committedAt > now || observedTimeoutTicks < 1) {
+                return Decision.INTERRUPTED;
+            }
+            if (!combo.equals(observedCombo)) {
+                // Only a transition occurring after the previous registry timeout is
+                // treated as source-owned progression. Early/input-driven changes are
+                // interruptions and never authorize response B.
+                if (committedAt - actionTime < timeoutTicks) {
+                    return Decision.INTERRUPTED;
+                }
+                combo = observedCombo;
+                actionTime = committedAt;
+                timeoutTicks = observedTimeoutTicks;
+                if (terminal) {
+                    return Decision.READY;
+                }
+            } else if (committedAt != actionTime) {
+                // Same ComboState with a fresh clock is a recast/restart.
+                return Decision.INTERRUPTED;
+            }
+            return now - created >= deadlineTicks ? Decision.EXPIRED : Decision.WAIT;
+        }
+
+        public String combo() {
+            return combo;
+        }
+
+        public long due() {
+            return -1L;
+        }
+    }
+
     public static final class Tracker {
         private final Route route;
         private final List<Integer> timeoutTicks;
