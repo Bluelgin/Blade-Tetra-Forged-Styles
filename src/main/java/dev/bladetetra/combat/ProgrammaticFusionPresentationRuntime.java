@@ -29,7 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /** One source state machine at a time, observed after the normal inventory tick. */
 final class ProgrammaticFusionPresentationRuntime {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final int DYNAMIC_HANDOFF_DEADLINE_TICKS = 200;
+    private static final int SOFT_OVERLAP_MIN_TICKS = 3;
+    private static final int SOFT_OVERLAP_MAX_TICKS = 6;
+    private static final int SOFT_OVERLAP_DEADLINE_TICKS = 20;
     private static final Map<UUID, PendingResponse> PENDING_RESPONSES = new HashMap<>();
     private static final Set<ResourceLocation> WARNED_FAILURES = ConcurrentHashMap.newKeySet();
 
@@ -45,16 +47,16 @@ final class ProgrammaticFusionPresentationRuntime {
             if (art == null) return failed(ability, "release SA missing");
             ResourceLocation combo = art.doArts(event.getType(), player);
             FusionHandoff.Route route = auditedRoute(presentation, combo);
-            boolean dynamic = route == null
-                    && presentation.dynamicObservation()
-                    && validDynamicSelection(combo);
-            if (route == null && !dynamic) {
+            boolean overlap = route == null
+                    && presentation.softOverlap()
+                    && validSoftOverlapSelection(combo);
+            if (route == null && !overlap) {
                 return failed(ability,
-                        "release combo missing or unsupported by audit/dynamic observation: " + combo);
+                        "release combo missing or unsupported by audit/soft-overlap: " + combo);
             }
             event.setComboState(combo);
             LOGGER.debug("Programmatic fusion release source={} combo={} policy={} fallback=false",
-                    ability, combo, route != null ? route.policy() : "DYNAMIC_OBSERVED");
+                    ability, combo, route != null ? route.policy() : "SOFT_OVERLAP");
             return true;
         } catch (RuntimeException | LinkageError failure) {
             LOGGER.debug("Programmatic fusion release failed for {}", ability, failure);
@@ -71,18 +73,20 @@ final class ProgrammaticFusionPresentationRuntime {
                     ? auditedRoute(plan.releasePresentation(), releaseCombo)
                     : NativeFusionPresentationAudit.semanticRoute(String.valueOf(releaseCombo));
             FusionHandoff.Tracker tracker = null;
-            FusionHandoff.DynamicTracker dynamicTracker = null;
+            FusionHandoff.SoftOverlapTracker overlapTracker = null;
 
             if (delegatedRelease && route == null
-                    && plan.releasePresentation().dynamicObservation()) {
+                    && plan.releasePresentation().softOverlap()) {
                 ComboState combo = registeredCombo(releaseCombo);
-                if (combo == null || !validDynamicSelection(releaseCombo)) {
+                if (combo == null || !validSoftOverlapSelection(releaseCombo)) {
                     return failed(plan.releaseAbility(),
-                            "dynamic release combo unavailable; response uses semantic fallback");
+                            "soft-overlap release combo unavailable; response uses semantic fallback");
                 }
-                dynamicTracker = new FusionHandoff.DynamicTracker(
-                        releaseCombo.toString(), timeoutTicks(combo), now,
-                        DYNAMIC_HANDOFF_DEADLINE_TICKS);
+                int timeoutTicks = timeoutTicks(combo);
+                int overlapTicks = softOverlapTicks(timeoutTicks);
+                overlapTracker = new FusionHandoff.SoftOverlapTracker(
+                        releaseCombo.toString(), timeoutTicks, now, overlapTicks,
+                        SOFT_OVERLAP_DEADLINE_TICKS);
             } else {
                 // DIRECT semantic release has already spawned an independent drive.
                 if (!delegatedRelease && ComboStateRegistry.STANDBY.getId().equals(releaseCombo)) {
@@ -107,7 +111,7 @@ final class ProgrammaticFusionPresentationRuntime {
             PendingResponse pending = new PendingResponse(player.level().dimension(), plan.key(),
                     plan.releaseAbility(), plan.responseAbility(), player.getMainHandItem(),
                     event.getSlashBladeState(), event, releaseCombo, type,
-                    route, tracker, dynamicTracker, now);
+                    route, tracker, overlapTracker, now);
             PENDING_RESPONSES.put(player.getUUID(), pending);
             LOGGER.debug("Programmatic fusion release source={} combo={} policy={} handoff due={} response source={} fallback={}",
                     plan.releaseAbility(), releaseCombo, policy(pending), due(pending),
@@ -155,17 +159,17 @@ final class ProgrammaticFusionPresentationRuntime {
 
                 String previous = observedCombo(pending);
                 FusionHandoff.Decision decision;
-                if (pending.dynamicTracker() != null) {
+                if (pending.overlapTracker() != null) {
                     ResourceLocation comboId = state.getComboSeq();
                     ComboState combo = registeredCombo(comboId);
                     if (combo == null) {
                         failed(pending.releaseAbility(),
-                                "dynamic source entered missing combo " + comboId);
+                                "soft-overlap source entered missing combo " + comboId);
                         decision = FusionHandoff.Decision.EXPIRED;
                     } else {
-                        decision = pending.dynamicTracker().observe(
+                        decision = pending.overlapTracker().observe(
                                 comboId.toString(), state.getLastActionTime(), now,
-                                timeoutTicks(combo), isNeutral(comboId));
+                                timeoutTicks(combo));
                     }
                 } else {
                     decision = pending.tracker().observe(
@@ -178,13 +182,15 @@ final class ProgrammaticFusionPresentationRuntime {
                             previous, current, due(pending));
                 }
                 if (decision == FusionHandoff.Decision.WAIT) continue;
+
                 PENDING_RESPONSES.remove(id, pending);
                 LOGGER.debug("Programmatic fusion release source={} combo={} policy={} handoff reason={} response source={}",
                         pending.releaseAbility(), state.getComboSeq(), policy(pending),
                         decision, pending.responseAbility());
+
+                // External input/recast owns the state; never inject B over it.
                 if (decision == FusionHandoff.Decision.INTERRUPTED) continue;
 
-                // A watchdog never authorizes cutting off A. Semantic entities leave its state alone.
                 if (decision == FusionHandoff.Decision.EXPIRED
                         || !triggerResponse(player, state, plan, pending)) {
                     LOGGER.debug("Programmatic fusion response source={} fallback=true",
@@ -210,8 +216,8 @@ final class ProgrammaticFusionPresentationRuntime {
             if (art == null) return failed(ability, "response SA missing");
             return FusionSourceExecution.enter(() -> art.doArts(pending.type(), player),
                     combo -> auditedRoute(presentation, combo) != null
-                            || presentation.dynamicObservation()
-                                    && validDynamicSelection(combo),
+                            || presentation.softOverlap()
+                                    && validSoftOverlapSelection(combo),
                     combo -> state.updateComboSeq(player, combo),
                     combo -> {
                         boolean committed = combo.equals(state.getComboSeq())
@@ -219,7 +225,7 @@ final class ProgrammaticFusionPresentationRuntime {
                         LOGGER.debug("Programmatic fusion response source={} combo={} committed={} policy={} fallback={}",
                                 ability, combo, committed,
                                 auditedRoute(presentation, combo) != null
-                                        ? "AUDITED" : "DYNAMIC_OBSERVED",
+                                        ? "AUDITED" : "SOFT_OVERLAP",
                                 !committed);
                         return committed;
                     });
@@ -250,7 +256,7 @@ final class ProgrammaticFusionPresentationRuntime {
         return true;
     }
 
-    private static boolean validDynamicSelection(ResourceLocation combo) {
+    private static boolean validSoftOverlapSelection(ResourceLocation combo) {
         return combo != null && !isNeutral(combo) && registeredCombo(combo) != null;
     }
 
@@ -270,19 +276,24 @@ final class ProgrammaticFusionPresentationRuntime {
         return Math.max(1, combo.getTimeoutMS() / 50 + 1);
     }
 
+    static int softOverlapTicks(int timeoutTicks) {
+        return Math.max(SOFT_OVERLAP_MIN_TICKS,
+                Math.min(SOFT_OVERLAP_MAX_TICKS, timeoutTicks / 4));
+    }
+
     private static String observedCombo(PendingResponse pending) {
-        return pending.dynamicTracker() != null
-                ? pending.dynamicTracker().combo() : pending.tracker().combo();
+        return pending.overlapTracker() != null
+                ? pending.overlapTracker().combo() : pending.tracker().combo();
     }
 
     private static long due(PendingResponse pending) {
-        return pending.dynamicTracker() != null
-                ? pending.dynamicTracker().due() : pending.tracker().due();
+        return pending.overlapTracker() != null
+                ? pending.overlapTracker().due() : pending.tracker().due();
     }
 
     private static String policy(PendingResponse pending) {
-        return pending.dynamicTracker() != null
-                ? "DYNAMIC_OBSERVED" : String.valueOf(pending.route().policy());
+        return pending.overlapTracker() != null
+                ? "SOFT_OVERLAP" : String.valueOf(pending.route().policy());
     }
 
     private static SlashArts registeredArt(ResourceLocation ability) {
@@ -322,7 +333,8 @@ final class ProgrammaticFusionPresentationRuntime {
             SlashBladeEvent.PerformSlashArtEvent event,
             ResourceLocation initialCombo, SlashArts.ArtsType type,
             FusionHandoff.Route route, FusionHandoff.Tracker tracker,
-            FusionHandoff.DynamicTracker dynamicTracker, long created) { }
+            FusionHandoff.SoftOverlapTracker overlapTracker, long created) { }
 
-    private ProgrammaticFusionPresentationRuntime() { }
+    private ProgrammaticFusionPresentationRuntime() {
+    }
 }
