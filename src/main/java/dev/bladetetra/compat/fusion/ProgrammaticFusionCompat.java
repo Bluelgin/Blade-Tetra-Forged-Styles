@@ -5,8 +5,9 @@ import net.minecraftforge.fml.ModList;
 /**
  * Loads exact third-party Slash Art dictionaries only when their owning mod is
  * present. Dictionary classes never reference third-party Java types: they only
- * register resource IDs, semantic fallback profiles, and inspected presentation
- * delegation metadata, keeping every integration optional and classloader-safe.
+ * register resource IDs, semantic fallback profiles, and presentation policy
+ * metadata, keeping every integration optional and classloader-safe. Known IDs
+ * can execute through registry-only dynamic observation without linking add-on types.
  */
 public final class ProgrammaticFusionCompat {
     public static void registerLoadedAddons() {
