@@ -13,7 +13,9 @@ public final class FusionHandoff {
             int extraTimeoutMs, int safeAfterTicks) {
         public Stage {
             Objects.requireNonNull(combo);
-            if (speed <= 0 || safeAfterTicks < -1) throw new IllegalArgumentException("Invalid stage");
+            if (speed <= 0 || safeAfterTicks < -1) {
+                throw new IllegalArgumentException("Invalid stage");
+            }
         }
     }
 
@@ -25,57 +27,69 @@ public final class FusionHandoff {
                 throw new IllegalArgumentException("An audit needs a bounded signature endpoint");
             }
         }
+
         public Policy policy() {
             return stages.size() == 1 ? Policy.SIGNATURE_WINDOW : Policy.AUDITED_CHAIN;
         }
     }
 
     /**
-     * Conservative observer for known third-party sources without an exact route.
-     * It never predicts or advances callbacks. A stage change is accepted only
-     * after the previous real registry timeout, and handoff is authorized only
-     * once the source naturally reaches a neutral ComboState.
+     * Aggressive but bounded observer for exact dictionary-known add-on sources
+     * without a matching lifecycle audit.
+     *
+     * <p>The source is allowed to own the player ComboState for a short overlap
+     * window. Once that window is reached, response B may replace the ComboState.
+     * This intentionally accepts loss of A's late state-bound callbacks in favor
+     * of preserving already spawned entities/effects and making fusion read as an
+     * overlap instead of a serial combo.</p>
+     *
+     * <p>Natural timeout-owned source progression is accepted. Early transitions
+     * and same-combo clock restarts are treated as external interruption so the
+     * runtime never fires B over unrelated player input.</p>
      */
-    public static final class DynamicTracker {
+    public static final class SoftOverlapTracker {
         private final long created;
+        private final int overlapTicks;
         private final int deadlineTicks;
         private String combo;
         private long actionTime;
         private int timeoutTicks;
 
-        public DynamicTracker(String combo, int timeoutTicks, long created,
-                int deadlineTicks) {
+        public SoftOverlapTracker(String combo, int timeoutTicks, long created,
+                int overlapTicks, int deadlineTicks) {
             this.combo = Objects.requireNonNull(combo);
-            if (timeoutTicks < 1 || deadlineTicks < 1) {
-                throw new IllegalArgumentException("Invalid dynamic handoff bounds");
+            if (timeoutTicks < 1 || overlapTicks < 1 || deadlineTicks < overlapTicks) {
+                throw new IllegalArgumentException("Invalid soft-overlap bounds");
             }
             this.timeoutTicks = timeoutTicks;
             this.created = created;
             this.actionTime = created;
+            this.overlapTicks = overlapTicks;
             this.deadlineTicks = deadlineTicks;
         }
 
         public Decision observe(String observedCombo, long committedAt, long now,
-                int observedTimeoutTicks, boolean terminal) {
+                int observedTimeoutTicks) {
             if (committedAt < created || committedAt > now || observedTimeoutTicks < 1) {
                 return Decision.INTERRUPTED;
             }
+
             if (!combo.equals(observedCombo)) {
-                // Only a transition occurring after the previous registry timeout is
-                // treated as source-owned progression. Early/input-driven changes are
-                // interruptions and never authorize response B.
+                // Only a timeout-owned transition is treated as source progression.
+                // Earlier state changes are most likely player input or another cast.
                 if (committedAt - actionTime < timeoutTicks) {
                     return Decision.INTERRUPTED;
                 }
                 combo = observedCombo;
                 actionTime = committedAt;
                 timeoutTicks = observedTimeoutTicks;
-                if (terminal) {
-                    return Decision.READY;
-                }
             } else if (committedAt != actionTime) {
                 // Same ComboState with a fresh clock is a recast/restart.
                 return Decision.INTERRUPTED;
+            }
+
+            if (now - created >= overlapTicks) {
+                return Decision.READY;
             }
             return now - created >= deadlineTicks ? Decision.EXPIRED : Decision.WAIT;
         }
@@ -85,7 +99,7 @@ public final class FusionHandoff {
         }
 
         public long due() {
-            return -1L;
+            return created + overlapTicks;
         }
     }
 
@@ -100,7 +114,9 @@ public final class FusionHandoff {
         public Tracker(Route route, List<Integer> timeoutTicks, long created) {
             this.route = route;
             this.timeoutTicks = List.copyOf(timeoutTicks);
-            if (timeoutTicks.size() != route.stages().size()) throw new IllegalArgumentException("Timeout count");
+            if (timeoutTicks.size() != route.stages().size()) {
+                throw new IllegalArgumentException("Timeout count");
+            }
             this.created = created;
             this.actionTime = created;
         }
@@ -130,13 +146,20 @@ public final class FusionHandoff {
             return now - created >= route.deadlineTicks() ? Decision.EXPIRED : Decision.WAIT;
         }
 
-        public boolean observed() { return observed; }
-        public String combo() { return route.stages().get(stage).combo(); }
+        public boolean observed() {
+            return observed;
+        }
+
+        public String combo() {
+            return route.stages().get(stage).combo();
+        }
+
         public long due() {
             int safe = route.stages().get(stage).safeAfterTicks();
             return safe < 0 ? -1 : actionTime + safe;
         }
     }
 
-    private FusionHandoff() { }
+    private FusionHandoff() {
+    }
 }
