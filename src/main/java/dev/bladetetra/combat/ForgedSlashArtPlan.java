@@ -255,7 +255,10 @@ public record ForgedSlashArtPlan(
         }
 
         public int baseCount() {
-            return response.projectileCount();
+            // Forged Judgement Cut adds a visible phantom-sword halo around the
+            // native slashdim cue. Keep the generic programmatic-fusion semantic
+            // profile at three; only the authored version uses the richer five.
+            return this == JUDGEMENT_CUT ? 5 : response.projectileCount();
         }
 
         int attackDelayTicks() {
