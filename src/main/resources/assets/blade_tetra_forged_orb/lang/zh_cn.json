@@ -3,6 +3,7 @@
   "tooltip.blade_tetra.forged.orb.apply": "另一只手持拔刀剑时使用，将当前自锻斩术刻入刀中。",
   "tooltip.blade_tetra.forged.orb.clear": "潜行使用可抹除另一只手中拔刀剑的自锻斩术刻印。",
   "message.blade_tetra.forged.applied": "自锻斩术已刻入拔刀剑。",
+  "message.blade_tetra.forged.stored_dormant": "自锻斩术已刻入；当前名刀能力优先，刻印暂时休眠。",
   "message.blade_tetra.forged.cleared": "自锻斩术刻印已抹除。",
   "message.blade_tetra.forged.incomplete": "术式魂珠尚未完成。"
 }
