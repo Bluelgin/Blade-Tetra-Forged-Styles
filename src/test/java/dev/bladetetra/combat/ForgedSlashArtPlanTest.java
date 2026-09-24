@@ -88,6 +88,28 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
+    void judgementUsesNativePresentationWithBoundedPhantomSwordBudget() {
+        assertEquals(5, ForgedSlashArtPlan.Technique.JUDGEMENT_CUT.baseCount());
+        assertEquals(10, ForgedJudgementPresentation.NATIVE_LIFETIME_TICKS);
+        assertTrue(ForgedJudgementPresentation.SAFE_DISCARD_TICKS
+                <= ForgedJudgementPresentation.NATIVE_LIFETIME_TICKS);
+
+        ForgedSlashArtPlan balanced = ForgedSlashArtPlan.compose(
+                "sa_core/diamond",
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ForgedSlashArtPlan.Technique.SAKURA_END,
+                ForgedSlashArtPlan.Modifier.BALANCED);
+        ForgedSlashArtPlan shatter = ForgedSlashArtPlan.compose(
+                "sa_core/diamond",
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ForgedSlashArtPlan.Technique.SAKURA_END,
+                ForgedSlashArtPlan.Modifier.SHATTER);
+        assertEquals(5, balanced.primaryCount());
+        assertEquals(8, shatter.primaryCount());
+        assertTrue(balanced.effectiveDamageBudget() <= balanced.powerBudget() * 1.001D);
+    }
+
+    @Test
     void mineralCoreProgressionHasUsefulVanillaAnchors() {
         assertTrue(ForgedSlashArtPlan.corePowerFor("sa_core/stone")
                 < ForgedSlashArtPlan.corePowerFor("sa_core/iron"));
