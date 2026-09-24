@@ -195,10 +195,9 @@ final class ProceduralSlashArtExecutor {
     private static void executeRadialDrives(ServerPlayer player,
             ForgedSlashArtPlan.Modifier modifier, int count,
             double damagePerHit, int baseDelay, double angleScale) {
-        double scale = Math.max(0.45D, Math.min(2.4D, angleScale));
         for (int index = 0; index < count; index++) {
             double yaw = index * (360.0D / count);
-            Vec3 direction = rotateHorizontal(player.getLookAngle(), yaw * scale);
+            Vec3 direction = rotateHorizontal(player.getLookAngle(), yaw);
             int delay = baseDelay + shatterDelay(modifier, index, count);
             spawnDrive(player, direction, damagePerHit, delay,
                     index * (360.0F / count), 1.60F);
