@@ -42,7 +42,7 @@
   "tetra/schematic/slashblade/forged_sa_core.slot1": "魂核矿物",
 
   "tetra/schematic/slashblade/forged_primary_judgement_cut.name": "主术式：次元斩",
-  "tetra/schematic/slashblade/forged_primary_judgement_cut.description": "将次元斩动作与远程切割形态刻入主术式。",
+  "tetra/schematic/slashblade/forged_primary_judgement_cut.description": "将次元斩动作、本体断界演出与收束幻影剑阵刻入主术式。",
   "tetra/schematic/slashblade/forged_primary_judgement_cut.slot1": "耀魂媒介",
   "tetra/schematic/slashblade/forged_primary_sakura_end.name": "主术式：终焉樱",
   "tetra/schematic/slashblade/forged_primary_sakura_end.description": "将终焉樱动作与交叉斩形态刻入主术式。",
@@ -67,7 +67,7 @@
   "tetra/schematic/slashblade/forged_primary_piercing.slot1": "耀魂媒介",
 
   "tetra/schematic/slashblade/forged_secondary_judgement_cut.name": "副术式：次元斩·回响",
-  "tetra/schematic/slashblade/forged_secondary_judgement_cut.description": "在主术式后追加三拍式断界回响。",
+  "tetra/schematic/slashblade/forged_secondary_judgement_cut.description": "在主术式后追加本体断界演出与收束幻影剑形成的次元斩回响。",
   "tetra/schematic/slashblade/forged_secondary_judgement_cut.slot1": "耀魂媒介",
   "tetra/schematic/slashblade/forged_secondary_sakura_end.name": "副术式：终焉樱·十文字",
   "tetra/schematic/slashblade/forged_secondary_sakura_end.description": "在主术式后追加交叉樱花斩。",
