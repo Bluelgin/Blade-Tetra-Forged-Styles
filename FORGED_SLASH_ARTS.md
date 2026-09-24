@@ -140,8 +140,14 @@ relative to that second motion.
 
 `ProceduralSlashArtExecutor` keeps the conservative Drive-only grammar used by
 programmatic-fusion fallback, but forged Slash Arts use richer authored primitives:
-converging summoned swords, localized cross cuts, summoned-sword fans, radial
-drives and focused drive families. Geometry fixes can still be shared without
+native Judgement Cut presentation + bounded phantom swords, localized cross cuts,
+summoned-sword fans, radial drives and focused drive families.
+
+Forged Judgement Cut directly reuses SlashBlade's own `EntityJudgementCut`
+renderer/model for presentation, but the entity is spawned with no shooter and
+zero damage. Blade Tetra discards it at the native ten-tick lifetime boundary
+before the entity can enter its burst/potion cleanup path. The surrounding forged
+phantom swords therefore remain the only source of Judgement damage. Geometry fixes can still be shared without
 letting forged attacks execute source SlashArt callbacks.
 
 Weapon/spec changes, death, dimension changes, structural SA changes, foreign
@@ -168,9 +174,11 @@ ComboState interruptions and rapid recasts cancel or replace pending casts.
 8. Exercise representative ordered pairs such as Judgement→Sakura,
    Piercing→Circle, Circle→Wave and Vertical→Horizontal. Confirm both primary and
    secondary player motions visibly occur in order.
-9. Compare Judgement/Sakura/Void/Circle against the Drive-family techniques and
-   confirm they now use visibly different primitive families rather than only
-   different Drive angles.
+9. Verify Judgement Cut shows SlashBlade's native dimensional-rift/slashdim
+   presentation in the blade color, surrounded by forged phantom swords. The
+   native presentation entity must deal no damage or potion/burst effect by itself.
+   Compare Sakura/Void/Circle against the Drive-family techniques and confirm they
+   use visibly different primitive families rather than only different Drive angles.
 10. Compare Balanced/Condensed/Shatter/Spread/Echo/Haste and verify target focus,
     second-burst timing, spread, echo and Haste motion timing differ while total
     damage remains bounded.
