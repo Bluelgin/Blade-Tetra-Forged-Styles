@@ -79,12 +79,14 @@ class ForgedSlashArtPlanTest {
         assertTrue(primitiveFamilies >= 5);
         assertEquals(ForgedSlashArtPlan.Primitive.TARGETED_SWORDS,
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.CROSS_SLASH,
+        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_SAKURA,
                 ForgedSlashArtPlan.Technique.SAKURA_END.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.SUMMONED_FAN,
+        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_VOID,
                 ForgedSlashArtPlan.Technique.VOID_SLASH.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.RADIAL_DRIVE,
+        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_CIRCLE,
                 ForgedSlashArtPlan.Technique.CIRCLE_SLASH.primitive());
+        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_PIERCING,
+                ForgedSlashArtPlan.Technique.PIERCING.primitive());
     }
 
     @Test
@@ -107,6 +109,15 @@ class ForgedSlashArtPlanTest {
         assertEquals(5, balanced.primaryCount());
         assertEquals(8, shatter.primaryCount());
         assertTrue(balanced.effectiveDamageBudget() <= balanced.powerBudget() * 1.001D);
+    }
+
+    @Test
+    void nativePresentationWindowsStayInsideUnsafeSourceCallbacks() {
+        assertEquals(10, ForgedNativePresentation.SAKURA_LIFETIME_TICKS);
+        assertEquals(10, ForgedNativePresentation.CIRCLE_LIFETIME_TICKS);
+        assertEquals(36, ForgedNativePresentation.VOID_NATIVE_LIFETIME_TICKS);
+        assertTrue(ForgedNativePresentation.VOID_SAFE_DISCARD_TICKS
+                < ForgedNativePresentation.VOID_NATIVE_LIFETIME_TICKS);
     }
 
     @Test
