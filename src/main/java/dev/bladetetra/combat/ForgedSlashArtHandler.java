@@ -187,7 +187,7 @@ final class ForgedSlashArtHandler {
         if (targetId == null) {
             return null;
         }
-        Entity entity = player.level().getEntity(targetId);
+        Entity entity = player.serverLevel().getEntity(targetId);
         return entity instanceof LivingEntity living
                 && validTarget(player, living) ? living : null;
     }
