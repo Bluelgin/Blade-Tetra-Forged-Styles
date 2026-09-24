@@ -195,9 +195,10 @@ public record ForgedSlashArtPlan(
 
     public enum Primitive {
         TARGETED_SWORDS,
-        CROSS_SLASH,
-        SUMMONED_FAN,
-        RADIAL_DRIVE,
+        NATIVE_SAKURA,
+        NATIVE_VOID,
+        NATIVE_CIRCLE,
+        NATIVE_PIERCING,
         DRIVE
     }
 
@@ -207,13 +208,13 @@ public record ForgedSlashArtPlan(
                 Primitive.TARGETED_SWORDS, 16, 19),
         SAKURA_END("sakura_end",
                 ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                Primitive.CROSS_SLASH, 1, 8),
+                Primitive.NATIVE_SAKURA, 1, 8),
         VOID_SLASH("void_slash",
                 ProgrammaticFusionProfile.Response.VOID_TRIDENT,
-                Primitive.SUMMONED_FAN, 16, 19),
+                Primitive.NATIVE_VOID, 16, 19),
         CIRCLE_SLASH("circle_slash",
                 ProgrammaticFusionProfile.Response.CIRCLE_RING,
-                Primitive.RADIAL_DRIVE, 4, 10),
+                Primitive.NATIVE_CIRCLE, 4, 10),
         DRIVE_VERTICAL("drive_vertical",
                 ProgrammaticFusionProfile.Response.VERTICAL_DRIVE,
                 Primitive.DRIVE, 3, 7),
@@ -225,7 +226,7 @@ public record ForgedSlashArtPlan(
                 Primitive.DRIVE, 3, 10),
         PIERCING("piercing",
                 ProgrammaticFusionProfile.Response.PIERCING_FOCUS,
-                Primitive.DRIVE, 22, 25);
+                Primitive.NATIVE_PIERCING, 22, 25);
 
         private final String id;
         private final ProgrammaticFusionProfile.Response response;
