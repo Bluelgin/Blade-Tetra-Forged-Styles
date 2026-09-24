@@ -43,7 +43,7 @@ The four editable modules therefore live only on the orb:
 |---|---|
 | `slashblade/sa_core` | Mineral-derived total damage budget |
 | `slashblade/sa_primary` | Native SlashBlade motion + primary procedural geometry |
-| `slashblade/sa_secondary` | Follow-up procedural geometry |
+| `slashblade/sa_secondary` | Native SlashBlade follow-up motion + secondary attack geometry |
 | `slashblade/sa_modifier` | Hit topology, spread, echo or timing |
 
 A completed orb is an authoring tool. Applying it to a blade copies a compact,
@@ -67,8 +67,11 @@ Art, stores the forged specification and switches the blade to
 
 For Blade Tetra's modular katana, the orb stores only the forged specification and
 then asks the existing structural ability synchronizer to reconcile the blade.
-This preserves named-fitting inheritance and the previous-SA bookkeeping already
-used by legacy fusion.
+Named-blade structure remains authoritative: authored fusion, programmatic mixed
+fusion and orthodox inheritance all outrank a forged inscription. The forged spec
+stays dormant on the item and becomes active again when those structural owners no
+longer apply. This prevents coupled SA/SE packages such as Dead Thought from being
+split into an illegal forged-SA + legacy-SE hybrid.
 
 Sneak-use the orb with an inscribed blade in the other hand to erase the custom
 inscription. Generic SlashBlade weapons restore the remembered Slash Art; the
@@ -79,11 +82,12 @@ the inscription operation later without changing the data model.
 
 ## Animation ownership
 
-The eight primary techniques copy only the native Resharped ComboState's visual
-metadata: motion resource, frame window, priority, speed, loop/aerial shape and
-recovery. Source `clickAction`, `tickAction`, `hitEffect`, transitions and damage
-callbacks are not copied. Haste has separate visual-only states at 1.25× animation
-speed.
+Both primary and secondary techniques copy only the native Resharped ComboState's
+visual metadata: motion resource, frame window, priority, speed, loop/aerial shape
+and recovery. Source `clickAction`, `tickAction`, `hitEffect`, transitions and
+damage callbacks are not copied. At the compiled handoff point, Blade Tetra commits
+the secondary visual-only ComboState and schedules the second attack relative to
+that motion. Haste has separate visual-only states at 1.25× animation speed.
 
 This keeps the player's motion recognizably SlashBlade while Blade Tetra owns all
 combat output and the Slash Art Core remains authoritative over the total damage
@@ -104,19 +108,23 @@ proven by programmatic fusion:
 - Piercing
 
 Each can be selected independently as primary or secondary, giving 64 ordered
-technique pairs before core material or modifiers are considered.
+technique pairs before core material or modifiers are considered. The ordered pair
+is visible in player motion as well as attack output: A→B now performs A's motion,
+hands off, then performs B's motion.
 
 ## Modifiers
 
 - **Balanced** — unchanged topology and budget.
-- **Condensed** — roughly half as many hits, slightly higher total efficiency and
-  tighter angles.
-- **Shatter** — doubles bounded hit count, but applies a multi-hit tax.
-- **Spread** — widens non-radial patterns and trades single-target efficiency.
+- **Condensed** — roughly half as many hits, slightly higher total efficiency,
+  tighter geometry and target-focused aim when a valid lock exists.
+- **Shatter** — doubles bounded hit count, applies a multi-hit tax and delays the
+  latter half into a distinct second micro-burst.
+- **Spread** — widens non-radial origins/patterns and trades single-target
+  efficiency; true radial techniques remain radial.
 - **Echo** — repeats the secondary phase after a delay; the same secondary budget
   is divided over both cycles.
-- **Haste** — 1.25× primary animation and earlier attack/handoff timing, with a
-  small efficiency tax.
+- **Haste** — 1.25× primary and secondary animation, earlier attacks/handoff and
+  shorter echo spacing, with a small efficiency tax.
 
 Every modifier preserves a bounded total damage budget; adding hit count never
 multiplies total power for free.
@@ -124,15 +132,17 @@ multiplies total power for free.
 ## Runtime lifecycle
 
 `ForgedSlashArtSpec` is the persistence boundary. `ForgedSlashArtPlan` validates
-and compiles that snapshot into damage, timing and topology.
+and compiles that snapshot into damage, timing, two motion IDs and topology.
 `ForgedSlashArtHandler` snapshots the cast direction and compiled plan, verifies
-that SlashBlade committed the selected visual-only ComboState, and schedules the
-primary and secondary phases on server tick END.
+the primary visual-only ComboState, executes the primary signature, commits the
+secondary visual-only ComboState at handoff, then schedules the secondary signature
+relative to that second motion.
 
-All projectile geometry is emitted by the shared `ProceduralSlashArtExecutor`.
-The existing programmatic-fusion semantic fallback uses the same executor, so
-geometry fixes can benefit both generated systems without changing exact
-source-presentation delegation.
+`ProceduralSlashArtExecutor` keeps the conservative Drive-only grammar used by
+programmatic-fusion fallback, but forged Slash Arts use richer authored primitives:
+converging summoned swords, localized cross cuts, summoned-sword fans, radial
+drives and focused drive families. Geometry fixes can still be shared without
+letting forged attacks execute source SlashArt callbacks.
 
 Weapon/spec changes, death, dimension changes, structural SA changes, foreign
 ComboState interruptions and rapid recasts cancel or replace pending casts.
@@ -151,13 +161,19 @@ ComboState interruptions and rapid recasts cancel or replace pending casts.
    old snapshot until the orb is explicitly applied again.
 6. Sneak-use the orb on an inscribed generic blade and confirm the displaced Slash
    Art is restored.
-7. Apply and clear an inscription on Blade Tetra's modular katana while named
-   fittings are assembled. Forged SA should own the SA slot while present, fitting
-   Special Effects should remain, and clearing should restore structural
-   inheritance.
-8. Exercise all eight primary motions and representative ordered pairs such as
-   Judgement→Sakura, Piercing→Circle, Circle→Wave and Vertical→Horizontal.
-9. Compare Balanced/Condensed/Shatter/Spread/Echo/Haste and verify hit count,
-   spread and timing differ while total damage remains bounded.
-10. Change weapon, die, change dimension and rapidly recast during the primary
-    window; pending secondary attacks must cancel/replace cleanly.
+7. Apply an inscription on Blade Tetra's modular katana while an authored,
+   programmatic or orthodox named fitting owns the SA slot. The forged spec should
+   remain stored but dormant; the named structural SA/SE package must stay intact.
+   Remove the named owner and confirm the forged SA becomes active again.
+8. Exercise representative ordered pairs such as Judgement→Sakura,
+   Piercing→Circle, Circle→Wave and Vertical→Horizontal. Confirm both primary and
+   secondary player motions visibly occur in order.
+9. Compare Judgement/Sakura/Void/Circle against the Drive-family techniques and
+   confirm they now use visibly different primitive families rather than only
+   different Drive angles.
+10. Compare Balanced/Condensed/Shatter/Spread/Echo/Haste and verify target focus,
+    second-burst timing, spread, echo and Haste motion timing differ while total
+    damage remains bounded.
+11. Change weapon, die, change dimension, interrupt between motions and rapidly
+    recast during the primary window; pending secondary attacks must cancel/replace
+    cleanly.
