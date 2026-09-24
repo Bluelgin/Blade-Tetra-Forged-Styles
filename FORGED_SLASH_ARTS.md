@@ -112,6 +112,24 @@ technique pairs before core material or modifiers are considered. The ordered pa
 is visible in player motion as well as attack output: A→B now performs A's motion,
 hands off, then performs B's motion.
 
+Forged techniques prefer Resharped's own presentation vocabulary instead of
+recreating every Slash Art from Drive projectiles:
+
+| Technique | Native reuse | Forged-owned combat |
+|---|---|---|
+| Judgement Cut | native `EntityJudgementCut` / `slashdim` renderer | converging phantom-sword halo |
+| Sakura End | native `EntitySlashEffect` geometry, 22.5° / 157.5° cross | bounded compact follow-up swords |
+| Void Slash | native `AttackManager.newVoidSlashEffect` presentation | bounded phantom-sword fan |
+| Circle Slash | native four-beat SlashEffect ring: 180° / 90° / 0° / -90° | radial phantom swords |
+| Vertical / Horizontal Drive | native `Drive.doSlash` entity path | forged budget/count |
+| Wave Edge | native Drive family with staggered speed/timing | forged budget/count |
+| Piercing | native-style forward rush + piercing sound | exact bounded close-range hit |
+
+Native presentation entities are sanitized when their source callback would own
+unbounded damage: shooter/owner is detached where necessary, damage is zeroed, and
+unsafe terminal callbacks (notably Void Slash's 5.1× finisher) are cut off before
+they can run.
+
 ## Modifiers
 
 - **Balanced** — unchanged topology and budget.
