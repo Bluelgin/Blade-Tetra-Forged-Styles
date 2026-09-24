@@ -102,6 +102,7 @@ public final class LegacyFusionHandler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        ForgedJudgementPresentation.tick(event);
         ForgedSlashArtHandler.tick(event);
         ProgrammaticFusionHandler.tick(event);
         TwinFoxFusionHandler.tick(event);
@@ -115,6 +116,7 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel level) {
+            ForgedJudgementPresentation.onLevelUnload(level);
             ForgedSlashArtHandler.onLevelUnload(level);
             ProgrammaticFusionHandler.onLevelUnload(level);
             TwinFoxFusionHandler.onLevelUnload(level);
@@ -128,6 +130,7 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
+        ForgedJudgementPresentation.clear();
         ForgedSlashArtHandler.clear();
         ProgrammaticFusionHandler.clear();
         TwinFoxFusionHandler.clear();
