@@ -6,23 +6,26 @@ import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
 import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.slasharts.Drive;
+import mods.flammpfeil.slashblade.util.AttackManager;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
  * Shared bounded attack grammar used by generated Slash Arts.
  *
  * <p>Programmatic legacy fusion keeps the conservative Drive-only response path.
- * Player-authored forged Slash Arts use a richer semantic layer: native-looking
- * drives, converging summoned swords, fan swords and localized cross cuts. Source
- * SlashArts are never invoked here; callers own timing and total damage budget.</p>
+ * Player-authored forged Slash Arts reuse Resharped's native presentation language
+ * wherever it can be separated safely from source damage, then layer bounded
+ * phantom swords/melee hits under the forged core budget.</p>
  */
 final class ProceduralSlashArtExecutor {
     static final float DRIVE_SPEED = 2.0F;
     static final int DRIVE_LIFETIME = 12;
     static final double FAN_ANGLE_DEGREES = 12.0D;
+    private static final double PIERCING_REACH = 4.25D;
 
     /**
      * Conservative semantic fallback retained for programmatic legacy fusion.
@@ -51,7 +54,7 @@ final class ProceduralSlashArtExecutor {
 
     /**
      * Rich authored path. Technique chooses the attack primitive while modifier
-     * changes how that primitive is laid out without increasing the compiled budget.
+     * changes layout/timing without increasing the compiled budget.
      */
     static void executeForged(ServerPlayer player, ISlashBladeState state,
             Vec3 forward, LivingEntity target,
@@ -72,16 +75,17 @@ final class ProceduralSlashArtExecutor {
         switch (technique.primitive()) {
             case TARGETED_SWORDS -> executeTargetedSwords(
                     player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay, angleScale);
-            case CROSS_SLASH -> executeCrossSlash(
+                    boundedCount, damagePerHit, baseDelay);
+            case NATIVE_SAKURA -> executeSakura(
+                    player, state, aim, target, modifier,
+                    boundedCount, damagePerHit, baseDelay);
+            case NATIVE_VOID -> executeVoid(
                     player, state, aim, target, modifier,
                     boundedCount, damagePerHit, baseDelay, angleScale);
-            case SUMMONED_FAN -> executeSummonedFan(
-                    player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay, angleScale);
-            case RADIAL_DRIVE -> executeRadialDrives(
-                    player, modifier, boundedCount, damagePerHit,
-                    baseDelay, angleScale);
+            case NATIVE_CIRCLE -> executeCircle(
+                    player, state, boundedCount, damagePerHit, baseDelay, modifier);
+            case NATIVE_PIERCING -> executePiercing(
+                    player, aim, target, boundedCount, damagePerHit);
             case DRIVE -> executeForgedDrives(
                     player, aim, technique.response(), modifier,
                     boundedCount, damagePerHit, baseDelay, angleScale);
@@ -91,7 +95,7 @@ final class ProceduralSlashArtExecutor {
     private static void executeTargetedSwords(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay, double angleScale) {
+            double damagePerHit, int baseDelay) {
         ServerLevel level = player.serverLevel();
         Vec3 focus = target != null && target.isAlive()
                 ? target.getBoundingBox().getCenter()
@@ -99,10 +103,6 @@ final class ProceduralSlashArtExecutor {
         double radius = modifier.condensed() ? 1.35D
                 : modifier.spread() ? 3.25D : 2.15D;
 
-        // Reuse SlashBlade's own slashdim Judgement Cut presentation, but
-        // without a shooter/owner. The native entity is cosmetic-only and is
-        // discarded before its burst path; these summoned swords own every hit
-        // in the forged damage budget.
         ForgedJudgementPresentation.spawn(player, focus, state.getColorCode());
 
         for (int index = 0; index < count; index++) {
@@ -119,49 +119,50 @@ final class ProceduralSlashArtExecutor {
         }
     }
 
-    private static void executeCrossSlash(ServerPlayer player,
+    private static void executeSakura(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay, double angleScale) {
+            double damagePerHit, int baseDelay) {
         ServerLevel level = player.serverLevel();
         Vec3 focus = target != null && target.isAlive()
                 ? target.getBoundingBox().getCenter()
                 : player.getEyePosition().add(aim.scale(4.0D));
 
-        LegacyFusionCombatSupport.spawnVisualSlash(player, focus,
-                player.getYRot() - 22.0F, 58.0F,
-                state.getColorCode(), modifier.spread() ? 2.2F : 1.75F, 8);
-        LegacyFusionCombatSupport.spawnVisualSlash(player, focus,
-                player.getYRot() + 22.0F, 122.0F,
-                state.getColorCode(), modifier.spread() ? 2.2F : 1.75F, 8);
+        ForgedNativePresentation.spawnSakuraCross(
+                player, focus, state.getColorCode(),
+                modifier.spread() ? 2.15F : modifier.condensed() ? 1.45F : 1.75F);
 
+        // The native cross is presentation-only. Compact summoned swords carry
+        // the exact forged budget and preserve Shatter's delayed second burst.
         Vec3 horizontal = new Vec3(-aim.z, 0.0D, aim.x);
         if (horizontal.lengthSqr() < 1.0E-8D) {
             horizontal = new Vec3(1.0D, 0.0D, 0.0D);
         } else {
             horizontal = horizontal.normalize();
         }
-        double width = modifier.condensed() ? 1.0D
-                : modifier.spread() ? 2.8D : 1.65D;
+        double width = modifier.condensed() ? 0.85D
+                : modifier.spread() ? 2.4D : 1.35D;
 
         for (int index = 0; index < count; index++) {
             double normalized = count <= 1 ? 0.0D
                     : index / (double) (count - 1) * 2.0D - 1.0D;
             Vec3 start = focus.add(horizontal.scale(normalized * width))
-                    .add(0.0D, 2.15D + Math.abs(normalized) * 0.45D, 0.0D);
+                    .add(0.0D, 1.8D + Math.abs(normalized) * 0.35D, 0.0D);
             int delay = baseDelay + shatterDelay(modifier, index, count);
             spawnSword(level, player, target, start,
                     focus.subtract(start), damagePerHit,
                     state.getColorCode(), delay,
-                    index % 2 == 0 ? 45.0F : 135.0F);
+                    index % 2 == 0 ? 22.5F : 157.5F);
         }
     }
 
-    private static void executeSummonedFan(ServerPlayer player,
+    private static void executeVoid(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
             double damagePerHit, int baseDelay, double angleScale) {
         ServerLevel level = player.serverLevel();
+        ForgedNativePresentation.spawnVoid(player, state.getColorCode());
+
         Vec3 right = new Vec3(-aim.z, 0.0D, aim.x);
         if (right.lengthSqr() < 1.0E-8D) {
             right = new Vec3(1.0D, 0.0D, 0.0D);
@@ -190,16 +191,71 @@ final class ProceduralSlashArtExecutor {
         }
     }
 
-    private static void executeRadialDrives(ServerPlayer player,
-            ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay, double angleScale) {
+    private static void executeCircle(ServerPlayer player,
+            ISlashBladeState state, int count, double damagePerHit,
+            int baseDelay, ForgedSlashArtPlan.Modifier modifier) {
+        ServerLevel level = player.serverLevel();
+        ForgedNativePresentation.spawnCircle(
+                player, state.getColorCode(),
+                modifier.spread() ? 2.0F : modifier.condensed() ? 1.35F : 1.65F);
+
+        // Replace the old radial Drive ring with phantom swords travelling along
+        // the same 360-degree topology. SlashEffect is now the dominant native cue.
         for (int index = 0; index < count; index++) {
             double yaw = index * (360.0D / count);
             Vec3 direction = rotateHorizontal(player.getLookAngle(), yaw);
-            int delay = baseDelay + shatterDelay(modifier, index, count);
-            spawnDrive(player, direction, damagePerHit, delay,
-                    index * (360.0F / count), 1.60F);
+            Vec3 start = player.getEyePosition()
+                    .add(direction.scale(0.55D))
+                    .add(0.0D, -0.15D, 0.0D);
+            int delay = baseDelay + index + shatterDelay(modifier, index, count);
+            spawnSword(level, player, null, start, direction,
+                    damagePerHit, state.getColorCode(), delay,
+                    (float) yaw);
         }
+    }
+
+    private static void executePiercing(ServerPlayer player, Vec3 aim,
+            LivingEntity lockedTarget, int count, double damagePerHit) {
+        // Resharped PIERCING_2: forward rush for the opening ticks plus a close
+        // area attack. Reuse that movement/sound language but keep damage exact.
+        player.moveRelative(player.isInWater() ? 0.35F : 0.8F,
+                new Vec3(0.0D, 0.0D, 1.0D));
+        player.hasImpulse = true;
+        AttackManager.playPiercingSoundAction(player);
+
+        LivingEntity target = validPiercingTarget(player, lockedTarget)
+                ? lockedTarget : findPiercingTarget(player, aim);
+        if (target == null) {
+            return;
+        }
+        for (int index = 0; index < count; index++) {
+            LegacyFusionCombatSupport.hurtPreservingIFrames(
+                    player.serverLevel(), player, target,
+                    (float) Math.max(0.0D, damagePerHit));
+        }
+    }
+
+    private static boolean validPiercingTarget(
+            ServerPlayer player, LivingEntity target) {
+        return target != null
+                && LegacyFusionCombatSupport.canAffect(player, target)
+                && player.hasLineOfSight(target)
+                && player.distanceToSqr(target) <= PIERCING_REACH * PIERCING_REACH;
+    }
+
+    private static LivingEntity findPiercingTarget(
+            ServerPlayer player, Vec3 aim) {
+        AABB search = player.getBoundingBox()
+                .expandTowards(aim.scale(PIERCING_REACH))
+                .inflate(0.9D);
+        return player.serverLevel().getEntitiesOfClass(
+                        LivingEntity.class, search,
+                        target -> validPiercingTarget(player, target))
+                .stream()
+                .min((first, second) -> Double.compare(
+                        player.distanceToSqr(first),
+                        player.distanceToSqr(second)))
+                .orElse(null);
     }
 
     private static void executeForgedDrives(ServerPlayer player, Vec3 aim,
