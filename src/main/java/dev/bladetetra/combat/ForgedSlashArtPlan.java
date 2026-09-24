@@ -232,7 +232,9 @@ public record ForgedSlashArtPlan(
         }
 
         public String translationKey() {
-            return "tooltip.blade_tetra.forged.technique." + id;
+            // Use SlashBlade's own language entry so forged techniques never
+            // drift from the source SA names after a translation update.
+            return "slash_art.slashblade." + id;
         }
 
         static Technique fromVariant(String variant) {

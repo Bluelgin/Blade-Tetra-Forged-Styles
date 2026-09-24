@@ -78,6 +78,15 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
+    void techniqueNamesUseSlashBladesOwnTranslationKeys() {
+        for (ForgedSlashArtPlan.Technique technique
+                : ForgedSlashArtPlan.Technique.values()) {
+            assertEquals("slash_art.slashblade." + technique.id(),
+                    technique.translationKey());
+        }
+    }
+
+    @Test
     void generalizedGeometryPreservesLegacyBaseShapes() {
         assertEquals(-10.0D, ProceduralSlashArtExecutor.responseYaw(
                 ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0, 2, 1.0D), 0.0001D);

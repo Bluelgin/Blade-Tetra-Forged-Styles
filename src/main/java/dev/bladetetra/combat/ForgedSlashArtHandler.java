@@ -5,10 +5,14 @@ import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -21,6 +25,7 @@ import java.util.UUID;
 
 /** Executes the player-authored Tetra Slash Art without invoking source SA logic. */
 final class ForgedSlashArtHandler {
+    private static final double JUDGEMENT_RANGE = 18.0D;
     private static final Map<UUID, PendingCast> PENDING = new HashMap<>();
 
     static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
@@ -37,9 +42,12 @@ final class ForgedSlashArtHandler {
         Vec3 look = player.getLookAngle();
         Vec3 aim = look.lengthSqr() < 1.0E-8D
                 ? new Vec3(0.0D, 0.0D, 1.0D) : look.normalize();
+        Entity locked = state.getTargetEntity(player.level());
+        UUID targetId = locked instanceof LivingEntity target
+                && validJudgementTarget(player, target) ? target.getUUID() : null;
         int created = player.tickCount;
         PENDING.put(player.getUUID(), new PendingCast(
-                player.level().dimension(), player.getUUID(), plan, aim,
+                player.level().dimension(), player.getUUID(), targetId, plan, aim,
                 event.getComboState(), created,
                 created + plan.primaryDelayTicks(),
                 created + plan.secondaryDelayTicks()));
@@ -90,19 +98,19 @@ final class ForgedSlashArtHandler {
 
             if (!pending.primaryExecuted && player.tickCount >= pending.primaryDueTick) {
                 pending.primaryExecuted = true;
-                ProceduralSlashArtExecutor.execute(player, pending.aim,
-                        pending.plan.primary().response(), pending.plan.primaryCount(),
-                        pending.plan.primaryDamagePerHit(), 0, pending.plan.angleScale());
+                executePhase(level, player, state, pending,
+                        pending.plan.primary(), pending.plan.primaryCount(),
+                        pending.plan.primaryDamagePerHit(), 0);
             }
 
             if (player.tickCount < pending.secondaryDueTick) {
                 continue;
             }
             for (int cycle = 0; cycle < pending.plan.secondaryCycles(); cycle++) {
-                ProceduralSlashArtExecutor.execute(player, pending.aim,
-                        pending.plan.secondary().response(), pending.plan.secondaryCount(),
+                executePhase(level, player, state, pending,
+                        pending.plan.secondary(), pending.plan.secondaryCount(),
                         pending.plan.secondaryDamagePerHit(),
-                        cycle * pending.plan.echoSpacingTicks(), pending.plan.angleScale());
+                        cycle * pending.plan.echoSpacingTicks());
             }
             iterator.remove();
         }
@@ -116,6 +124,49 @@ final class ForgedSlashArtHandler {
         PENDING.clear();
     }
 
+    private static void executePhase(ServerLevel level, ServerPlayer player,
+            ISlashBladeState state, PendingCast pending,
+            ForgedSlashArtPlan.Technique technique, int count,
+            double damagePerHit, int delay) {
+        Vec3 aim = pending.aim;
+        if (technique == ForgedSlashArtPlan.Technique.JUDGEMENT_CUT) {
+            Entity locked = pending.targetId == null
+                    ? null : level.getEntity(pending.targetId);
+            LivingEntity target = locked instanceof LivingEntity living
+                    && validJudgementTarget(player, living) ? living : null;
+            Vec3 focus = target == null
+                    ? player.getEyePosition().add(aim.scale(4.0D))
+                    : target.getBoundingBox().getCenter();
+            if (target != null) {
+                aim = focus.subtract(player.getEyePosition()).normalize();
+            }
+            // The native Judgement Cut's ring is emitted by its tick actions.
+            // Forged motions intentionally omit those callbacks, so make the
+            // missing cue cosmetic while the bounded drives own all damage.
+            if (delay == 0) {
+                float yaw = player.getYRot();
+                int color = state.getColorCode();
+                for (int index = 0; index < 3; index++) {
+                    LegacyFusionCombatSupport.spawnVisualSlash(player, focus,
+                            yaw + index * 120.0F, 30.0F, color, 1.6F, 5);
+                }
+                level.playSound(null, focus.x, focus.y, focus.z,
+                        SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS,
+                        0.42F, 1.25F);
+            }
+        }
+        ProceduralSlashArtExecutor.execute(player, aim, technique.response(),
+                count, damagePerHit, delay, pending.plan.angleScale());
+    }
+
+    private static boolean validJudgementTarget(ServerPlayer player,
+            LivingEntity target) {
+        return target.level() == player.level()
+                && player.distanceToSqr(target) <= JUDGEMENT_RANGE * JUDGEMENT_RANGE
+                && player.hasLineOfSight(target)
+                && LegacyFusionCombatSupport.canAffect(player, target);
+    }
+
     private static boolean isCompatibleMotion(ResourceLocation current,
             ResourceLocation expected) {
         return expected == null
@@ -127,6 +178,7 @@ final class ForgedSlashArtHandler {
     private static final class PendingCast {
         private final ResourceKey<Level> dimension;
         private final UUID playerId;
+        private final UUID targetId;
         private final ForgedSlashArtPlan plan;
         private final Vec3 aim;
         private final ResourceLocation expectedCombo;
@@ -137,10 +189,12 @@ final class ForgedSlashArtHandler {
         private boolean primaryExecuted;
 
         private PendingCast(ResourceKey<Level> dimension, UUID playerId,
+                UUID targetId,
                 ForgedSlashArtPlan plan, Vec3 aim, ResourceLocation expectedCombo,
                 int createdPlayerTick, int primaryDueTick, int secondaryDueTick) {
             this.dimension = dimension;
             this.playerId = playerId;
+            this.targetId = targetId;
             this.plan = plan;
             this.aim = aim;
             this.expectedCombo = expectedCombo;
