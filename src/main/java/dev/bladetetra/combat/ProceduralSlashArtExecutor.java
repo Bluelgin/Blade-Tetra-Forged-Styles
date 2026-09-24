@@ -99,13 +99,11 @@ final class ProceduralSlashArtExecutor {
         double radius = modifier.condensed() ? 1.35D
                 : modifier.spread() ? 3.25D : 2.15D;
 
-        // Judgement's recognizable local-space cue remains cosmetic; the
-        // converging swords own the bounded damage.
-        for (int index = 0; index < 3; index++) {
-            LegacyFusionCombatSupport.spawnVisualSlash(
-                    player, focus, player.getYRot() + index * 120.0F,
-                    30.0F, state.getColorCode(), 1.55F, 6);
-        }
+        // Reuse SlashBlade's own slashdim Judgement Cut presentation, but
+        // without a shooter/owner. The native entity is cosmetic-only and is
+        // discarded before its burst path; these summoned swords own every hit
+        // in the forged damage budget.
+        ForgedJudgementPresentation.spawn(player, focus, state.getColorCode());
 
         for (int index = 0; index < count; index++) {
             double angle = Math.toRadians(index * (360.0D / count));
