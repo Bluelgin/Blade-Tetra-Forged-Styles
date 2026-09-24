@@ -20,7 +20,8 @@ class ForgedSlashArtPlanTest {
                     assertTrue(plan.secondaryCount() >= 1 && plan.secondaryCount() <= 8);
                     assertTrue(plan.primaryDamagePerHit() > 0.0D);
                     assertTrue(plan.secondaryDamagePerHit() > 0.0D);
-                    assertTrue(plan.secondaryDelayTicks() > plan.primaryDelayTicks());
+                    assertTrue(plan.handoffDelayTicks() > plan.primaryDelayTicks());
+                    assertTrue(plan.secondaryDelayTicks() >= 1);
                     assertTrue(plan.effectiveDamageBudget() <= plan.powerBudget() * 1.061D);
                 }
             }
@@ -63,8 +64,27 @@ class ForgedSlashArtPlanTest {
         ForgedSlashArtPlan balanced = plan(ForgedSlashArtPlan.Modifier.BALANCED);
         ForgedSlashArtPlan haste = plan(ForgedSlashArtPlan.Modifier.HASTE);
         assertTrue(haste.primaryDelayTicks() < balanced.primaryDelayTicks());
+        assertTrue(haste.handoffDelayTicks() < balanced.handoffDelayTicks());
         assertTrue(haste.secondaryDelayTicks() < balanced.secondaryDelayTicks());
         assertTrue(haste.modifier().hasteAnimation());
+    }
+
+    @Test
+    void techniquesCompileToMultipleAttackPrimitiveFamilies() {
+        long primitiveFamilies = java.util.Arrays.stream(
+                        ForgedSlashArtPlan.Technique.values())
+                .map(ForgedSlashArtPlan.Technique::primitive)
+                .distinct()
+                .count();
+        assertTrue(primitiveFamilies >= 5);
+        assertEquals(ForgedSlashArtPlan.Primitive.TARGETED_SWORDS,
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT.primitive());
+        assertEquals(ForgedSlashArtPlan.Primitive.CROSS_SLASH,
+                ForgedSlashArtPlan.Technique.SAKURA_END.primitive());
+        assertEquals(ForgedSlashArtPlan.Primitive.SUMMONED_FAN,
+                ForgedSlashArtPlan.Technique.VOID_SLASH.primitive());
+        assertEquals(ForgedSlashArtPlan.Primitive.RADIAL_DRIVE,
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH.primitive());
     }
 
     @Test
