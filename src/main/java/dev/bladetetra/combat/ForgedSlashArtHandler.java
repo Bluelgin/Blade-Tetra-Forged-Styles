@@ -142,14 +142,16 @@ final class ForgedSlashArtHandler {
                 continue;
             }
 
-            for (int cycle = 0;
-                    cycle < pending.plan.secondaryCycles();
-                    cycle++) {
-                executePhase(player, state, pending,
-                        pending.plan.secondary(),
-                        pending.plan.secondaryCount(),
-                        pending.plan.secondaryDamagePerHit(),
-                        cycle * pending.plan.echoSpacingTicks());
+            executePhase(player, state, pending,
+                    pending.plan.secondary(),
+                    pending.plan.secondaryCount(),
+                    pending.plan.secondaryDamagePerHit(),
+                    0);
+            pending.secondaryCycle++;
+            if (pending.secondaryCycle < pending.plan.secondaryCycles()) {
+                pending.secondaryDueTick =
+                        player.tickCount + pending.plan.echoSpacingTicks();
+                continue;
             }
             iterator.remove();
         }
@@ -222,6 +224,7 @@ final class ForgedSlashArtHandler {
         private boolean armed;
         private boolean primaryExecuted;
         private boolean secondaryStarted;
+        private int secondaryCycle;
 
         private PendingCast(ResourceKey<Level> dimension,
                 UUID playerId,
