@@ -44,25 +44,30 @@ final class LegacyFusionAbilitySync {
             orthodox = null;
         }
 
-        // A complete four-part forged art is an explicit Tetra player choice and
-        // therefore owns the Slash Art slot ahead of fitting inheritance. Fitting
-        // Special Effects are resolved independently below and are not erased.
-        String owner = forged != null
-                ? "forged:" + forged.key()
-                : active != null
-                        ? "fusion:" + active.id()
-                        : programmatic != null
-                                ? "programmatic:" + programmatic.key()
-                                : orthodox == null ? "" : "orthodox:" + orthodox.id();
-        ResourceLocation desiredSlashArt = forged != null
-                ? ModSlashBladeAbilities.FORGED_SLASH_ART.getId()
-                : active != null
-                        ? active.slashArt()
-                        : programmatic != null
-                                ? ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
-                                : orthodox == null ? null
-                                        : LegacyAbilityResolver.registeredSlashArt(
-                                                orthodox.slashArt());
+        // Structural named-blade identity wins over a forged inscription.
+        // A forged spec may stay on the item as a dormant player-authored preset,
+        // but it must never replace an authored/programmatic/inherited SA while
+        // leaving that fitting's coupled SE behind (for example Dead Thought).
+        //
+        // Priority:
+        // authored fusion > programmatic mixed fusion > orthodox inheritance
+        // > forged custom SA > previous/external SA.
+        String owner = active != null
+                ? "fusion:" + active.id()
+                : programmatic != null
+                        ? "programmatic:" + programmatic.key()
+                        : orthodox != null
+                                ? "orthodox:" + orthodox.id()
+                                : forged == null ? "" : "forged:" + forged.key();
+        ResourceLocation desiredSlashArt = active != null
+                ? active.slashArt()
+                : programmatic != null
+                        ? ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
+                        : orthodox != null
+                                ? LegacyAbilityResolver.registeredSlashArt(
+                                        orthodox.slashArt())
+                                : forged == null ? null
+                                        : ModSlashBladeAbilities.FORGED_SLASH_ART.getId();
         List<ResourceLocation> desiredEffects = active != null
                 ? active.specialEffects()
                 : programmatic != null
