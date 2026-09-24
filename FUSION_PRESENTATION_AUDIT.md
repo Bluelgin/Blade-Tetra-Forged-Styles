@@ -41,13 +41,14 @@ Read `SlashArts`, `ISlashBladeState`, `ItemSlashBlade`, `ComboState`,
 
 ## Architecture
 
-`ProgrammaticFusionPresentation` now contains audited **returned-combo routes**,
-not a blanket FULL boolean. Each source adds O(1) metadata. A route contains exact
-combo IDs, audited animation shape, signature safe points and legal timeout edges.
-The runtime rejects missing/changed/looping registry shapes before delegation.
-Success, Jackpot, airborne selection, and default Super are separate returned
-combo routes. Unsupported returned combos fall back rather than acquiring timing
-from a different combo.
+`ProgrammaticFusionPresentation` now separates three policies: **NONE** for
+unknown sources, **soft overlap** for exact dictionary-known add-on Slash Arts,
+and audited **returned-combo routes** where lifecycle data is available. Audited
+routes still pin combo IDs, animation shape, signature safe points and legal
+timeout edges. If an add-on audit no longer matches because a compatible version
+changed its registry shape, the runtime degrades to bounded soft overlap instead
+of immediately replacing the real SA with Blade Tetra semantics. Unknown abilities
+are never executed merely from name-based semantic inference.
 
 `FusionHandoff` observes game time and the real state clock at server tick END:
 
@@ -63,9 +64,19 @@ from a different combo.
 * Exact B runs real doArts -> validated combo -> real updateComboSeq. A cancelled
   or redirected B commit is detected. There is no pending task which cuts off B;
   ordinary SlashBlade inventory ticks and transitions continue it.
-* Semantic A uses the same audited native handoff routes. Semantic B is also
-  delayed behind A's safe point. Missing/invalid/runtime/linkage failures retain
-  semantic fallback; unknown source arts are not executed.
+* For known but unaudited add-on A, the runtime executes the real Slash Art and
+  gives it a short **soft-overlap window** before B takes over the single player
+  ComboState. The window is `clamp(timeoutTicks / 4, 3, 6)`: enough time for many
+  early entity/particle/signature effects to spawn, while deliberately accepting
+  that late state-bound callbacks from A can be cut off.
+* During that 3-6 tick window, timeout-owned source progression is accepted, while
+  early state changes and same-combo clock restarts are treated as external input
+  and cancel B. The runtime still never calls getNext/getNextOfTimeout or advances
+  source callbacks itself.
+* Known add-on B executes its real doArts and commits the returned registered
+  ComboState. Exact audits are preferred when they still match. Missing source
+  registry entries, invalid/neutral selections, runtime/linkage failures and
+  invalid overlap state retain semantic fallback. Unknown source arts are not executed.
 
 The two-tick timeline margin covers initial inventory-tick offset. These are
 source-code safe windows, not a claim that entity spawning cannot be cancelled
@@ -113,23 +124,34 @@ Audit sources:
   extensions attach to ItemSlashBlade, which ModularSlashBladeItem extends.
   No optional classes/capabilities are added or invoked by Blade Tetra.
 
-### Honest fallback coverage
+### Soft-overlap known-source coverage
 
-**All Yakumo entries are semantic-only**, including `gigantjudgement_cut`,
-`spiral_sword_ex`, `thrust_swords`, and the candidate multi-stage `combo_a5`.
-Its [official source](https://gitee.com/yakumov/slashblade-yakumoblade) was located
-(head displayed ce4556f), but source directories/API/raw files could not be read
-in this environment. Their timings and whether combo_a5 really chains are
-**unverified**, not inferred from names. No successful lifecycle audit is claimed.
+Every SA explicitly listed in the SJAP, Yakumo, The Last Smith, and Recasting
+dictionaries is now permitted to execute its **real registered Slash Art**.
 
-The other four SJAP entries, TLS transmigration_slash/fushigiri, and Recasting
-entries other than the three listed above retain semantics but no exact
-presentation permission. This deliberately replaces blanket FULL registration.
-Unknown add-ons remain semantic/Safe. Tooltips now reflect this narrower allow-list.
+The seven entries listed in the audit table above still use their exact signature
+windows when the runtime ComboState shape matches. They also retain soft overlap
+as a compatibility fallback if a newer compatible add-on version changes frame
+bounds, speed, or timeout metadata.
+
+Known entries without a lifecycle audit use the generic overlap policy: A gets
+3-6 ticks based on one quarter of its registered timeout, then real B takes over.
+Already spawned entities/effects from A may continue beside B; late A callbacks
+that still depend on the player ComboState may be lost by design. This trades a
+small amount of presentation completeness for broad compatibility and a visibly
+fused A+B result without maintaining per-SA timing metadata.
+
+Yakumo therefore no longer falls back merely because its source lifecycle was not
+available for a static audit. Its exact dictionary IDs authorize real execution
+through the same bounded overlap policy. The same applies to the other SJAP, TLS,
+and Recasting dictionary entries.
+
+Unknown add-ons remain semantic/Safe only. Name-based semantic inference still
+does **not** grant permission to execute arbitrary third-party runtime code.
 
 ## Regression coverage and remaining manual work
 
-11 executable/JUnit lifecycle scenarios cover early signatures, >16-tick windows,
+13 executable/JUnit lifecycle scenarios cover early signatures, >16-tick windows,
 long recovery, real observed two-stage progression, progression before the first
 poll, external interruption/restart, bounded expiry, ordered A+B/B+A execution,
 B selection/commit/click/future ticks, missing/invalid/cancelled/throwing sources,
@@ -150,8 +172,9 @@ Priority matrix:
 4. add-on/add-on: SJAP rapid_blistering_swords <-> spiral_edge;
    Recasting blade_storm_lambda <-> void_hole_pitch_black;
    lightning_chain_3_lambda <-> TLS sakura_blistering_swords.
-5. Yakumo + native and reverse must visibly identify semantic fallback, not claim
-   exact Yakumo presentation. Full Yakumo restoration requires its 1.1.4 audit.
+5. Yakumo + native and reverse must execute the real Yakumo SA through soft
+   overlap; verify that B begins after the expected 3-6 tick window and that
+   already spawned A effects remain visible where the source implementation allows.
 
 No authored fusions, save format, packet, capability, damage formulas, source
 implementation, or A+B registry catalog are introduced or redesigned.

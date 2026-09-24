@@ -10,6 +10,10 @@ class FusionHandoffTest {
     @Test void firstPollAfterProgression() { FusionHandoffScenarios.firstPollAfterProgression(); }
     @Test void interruption() { FusionHandoffScenarios.interruption(); }
     @Test void watchdog() { FusionHandoffScenarios.watchdog(); }
+    @Test void softOverlapWindow() { FusionHandoffScenarios.softOverlapWindow(); }
+    @Test void softOverlapProgressionAndInterruption() {
+        FusionHandoffScenarios.softOverlapProgressionAndInterruption();
+    }
     @Test void responseLifecycle() { FusionHandoffScenarios.responseLifecycle(); }
     @Test void orderedIdentity() { FusionHandoffScenarios.orderedIdentity(); }
     @Test void missingAndCancelled() { FusionHandoffScenarios.missingAndCancelled(); }
