@@ -128,22 +128,23 @@ public final class ForgedSlashArtOrbItem extends ModularItem {
         }
 
         if (!level.isClientSide) {
-            applyInscription(blade, state, spec);
+            boolean active = applyInscription(blade, state, spec);
             player.getInventory().setChanged();
             player.containerMenu.broadcastChanges();
-            player.displayClientMessage(Component.translatable(
-                    "message.blade_tetra.forged.applied"), true);
+            player.displayClientMessage(Component.translatable(active
+                    ? "message.blade_tetra.forged.applied"
+                    : "message.blade_tetra.forged.stored_dormant"), true);
         }
         return InteractionResultHolder.sidedSuccess(orb, level.isClientSide);
     }
 
-    private static void applyInscription(
+    private static boolean applyInscription(
             ItemStack blade, ISlashBladeState state, ForgedSlashArtSpec spec) {
         ResourceLocation forgedId = ModSlashBladeAbilities.FORGED_SLASH_ART.getId();
         if (blade.getItem() instanceof ModularSlashBladeItem modularBlade) {
             spec.writeToBlade(blade);
             modularBlade.syncDerivedBladeState(blade);
-            return;
+            return forgedId.equals(state.getSlashArtsKey());
         }
 
         ResourceLocation current = state.getSlashArtsKey();
@@ -152,6 +153,7 @@ public final class ForgedSlashArtOrbItem extends ModularItem {
         }
         spec.writeToBlade(blade);
         state.setSlashArtsKey(forgedId);
+        return true;
     }
 
     private static void clearInscription(
