@@ -5,8 +5,6 @@ import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -23,9 +21,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-/** Executes the player-authored Tetra Slash Art without invoking source SA logic. */
+/**
+ * Executes a player-authored two-motion Slash Art without invoking source SA logic.
+ *
+ * <p>Primary and secondary each own a visual-only ComboState. The runtime commits
+ * the secondary motion at the compiled handoff point, then schedules the secondary
+ * attack relative to that second motion. Combat output remains fully bounded by
+ * {@link ForgedSlashArtPlan}.</p>
+ */
 final class ForgedSlashArtHandler {
-    private static final double JUDGEMENT_RANGE = 18.0D;
+    private static final double TARGET_RANGE = 18.0D;
     private static final Map<UUID, PendingCast> PENDING = new HashMap<>();
 
     static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
@@ -34,23 +39,31 @@ final class ForgedSlashArtHandler {
                 .equals(state.getSlashArtsKey())) {
             return;
         }
+
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.from(blade);
         if (plan == null) {
             PENDING.remove(player.getUUID());
             return;
         }
+
         Vec3 look = player.getLookAngle();
         Vec3 aim = look.lengthSqr() < 1.0E-8D
                 ? new Vec3(0.0D, 0.0D, 1.0D) : look.normalize();
         Entity locked = state.getTargetEntity(player.level());
         UUID targetId = locked instanceof LivingEntity target
-                && validJudgementTarget(player, target) ? target.getUUID() : null;
+                && validTarget(player, target) ? target.getUUID() : null;
+
         int created = player.tickCount;
         PENDING.put(player.getUUID(), new PendingCast(
-                player.level().dimension(), player.getUUID(), targetId, plan, aim,
-                event.getComboState(), created,
+                player.level().dimension(),
+                player.getUUID(),
+                targetId,
+                plan,
+                aim,
+                event.getComboState(),
+                created,
                 created + plan.primaryDelayTicks(),
-                created + plan.secondaryDelayTicks()));
+                created + plan.handoffDelayTicks()));
     }
 
     static void tick(TickEvent.ServerTickEvent event) {
@@ -61,7 +74,9 @@ final class ForgedSlashArtHandler {
             ServerLevel level = event.getServer().getLevel(pending.dimension);
             ServerPlayer player = event.getServer().getPlayerList()
                     .getPlayer(pending.playerId);
-            if (level == null || player == null || player.level() != level || !player.isAlive()) {
+
+            if (level == null || player == null || player.level() != level
+                    || !player.isAlive()) {
                 iterator.remove();
                 continue;
             }
@@ -84,31 +99,55 @@ final class ForgedSlashArtHandler {
                 }
                 if (pending.expectedCombo != null
                         && !pending.expectedCombo.equals(state.getComboSeq())) {
-                    // Another listener cancelled or redirected the visual motion.
+                    // Another listener cancelled or redirected the initial motion.
                     iterator.remove();
                     continue;
                 }
                 pending.armed = true;
             } else if (!isCompatibleMotion(state.getComboSeq(), pending.expectedCombo)) {
-                // Returning to NONE/STANDBY is normal recovery; another committed
-                // attack means this authored cast was interrupted.
+                // NONE/STANDBY is normal recovery. Any other committed motion means
+                // another cast/input owns the player now, so do not inject our phase.
                 iterator.remove();
                 continue;
             }
 
-            if (!pending.primaryExecuted && player.tickCount >= pending.primaryDueTick) {
+            if (!pending.primaryExecuted
+                    && player.tickCount >= pending.primaryDueTick) {
                 pending.primaryExecuted = true;
-                executePhase(level, player, state, pending,
-                        pending.plan.primary(), pending.plan.primaryCount(),
-                        pending.plan.primaryDamagePerHit(), 0);
+                executePhase(player, state, pending,
+                        pending.plan.primary(),
+                        pending.plan.primaryCount(),
+                        pending.plan.primaryDamagePerHit(),
+                        0);
             }
 
-            if (player.tickCount < pending.secondaryDueTick) {
+            if (!pending.secondaryStarted
+                    && player.tickCount >= pending.handoffDueTick) {
+                ResourceLocation secondaryMotion = pending.plan.secondaryMotionId();
+                state.updateComboSeq(player, secondaryMotion);
+                if (!secondaryMotion.equals(state.getComboSeq())) {
+                    iterator.remove();
+                    continue;
+                }
+
+                pending.secondaryStarted = true;
+                pending.expectedCombo = secondaryMotion;
+                pending.secondaryDueTick =
+                        player.tickCount + pending.plan.secondaryDelayTicks();
                 continue;
             }
-            for (int cycle = 0; cycle < pending.plan.secondaryCycles(); cycle++) {
-                executePhase(level, player, state, pending,
-                        pending.plan.secondary(), pending.plan.secondaryCount(),
+
+            if (!pending.secondaryStarted
+                    || player.tickCount < pending.secondaryDueTick) {
+                continue;
+            }
+
+            for (int cycle = 0;
+                    cycle < pending.plan.secondaryCycles();
+                    cycle++) {
+                executePhase(player, state, pending,
+                        pending.plan.secondary(),
+                        pending.plan.secondaryCount(),
                         pending.plan.secondaryDamagePerHit(),
                         cycle * pending.plan.echoSpacingTicks());
             }
@@ -117,58 +156,52 @@ final class ForgedSlashArtHandler {
     }
 
     static void onLevelUnload(ServerLevel level) {
-        PENDING.values().removeIf(pending -> pending.dimension.equals(level.dimension()));
+        PENDING.values().removeIf(
+                pending -> pending.dimension.equals(level.dimension()));
     }
 
     static void clear() {
         PENDING.clear();
     }
 
-    private static void executePhase(ServerLevel level, ServerPlayer player,
+    private static void executePhase(ServerPlayer player,
             ISlashBladeState state, PendingCast pending,
-            ForgedSlashArtPlan.Technique technique, int count,
-            double damagePerHit, int delay) {
-        Vec3 aim = pending.aim;
-        if (technique == ForgedSlashArtPlan.Technique.JUDGEMENT_CUT) {
-            Entity locked = pending.targetId == null
-                    ? null : level.getEntity(pending.targetId);
-            LivingEntity target = locked instanceof LivingEntity living
-                    && validJudgementTarget(player, living) ? living : null;
-            Vec3 focus = target == null
-                    ? player.getEyePosition().add(aim.scale(4.0D))
-                    : target.getBoundingBox().getCenter();
-            if (target != null) {
-                aim = focus.subtract(player.getEyePosition()).normalize();
-            }
-            // The native Judgement Cut's ring is emitted by its tick actions.
-            // Forged motions intentionally omit those callbacks, so make the
-            // missing cue cosmetic while the bounded drives own all damage.
-            if (delay == 0) {
-                float yaw = player.getYRot();
-                int color = state.getColorCode();
-                for (int index = 0; index < 3; index++) {
-                    LegacyFusionCombatSupport.spawnVisualSlash(player, focus,
-                            yaw + index * 120.0F, 30.0F, color, 1.6F, 5);
-                }
-                level.playSound(null, focus.x, focus.y, focus.z,
-                        SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS,
-                        0.42F, 1.25F);
-            }
-        }
-        ProceduralSlashArtExecutor.execute(player, aim, technique.response(),
-                count, damagePerHit, delay, pending.plan.angleScale());
+            ForgedSlashArtPlan.Technique technique,
+            int count, double damagePerHit, int delay) {
+        LivingEntity target = resolveTarget(player, pending.targetId);
+        ProceduralSlashArtExecutor.executeForged(
+                player,
+                state,
+                pending.aim,
+                target,
+                technique,
+                pending.plan.modifier(),
+                count,
+                damagePerHit,
+                delay,
+                pending.plan.angleScale());
     }
 
-    private static boolean validJudgementTarget(ServerPlayer player,
-            LivingEntity target) {
+    private static LivingEntity resolveTarget(
+            ServerPlayer player, UUID targetId) {
+        if (targetId == null) {
+            return null;
+        }
+        Entity entity = player.level().getEntity(targetId);
+        return entity instanceof LivingEntity living
+                && validTarget(player, living) ? living : null;
+    }
+
+    private static boolean validTarget(
+            ServerPlayer player, LivingEntity target) {
         return target.level() == player.level()
-                && player.distanceToSqr(target) <= JUDGEMENT_RANGE * JUDGEMENT_RANGE
+                && player.distanceToSqr(target) <= TARGET_RANGE * TARGET_RANGE
                 && player.hasLineOfSight(target)
                 && LegacyFusionCombatSupport.canAffect(player, target);
     }
 
-    private static boolean isCompatibleMotion(ResourceLocation current,
-            ResourceLocation expected) {
+    private static boolean isCompatibleMotion(
+            ResourceLocation current, ResourceLocation expected) {
         return expected == null
                 || expected.equals(current)
                 || ComboStateRegistry.NONE.getId().equals(current)
@@ -181,17 +214,24 @@ final class ForgedSlashArtHandler {
         private final UUID targetId;
         private final ForgedSlashArtPlan plan;
         private final Vec3 aim;
-        private final ResourceLocation expectedCombo;
+        private ResourceLocation expectedCombo;
         private final int createdPlayerTick;
         private final int primaryDueTick;
-        private final int secondaryDueTick;
+        private final int handoffDueTick;
+        private int secondaryDueTick;
         private boolean armed;
         private boolean primaryExecuted;
+        private boolean secondaryStarted;
 
-        private PendingCast(ResourceKey<Level> dimension, UUID playerId,
+        private PendingCast(ResourceKey<Level> dimension,
+                UUID playerId,
                 UUID targetId,
-                ForgedSlashArtPlan plan, Vec3 aim, ResourceLocation expectedCombo,
-                int createdPlayerTick, int primaryDueTick, int secondaryDueTick) {
+                ForgedSlashArtPlan plan,
+                Vec3 aim,
+                ResourceLocation expectedCombo,
+                int createdPlayerTick,
+                int primaryDueTick,
+                int handoffDueTick) {
             this.dimension = dimension;
             this.playerId = playerId;
             this.targetId = targetId;
@@ -200,7 +240,7 @@ final class ForgedSlashArtHandler {
             this.expectedCombo = expectedCombo;
             this.createdPlayerTick = createdPlayerTick;
             this.primaryDueTick = primaryDueTick;
-            this.secondaryDueTick = secondaryDueTick;
+            this.handoffDueTick = handoffDueTick;
         }
     }
 
