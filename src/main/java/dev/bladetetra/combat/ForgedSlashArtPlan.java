@@ -13,7 +13,7 @@ import java.util.Locale;
  *
  * <p>The editable composition lives on a Tetra Slash Art Orb. A blade receives a
  * versioned {@link ForgedSlashArtSpec} snapshot; this class compiles that snapshot
- * into bounded runtime damage, timing and topology.</p>
+ * into bounded runtime damage, timing, motion and attack topology.</p>
  */
 public record ForgedSlashArtPlan(
         String key,
@@ -28,6 +28,7 @@ public record ForgedSlashArtPlan(
         double primaryDamagePerHit,
         double secondaryDamagePerHit,
         int primaryDelayTicks,
+        int handoffDelayTicks,
         int secondaryDelayTicks,
         int echoSpacingTicks,
         double angleScale) {
@@ -56,6 +57,7 @@ public record ForgedSlashArtPlan(
                 || primary == null || secondary == null || modifier == null) {
             return null;
         }
+
         double power = corePowerFor(coreVariant);
         int primaryCount = modifier.modifyCount(primary.baseCount());
         int secondaryCount = modifier.modifyCount(secondary.baseCount());
@@ -64,15 +66,21 @@ public record ForgedSlashArtPlan(
         double primaryDamage = effective * PRIMARY_SHARE / primaryCount;
         double secondaryDamage = effective * SECONDARY_SHARE
                 / (secondaryCount * cycles);
+
         int primaryDelay = modifier.scaleTicks(primary.attackDelayTicks());
-        int handoff = modifier.scaleTicks(primary.handoffDelayTicks());
-        int secondaryDelay = Math.max(primaryDelay + 2, handoff);
+        int handoff = Math.max(primaryDelay + 2,
+                modifier.scaleTicks(primary.handoffDelayTicks()));
+        // Secondary timing is relative to the moment its own visual-only
+        // ComboState is committed, not relative to the initial cast.
+        int secondaryDelay = modifier.scaleTicks(secondary.attackDelayTicks());
+        int echoSpacing = modifier.scaleTicks(modifier.echoSpacingTicks());
+
         String key = coreVariant + "|" + primary.id() + "|" + secondary.id()
                 + "|" + modifier.id();
         return new ForgedSlashArtPlan(key, coreVariant, power, primary, secondary,
                 modifier, primaryCount, secondaryCount, cycles,
-                primaryDamage, secondaryDamage, primaryDelay, secondaryDelay,
-                modifier.echoSpacingTicks(), modifier.angleScale());
+                primaryDamage, secondaryDamage, primaryDelay, handoff,
+                secondaryDelay, echoSpacing, modifier.angleScale());
     }
 
     static double corePowerFor(String variant) {
@@ -104,12 +112,17 @@ public record ForgedSlashArtPlan(
         if (value.contains("stone") || value.contains("cobble")) {
             return 0.72D;
         }
-        // Modded Tetra minerals remain usable without a compatibility catalog.
+        // Modded Tetra minerals remain usable without a hard compatibility catalog.
+        // A future material-API pass can replace this neutral fallback.
         return 0.95D;
     }
 
     public ResourceLocation primaryMotionId() {
         return ModComboStates.getForgedMotion(primary, modifier.hasteAnimation());
+    }
+
+    public ResourceLocation secondaryMotionId() {
+        return ModComboStates.getForgedMotion(secondary, modifier.hasteAnimation());
     }
 
     public int totalHits() {
@@ -180,33 +193,51 @@ public record ForgedSlashArtPlan(
         return Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 
+    public enum Primitive {
+        TARGETED_SWORDS,
+        CROSS_SLASH,
+        SUMMONED_FAN,
+        RADIAL_DRIVE,
+        DRIVE
+    }
+
     public enum Technique {
         JUDGEMENT_CUT("judgement_cut",
-                ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO, 16, 19),
+                ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO,
+                Primitive.TARGETED_SWORDS, 16, 19),
         SAKURA_END("sakura_end",
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS, 1, 8),
+                ProgrammaticFusionProfile.Response.SAKURA_CROSS,
+                Primitive.CROSS_SLASH, 1, 8),
         VOID_SLASH("void_slash",
-                ProgrammaticFusionProfile.Response.VOID_TRIDENT, 16, 19),
+                ProgrammaticFusionProfile.Response.VOID_TRIDENT,
+                Primitive.SUMMONED_FAN, 16, 19),
         CIRCLE_SLASH("circle_slash",
-                ProgrammaticFusionProfile.Response.CIRCLE_RING, 4, 10),
+                ProgrammaticFusionProfile.Response.CIRCLE_RING,
+                Primitive.RADIAL_DRIVE, 4, 10),
         DRIVE_VERTICAL("drive_vertical",
-                ProgrammaticFusionProfile.Response.VERTICAL_DRIVE, 3, 7),
+                ProgrammaticFusionProfile.Response.VERTICAL_DRIVE,
+                Primitive.DRIVE, 3, 7),
         DRIVE_HORIZONTAL("drive_horizontal",
-                ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE, 3, 7),
+                ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE,
+                Primitive.DRIVE, 3, 7),
         WAVE_EDGE("wave_edge",
-                ProgrammaticFusionProfile.Response.WAVE_EDGE, 3, 10),
+                ProgrammaticFusionProfile.Response.WAVE_EDGE,
+                Primitive.DRIVE, 3, 10),
         PIERCING("piercing",
-                ProgrammaticFusionProfile.Response.PIERCING_FOCUS, 22, 25);
+                ProgrammaticFusionProfile.Response.PIERCING_FOCUS,
+                Primitive.DRIVE, 22, 25);
 
         private final String id;
         private final ProgrammaticFusionProfile.Response response;
+        private final Primitive primitive;
         private final int attackDelayTicks;
         private final int handoffDelayTicks;
 
         Technique(String id, ProgrammaticFusionProfile.Response response,
-                int attackDelayTicks, int handoffDelayTicks) {
+                Primitive primitive, int attackDelayTicks, int handoffDelayTicks) {
             this.id = id;
             this.response = response;
+            this.primitive = primitive;
             this.attackDelayTicks = attackDelayTicks;
             this.handoffDelayTicks = handoffDelayTicks;
         }
@@ -217,6 +248,10 @@ public record ForgedSlashArtPlan(
 
         public ProgrammaticFusionProfile.Response response() {
             return response;
+        }
+
+        public Primitive primitive() {
+            return primitive;
         }
 
         public int baseCount() {
@@ -232,8 +267,6 @@ public record ForgedSlashArtPlan(
         }
 
         public String translationKey() {
-            // Use SlashBlade's own language entry so forged techniques never
-            // drift from the source SA names after a translation update.
             return "slash_art.slashblade." + id;
         }
 
@@ -309,6 +342,18 @@ public record ForgedSlashArtPlan(
 
         public boolean hasteAnimation() {
             return hasteAnimation;
+        }
+
+        public boolean condensed() {
+            return this == CONDENSED;
+        }
+
+        public boolean shatter() {
+            return this == SHATTER;
+        }
+
+        public boolean spread() {
+            return this == SPREAD;
         }
 
         public String translationKey() {
