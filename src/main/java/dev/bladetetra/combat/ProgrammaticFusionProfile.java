@@ -2,9 +2,10 @@ package dev.bladetetra.combat;
 
 /**
  * Small semantic description used by the generic legacy-fusion executor.
- * Profiles describe intent only. Exact third-party presentation, when explicitly
- * allow-listed, is handled by a separate runtime layer and can always fall back
- * to this bounded semantic grammar.
+ * Profiles describe intent only. Third-party source execution is authorized by a
+ * separate presentation policy: exact audits are preferred, known dictionary
+ * entries may use bounded soft overlap, and every failure can still fall back to
+ * this bounded semantic grammar.
  */
 public record ProgrammaticFusionProfile(Entry entry, Response response,
         double intensity) {

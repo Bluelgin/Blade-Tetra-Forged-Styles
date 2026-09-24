@@ -59,6 +59,31 @@ public final class FusionHandoffScenarios {
         var tracker = new FusionHandoff.Tracker(route, List.of(200, 30), 0);
         equal(FusionHandoff.Decision.EXPIRED, tracker.observe("loop", 0, 10));
     }
+    static void softOverlapWindow() {
+        var tracker = new FusionHandoff.SoftOverlapTracker("addon:A", 20, 0, 5, 20);
+        equal(FusionHandoff.Decision.WAIT,
+                tracker.observe("addon:A", 0, 4, 20));
+        equal(FusionHandoff.Decision.READY,
+                tracker.observe("addon:A", 0, 5, 20));
+        equal(5L, tracker.due());
+    }
+
+    static void softOverlapProgressionAndInterruption() {
+        var progressed = new FusionHandoff.SoftOverlapTracker("addon:A", 3, 0, 5, 20);
+        equal(FusionHandoff.Decision.WAIT,
+                progressed.observe("addon:A_end", 3, 3, 10));
+        equal(FusionHandoff.Decision.READY,
+                progressed.observe("addon:A_end", 3, 5, 10));
+
+        var interrupted = new FusionHandoff.SoftOverlapTracker("addon:A", 10, 0, 5, 20);
+        equal(FusionHandoff.Decision.INTERRUPTED,
+                interrupted.observe("player:other", 3, 3, 8));
+
+        var restarted = new FusionHandoff.SoftOverlapTracker("addon:A", 10, 0, 5, 20);
+        equal(FusionHandoff.Decision.INTERRUPTED,
+                restarted.observe("addon:A", 2, 2, 10));
+    }
+
     static final class Source {
         final String name;
         final List<String> calls;
@@ -121,7 +146,8 @@ public final class FusionHandoffScenarios {
     }
     public static void main(String[] args) {
         shortSignature(); delayedSignature(); longRecovery(); multiStage(); firstPollAfterProgression();
-        interruption(); watchdog(); responseLifecycle(); orderedIdentity(); missingAndCancelled(); nativeAudits();
-        System.out.println("PASS: 11 fusion handoff lifecycle scenarios");
+        interruption(); watchdog(); softOverlapWindow(); softOverlapProgressionAndInterruption();
+        responseLifecycle(); orderedIdentity(); missingAndCancelled(); nativeAudits();
+        System.out.println("PASS: 13 fusion handoff lifecycle scenarios");
     }
 }
