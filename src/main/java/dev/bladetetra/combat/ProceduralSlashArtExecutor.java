@@ -1,9 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
-import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
-import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
 import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.slasharts.Drive;
 import mods.flammpfeil.slashblade.util.AttackManager;
@@ -25,6 +23,9 @@ final class ProceduralSlashArtExecutor {
     static final float DRIVE_SPEED = 2.0F;
     static final int DRIVE_LIFETIME = 12;
     static final double FAN_ANGLE_DEGREES = 12.0D;
+    static final double JUDGEMENT_CENTER_SHARE = 0.5D;
+    private static final double JUDGEMENT_CENTER_RADIUS = 2.5D;
+    private static final int JUDGEMENT_CENTER_TARGET_LIMIT = 8;
     private static final double PIERCING_REACH = 4.25D;
 
     /**
@@ -104,6 +105,28 @@ final class ProceduralSlashArtExecutor {
                 : modifier.spread() ? 3.25D : 2.15D;
 
         ForgedJudgementPresentation.spawn(player, focus, state.getColorCode());
+        // The native Judgement Cut entity is cosmetic. Give its center one
+        // server-owned hit, paid for by this phase's existing sword budget.
+        double centerDamage = judgementCenterDamage(damagePerHit, count);
+        AABB area = new AABB(
+                focus.x - JUDGEMENT_CENTER_RADIUS,
+                focus.y - JUDGEMENT_CENTER_RADIUS,
+                focus.z - JUDGEMENT_CENTER_RADIUS,
+                focus.x + JUDGEMENT_CENTER_RADIUS,
+                focus.y + JUDGEMENT_CENTER_RADIUS,
+                focus.z + JUDGEMENT_CENTER_RADIUS);
+        level.getEntitiesOfClass(LivingEntity.class, area,
+                        candidate -> candidate.getBoundingBox().getCenter()
+                                .distanceToSqr(focus)
+                                <= JUDGEMENT_CENTER_RADIUS * JUDGEMENT_CENTER_RADIUS
+                                && LegacyFusionCombatSupport.canAffect(player, candidate)
+                                && player.hasLineOfSight(candidate))
+                .stream()
+                .sorted((left, right) -> Double.compare(
+                        left.distanceToSqr(focus), right.distanceToSqr(focus)))
+                .limit(JUDGEMENT_CENTER_TARGET_LIMIT)
+                .forEach(candidate -> LegacyFusionCombatSupport.hurtPreservingIFrames(
+                        level, player, candidate, (float) centerDamage));
 
         for (int index = 0; index < count; index++) {
             double angle = Math.toRadians(index * (360.0D / count));
@@ -112,8 +135,8 @@ final class ProceduralSlashArtExecutor {
                     1.2D + ((index & 1) == 0 ? 0.65D : -0.15D),
                     Math.sin(angle) * radius);
             int delay = baseDelay + index * 2 + shatterDelay(modifier, index, count);
-            spawnSword(level, player, target, start,
-                    focus.subtract(start), damagePerHit,
+            spawnSword(level, player, start,
+                    focus.subtract(start), judgementSwordDamage(damagePerHit),
                     state.getColorCode(), delay,
                     (float) (index * 360.0D / count));
         }
@@ -149,7 +172,7 @@ final class ProceduralSlashArtExecutor {
             Vec3 start = focus.add(horizontal.scale(normalized * width))
                     .add(0.0D, 1.8D + Math.abs(normalized) * 0.35D, 0.0D);
             int delay = baseDelay + shatterDelay(modifier, index, count);
-            spawnSword(level, player, target, start,
+            spawnSword(level, player, start,
                     focus.subtract(start), damagePerHit,
                     state.getColorCode(), delay,
                     index % 2 == 0 ? 22.5F : 157.5F);
@@ -185,7 +208,7 @@ final class ProceduralSlashArtExecutor {
                     ? targetCenter.subtract(start)
                     : rotateHorizontal(aim, normalized * 14.0D * angleScale);
             int delay = baseDelay + index + shatterDelay(modifier, index, count);
-            spawnSword(level, player, target, start, direction,
+            spawnSword(level, player, start, direction,
                     damagePerHit, state.getColorCode(), delay,
                     (float) (normalized * 35.0D));
         }
@@ -208,7 +231,7 @@ final class ProceduralSlashArtExecutor {
                     .add(direction.scale(0.55D))
                     .add(0.0D, -0.15D, 0.0D);
             int delay = baseDelay + index + shatterDelay(modifier, index, count);
-            spawnSword(level, player, null, start, direction,
+            spawnSword(level, player, start, direction,
                     damagePerHit, state.getColorCode(), delay,
                     (float) yaw);
         }
@@ -281,19 +304,27 @@ final class ProceduralSlashArtExecutor {
         return index >= (count + 1) / 2 ? 3 : 0;
     }
 
+    static double judgementCenterDamage(double damagePerHit, int count) {
+        return Math.max(0.0D, damagePerHit) * Math.max(0, count)
+                * JUDGEMENT_CENTER_SHARE;
+    }
+
+    static double judgementSwordDamage(double damagePerHit) {
+        return Math.max(0.0D, damagePerHit)
+                * (1.0D - JUDGEMENT_CENTER_SHARE);
+    }
+
     private static void spawnSword(ServerLevel level, ServerPlayer player,
-            LivingEntity target, Vec3 start, Vec3 direction,
+            Vec3 start, Vec3 direction,
             double damage, int color, int delay, float roll) {
         Vec3 normalized = safeDirection(direction, player.getLookAngle());
-        EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
-                SlashBlade.RegistryEvents.SummonedSword, level);
+        ForgedSummonedSword sword = new ForgedSummonedSword(level, damage);
         sword.setPos(start.x, start.y, start.z);
         sword.setOwner(player);
         sword.setShooter(player);
-        if (target != null && target.isAlive()) {
-            sword.setHitEntity(target);
-        }
-        sword.setDamage(Math.max(0.0D, damage));
+        // setHitEntity is an attachment state, not a homing target: pre-setting
+        // it skips SlashBlade's collision path and makes the sword burst without
+        // ever delivering its on-hit damage.
         sword.setColor(color);
         sword.setRoll(roll);
         sword.setDelay(Math.max(0, delay));

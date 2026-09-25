@@ -112,6 +112,22 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
+    void judgementCenterHitIsTakenFromItsSwordBudget() {
+        ForgedSlashArtPlan plan = ForgedSlashArtPlan.compose(
+                "sa_core/diamond",
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ForgedSlashArtPlan.Technique.SAKURA_END,
+                ForgedSlashArtPlan.Modifier.BALANCED);
+        double center = ProceduralSlashArtExecutor.judgementCenterDamage(
+                plan.primaryDamagePerHit(), plan.primaryCount());
+        double swords = ProceduralSlashArtExecutor.judgementSwordDamage(
+                plan.primaryDamagePerHit()) * plan.primaryCount();
+        assertTrue(center > 0.0D);
+        assertEquals(plan.primaryDamagePerHit() * plan.primaryCount(),
+                center + swords, 1.0E-9D);
+    }
+
+    @Test
     void nativePresentationWindowsStayInsideUnsafeSourceCallbacks() {
         assertEquals(10, ForgedNativePresentation.SAKURA_LIFETIME_TICKS);
         assertEquals(10, ForgedNativePresentation.CIRCLE_LIFETIME_TICKS);
