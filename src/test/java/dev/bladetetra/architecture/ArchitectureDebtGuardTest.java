@@ -182,6 +182,8 @@ class ArchitectureDebtGuardTest {
         assertTrue(source.contains("entity instanceof EntityAbstractSummonedSword"));
         assertTrue(source.contains("entity instanceof EntitySlashEffect"));
         assertTrue(source.contains("entity instanceof EntityJudgementCut"));
+        assertTrue(source.contains("ownsCurrentNativeGraph(owner, pending)"),
+                "Pending Super candidates must not suppress combat until the native graph actually commits");
     }
 
     @Test
