@@ -1103,7 +1103,7 @@ public final class MaterialTextureManager {
 
 
 
-    private static void clearCache() {
+    private static synchronized void clearCache() {
         MaterialTextureCache.clear();
         LegacyModelPartRenderer.clear();
     }
