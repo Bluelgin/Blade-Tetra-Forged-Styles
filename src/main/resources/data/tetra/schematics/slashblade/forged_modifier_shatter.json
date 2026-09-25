@@ -4,5 +4,5 @@
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": { "textureX": 64, "textureY": 112, "tint": "D97979" },
-  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/shatter" } ]
+  "outcomes": [ { "material": { "items": [ "minecraft:diamond" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/shatter" } ]
 }

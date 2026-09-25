@@ -1,13 +1,15 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "ingredients": [
-    {
-      "item": "slashblade:proudsoul_ingot"
-    },
-    {
-      "item": "minecraft:amethyst_shard"
-    }
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " IA",
+    "ISI",
+    "AI "
   ],
+  "key": {
+    "I": { "item": "slashblade:proudsoul_ingot" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "S": { "item": "slashblade:proudsoul_sphere" }
+  },
   "result": {
     "item": "blade_tetra:forged_slash_art_orb"
   }

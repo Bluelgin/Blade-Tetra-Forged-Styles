@@ -4,5 +4,5 @@
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": { "textureX": 64, "textureY": 112, "tint": "A889D9" },
-  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/echo" } ]
+  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_sphere" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/echo" } ]
 }
