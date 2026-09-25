@@ -171,6 +171,20 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void forgedForeignInterruptionWinsBeforeDamageEmission() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
+        int ownership = source.indexOf("boolean ownsCurrentGraph");
+        int interruption = source.indexOf(
+                "if (!ForgedNativeComboFlow.isRecovery(currentCombo))", ownership);
+        int dueDamage = source.indexOf(
+                "player.tickCount >= pending.phaseDamageDueTick", ownership);
+        assertTrue(ownership >= 0 && interruption > ownership);
+        assertTrue(dueDamage > interruption,
+                "Foreign ComboState interruption must be rejected before any due forged damage is emitted");
+    }
+
+    @Test
     void forgedNativeSuppressionContainsPreHitStateAndVoidFinisher()
             throws IOException {
         String source = Files.readString(Path.of(
