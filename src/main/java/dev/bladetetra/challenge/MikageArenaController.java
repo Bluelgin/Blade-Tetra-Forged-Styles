@@ -23,7 +23,7 @@ final class MikageArenaController {
     int boundaryFlashCycle;
     int boundaryFlashReadyTicks;
     final Map<UUID, Integer> boundaryGuardHoldTicks = new HashMap<>();
-    final List<MikageEntity.BoundaryWallState> boundaryWalls = new ArrayList<>();
+    final List<BoundaryWallState> boundaryWalls = new ArrayList<>();
     int boundaryWallSequence;
     int boundaryGapCycleTicks;
 
@@ -31,11 +31,11 @@ final class MikageArenaController {
     int toriiSweepCooldown = 180;
     Vec3 toriiSweepCenter = Vec3.ZERO;
     UUID toriiSweepFocusTarget;
-    final Map<UUID, MikageEntity.ToriiScissorState> toriiScissorStates = new HashMap<>();
+    final Map<UUID, ToriiScissorState> toriiScissorStates = new HashMap<>();
     boolean toriiScissorCountered;
     int toriiCageTicks;
     int toriiCageCooldown = 140;
-    final Map<UUID, MikageEntity.CageState> toriiCages = new HashMap<>();
+    final Map<UUID, CageState> toriiCages = new HashMap<>();
     boolean cageGuardPraised;
     boolean boundarySlashVoiced;
     boolean toriiSweepVoiced;
@@ -48,7 +48,7 @@ final class MikageArenaController {
         double candidateAngle = Math.atan2(candidate.z, candidate.x);
         double minimum = Math.PI;
         List<Double> angles = new ArrayList<>();
-        for (MikageEntity.BoundaryWallState wall : boundaryWalls) {
+        for (BoundaryWallState wall : boundaryWalls) {
             double angle = Math.atan2(wall.direction.z, wall.direction.x);
             if (angle < 0.0D) {
                 angle += Math.PI * 2.0D;
