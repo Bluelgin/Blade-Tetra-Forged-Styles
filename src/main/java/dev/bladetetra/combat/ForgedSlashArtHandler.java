@@ -149,6 +149,50 @@ final class ForgedSlashArtHandler {
                 pending.armed = true;
             }
 
+            boolean ownsCurrentGraph =
+                    ForgedNativeComboFlow.owns(activeTechnique, currentCombo);
+            if (!ownsCurrentGraph) {
+                // A foreign committed combo is player/add-on interruption, not
+                // a natural source completion. Cancel before any due forged
+                // damage can escape from the interrupted phase.
+                if (!ForgedNativeComboFlow.isRecovery(currentCombo)) {
+                    iterator.remove();
+                    continue;
+                }
+
+                if (pending.phase == Phase.PRIMARY) {
+                    if (!pending.primaryExecuted) {
+                        executePhase(player, state, pending,
+                                pending.plan.primary(),
+                                pending.plan.primaryCount(),
+                                pending.plan.primaryDamagePerHit());
+                        pending.primaryExecuted = true;
+                    }
+                    if (!startSecondary(player, state, pending)) {
+                        iterator.remove();
+                    }
+                    continue;
+                }
+
+                if (!pending.secondaryExecuted) {
+                    executePhase(player, state, pending,
+                            pending.plan.secondary(),
+                            pending.plan.secondaryCount(),
+                            pending.plan.secondaryDamagePerHit());
+                    pending.secondaryExecuted = true;
+                }
+
+                if (pending.secondaryCycle < pending.plan.secondaryCycles()) {
+                    if (!startSecondary(player, state, pending)) {
+                        iterator.remove();
+                    }
+                    continue;
+                }
+
+                iterator.remove();
+                continue;
+            }
+
             if (pending.phase == Phase.PRIMARY
                     && !pending.primaryExecuted
                     && player.tickCount >= pending.phaseDamageDueTick) {
@@ -166,49 +210,8 @@ final class ForgedSlashArtHandler {
                         pending.plan.secondaryDamagePerHit());
                 pending.secondaryExecuted = true;
             }
+            continue;
 
-            // SlashBlade owns every state transition inside the source graph.
-            if (ForgedNativeComboFlow.owns(activeTechnique, currentCombo)) {
-                continue;
-            }
-
-            // A foreign committed combo is player/add-on interruption, not a
-            // natural source completion. Never inject B over it.
-            if (!ForgedNativeComboFlow.isRecovery(currentCombo)) {
-                iterator.remove();
-                continue;
-            }
-
-            if (pending.phase == Phase.PRIMARY) {
-                if (!pending.primaryExecuted) {
-                    executePhase(player, state, pending,
-                            pending.plan.primary(),
-                            pending.plan.primaryCount(),
-                            pending.plan.primaryDamagePerHit());
-                    pending.primaryExecuted = true;
-                }
-                if (!startSecondary(player, state, pending)) {
-                    iterator.remove();
-                }
-                continue;
-            }
-
-            if (!pending.secondaryExecuted) {
-                executePhase(player, state, pending,
-                        pending.plan.secondary(),
-                        pending.plan.secondaryCount(),
-                        pending.plan.secondaryDamagePerHit());
-                pending.secondaryExecuted = true;
-            }
-
-            if (pending.secondaryCycle < pending.plan.secondaryCycles()) {
-                if (!startSecondary(player, state, pending)) {
-                    iterator.remove();
-                }
-                continue;
-            }
-
-            iterator.remove();
         }
     }
 
