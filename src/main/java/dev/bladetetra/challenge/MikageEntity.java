@@ -1755,7 +1755,7 @@ public final class MikageEntity extends Monster {
                     id -> new ArrayDeque<>());
             samples.addLast(new MovementSample(now, player.position()));
             while (!samples.isEmpty() && (samples.size() > 10
-                    || now - samples.peekFirst().tick > 10L)) {
+                    || now - samples.peekFirst().tick() > 10L)) {
                 samples.removeFirst();
             }
         }
@@ -1769,14 +1769,14 @@ public final class MikageEntity extends Monster {
         if (samples == null || samples.isEmpty()) return;
         MovementSample startSample = null;
         for (MovementSample sample : samples) {
-            long age = now - sample.tick;
+            long age = now - sample.tick();
             if (age >= 2L && age <= 8L) {
                 startSample = sample;
                 break;
             }
         }
         if (startSample == null) return;
-        Vec3 start = startSample.position;
+        Vec3 start = startSample.position();
         Vec3 end = player.position();
         Vec3 travel = end.subtract(start).multiply(1.0D, 0.0D, 1.0D);
         if (travel.lengthSqr() < 9.0D
