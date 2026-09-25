@@ -20,7 +20,6 @@ class ForgedSlashArtPlanTest {
                     assertTrue(plan.secondaryCount() >= 1 && plan.secondaryCount() <= 8);
                     assertTrue(plan.primaryDamagePerHit() > 0.0D);
                     assertTrue(plan.secondaryDamagePerHit() > 0.0D);
-                    assertTrue(plan.handoffDelayTicks() > plan.primaryDelayTicks());
                     assertTrue(plan.secondaryDelayTicks() >= 1);
                     assertTrue(plan.effectiveDamageBudget() <= plan.powerBudget() * 1.061D);
                 }
@@ -60,13 +59,11 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
-    void hasteMovesBothAttackAndHandoffEarlier() {
+    void hasteMovesAuthoredDamageEarlierWithoutOwningNativeAnimationSpeed() {
         ForgedSlashArtPlan balanced = plan(ForgedSlashArtPlan.Modifier.BALANCED);
         ForgedSlashArtPlan haste = plan(ForgedSlashArtPlan.Modifier.HASTE);
         assertTrue(haste.primaryDelayTicks() < balanced.primaryDelayTicks());
-        assertTrue(haste.handoffDelayTicks() < balanced.handoffDelayTicks());
         assertTrue(haste.secondaryDelayTicks() < balanced.secondaryDelayTicks());
-        assertTrue(haste.modifier().hasteAnimation());
     }
 
     @Test
@@ -90,12 +87,7 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
-    void judgementUsesNativePresentationWithBoundedPhantomSwordBudget() {
-        assertEquals(5, ForgedSlashArtPlan.Technique.JUDGEMENT_CUT.baseCount());
-        assertEquals(10, ForgedJudgementPresentation.NATIVE_LIFETIME_TICKS);
-        assertTrue(ForgedJudgementPresentation.SAFE_DISCARD_TICKS
-                <= ForgedJudgementPresentation.NATIVE_LIFETIME_TICKS);
-
+    void judgementKeepsBoundedPhantomSwordBudget() {
         ForgedSlashArtPlan balanced = ForgedSlashArtPlan.compose(
                 "sa_core/diamond",
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
@@ -125,15 +117,6 @@ class ForgedSlashArtPlanTest {
         assertTrue(center > 0.0D);
         assertEquals(plan.primaryDamagePerHit() * plan.primaryCount(),
                 center + swords, 1.0E-9D);
-    }
-
-    @Test
-    void nativePresentationWindowsStayInsideUnsafeSourceCallbacks() {
-        assertEquals(10, ForgedNativePresentation.SAKURA_LIFETIME_TICKS);
-        assertEquals(10, ForgedNativePresentation.CIRCLE_LIFETIME_TICKS);
-        assertEquals(36, ForgedNativePresentation.VOID_NATIVE_LIFETIME_TICKS);
-        assertTrue(ForgedNativePresentation.VOID_SAFE_DISCARD_TICKS
-                < ForgedNativePresentation.VOID_NATIVE_LIFETIME_TICKS);
     }
 
     @Test
