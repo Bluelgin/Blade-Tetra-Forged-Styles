@@ -65,6 +65,10 @@ final class ForgedSlashArtHandler {
             ItemStack blade, ISlashBladeState state,
             SlashArts.ArtsType type) {
         PENDING.remove(player.getUUID());
+        if (!ModSlashBladeAbilities.FORGED_SLASH_ART.getId()
+                .equals(state.getSlashArtsKey())) {
+            return ComboStateRegistry.NONE.getId();
+        }
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.from(blade);
         if (plan == null || type == null || type == SlashArts.ArtsType.Fail) {
             return ComboStateRegistry.NONE.getId();
