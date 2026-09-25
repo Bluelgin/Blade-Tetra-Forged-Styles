@@ -211,10 +211,15 @@ class ArchitectureDebtGuardTest {
     void forgedSecondaryStartsAtSignatureInsteadOfSecondFullSlashArt() throws IOException {
         String flow = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/ForgedNativeComboFlow.java"));
-        assertTrue(flow.contains("ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()"));
-        assertTrue(flow.contains("ComboStateRegistry.SAKURA_END_RIGHT.getId()"));
-        assertTrue(flow.contains("ComboStateRegistry.PIERCING_2.getId()"));
-        assertFalse(flow.contains("nativeArt(technique).doArts"),
+        assertTrue(flow.contains("\"judgement_cut_slash\""));
+        assertTrue(flow.contains("\"sakura_end_right\""));
+        assertTrue(flow.contains("\"piercing_2\""));
+        int secondaryStart = flow.indexOf("static ResourceLocation secondaryEntry");
+        int signatureStart = flow.indexOf("static ResourceLocation signatureEntry", secondaryStart);
+        assertTrue(secondaryStart >= 0 && signatureStart > secondaryStart);
+        String secondaryBody = flow.substring(secondaryStart, signatureStart);
+        assertTrue(secondaryBody.contains("signatureEntry("));
+        assertFalse(secondaryBody.contains("doArts("),
                 "Secondary routing should enter the signature node directly instead of releasing a second full SA");
     }
 
