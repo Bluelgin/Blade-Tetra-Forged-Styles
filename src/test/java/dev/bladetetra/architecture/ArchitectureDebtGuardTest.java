@@ -185,19 +185,21 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
-    void forgedNativeSuppressionContainsPreHitStateAndVoidFinisher()
+    void forgedNativeSuppressionContainsPreHitAndProjectileSideEffects()
             throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
+        String facade = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/LegacyFusionHandler.java"));
         assertTrue(source.contains("SLASHBLADE_KNOCKBACK_FACTOR"));
         assertTrue(source.contains(
                 "event.getEntity().getPersistentData().remove("),
                 "Canceled native hits must not leak SlashBlade knockback state");
-        assertTrue(source.contains(
-                "activeTechnique(pending) == ForgedSlashArtPlan.Technique.VOID_SLASH"),
-                "Only forged Void Slash should schedule the long native slash for safe disposal");
-        assertTrue(source.contains("slash.getLifetime() >= 36"));
-        assertTrue(source.contains("level.getGameTime() + slash.getLifetime()"));
+        assertTrue(source.contains("slash.setShooter(null)"),
+                "Native SlashEffect presentation must not retain its internal areaAttack owner");
+        assertTrue(facade.contains("ProjectileImpactEvent.ImpactResult.SKIP_ENTITY"),
+                "Visual-only native projectiles must not execute entity-hit callbacks");
+        assertTrue(facade.contains("LegacyFusionCombatSupport.isVisualOnly("));
     }
 
     @Test
