@@ -41,7 +41,7 @@ The four editable modules therefore live only on the orb:
 
 | Orb slot | Role |
 |---|---|
-| `slashblade/sa_core` | Mineral-derived total damage budget |
+| `slashblade/sa_core` | Small material modifier on the wielder's attack-derived budget |
 | `slashblade/sa_primary` | Native SlashBlade motion + primary procedural geometry |
 | `slashblade/sa_secondary` | Native SlashBlade follow-up motion + secondary attack geometry |
 | `slashblade/sa_modifier` | Hit topology, spread, echo or timing |
@@ -144,8 +144,10 @@ they can run.
 - **Haste** — 1.25× primary and secondary animation, earlier attacks/handoff and
   shorter echo spacing, with a small efficiency tax.
 
-Every modifier preserves a bounded total damage budget; adding hit count never
-multiplies total power for free.
+At cast time, the wielder's current attack damage is snapshotted. The complete
+two-phase budget starts at 1.1× that value, with the orb core contributing only
+a 0.9–1.1× adjustment. Modifiers preserve a bounded budget; adding hit count
+never multiplies total power for free.
 
 ## Runtime lifecycle
 
@@ -165,7 +167,10 @@ Forged Judgement Cut directly reuses SlashBlade's own `EntityJudgementCut`
 renderer/model for presentation, but the entity is spawned with no shooter and
 zero damage. Blade Tetra discards it at the native ten-tick lifetime boundary
 before the entity can enter its burst/potion cleanup path. The surrounding forged
-phantom swords therefore remain the only source of Judgement damage. Geometry fixes can still be shared without
+phantom swords and one bounded center hit share Judgement's phase budget. Forged
+summoned swords keep native flight and rendering, but Blade Tetra owns their
+single collision hit instead of accepting native rounding and attack scaling.
+Geometry fixes can still be shared without
 letting forged attacks execute source SlashArt callbacks.
 
 Weapon/spec changes, death, dimension changes, structural SA changes, foreign

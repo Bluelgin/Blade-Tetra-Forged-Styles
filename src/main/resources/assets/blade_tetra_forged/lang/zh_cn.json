@@ -115,7 +115,7 @@
   "tooltip.blade_tetra.forged.title": "[锻造斩术] %1$s · %2$s",
   "tooltip.blade_tetra.forged.core": "魂核：%1$s",
   "tooltip.blade_tetra.forged.modifier": "修饰：%1$s",
-  "tooltip.blade_tetra.forged.stats": "力量预算 ×%1$s · 共 %2$s 段",
+  "tooltip.blade_tetra.forged.stats": "随持刀攻击力成长 · 魂珠修正 ×%1$s · 共 %2$s 段",
   "tooltip.blade_tetra.forged.technique.judgement_cut": "次元斩",
   "tooltip.blade_tetra.forged.technique.sakura_end": "终焉樱",
   "tooltip.blade_tetra.forged.technique.void_slash": "虚无刀界",

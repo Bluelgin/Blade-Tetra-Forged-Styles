@@ -147,6 +147,32 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
+    void castSnapshotsWieldedAttackWithoutChangingHitTopology() {
+        ForgedSlashArtPlan authored = ForgedSlashArtPlan.compose(
+                "sa_core/iron", ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ForgedSlashArtPlan.Technique.VOID_SLASH,
+                ForgedSlashArtPlan.Modifier.BALANCED);
+        ForgedSlashArtPlan ironBlade = authored.snapshotForAttack(7.0D);
+        ForgedSlashArtPlan strongerBlade = authored.snapshotForAttack(32.0D);
+
+        assertEquals(7.0D * 1.10D * 0.97D,
+                ironBlade.effectiveDamageBudget(), 1.0E-9D);
+        assertEquals(32.0D * 1.10D * 0.97D,
+                strongerBlade.effectiveDamageBudget(), 1.0E-9D);
+        assertEquals(authored.key(), strongerBlade.key());
+        assertEquals(authored.totalHits(), strongerBlade.totalHits());
+        assertEquals(32.0D / 7.0D,
+                strongerBlade.primaryDamagePerHit()
+                        / ironBlade.primaryDamagePerHit(), 1.0E-9D);
+    }
+
+    @Test
+    void unknownMaterialUsesNeutralCoreModifier() {
+        assertEquals(1.0D, ForgedSlashArtPlan.corePowerFor(
+                "sa_core/mmt_unknown_alloy"));
+    }
+
+    @Test
     void techniqueNamesUseSlashBladesOwnTranslationKeys() {
         for (ForgedSlashArtPlan.Technique technique
                 : ForgedSlashArtPlan.Technique.values()) {

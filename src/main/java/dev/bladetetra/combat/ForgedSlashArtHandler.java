@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -45,6 +46,8 @@ final class ForgedSlashArtHandler {
             PENDING.remove(player.getUUID());
             return;
         }
+        plan = plan.snapshotForAttack(
+                player.getAttributeValue(Attributes.ATTACK_DAMAGE));
 
         Vec3 look = player.getLookAngle();
         Vec3 aim = look.lengthSqr() < 1.0E-8D

@@ -34,6 +34,7 @@ public record ForgedSlashArtPlan(
         double angleScale) {
     private static final double PRIMARY_SHARE = 0.55D;
     private static final double SECONDARY_SHARE = 0.45D;
+    private static final double WEAPON_ATTACK_RATIO = 1.10D;
 
     /** Compile an inscription already stored on a blade. */
     public static ForgedSlashArtPlan from(ItemStack stack) {
@@ -86,35 +87,51 @@ public record ForgedSlashArtPlan(
     static double corePowerFor(String variant) {
         String value = variant == null ? "" : variant.toLowerCase(Locale.ROOT);
         if (value.contains("netherite")) {
-            return 1.45D;
+            return 1.10D;
         }
         if (value.contains("diamond")) {
-            return 1.30D;
+            return 1.08D;
         }
         if (value.contains("emerald")) {
-            return 1.18D;
+            return 1.04D;
         }
         if (value.contains("obsidian")) {
-            return 1.15D;
+            return 1.03D;
         }
         if (value.contains("amethyst") || value.contains("quartz")) {
-            return 1.08D;
+            return 1.02D;
         }
         if (value.contains("gold")) {
             return 1.00D;
         }
-        if (value.contains("iron") || value.contains("steel")) {
-            return 0.92D;
+        if (value.contains("steel")) {
+            return 1.00D;
+        }
+        if (value.contains("iron")) {
+            return 0.97D;
         }
         if (value.contains("copper")) {
-            return 0.82D;
+            return 0.93D;
         }
         if (value.contains("stone") || value.contains("cobble")) {
-            return 0.72D;
+            return 0.90D;
         }
-        // Modded Tetra minerals remain usable without a hard compatibility catalog.
-        // A future material-API pass can replace this neutral fallback.
-        return 0.95D;
+        // Unknown MMT materials stay neutral; the blade's actual attack stat is
+        // the primary source of power, not a guessed material tier.
+        return 1.00D;
+    }
+
+    /** Snapshot the current wielded attack stat once, before either phase fires. */
+    public ForgedSlashArtPlan snapshotForAttack(double attackDamage) {
+        double safeAttack = Double.isFinite(attackDamage)
+                ? Math.max(1.0D, attackDamage) : 1.0D;
+        double scale = safeAttack * WEAPON_ATTACK_RATIO;
+        return new ForgedSlashArtPlan(key, coreVariant, powerBudget * scale,
+                primary, secondary, modifier, primaryCount, secondaryCount,
+                secondaryCycles, primaryDamagePerHit * scale,
+                secondaryDamagePerHit * scale, primaryDelayTicks,
+                handoffDelayTicks, secondaryDelayTicks, echoSpacingTicks,
+                angleScale);
     }
 
     public ResourceLocation primaryMotionId() {

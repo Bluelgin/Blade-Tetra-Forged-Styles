@@ -115,7 +115,7 @@
   "tooltip.blade_tetra.forged.title": "[Forged Slash Art] %1$s · %2$s",
   "tooltip.blade_tetra.forged.core": "Core: %1$s",
   "tooltip.blade_tetra.forged.modifier": "Modifier: %1$s",
-  "tooltip.blade_tetra.forged.stats": "Power budget ×%1$s · %2$s total hits",
+  "tooltip.blade_tetra.forged.stats": "Scales with wielded attack · core ×%1$s · %2$s total hits",
   "tooltip.blade_tetra.forged.technique.judgement_cut": "Judgement Cut",
   "tooltip.blade_tetra.forged.technique.sakura_end": "Sakura End",
   "tooltip.blade_tetra.forged.technique.void_slash": "Void Slash",
