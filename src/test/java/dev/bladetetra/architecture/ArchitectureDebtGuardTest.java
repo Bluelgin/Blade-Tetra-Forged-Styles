@@ -180,51 +180,42 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
-    void forgedForeignInterruptionWinsBeforeDamageEmission() throws IOException {
-        String source = Files.readString(Path.of(
+    void forgedRuntimeOnlyOwnsNativeGraphRouting() throws IOException {
+        String handler = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
-        int ownership = source.indexOf("boolean ownsCurrentGraph");
-        int interruption = source.indexOf(
-                "if (!ForgedNativeComboFlow.isRecovery(currentCombo))", ownership);
-        int dueDamage = source.indexOf(
-                "player.tickCount >= pending.phaseDamageDueTick", ownership);
-        assertTrue(ownership >= 0 && interruption > ownership);
-        assertTrue(dueDamage > interruption,
-                "Foreign ComboState interruption must be rejected before any due forged damage is emitted");
-    }
-
-    @Test
-    void forgedNativeSuppressionContainsPreHitAndProjectileSideEffects()
-            throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
+        String flow = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedNativeComboFlow.java"));
         String facade = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/LegacyFusionHandler.java"));
-        assertTrue(source.contains("SLASHBLADE_KNOCKBACK_FACTOR"));
-        assertTrue(source.contains(
-                "event.getEntity().getPersistentData().remove("),
-                "Canceled native hits must not leak SlashBlade knockback state");
-        assertTrue(source.contains("slash.setShooter(null)"),
-                "Native SlashEffect presentation must not retain its internal areaAttack owner");
-        assertTrue(facade.contains("ProjectileImpactEvent.ImpactResult.SKIP_ENTITY"),
-                "Visual-only native projectiles must not execute entity-hit callbacks");
-        assertTrue(facade.contains("LegacyFusionCombatSupport.isVisualOnly("));
+
+        assertTrue(handler.contains("ForgedNativeComboFlow.shouldSplice("));
+        assertTrue(handler.contains("state.updateComboSeq(player, entry)"));
+        assertTrue(flow.contains("signatureEntry("));
+        assertTrue(flow.contains("ComboState.getElapsed(user)"));
+
+        assertFalse(handler.contains("LivingAttackEvent"),
+                "Forged runtime must not cancel SlashBlade's native damage");
+        assertFalse(handler.contains("EntityJoinLevelEvent"),
+                "Forged runtime must not sanitize native presentation entities");
+        assertFalse(handler.contains("ProceduralSlashArtExecutor"),
+                "Forged runtime must not maintain a second combat executor");
+        assertFalse(handler.contains("FORGED_OUTPUT_DEPTH"),
+                "Forged output suppression depth belonged to the removed custom-damage path");
+        assertFalse(facade.contains("ForgedSlashArtHandler.onLivingAttack"),
+                "The event facade must not route native damage through forged suppression");
+        assertFalse(facade.contains("ForgedSlashArtHandler.onEntityJoin"),
+                "The event facade must not rewrite native SlashBlade entities");
     }
 
     @Test
-    void forgedNativeSuppressionDoesNotCaptureGenericPlayerProjectiles()
-            throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
-        assertFalse(source.contains("instanceof Projectile"),
-                "Forged native suppression must never treat arbitrary player projectiles as SlashBlade output");
-        assertTrue(source.contains("direct == player"),
-                "Only direct player melee should use the player-owned suppression path");
-        assertTrue(source.contains("entity instanceof EntityAbstractSummonedSword"));
-        assertTrue(source.contains("entity instanceof EntitySlashEffect"));
-        assertTrue(source.contains("entity instanceof EntityJudgementCut"));
-        assertTrue(source.contains("ownsCurrentNativeGraph(owner, pending)"),
-                "Pending Super candidates must not suppress combat until the native graph actually commits");
+    void forgedSecondaryStartsAtSignatureInsteadOfSecondFullSlashArt() throws IOException {
+        String flow = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedNativeComboFlow.java"));
+        assertTrue(flow.contains("ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()"));
+        assertTrue(flow.contains("ComboStateRegistry.SAKURA_END_RIGHT.getId()"));
+        assertTrue(flow.contains("ComboStateRegistry.PIERCING_2.getId()"));
+        assertFalse(flow.contains("nativeArt(technique).doArts"),
+                "Secondary routing should enter the signature node directly instead of releasing a second full SA");
     }
 
     @Test
