@@ -491,11 +491,6 @@ public final class RengekiMomentumHandler {
         chain.visualSize = 0.0F;
     }
 
-    private static void RengekiRuntimeState.clearMomentum(UUID playerId) {
-        RengekiRuntimeState.movementSamples().remove(playerId);
-        RengekiRuntimeState.sprintChains().remove(playerId);
-    }
-
     private RengekiMomentumHandler() {
     }
 }
