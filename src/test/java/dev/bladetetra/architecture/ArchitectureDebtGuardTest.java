@@ -22,25 +22,43 @@ class ArchitectureDebtGuardTest {
     void legacyHotspotsDoNotKeepGrowing() throws IOException {
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/BladeTechniqueVfxClient.java",
-                900L);
+                850L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/BladeTechniqueMikageVfxRenderer.java",
+                1_450L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java",
-                1_500L);
+                1_400L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/MaterialTextureStyleEngine.java",
+                1_850L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/MaterialTextureComponentPainter.java",
+                850L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                3_900L);
+                3_500L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java",
+                180L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/ChallengeManager.java",
-                750L);
+                700L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/ChallengeSession.java",
-                1_150L);
+                1_100L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java",
                 950L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/VoidScatteringFusionHandler.java",
-                1_050L);
+                800L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/combat/VoidScatteringReturnRuntime.java",
+                300L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/item/ModularSlashBladeItem.java",
+                650L);
     }
 
     @Test
