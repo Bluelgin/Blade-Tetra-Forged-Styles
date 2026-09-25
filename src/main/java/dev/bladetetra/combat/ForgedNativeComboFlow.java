@@ -106,6 +106,10 @@ final class ForgedNativeComboFlow {
             case JUDGEMENT_CUT -> switch (path) {
                 case "judgement_cut_slash", "judgement_cut_slash_air" -> 1;
                 case "judgement_cut_slash_just" -> 2;
+                // The Just attack state is only a few ticks long. Slower routing
+                // modifiers can legitimately reach its native post-attack node
+                // before their tail expires; the signature has already fired.
+                case "judgement_cut_slash_just2" -> 0;
                 default -> -1;
             };
             case SAKURA_END -> path.equals("sakura_end_right")
