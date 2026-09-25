@@ -1,6 +1,6 @@
 package dev.bladetetra.combat;
 
-import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import org.junit.jupiter.api.Test;
 
@@ -76,27 +76,27 @@ class ForgedSlashArtPlanTest {
 
     @Test
     void secondaryEntriesSkipSourceWindupsAndEnterSignatureStates() {
-        assertEquals(ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId(),
+        assertEquals(SlashBlade.prefix("judgement_cut_slash"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
                         SlashArts.ArtsType.Success, true));
-        assertEquals(ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId(),
+        assertEquals(SlashBlade.prefix("judgement_cut_slash_just"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
                         SlashArts.ArtsType.Jackpot, true));
-        assertEquals(ComboStateRegistry.SAKURA_END_RIGHT.getId(),
+        assertEquals(SlashBlade.prefix("sakura_end_right"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.SAKURA_END,
                         SlashArts.ArtsType.Success, true));
-        assertEquals(ComboStateRegistry.SAKURA_END_RIGHT_AIR.getId(),
+        assertEquals(SlashBlade.prefix("sakura_end_right_air"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.SAKURA_END,
                         SlashArts.ArtsType.Success, false));
-        assertEquals(ComboStateRegistry.PIERCING_2.getId(),
+        assertEquals(SlashBlade.prefix("piercing_2"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.PIERCING,
                         SlashArts.ArtsType.Success, true));
-        assertEquals(ComboStateRegistry.PIERCING_JUST.getId(),
+        assertEquals(SlashBlade.prefix("piercing_just"),
                 ForgedNativeComboFlow.signatureEntry(
                         ForgedSlashArtPlan.Technique.PIERCING,
                         SlashArts.ArtsType.Jackpot, true));
@@ -106,28 +106,28 @@ class ForgedSlashArtPlanTest {
     void spliceTicksFollowNativeSignatureCallbacks() {
         assertEquals(1, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()));
+                SlashBlade.prefix("judgement_cut_slash")));
         assertEquals(2, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId()));
+                SlashBlade.prefix("judgement_cut_slash_just")));
         assertEquals(1, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.SAKURA_END,
-                ComboStateRegistry.SAKURA_END_RIGHT.getId()));
+                SlashBlade.prefix("sakura_end_right")));
         assertEquals(17, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.VOID_SLASH,
-                ComboStateRegistry.VOID_SLASH.getId()));
+                SlashBlade.prefix("void_slash")));
         assertEquals(8, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ComboStateRegistry.CIRCLE_SLASH.getId()));
+                SlashBlade.prefix("circle_slash")));
         assertEquals(4, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.DRIVE_VERTICAL,
-                ComboStateRegistry.DRIVE_VERTICAL.getId()));
+                SlashBlade.prefix("drive_vertical")));
         assertEquals(4, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.WAVE_EDGE,
-                ComboStateRegistry.WAVE_EDGE_VERTICAL.getId()));
+                SlashBlade.prefix("wave_edge_vertical")));
         assertEquals(3, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.PIERCING,
-                ComboStateRegistry.PIERCING_2.getId()));
+                SlashBlade.prefix("piercing_2")));
     }
 
     @Test
@@ -138,7 +138,7 @@ class ForgedSlashArtPlanTest {
                 ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
                 ForgedSlashArtPlan.Modifier.BALANCED);
         assertEquals(plan.primary(), plan.secondary());
-        assertEquals(ComboStateRegistry.CIRCLE_SLASH.getId(),
+        assertEquals(SlashBlade.prefix("circle_slash"),
                 ForgedNativeComboFlow.signatureEntry(
                         plan.secondary(), SlashArts.ArtsType.Success, true));
     }
