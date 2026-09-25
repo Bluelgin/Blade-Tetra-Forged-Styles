@@ -197,7 +197,7 @@ public final class MikageEntity extends Monster {
                 / Math.max(1.0F, entityData.get(ACTION_LENGTH)), 0.0F, 1.0F);
     }
 
-    private void setAction(MikageAction action, int duration) {
+    void setAction(MikageAction action, int duration) {
         entityData.set(ACTION, action.ordinal());
         entityData.set(ACTION_START, tickCount);
         entityData.set(ACTION_LENGTH, Math.max(1, duration));
