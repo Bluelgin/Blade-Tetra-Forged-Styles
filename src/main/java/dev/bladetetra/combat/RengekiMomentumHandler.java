@@ -58,8 +58,6 @@ public final class RengekiMomentumHandler {
     private static final float SPRINT_SLASH_MAX_VISUAL_SIZE = 0.58F;
     private static final double VISUAL_FORWARD_OFFSET = 0.65D;
     private static final double MAX_CONTINUOUS_SPRINT_DISPLACEMENT = 0.90D;
-    private static final Map<UUID, MovementSample> MOVEMENT_SAMPLES = new HashMap<>();
-    private static final Map<UUID, SprintChainState> SPRINT_CHAINS = new HashMap<>();
     private static final ThreadLocal<SprintHitContext> SPRINT_HIT_CONTEXT = new ThreadLocal<>();
 
     private static final TargetingConditions NATIVE_TARGET_FILTER =
@@ -100,7 +98,7 @@ public final class RengekiMomentumHandler {
         ItemStack blade = player.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            clearMovementState(playerId);
+            RengekiRuntimeState.clearMomentum(playerId);
             return;
         }
 
@@ -122,9 +120,9 @@ public final class RengekiMomentumHandler {
             return;
         }
 
-        SprintChainState chain = SPRINT_CHAINS.computeIfAbsent(
+        RengekiRuntimeState.SprintChainState chain = RengekiRuntimeState.sprintChains().computeIfAbsent(
                 playerId,
-                ignored -> new SprintChainState());
+                ignored -> new RengekiRuntimeState.SprintChainState());
 
         double speedScale = speedScale(speed);
         double range = lerp(
@@ -188,9 +186,9 @@ public final class RengekiMomentumHandler {
             UUID playerId,
             Vec3 position,
             long gameTime) {
-        MovementSample previous = MOVEMENT_SAMPLES.put(
+        RengekiRuntimeState.MovementSample previous = RengekiRuntimeState.movementSamples().put(
                 playerId,
-                new MovementSample(position, gameTime));
+                new RengekiRuntimeState.MovementSample(position, gameTime));
         if (previous == null || gameTime - previous.gameTime() != 1L) {
             return 0.0D;
         }
@@ -482,7 +480,7 @@ public final class RengekiMomentumHandler {
      * manufacture extra immediate pulses inside the four-tick cadence.
      */
     private static void resetSprintVisuals(UUID playerId) {
-        SprintChainState chain = SPRINT_CHAINS.get(playerId);
+        RengekiRuntimeState.SprintChainState chain = RengekiRuntimeState.sprintChains().get(playerId);
         if (chain == null) {
             return;
         }
@@ -493,50 +491,9 @@ public final class RengekiMomentumHandler {
         chain.visualSize = 0.0F;
     }
 
-    private static void clearMovementState(UUID playerId) {
-        MOVEMENT_SAMPLES.remove(playerId);
-        SPRINT_CHAINS.remove(playerId);
-    }
-
-    @SubscribeEvent
-    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        clearMovementState(event.getEntity().getUUID());
-    }
-
-    @SubscribeEvent
-    public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        clearMovementState(event.getEntity().getUUID());
-    }
-
-    @SubscribeEvent
-    public static void onClone(PlayerEvent.Clone event) {
-        clearMovementState(event.getOriginal().getUUID());
-        clearMovementState(event.getEntity().getUUID());
-    }
-
-    private record MovementSample(Vec3 position, long gameTime) {
-    }
-
-    private static final class SprintHitContext {
-        private final UUID playerId;
-        private final ItemStack blade;
-        private final LivingEntity target;
-        private boolean hitSucceeded;
-
-        private SprintHitContext(UUID playerId, ItemStack blade, LivingEntity target) {
-            this.playerId = playerId;
-            this.blade = blade;
-            this.target = target;
-        }
-    }
-
-    private static final class SprintChainState {
-        private long nextVisualBeatAt = Long.MIN_VALUE;
-        private long nextHitAt = Long.MIN_VALUE;
-        private int nextBeat;
-        private int activeBeat = -1;
-        private int burstTick;
-        private float visualSize;
+    private static void RengekiRuntimeState.clearMomentum(UUID playerId) {
+        RengekiRuntimeState.movementSamples().remove(playerId);
+        RengekiRuntimeState.sprintChains().remove(playerId);
     }
 
     private RengekiMomentumHandler() {
