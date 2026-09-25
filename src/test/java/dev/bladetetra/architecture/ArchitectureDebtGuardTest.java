@@ -22,16 +22,19 @@ class ArchitectureDebtGuardTest {
     void legacyHotspotsDoNotKeepGrowing() throws IOException {
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/BladeTechniqueVfxClient.java",
-                2_900L);
+                900L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java",
-                4_100L);
+                1_500L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
                 3_900L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/ChallengeManager.java",
-                1_800L);
+                750L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/ChallengeSession.java",
+                1_150L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java",
                 950L);
@@ -79,10 +82,12 @@ class ArchitectureDebtGuardTest {
         assertFalse(source.contains("List<MikageEntity> orphaned = new ArrayList<>()"),
                 "Recurring orphan lists indicate the old once-per-second full-dimension scan returned");
 
-        long challengeClosures = source.lines()
+        String session = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/ChallengeSession.java"));
+        long challengeClosures = session.lines()
                 .filter(line -> line.contains("closed = true;"))
                 .count();
-        long arenaAttackCleanups = source.lines()
+        long arenaAttackCleanups = session.lines()
                 .filter(line -> line.contains("cleanupChallengeAttacks(mirror, this);"))
                 .count();
         assertTrue(arenaAttackCleanups >= challengeClosures,
@@ -93,15 +98,17 @@ class ArchitectureDebtGuardTest {
     void materialTextureTemplateIsDecodedOncePerResourceCycle() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
-        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE"),
+        String cache = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureCache.java"));
+        assertTrue(source.contains("MaterialTextureCache.copyAtlas("),
+                "Atlas generation should consume the dedicated cache service");
+        assertTrue(cache.contains("atlasTemplate"),
                 "The normalized material atlas should be cached for one resource cycle");
-        assertTrue(source.contains("copyGeneratedAtlas("),
-                "Material and emissive generation should copy the normalized template");
-        assertTrue(source.contains("copy.copyFrom(GENERATED_ATLAS_TEMPLATE);"),
+        assertTrue(cache.contains("copy.copyFrom(atlasTemplate);"),
                 "Each generated signature still needs an isolated mutable image");
-        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE.close();"),
+        assertTrue(cache.contains("atlasTemplate.close();"),
                 "The native template image must be released on resource reload");
-        long directTemplateLoads = source.lines()
+        long directTemplateLoads = cache.lines()
                 .filter(line -> line.contains("getResourceOrThrow(TEMPLATE)"))
                 .count();
         assertTrue(directTemplateLoads <= 1,
