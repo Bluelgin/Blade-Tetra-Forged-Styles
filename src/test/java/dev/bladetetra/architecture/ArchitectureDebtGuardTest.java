@@ -147,6 +147,15 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void materialReloadClearsBothTextureAndLegacyModelCaches() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
+        assertTrue(source.contains("MaterialTextureCache.clear();"));
+        assertTrue(source.contains("LegacyModelPartRenderer.clear();"),
+                "Material reload must also invalidate legacy model-part caches");
+    }
+
+    @Test
     void materialTextureCompositorDoesNotGainDirectAddonPresenceChecks() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
