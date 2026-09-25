@@ -3,18 +3,21 @@ package dev.bladetetra.combat;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
+import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
- * Maps a forged technique to SlashBlade's real SlashArt entry and owns the
- * corresponding native ComboState graph.
+ * Maps authored techniques onto SlashBlade's real ComboState graph and selects
+ * the splice points used to turn two source arts into one continuous native
+ * sequence.
  *
- * <p>Forged Slash Arts no longer clone a single visual node and guess the rest
- * of the timeline. The source SlashArt selects its normal entry state and
- * SlashBlade itself progresses the native graph. Blade Tetra only observes graph
- * ownership so it can hand off A -> B without stealing intermediate states.</p>
+ * <p>The primary technique enters through its real SlashArt selector. Once its
+ * recognizable attack callback has completed, the runtime jumps directly into
+ * the secondary technique's signature ComboState rather than releasing a second
+ * complete SlashArt. Native callbacks remain untouched, so SlashBlade owns
+ * movement, effects, hit rules and damage end to end.</p>
  */
 final class ForgedNativeComboFlow {
     static ResourceLocation entry(ForgedSlashArtPlan.Technique technique,
@@ -23,13 +26,40 @@ final class ForgedNativeComboFlow {
         if (art == null) {
             return ComboStateRegistry.NONE.getId();
         }
-
-        // The authored SA has one power budget for normal/super casts. Preserve
-        // native failure/just semantics, but deliberately normalize Super to the
-        // source art's ordinary graph so SlashArts' default
-        // "Super -> Judgement Cut End" cannot leak into unrelated techniques.
         ResourceLocation combo = art.doArts(sourceType(requestedType), user);
         return combo == null ? ComboStateRegistry.NONE.getId() : combo;
+    }
+
+    static ResourceLocation secondaryEntry(
+            ForgedSlashArtPlan.Technique technique,
+            SlashArts.ArtsType requestedType,
+            LivingEntity user) {
+        return signatureEntry(
+                technique, sourceType(requestedType), user.onGround());
+    }
+
+    static ResourceLocation signatureEntry(
+            ForgedSlashArtPlan.Technique technique,
+            SlashArts.ArtsType sourceType,
+            boolean onGround) {
+        return switch (technique) {
+            case JUDGEMENT_CUT -> sourceType == SlashArts.ArtsType.Jackpot
+                    ? ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId()
+                    : onGround
+                            ? ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()
+                            : ComboStateRegistry.JUDGEMENT_CUT_SLASH_AIR.getId();
+            case SAKURA_END -> onGround
+                    ? ComboStateRegistry.SAKURA_END_RIGHT.getId()
+                    : ComboStateRegistry.SAKURA_END_RIGHT_AIR.getId();
+            case VOID_SLASH -> ComboStateRegistry.VOID_SLASH.getId();
+            case CIRCLE_SLASH -> ComboStateRegistry.CIRCLE_SLASH.getId();
+            case DRIVE_VERTICAL -> ComboStateRegistry.DRIVE_VERTICAL.getId();
+            case DRIVE_HORIZONTAL -> ComboStateRegistry.DRIVE_HORIZONTAL.getId();
+            case WAVE_EDGE -> ComboStateRegistry.WAVE_EDGE_VERTICAL.getId();
+            case PIERCING -> sourceType == SlashArts.ArtsType.Jackpot
+                    ? ComboStateRegistry.PIERCING_JUST.getId()
+                    : ComboStateRegistry.PIERCING_2.getId();
+        };
     }
 
     static SlashArts.ArtsType sourceType(SlashArts.ArtsType requestedType) {
@@ -40,6 +70,47 @@ final class ForgedNativeComboFlow {
             case Fail -> SlashArts.ArtsType.Fail;
             case Jackpot -> SlashArts.ArtsType.Jackpot;
             case Success, Super -> SlashArts.ArtsType.Success;
+        };
+    }
+
+    static boolean shouldSplice(ForgedSlashArtPlan.Technique technique,
+            ResourceLocation combo,
+            LivingEntity user,
+            ForgedSlashArtPlan.Modifier modifier) {
+        int signatureTick = signatureCompleteTick(technique, combo);
+        if (signatureTick < 0) {
+            return false;
+        }
+        long elapsed = ComboState.getElapsed(user);
+        return elapsed >= signatureTick + modifier.spliceTailTicks();
+    }
+
+    /**
+     * First tick after the source technique's defining native attack callback has
+     * completed. Returning -1 means the current state is not yet a splice state.
+     */
+    static int signatureCompleteTick(
+            ForgedSlashArtPlan.Technique technique,
+            ResourceLocation combo) {
+        if (combo == null || !SlashBlade.MODID.equals(combo.getNamespace())) {
+            return -1;
+        }
+        String path = combo.getPath();
+        return switch (technique) {
+            case JUDGEMENT_CUT -> switch (path) {
+                case "judgement_cut_slash", "judgement_cut_slash_air" -> 1;
+                case "judgement_cut_slash_just" -> 2;
+                default -> -1;
+            };
+            case SAKURA_END -> path.equals("sakura_end_right")
+                    || path.equals("sakura_end_right_air") ? 1 : -1;
+            case VOID_SLASH -> path.equals("void_slash") ? 17 : -1;
+            case CIRCLE_SLASH -> path.equals("circle_slash") ? 8 : -1;
+            case DRIVE_VERTICAL -> path.equals("drive_vertical") ? 4 : -1;
+            case DRIVE_HORIZONTAL -> path.equals("drive_horizontal") ? 4 : -1;
+            case WAVE_EDGE -> path.equals("wave_edge_vertical") ? 4 : -1;
+            case PIERCING -> path.equals("piercing_2")
+                    || path.equals("piercing_just") ? 3 : -1;
         };
     }
 
@@ -56,15 +127,9 @@ final class ForgedNativeComboFlow {
             case CIRCLE_SLASH -> path.startsWith("circle_slash");
             case DRIVE_VERTICAL -> path.startsWith("drive_vertical");
             case DRIVE_HORIZONTAL -> path.startsWith("drive_horizontal");
-            case WAVE_EDGE -> path.startsWith("wave_edge")
-                    || path.startsWith("drive_vertical_end");
+            case WAVE_EDGE -> path.startsWith("wave_edge");
             case PIERCING -> path.startsWith("piercing");
         };
-    }
-
-    static boolean isRecovery(ResourceLocation combo) {
-        return ComboStateRegistry.NONE.getId().equals(combo)
-                || ComboStateRegistry.STANDBY.getId().equals(combo);
     }
 
     private static SlashArts nativeArt(ForgedSlashArtPlan.Technique technique) {
