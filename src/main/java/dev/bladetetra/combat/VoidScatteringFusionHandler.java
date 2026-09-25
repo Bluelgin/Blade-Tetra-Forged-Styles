@@ -56,7 +56,6 @@ final class VoidScatteringFusionHandler {
     static final int RESIDUAL_DOMAIN_REFUND_TICKS = 10;
     static final int COUNTER_WINDUP_TICKS = 7;
     static final int COUNTER_STAGGER_TICKS = 3;
-    static final int RETURN_DAMAGE_MAX_ATTEMPTS = 2;
 
     private static final double DOMAIN_PROJECTILE_RADIUS = 3.25D;
     private static final double RETURN_RANGE = 40.0D;
@@ -72,9 +71,6 @@ final class VoidScatteringFusionHandler {
 
     private static final Map<UUID, DomainState> DOMAINS = new HashMap<>();
     private static final Map<UUID, ResidualState> RESIDUALS = new HashMap<>();
-    private static final List<PendingReturn> PENDING_RETURNS = new ArrayList<>();
-    private static final Map<Long, ReturnVolley> RETURN_VOLLEYS = new HashMap<>();
-    private static long nextVolleyId = 1L;
 
     static boolean onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
             ServerPlayer player, ItemStack blade, ISlashBladeState state) {
@@ -226,7 +222,7 @@ final class VoidScatteringFusionHandler {
             }
         }
 
-        tickPendingReturns(event);
+        VoidScatteringReturnRuntime.tick(event);
 
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
             showReadyNoticeIfNeeded(player);
@@ -237,16 +233,13 @@ final class VoidScatteringFusionHandler {
         ResourceKey<Level> dimension = level.dimension();
         DOMAINS.values().removeIf(state -> state.dimension().equals(dimension));
         RESIDUALS.values().removeIf(state -> state.dimension().equals(dimension));
-        PENDING_RETURNS.removeIf(state -> state.dimension.equals(dimension));
-        RETURN_VOLLEYS.values().removeIf(state -> state.dimension.equals(dimension));
+        VoidScatteringReturnRuntime.onLevelUnload(level);
     }
 
     static void clear() {
         DOMAINS.clear();
         RESIDUALS.clear();
-        PENDING_RETURNS.clear();
-        RETURN_VOLLEYS.clear();
-        nextVolleyId = 1L;
+        VoidScatteringReturnRuntime.clear();
     }
 
     private static void startDomain(ServerPlayer player, long now) {
@@ -298,17 +291,9 @@ final class VoidScatteringFusionHandler {
             }
         }
 
-        long volleyId = -1L;
-        if (!validTargets.isEmpty()) {
-            volleyId = nextVolleyId++;
-            RETURN_VOLLEYS.put(volleyId, new ReturnVolley(level.dimension(),
-                    player.getUUID(), validTargets.size()));
-            for (int index = 0; index < validTargets.size(); index++) {
-                scheduleReturn(player, validTargets.get(index), damage,
-                        COUNTER_WINDUP_TICKS + index * COUNTER_STAGGER_TICKS,
-                        index, volleyId);
-            }
-        }
+        VoidScatteringReturnRuntime.scheduleVolley(
+                player, validTargets, damage,
+                COUNTER_WINDUP_TICKS, COUNTER_STAGGER_TICKS);
 
         Vec3 center = domainCenter(player);
         float slashScale = shattered ? 3.35F : 2.65F;
@@ -385,8 +370,8 @@ final class VoidScatteringFusionHandler {
         }
         float damage = VoidScatteringBalance.residualCounterSwordDamage(
                 residual.attackSnapshot());
-        scheduleReturn(player, target.getUUID(), damage, 0, 0, -1L);
-        scheduleReturn(player, target.getUUID(), damage, 2, 1, -1L);
+        VoidScatteringReturnRuntime.schedule(player, target.getUUID(), damage, 0, 0, -1L);
+        VoidScatteringReturnRuntime.schedule(player, target.getUUID(), damage, 2, 1, -1L);
         refundDomainCooldown(player, RESIDUAL_DOMAIN_REFUND_TICKS);
 
         ServerLevel level = player.serverLevel();
@@ -423,7 +408,7 @@ final class VoidScatteringFusionHandler {
         if (entity instanceof LivingEntity target
                 && LegacyFusionCombatSupport.canAffect(player, target)
                 && player.distanceToSqr(target) <= RETURN_RANGE * RETURN_RANGE) {
-            scheduleReturn(player, target.getUUID(),
+            VoidScatteringReturnRuntime.schedule(player, target.getUUID(),
                     VoidScatteringBalance.residualFallbackSwordDamage(
                             residual.attackSnapshot()),
                     0, 0, -1L);
@@ -554,156 +539,8 @@ final class VoidScatteringFusionHandler {
         return center.add(delta.normalize().scale(DOMAIN_PROJECTILE_RADIUS * 0.95D));
     }
 
-    private static void scheduleReturn(ServerPlayer player, UUID targetId,
-            float damage, int delay) {
-        scheduleReturn(player, targetId, damage, delay,
-                Math.max(0, delay / Math.max(1, COUNTER_STAGGER_TICKS)), -1L);
-    }
-
-    private static void scheduleReturn(ServerPlayer player, UUID targetId,
-            float damage, int delay, int sequence, long volleyId) {
-        if (damage <= 0.0F) {
-            return;
-        }
-        PENDING_RETURNS.add(new PendingReturn(player.level().dimension(),
-                player.getUUID(), targetId, damage,
-                globalGameTime(player) + Math.max(0, delay),
-                Math.max(0, sequence), volleyId));
-    }
-
-    private static int launchVisualSword(ServerPlayer player, LivingEntity target,
-            int sequence) {
-        ServerLevel level = player.serverLevel();
-        Vec3 center = target.getBoundingBox().getCenter();
-        double angle = Math.toRadians((sequence * 61.0D + player.tickCount * 19.0D) % 360.0D);
-        Vec3 start = player.position().add(
-                Math.cos(angle) * 1.62D,
-                1.18D + (sequence % 3) * 0.24D,
-                Math.sin(angle) * 1.62D);
-        Vec3 direction = center.subtract(start).normalize();
-
-        LegacyFusionCombatSupport.spawnVisualSlash(player, start,
-                (float) Math.toDegrees(angle) + 90.0F, 0.0F,
-                VOID_COLOR, 0.72F, 5);
-        level.sendParticles(ParticleTypes.PORTAL,
-                start.x, start.y, start.z, 7,
-                0.18D, 0.28D, 0.18D, 0.045D);
-        level.playSound(null, start.x, start.y, start.z,
-                SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS,
-                0.28F, 1.46F + (sequence % 3) * 0.08F);
-
-        EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
-                SlashBlade.RegistryEvents.SummonedSword, level);
-        sword.setPos(start.x, start.y, start.z);
-        sword.setOwner(player);
-        sword.setShooter(player);
-        sword.setHitEntity(target);
-        sword.setDamage(0.0D);
-        sword.setColor(VOID_COLOR);
-        sword.setRoll((float) ((sequence * 61) % 360));
-        sword.setDelay(0);
-        sword.setNoClip(true);
-        LegacyFusionCombatSupport.markVisualOnly(sword);
-        sword.shoot(direction.x, direction.y, direction.z, 2.15F, 0.0F);
-        level.addFreshEntity(sword);
-        return Math.max(2, (int) Math.ceil(start.distanceTo(center) / 2.15D));
-    }
-
-    private static void tickPendingReturns(TickEvent.ServerTickEvent event) {
-        long now = event.getServer().overworld().getGameTime();
-        var iterator = PENDING_RETURNS.iterator();
-        while (iterator.hasNext()) {
-            PendingReturn pending = iterator.next();
-            if (now < pending.dueTick) {
-                continue;
-            }
-            ServerPlayer player = event.getServer().getPlayerList()
-                    .getPlayer(pending.playerId);
-            ServerLevel level = event.getServer().getLevel(pending.dimension);
-            Entity entity = level == null ? null : level.getEntity(pending.targetId);
-            if (player == null || player.level() != level
-                    || !(entity instanceof LivingEntity target)
-                    || !target.isAlive()
-                    || !LegacyFusionCombatSupport.canAffect(player, target)
-                    || player.distanceToSqr(target) > RETURN_RANGE * RETURN_RANGE) {
-                finishReturnVolley(pending, false, level, player, null);
-                iterator.remove();
-                continue;
-            }
-            if (!pending.launched) {
-                pending.launched = true;
-                pending.dueTick = now + launchVisualSword(player, target,
-                        pending.sequence);
-                continue;
-            }
-
-            pending.damageAttempts++;
-            boolean damaged = LegacyFusionCombatSupport.hurtPreservingIFrames(
-                    level, player, target, pending.damage);
-            if (shouldRetryReturnDamage(damaged, pending.damageAttempts)) {
-                pending.dueTick = now + 1L;
-                continue;
-            }
-            if (damaged) {
-                Vec3 center = target.getBoundingBox().getCenter();
-                LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                        player.getYRot(), 90.0F, VOID_COLOR, 1.08F, 7);
-                level.sendParticles(ParticleTypes.PORTAL,
-                        center.x, center.y, center.z, 8,
-                        0.32D, 0.42D, 0.32D, 0.045D);
-                level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                        center.x, center.y, center.z, 6,
-                        0.38D, 0.4D, 0.38D, 0.028D);
-            }
-            finishReturnVolley(pending, damaged, level, player, target);
-            iterator.remove();
-        }
-    }
-
-    private static void finishReturnVolley(PendingReturn pending, boolean damaged,
-            ServerLevel level, ServerPlayer player, LivingEntity target) {
-        if (pending.volleyId < 0L) {
-            return;
-        }
-        ReturnVolley volley = RETURN_VOLLEYS.get(pending.volleyId);
-        if (volley == null) {
-            return;
-        }
-        if (damaged && target != null && !volley.hitTargets.contains(target.getUUID())) {
-            volley.hitTargets.add(target.getUUID());
-        }
-        volley.remaining--;
-        if (volley.remaining > 0) {
-            return;
-        }
-        RETURN_VOLLEYS.remove(pending.volleyId);
-        if (level == null || player == null) {
-            return;
-        }
-        for (UUID targetId : volley.hitTargets) {
-            Entity entity = level.getEntity(targetId);
-            if (!(entity instanceof LivingEntity hit) || !hit.isAlive()) {
-                continue;
-            }
-            Vec3 center = hit.getBoundingBox().getCenter();
-            LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                    player.getYRot() - 45.0F, 90.0F, VOID_COLOR, 1.42F, 8);
-            LegacyFusionCombatSupport.spawnVisualSlash(player, center,
-                    player.getYRot() + 45.0F, 90.0F, VOID_COLOR, 1.24F, 8);
-            level.sendParticles(ParticleTypes.PORTAL,
-                    center.x, center.y, center.z, 16,
-                    0.48D, 0.62D, 0.48D, 0.08D);
-            level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                    center.x, center.y, center.z, 9,
-                    0.46D, 0.48D, 0.46D, 0.05D);
-            level.playSound(null, center.x, center.y, center.z,
-                    SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS,
-                    0.62F, 0.88F);
-        }
-    }
-
     static boolean shouldRetryReturnDamage(boolean damaged, int attempts) {
-        return !damaged && attempts < RETURN_DAMAGE_MAX_ATTEMPTS;
+        return VoidScatteringReturnRuntime.shouldRetryDamage(damaged, attempts);
     }
 
     private static boolean validDomainPlayer(ServerPlayer player, DomainState domain) {
@@ -876,44 +713,6 @@ final class VoidScatteringFusionHandler {
 
     private record ResidualState(ResourceKey<Level> dimension, UUID playerId,
             long endTick, double attackSnapshot, UUID targetId, int seed) {
-    }
-
-    private static final class PendingReturn {
-        private final ResourceKey<Level> dimension;
-        private final UUID playerId;
-        private final UUID targetId;
-        private final float damage;
-        private final int sequence;
-        private final long volleyId;
-        private long dueTick;
-        private boolean launched;
-        private int damageAttempts;
-
-        private PendingReturn(ResourceKey<Level> dimension, UUID playerId,
-                UUID targetId, float damage, long dueTick, int sequence,
-                long volleyId) {
-            this.dimension = dimension;
-            this.playerId = playerId;
-            this.targetId = targetId;
-            this.damage = damage;
-            this.dueTick = dueTick;
-            this.sequence = sequence;
-            this.volleyId = volleyId;
-        }
-    }
-
-    private static final class ReturnVolley {
-        private final ResourceKey<Level> dimension;
-        private final UUID playerId;
-        private final List<UUID> hitTargets = new ArrayList<>();
-        private int remaining;
-
-        private ReturnVolley(ResourceKey<Level> dimension, UUID playerId,
-                int remaining) {
-            this.dimension = dimension;
-            this.playerId = playerId;
-            this.remaining = remaining;
-        }
     }
 
     private VoidScatteringFusionHandler() {
