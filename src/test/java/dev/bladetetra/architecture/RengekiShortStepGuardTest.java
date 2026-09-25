@@ -121,9 +121,12 @@ class RengekiShortStepGuardTest {
                 "Temporary eligibility loss should reset presentation only");
         assertFalse(source.contains("private static void resetSprintChain"),
                 "Resetting the entire chain would recreate an immediately-ready hit cooldown");
-        assertTrue(source.contains("SprintChainState chain = SPRINT_CHAINS.get(playerId)"),
+        assertTrue(source.contains(
+                "RengekiRuntimeState.SprintChainState chain = RengekiRuntimeState.sprintChains().get(playerId)"),
                 "Visual reset should preserve the existing per-player cadence state");
-        assertTrue(source.contains("SPRINT_CHAINS.remove(playerId)"),
+        String runtime = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/RengekiRuntimeState.java"));
+        assertTrue(runtime.contains("SPRINT_CHAINS.remove(playerId)"),
                 "A full lifecycle/style clear must still discard the cooldown state");
     }
 
@@ -236,12 +239,17 @@ class RengekiShortStepGuardTest {
         assertTrue(movement.contains("isCollisionAreaLoaded(level, sampleBox)"));
         assertTrue(movement.contains("level.noCollision(player, sampleBox)"));
 
-        assertTrue(movement.contains("PlayerEvent.Clone"));
-        assertTrue(momentum.contains("PlayerEvent.Clone"));
-        assertTrue(movement.contains("clearTransientState(event.getOriginal().getUUID())"));
-        assertTrue(momentum.contains("clearMovementState(event.getOriginal().getUUID())"));
-        assertFalse(momentum.contains("clearAllState"),
-                "Removing durability phase state should also remove redundant full-state cleanup plumbing");
+        String runtime = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/RengekiRuntimeState.java"));
+        assertTrue(runtime.contains("PlayerEvent.Clone"),
+                "Shared Rengeki runtime must clear both sub-features on clone");
+        assertTrue(runtime.contains("clear(event.getOriginal().getUUID())"));
+        assertTrue(runtime.contains("clearMomentum(playerId)"));
+        assertTrue(runtime.contains("clearShortStep(playerId)"));
+        assertFalse(momentum.contains("PlayerEvent.Clone"),
+                "Momentum should not own duplicate lifecycle listeners after extraction");
+        assertFalse(movement.contains("PlayerEvent.Clone"),
+                "Short-step should not own duplicate lifecycle listeners after extraction");
     }
 
     private static void assertAdvance(String source, String from, String to) {
