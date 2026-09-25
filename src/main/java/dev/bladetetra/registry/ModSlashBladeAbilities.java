@@ -115,7 +115,11 @@ public final class ModSlashBladeAbilities {
 
     private static ResourceLocation forgedCombo(LivingEntity entity) {
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.from(entity.getMainHandItem());
-        return plan == null ? ComboStateRegistry.NONE.getId() : plan.primaryMotionId();
+        // ForgedSlashArtHandler replaces this placeholder with the selected
+        // native SlashBlade entry during PerformSlashArtEvent. A non-NONE
+        // placeholder keeps the normal SlashArt release/cost path active.
+        return plan == null ? ComboStateRegistry.NONE.getId()
+                : ComboStateRegistry.STANDBY.getId();
     }
 
     private static ResourceLocation programmaticCombo(LivingEntity entity,
