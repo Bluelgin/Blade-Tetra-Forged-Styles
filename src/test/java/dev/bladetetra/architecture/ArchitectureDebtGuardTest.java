@@ -190,6 +190,8 @@ class ArchitectureDebtGuardTest {
 
         assertTrue(handler.contains("ForgedNativeComboFlow.shouldSplice("));
         assertTrue(handler.contains("state.updateComboSeq(player, entry)"));
+        assertTrue(handler.contains("blade != pending.sourceBlade"),
+                "Switching to another identically-authored blade must cancel the pending route");
         assertTrue(flow.contains("signatureEntry("));
         assertTrue(flow.contains("ComboState.getElapsed(user)"));
 
