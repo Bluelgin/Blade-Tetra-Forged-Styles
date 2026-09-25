@@ -220,7 +220,8 @@ final class ForgedSlashArtHandler {
         }
         Entity entity = event.getEntity();
         ServerPlayer owner = nativeOwner(entity);
-        if (owner == null || !PENDING.containsKey(owner.getUUID())) {
+        PendingCast pending = owner == null ? null : PENDING.get(owner.getUUID());
+        if (pending == null || !ownsCurrentNativeGraph(owner, pending)) {
             return;
         }
 
@@ -252,7 +253,8 @@ final class ForgedSlashArtHandler {
         ServerPlayer owner = causing instanceof ServerPlayer player && direct == player
                 ? player
                 : nativeOwner(direct);
-        if (owner != null && PENDING.containsKey(owner.getUUID())) {
+        PendingCast pending = owner == null ? null : PENDING.get(owner.getUUID());
+        if (pending != null && ownsCurrentNativeGraph(owner, pending)) {
             event.setCanceled(true);
         }
     }
@@ -351,6 +353,20 @@ final class ForgedSlashArtHandler {
             return player;
         }
         return null;
+    }
+
+    private static boolean ownsCurrentNativeGraph(
+            ServerPlayer player, PendingCast pending) {
+        ItemStack blade = player.getMainHandItem();
+        ISlashBladeState state = blade.getCapability(ItemSlashBlade.BLADESTATE)
+                .orElse(null);
+        if (state == null) {
+            return false;
+        }
+        ForgedSlashArtPlan.Technique activeTechnique =
+                pending.phase == Phase.PRIMARY
+                        ? pending.plan.primary() : pending.plan.secondary();
+        return ForgedNativeComboFlow.owns(activeTechnique, state.getComboSeq());
     }
 
     private static LivingEntity resolveTarget(
