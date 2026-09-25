@@ -158,7 +158,7 @@ final class ProceduralSlashArtExecutor {
     private static void executeSakura(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay) {
+            double damagePerHit, int baseDelay, boolean nativeFlow) {
         ServerLevel level = player.serverLevel();
         Vec3 focus = target != null && target.isAlive()
                 ? target.getBoundingBox().getCenter()
