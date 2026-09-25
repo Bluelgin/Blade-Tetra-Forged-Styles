@@ -3,232 +3,198 @@
 ## Purpose
 
 Forged Slash Arts are Blade Tetra's player-authored counterpart to automatic
-legacy fusion. Automatic fusion remains responsible for native and audited add-on
-Slash Arts. Forged Slash Arts deliberately do **not** execute, wrap or adapt
-third-party SlashArts.
+legacy fusion.
 
-The authoring object is a dedicated **Slash Art Orb**. The orb is a Tetra modular
-item edited at a normal Tetra workbench. The weapon itself no longer exposes the
-four authoring slots.
+The authoring object remains the dedicated **Slash Art Orb** edited in a normal
+Tetra workbench:
 
-```text
-Tetra workbench
-    |
-    v
-Slash Art Orb
-  - Slash Art Core
-  - Primary Technique
-  - Secondary Technique
-  - Technique Modifier
-    |
-    | use while holding a SlashBlade in the other hand
-    v
-versioned forged-SA inscription snapshot
-    |
-    v
-any compatible SlashBlade
-    |
-    v
-blade_tetra:forged_slash_art
-```
+- **Slash Art Core / 斩术魂核** — stable carrier identity for the inscription
+- **Primary Technique / 主术式** — native opening graph
+- **Secondary Technique / 副术式** — native signature follow-up
+- **Technique Modifier / 术式修饰** — splice cadence / routing rule
 
-## Why the orb is separate from the blade
-
-The custom system is meant for Tetra-oriented players without making every
-SlashBlade weapon structurally become a Tetra weapon.
-
-The four editable modules therefore live only on the orb:
-
-| Orb slot | Role |
-|---|---|
-| `slashblade/sa_core` | Small material modifier on the wielder's attack-derived budget |
-| `slashblade/sa_primary` | Native SlashBlade ComboState graph + primary bounded combat layer |
-| `slashblade/sa_secondary` | Native SlashBlade follow-up graph + secondary bounded combat layer |
-| `slashblade/sa_modifier` | Hit topology, spread, echo or timing |
-
-A completed orb is an authoring tool. Applying it to a blade copies a compact,
-versioned `ForgedSlashArtSpec` into the target blade's NBT. It does not copy the
-orb's raw Tetra module tree. Editing the orb later therefore does not mutate
-weapons that were already inscribed.
-
-Only one Slash Art registry entry exists: `blade_tetra:forged_slash_art`.
-Combinations are compiled from the stored specification at cast time, so adding
-components remains O(n) in component definitions rather than requiring a registry
-entry for every primary × secondary × modifier × material combination.
-
-## Applying and clearing an inscription
-
-Hold a complete Slash Art Orb in one hand and any item exposing SlashBlade's blade
-state capability in the other hand, then use the orb.
-
-For ordinary SlashBlade/add-on weapons, Blade Tetra remembers the displaced Slash
-Art, stores the forged specification and switches the blade to
+Applying a complete orb snapshots a versioned `ForgedSlashArtSpec` onto the
+target blade. Only one runtime Slash Art is registered:
 `blade_tetra:forged_slash_art`.
 
-For Blade Tetra's modular katana, the orb stores only the forged specification and
-then asks the existing structural ability synchronizer to reconcile the blade.
-Named-blade structure remains authoritative: authored fusion, programmatic mixed
-fusion and orthodox inheritance all outrank a forged inscription. The forged spec
-stays dormant on the item and becomes active again when those structural owners no
-longer apply. This prevents coupled SA/SE packages such as Dead Thought from being
-split into an illegal forged-SA + legacy-SE hybrid.
+## Runtime design: graph splicing, not two Slash Arts
 
-Sneak-use the orb with an inscribed blade in the other hand to erase the custom
-inscription. Generic SlashBlade weapons restore the remembered Slash Art; the
-modular katana delegates restoration to its structural synchronizer.
+The forged runtime no longer plays two complete Slash Arts back-to-back.
 
-The orb is reusable in the first implementation. Proud Soul costs can be added to
-the inscription operation later without changing the data model.
+It also no longer suppresses native damage and rebuilds combat through a second
+Blade Tetra executor.
 
-## Animation and state-machine ownership
+Instead the sequence is:
 
-Primary and secondary techniques now enter Resharped's **real SlashArt / ComboState
-graphs**. Blade Tetra no longer clones one visual node and guesses the remainder of
-the timeline. Native `clickAction`, `tickAction`, movement, pose changes, sounds,
-timeout edges and recovery nodes are allowed to execute normally, so multi-node
-arts such as Piercing and Sakura End retain their complete source choreography.
+```text
+native Primary entry
+        |
+        v
+Primary signature callback
+        |
+        |  splice before source recovery / sheath
+        v
+native Secondary signature state
+        |
+        v
+SlashBlade continues the native graph
+```
 
-Blade Tetra still owns combat power. Native entities spawned while a forged graph
-owns the player are tagged presentation-only and native direct damage is suppressed.
-The bounded forged budget is emitted separately at the technique's signature timing.
-The A -> B handoff occurs only after SlashBlade naturally leaves A's native graph;
-foreign ComboStates are treated as interruption rather than a valid handoff.
+This means a combination such as Judgement Cut -> Sakura End is read as one
+continuous authored technique:
 
-Haste still scales the authored damage timing and efficiency. Native source graph
-playback is intentionally not time-warped in this first delegation pass; changing a
-global registered ComboState's speed per cast would affect non-forged users and will
-need a dedicated per-cast proxy if accelerated native choreography is added later.
+```text
+Judgement opening / dimensional cut
+        -> Sakura finishing cross-cut
+        -> native Sakura recovery
+```
 
-## Technique set
+It is not:
 
-The first complete set uses the eight base Resharped semantic families already
-proven by programmatic fusion:
+```text
+complete Judgement Cut
+        -> sheath / recover
+        -> complete Sakura End
+```
 
-- Judgement Cut
-- Sakura End
-- Void Slash
-- Circle Slash
-- Vertical Drive
-- Horizontal Drive
-- Wave Edge
-- Piercing
+## Ownership boundary
 
-Each can be selected independently as primary or secondary, giving 64 ordered
-technique pairs before core material or modifiers are considered. The ordered pair
-is visible in player motion as well as attack output: A→B now performs A's motion,
-hands off, then performs B's motion.
+Blade Tetra owns only:
 
-Forged techniques prefer Resharped's own presentation vocabulary instead of
-recreating every Slash Art from Drive projectiles:
+1. persisted composition;
+2. source technique selection;
+3. the safe splice point;
+4. the transition into the secondary signature node;
+5. an optional Echo re-entry.
 
-| Technique | Native reuse | Forged-owned combat |
+SlashBlade owns:
+
+- ComboState animation;
+- movement;
+- clickAction / tickAction;
+- native entities and VFX;
+- sounds;
+- target selection;
+- hit effects;
+- damage;
+- knockback;
+- recovery.
+
+There is no forged damage budget, no native-damage cancellation layer, no
+presentation-only entity rewriting, and no forged summoned-sword combat runtime.
+
+`ProceduralSlashArtExecutor` remains only for the conservative programmatic
+legacy-fusion fallback and is not used by forged Slash Arts.
+
+## Native source fragments
+
+Primary techniques enter through the real SlashArt selector. Secondary
+techniques enter directly at a recognizable native signature state where one
+exists.
+
+| Technique | Primary contribution | Secondary splice |
 |---|---|---|
-| Judgement Cut | native `EntityJudgementCut` / `slashdim` renderer | converging phantom-sword halo |
-| Sakura End | native `EntitySlashEffect` geometry, 22.5° / 157.5° cross | bounded compact follow-up swords |
-| Void Slash | native `AttackManager.newVoidSlashEffect` presentation | bounded phantom-sword fan |
-| Circle Slash | native four-beat SlashEffect ring: 180° / 90° / 0° / -90° | radial phantom swords |
-| Vertical / Horizontal Drive | native `Drive.doSlash` entity path | forged budget/count |
-| Wave Edge | native Drive family with staggered speed/timing | forged budget/count |
-| Piercing | native-style forward rush + piercing sound | exact bounded close-range hit |
+| Judgement Cut | native Judgement entry / just entry | `judgement_cut_slash` / just slash |
+| Sakura End | native left -> right offensive graph | `sakura_end_right` |
+| Void Slash | native Void Slash state | `void_slash` |
+| Circle Slash | native four-beat ring | `circle_slash` |
+| Vertical Drive | native vertical slash + Drive | `drive_vertical` |
+| Horizontal Drive | native horizontal slash + Drive | `drive_horizontal` |
+| Wave Edge | native vertical slash + Wave Edge | `wave_edge_vertical` |
+| Piercing | native preparation -> rush | `piercing_2` / `piercing_just` |
 
-Native presentation entities are sanitized by type. Native `EntitySlashEffect`
-instances are detached from their shooter so their internal area-attack loop never
-runs; visual-only SlashBlade projectiles skip entity-impact callbacks so Drive-like
-presentation cannot clear hurt windows or apply collision combat; Judgement Cut
-keeps the shooter relationship needed for its authentic just-cut presentation but
-is removed before its potion burst. Direct native melee damage is canceled while
-the forged graph owns the player, and any pre-hit SlashBlade knockback marker is
-cleared. Unrelated player projectiles are deliberately excluded from this
-suppression path.
+For same-technique pairs, `ISlashBladeState.updateComboSeq` is deliberately
+used even when the target state ID is unchanged. SlashBlade resets
+`lastActionTime` and re-runs that state's native `clickAction`, so the
+secondary fragment genuinely restarts.
+
+## Splice timing
+
+The runtime waits until the defining native combat callback of the primary
+fragment has completed, then hands off before the source art reaches its normal
+full recovery.
+
+Current safe completion points mirror Resharped's registered ComboStates:
+
+- Judgement Cut: immediately after the dimensional-cut callback
+- Sakura End: immediately after the right/cross cut enters
+- Void Slash: after the tick-16 native void attack
+- Circle Slash: after the tick-4..7 four-beat ring
+- Vertical / Horizontal Drive: after the tick-2..3 native slash + Drive
+- Wave Edge: after the tick-2..3 native slash + wave emission
+- Piercing: after the opening three rush/area-attack ticks
+
+Foreign ComboStates still cancel the pending splice instead of forcing the
+player back into the authored route.
 
 ## Modifiers
 
-- **Balanced** — unchanged topology and budget.
-- **Condensed** — roughly half as many hits, slightly higher total efficiency,
-  tighter geometry and target-focused aim when a valid lock exists.
-- **Shatter** — doubles bounded hit count, applies a multi-hit tax and delays the
-  latter half into a distinct second micro-burst.
-- **Spread** — widens non-radial origins/patterns and trades single-target
-  efficiency; true radial techniques remain radial.
-- **Echo** — repeats the complete secondary native graph after its preceding
-  cycle naturally recovers; the same secondary budget is divided over both cycles.
-- **Haste** — emits the authored bounded damage earlier, with a small efficiency
-  tax. Native ComboState animation speed and graph recovery remain untouched.
+Modifiers no longer multiply or divide a custom damage budget. Their runtime
+meaning is intentionally narrow:
 
-At cast time, the wielder's current attack damage is snapshotted. The complete
-two-phase budget starts at 1.1× that value, with the orb core contributing only
-a 0.9–1.1× adjustment. Modifiers preserve a bounded budget; adding hit count
-never multiplies total power for free.
+- **Balanced** — standard one-tick breathing room after the safe signature point
+- **Condensed** — immediate handoff at the earliest safe point
+- **Shatter** — keeps a slightly longer two-tick post-signature beat
+- **Spread** — standard native route; no synthetic spread projectiles are added
+- **Echo** — re-enters the secondary native signature once
+- **Haste** — earliest safe handoff without mutating global ComboState speed
 
-## Runtime lifecycle
+This keeps modifiers inside the routing layer. Any future modifier expansion
+should prefer another legal native graph edge over reintroducing a parallel
+damage engine.
 
-`ForgedSlashArtSpec` is the persistence boundary. `ForgedSlashArtPlan` validates
-and compiles that snapshot into bounded damage, timing and topology.
-`ForgedNativeComboFlow` resolves each authored technique back to SlashBlade's
-registered SlashArt and identifies the native ComboState graph it owns.
-`ForgedSlashArtHandler` snapshots the cast direction and compiled plan, redirects
-the PerformSlashArt event into A's native entry, observes the graph until natural
-recovery, then enters B's native entry. Echo repeats B by entering the complete
-native graph again rather than replaying only a synthetic effect.
+## Core material
 
-`ProceduralSlashArtExecutor` remains the bounded combat layer. During native
-delegation it does not respawn the hand-built Judgement/Sakura/Void/Circle cues or
-repeat Piercing's movement/sound; those now come from SlashBlade itself. Forged
-phantom swords / drives remain available as the authored modifier layer and carry
-only the compiled Blade Tetra damage budget.
+The core remains part of the versioned inscription identity and authoring
+recipe, but it no longer scales forged damage.
 
-Forged Judgement Cut directly reuses SlashBlade's own `EntityJudgementCut`
-renderer/model for presentation. The native callback may keep the real shooter
-relationship, but Blade Tetra zeroes/cancels its combat output and discards the
-entity at the native ten-tick lifetime boundary before it can enter its
-burst/potion cleanup path. The surrounding forged
-phantom swords and one bounded center hit share Judgement's phase budget. Forged
-summoned swords keep native flight and rendering, but Blade Tetra owns their
-single collision hit instead of accepting native rounding and attack scaling.
-Geometry fixes can still be shared without
-letting forged attacks execute source SlashArt callbacks.
+That is deliberate: once SlashBlade owns combat, the forged system should not
+silently rescale native callbacks behind its back. If core progression gains a
+combat-facing role later, it should use a native-facing cost/gating mechanic
+rather than a second damage calculation path.
 
-Normal and Just releases enter through `PerformSlashArtEvent`. Resharped's Super
-Slash Art path bypasses that event, so the registered Super selector arms the same
-forged runtime directly before returning the native primary entry. Fail remains a
-real failure and never upgrades itself into a forged Success cast.
+## Structural ownership
 
-Weapon/spec changes, death, dimension changes, structural SA changes, foreign
-ComboState interruptions and rapid recasts cancel or replace pending casts.
+For ordinary SlashBlade/add-on weapons, inscription remembers and replaces the
+previous Slash Art and restores it when cleared.
 
-## Smoke test matrix
+For Blade Tetra's modular katana, named-blade structure remains authoritative:
 
-1. Put a fresh Slash Art Orb in a Tetra workbench and confirm that only the four
-   forged-SA slots are exposed; the modular katana must not expose those slots.
-2. Install core + primary + secondary + modifier on the orb and confirm its tooltip
-   resolves a complete generated Slash Art.
-3. Hold the orb and a vanilla/base SlashBlade in opposite hands, use the orb, and
-   confirm the blade switches to `blade_tetra:forged_slash_art`.
-4. Repeat with an add-on SlashBlade that exposes the normal blade-state capability.
-   No add-on SlashArt callback should be invoked by the forged SA.
-5. Re-edit the orb after applying it. Previously inscribed blades must retain their
-   old snapshot until the orb is explicitly applied again.
-6. Sneak-use the orb on an inscribed generic blade and confirm the displaced Slash
-   Art is restored.
-7. Apply an inscription on Blade Tetra's modular katana while an authored,
-   programmatic or orthodox named fitting owns the SA slot. The forged spec should
-   remain stored but dormant; the named structural SA/SE package must stay intact.
-   Remove the named owner and confirm the forged SA becomes active again.
-8. Exercise representative ordered pairs such as Judgement→Sakura,
-   Piercing→Circle, Circle→Wave and Vertical→Horizontal. Confirm both primary and
-   secondary player motions visibly occur in order.
-9. Verify Judgement Cut shows SlashBlade's native dimensional-rift/slashdim
-   presentation in the blade color, surrounded by forged phantom swords. The
-   native presentation entity must deal no damage or potion/burst effect by itself.
-   Compare Sakura/Void/Circle against the Drive-family techniques and confirm they
-   use visibly different primitive families rather than only different Drive angles.
-10. Compare Balanced/Condensed/Shatter/Spread/Echo/Haste and verify target focus,
-    second-burst timing, spread, echo and Haste damage-emission timing differ while
-    total damage remains bounded. Haste must not speed up the shared native
-    ComboState animation graph.
-11. Verify an undercharged Fail release never starts the forged runtime. Verify
-    Just still uses the source art's just entry where it exists, and Super starts
-    the same bounded A → B runtime instead of falling into `STANDBY`.
-12. Change weapon, die, change dimension, interrupt between motions and rapidly
-    recast during the primary window; pending secondary attacks must cancel/replace
-    cleanly.
+1. authored legacy fusion
+2. programmatic mixed named-blade fusion
+3. orthodox named-blade inheritance
+4. forged custom Slash Art
+5. previous/external Slash Art
+
+A forged spec may stay stored but dormant while a named structural owner exists.
+
+## Persistence
+
+`ForgedSlashArtSpec` remains the versioned persistence boundary stored on the
+blade.
+
+Raw Tetra module state remains on the orb and is not copied into the blade.
+Re-editing an orb therefore does not mutate already-inscribed weapons until the
+orb is applied again.
+
+## Manual smoke-test matrix
+
+1. Build a complete Slash Art Orb and apply it to a normal SlashBlade.
+2. Confirm the blade exposes `blade_tetra:forged_slash_art`.
+3. Test Judgement -> Sakura and verify the Sakura right/signature cut begins
+   directly after Judgement's attack instead of after a full Judgement sheath.
+4. Test Piercing -> Circle and verify Piercing rush damage is the real native
+   Piercing callback, followed by the real native Circle ring.
+5. Test Circle -> Circle and verify the second Circle state restarts correctly.
+6. Test an airborne Judgement/Sakura combination and verify air variants are
+   selected where appropriate.
+7. Test Jackpot/Just release with Judgement or Piercing in either slot.
+8. Test Echo and verify only the secondary native signature repeats.
+9. During the primary phase, interrupt with another committed ComboState and
+   confirm the pending splice is canceled.
+10. Change weapon, inscription, dimension, or die during a pending cast and
+    confirm the route is discarded.
+11. Verify native damage, knockback, projectiles and hit effects match the source
+    SlashBlade states; Blade Tetra should not cancel or replace them.
+12. Verify named-blade structural SA/SE ownership still outranks a dormant forged
+    inscription on the modular katana.
