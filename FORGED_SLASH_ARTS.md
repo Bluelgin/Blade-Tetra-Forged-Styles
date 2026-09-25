@@ -42,8 +42,8 @@ The four editable modules therefore live only on the orb:
 | Orb slot | Role |
 |---|---|
 | `slashblade/sa_core` | Small material modifier on the wielder's attack-derived budget |
-| `slashblade/sa_primary` | Native SlashBlade motion + primary procedural geometry |
-| `slashblade/sa_secondary` | Native SlashBlade follow-up motion + secondary attack geometry |
+| `slashblade/sa_primary` | Native SlashBlade ComboState graph + primary bounded combat layer |
+| `slashblade/sa_secondary` | Native SlashBlade follow-up graph + secondary bounded combat layer |
 | `slashblade/sa_modifier` | Hit topology, spread, echo or timing |
 
 A completed orb is an authoring tool. Applying it to a blade copies a compact,
@@ -131,10 +131,11 @@ recreating every Slash Art from Drive projectiles:
 | Wave Edge | native Drive family with staggered speed/timing | forged budget/count |
 | Piercing | native-style forward rush + piercing sound | exact bounded close-range hit |
 
-Native presentation entities are sanitized when their source callback would own
-unbounded damage: shooter/owner is detached where necessary, damage is zeroed, and
-unsafe terminal callbacks (notably Void Slash's 5.1× finisher) are cut off before
-they can run.
+Native presentation entities are sanitized while a forged cast owns their
+shooter: their native damage is zeroed or canceled, and unsafe terminal entity
+behavior is cut off where required. The shooter relationship is retained when the
+native entity needs it for its real presentation lifecycle; unrelated player
+projectiles are deliberately excluded from this suppression path.
 
 ## Modifiers
 
@@ -145,10 +146,10 @@ they can run.
   latter half into a distinct second micro-burst.
 - **Spread** — widens non-radial origins/patterns and trades single-target
   efficiency; true radial techniques remain radial.
-- **Echo** — repeats the secondary phase after a delay; the same secondary budget
-  is divided over both cycles.
-- **Haste** — 1.25× primary and secondary animation, earlier attacks/handoff and
-  shorter echo spacing, with a small efficiency tax.
+- **Echo** — repeats the complete secondary native graph after its preceding
+  cycle naturally recovers; the same secondary budget is divided over both cycles.
+- **Haste** — emits the authored bounded damage earlier, with a small efficiency
+  tax. Native ComboState animation speed and graph recovery remain untouched.
 
 At cast time, the wielder's current attack damage is snapshotted. The complete
 two-phase budget starts at 1.1× that value, with the orb core contributing only
@@ -173,14 +174,20 @@ phantom swords / drives remain available as the authored modifier layer and carr
 only the compiled Blade Tetra damage budget.
 
 Forged Judgement Cut directly reuses SlashBlade's own `EntityJudgementCut`
-renderer/model for presentation, but the entity is spawned with no shooter and
-zero damage. Blade Tetra discards it at the native ten-tick lifetime boundary
-before the entity can enter its burst/potion cleanup path. The surrounding forged
+renderer/model for presentation. The native callback may keep the real shooter
+relationship, but Blade Tetra zeroes/cancels its combat output and discards the
+entity at the native ten-tick lifetime boundary before it can enter its
+burst/potion cleanup path. The surrounding forged
 phantom swords and one bounded center hit share Judgement's phase budget. Forged
 summoned swords keep native flight and rendering, but Blade Tetra owns their
 single collision hit instead of accepting native rounding and attack scaling.
 Geometry fixes can still be shared without
 letting forged attacks execute source SlashArt callbacks.
+
+Normal and Just releases enter through `PerformSlashArtEvent`. Resharped's Super
+Slash Art path bypasses that event, so the registered Super selector arms the same
+forged runtime directly before returning the native primary entry. Fail remains a
+real failure and never upgrades itself into a forged Success cast.
 
 Weapon/spec changes, death, dimension changes, structural SA changes, foreign
 ComboState interruptions and rapid recasts cancel or replace pending casts.
@@ -212,8 +219,12 @@ ComboState interruptions and rapid recasts cancel or replace pending casts.
    Compare Sakura/Void/Circle against the Drive-family techniques and confirm they
    use visibly different primitive families rather than only different Drive angles.
 10. Compare Balanced/Condensed/Shatter/Spread/Echo/Haste and verify target focus,
-    second-burst timing, spread, echo and Haste motion timing differ while total
-    damage remains bounded.
-11. Change weapon, die, change dimension, interrupt between motions and rapidly
+    second-burst timing, spread, echo and Haste damage-emission timing differ while
+    total damage remains bounded. Haste must not speed up the shared native
+    ComboState animation graph.
+11. Verify an undercharged Fail release never starts the forged runtime. Verify
+    Just still uses the source art's just entry where it exists, and Super starts
+    the same bounded A → B runtime instead of falling into `STANDBY`.
+12. Change weapon, die, change dimension, interrupt between motions and rapidly
     recast during the primary window; pending secondary attacks must cancel/replace
     cleanly.
