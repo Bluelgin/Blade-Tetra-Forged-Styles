@@ -158,6 +158,19 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void forgedSuperSlashArtArmsTheSameNativeRuntime() throws IOException {
+        String registry = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/registry/ModSlashBladeAbilities.java"));
+        String entrypoint = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedSlashArtEntrypoint.java"));
+        assertTrue(registry.contains(
+                ".setComboStateSuper(ForgedSlashArtEntrypoint::superCombo)"),
+                "SuperSlashArts bypasses PerformSlashArtEvent and must use the direct forged entrypoint");
+        assertTrue(entrypoint.contains("ForgedSlashArtHandler.beginCast("));
+        assertTrue(entrypoint.contains("SlashArts.ArtsType.Super"));
+    }
+
+    @Test
     void forgedNativeSuppressionDoesNotCaptureGenericPlayerProjectiles()
             throws IOException {
         String source = Files.readString(Path.of(
