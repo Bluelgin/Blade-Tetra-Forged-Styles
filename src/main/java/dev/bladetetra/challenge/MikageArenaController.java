@@ -89,4 +89,39 @@ final class MikageArenaController {
         double t = net.minecraft.util.Mth.clamp(value, 0.0D, 1.0D);
         return t * t * (3.0D - 2.0D * t);
     }
+
+    static final class CageState {
+        final Vec3 center;
+        int guardedTicks;
+        int lastGuardTick = Integer.MIN_VALUE;
+        CageState(Vec3 center) { this.center = center; }
+    }
+
+    static final class ToriiScissorState {
+        final float baseYaw;
+        int consecutiveGuardTicks;
+        int stableGuards;
+        boolean feintPlayed;
+        ToriiScissorState(float baseYaw) { this.baseYaw = baseYaw; }
+    }
+
+    static final class BoundaryWallState {
+        final int id;
+        final Vec3 center;
+        final Vec3 direction;
+        double gapAlong = -1.0D;
+        int gapTicks;
+        double pendingGapAlong = -1.0D;
+        int gapWarningTicks;
+
+        BoundaryWallState(int id, Vec3 center, Vec3 direction) {
+            this.id = id;
+            this.center = center;
+            this.direction = direction.normalize();
+        }
+
+        Vec3 left() {
+            return new Vec3(-direction.z, 0.0D, direction.x);
+        }
+    }
 }
