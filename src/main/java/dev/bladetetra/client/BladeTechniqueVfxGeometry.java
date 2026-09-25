@@ -182,6 +182,11 @@ final class BladeTechniqueVfxGeometry {
 
     static void line(BufferBuilder buffer, Matrix4f matrix, Vec3 camera,
             Vec3 start, Vec3 end, double halfWidth, int color) {
+        // Preserve the legacy technique renderer's degeneracy threshold exactly;
+        // the shared primitive intentionally accepts slightly shorter bands.
+        if (end.subtract(start).lengthSqr() < 0.000001D) {
+            return;
+        }
         VfxPrimitives.bandFacing(buffer, matrix, start, end, camera, halfWidth, color);
     }
 
