@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.level.LevelEvent;
@@ -88,7 +89,13 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onLivingAttack(LivingAttackEvent event) {
+        ForgedSlashArtHandler.onLivingAttack(event);
         VoidScatteringFusionHandler.onLivingAttack(event);
+    }
+
+    @SubscribeEvent
+    public static void onEntityJoin(EntityJoinLevelEvent event) {
+        ForgedSlashArtHandler.onEntityJoin(event);
     }
 
     @SubscribeEvent
