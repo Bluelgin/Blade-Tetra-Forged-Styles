@@ -9,6 +9,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ForgedSlashArtPlanTest {
     @Test
+    void nativeFlowPreservesFailAndJustWhileNormalizingSuper() {
+        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Fail,
+                ForgedNativeComboFlow.sourceType(
+                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Fail));
+        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success,
+                ForgedNativeComboFlow.sourceType(
+                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success));
+        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Jackpot,
+                ForgedNativeComboFlow.sourceType(
+                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Jackpot));
+        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success,
+                ForgedNativeComboFlow.sourceType(
+                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Super));
+    }
+
+    @Test
     void everyTechniqueAndModifierCombinationCompilesToBoundedDamage() {
         for (ForgedSlashArtPlan.Technique primary : ForgedSlashArtPlan.Technique.values()) {
             for (ForgedSlashArtPlan.Technique secondary : ForgedSlashArtPlan.Technique.values()) {
