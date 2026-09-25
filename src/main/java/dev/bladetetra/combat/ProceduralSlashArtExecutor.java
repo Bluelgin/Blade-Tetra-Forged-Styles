@@ -62,6 +62,16 @@ final class ProceduralSlashArtExecutor {
             ForgedSlashArtPlan.Technique technique,
             ForgedSlashArtPlan.Modifier modifier,
             int count, double damagePerHit, int baseDelay, double angleScale) {
+        executeForged(player, state, forward, target, technique, modifier,
+                count, damagePerHit, baseDelay, angleScale, false);
+    }
+
+    static void executeForged(ServerPlayer player, ISlashBladeState state,
+            Vec3 forward, LivingEntity target,
+            ForgedSlashArtPlan.Technique technique,
+            ForgedSlashArtPlan.Modifier modifier,
+            int count, double damagePerHit, int baseDelay, double angleScale,
+            boolean nativeFlow) {
         int boundedCount = Math.max(1, Math.min(12, count));
         Vec3 aim = safeDirection(forward, player.getLookAngle());
 
@@ -76,17 +86,18 @@ final class ProceduralSlashArtExecutor {
         switch (technique.primitive()) {
             case TARGETED_SWORDS -> executeTargetedSwords(
                     player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay);
+                    boundedCount, damagePerHit, baseDelay, nativeFlow);
             case NATIVE_SAKURA -> executeSakura(
                     player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay);
+                    boundedCount, damagePerHit, baseDelay, nativeFlow);
             case NATIVE_VOID -> executeVoid(
                     player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay, angleScale);
+                    boundedCount, damagePerHit, baseDelay, angleScale, nativeFlow);
             case NATIVE_CIRCLE -> executeCircle(
-                    player, state, boundedCount, damagePerHit, baseDelay, modifier);
+                    player, state, boundedCount, damagePerHit, baseDelay, modifier,
+                    nativeFlow);
             case NATIVE_PIERCING -> executePiercing(
-                    player, aim, target, boundedCount, damagePerHit);
+                    player, aim, target, boundedCount, damagePerHit, nativeFlow);
             case DRIVE -> executeForgedDrives(
                     player, aim, technique.response(), modifier,
                     boundedCount, damagePerHit, baseDelay, angleScale);
@@ -96,7 +107,7 @@ final class ProceduralSlashArtExecutor {
     private static void executeTargetedSwords(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay) {
+            double damagePerHit, int baseDelay, boolean nativeFlow) {
         ServerLevel level = player.serverLevel();
         Vec3 focus = target != null && target.isAlive()
                 ? target.getBoundingBox().getCenter()
@@ -104,7 +115,9 @@ final class ProceduralSlashArtExecutor {
         double radius = modifier.condensed() ? 1.35D
                 : modifier.spread() ? 3.25D : 2.15D;
 
-        ForgedJudgementPresentation.spawn(player, focus, state.getColorCode());
+        if (!nativeFlow) {
+            ForgedJudgementPresentation.spawn(player, focus, state.getColorCode());
+        }
         // The native Judgement Cut entity is cosmetic. Give its center one
         // server-owned hit, paid for by this phase's existing sword budget.
         double centerDamage = judgementCenterDamage(damagePerHit, count);
@@ -151,9 +164,11 @@ final class ProceduralSlashArtExecutor {
                 ? target.getBoundingBox().getCenter()
                 : player.getEyePosition().add(aim.scale(4.0D));
 
-        ForgedNativePresentation.spawnSakuraCross(
-                player, focus, state.getColorCode(),
-                modifier.spread() ? 2.15F : modifier.condensed() ? 1.45F : 1.75F);
+        if (!nativeFlow) {
+            ForgedNativePresentation.spawnSakuraCross(
+                    player, focus, state.getColorCode(),
+                    modifier.spread() ? 2.15F : modifier.condensed() ? 1.45F : 1.75F);
+        }
 
         // The native cross is presentation-only. Compact summoned swords carry
         // the exact forged budget and preserve Shatter's delayed second burst.
@@ -182,9 +197,12 @@ final class ProceduralSlashArtExecutor {
     private static void executeVoid(ServerPlayer player,
             ISlashBladeState state, Vec3 aim, LivingEntity target,
             ForgedSlashArtPlan.Modifier modifier, int count,
-            double damagePerHit, int baseDelay, double angleScale) {
+            double damagePerHit, int baseDelay, double angleScale,
+            boolean nativeFlow) {
         ServerLevel level = player.serverLevel();
-        ForgedNativePresentation.spawnVoid(player, state.getColorCode());
+        if (!nativeFlow) {
+            ForgedNativePresentation.spawnVoid(player, state.getColorCode());
+        }
 
         Vec3 right = new Vec3(-aim.z, 0.0D, aim.x);
         if (right.lengthSqr() < 1.0E-8D) {
@@ -216,11 +234,14 @@ final class ProceduralSlashArtExecutor {
 
     private static void executeCircle(ServerPlayer player,
             ISlashBladeState state, int count, double damagePerHit,
-            int baseDelay, ForgedSlashArtPlan.Modifier modifier) {
+            int baseDelay, ForgedSlashArtPlan.Modifier modifier,
+            boolean nativeFlow) {
         ServerLevel level = player.serverLevel();
-        ForgedNativePresentation.spawnCircle(
-                player, state.getColorCode(),
-                modifier.spread() ? 2.0F : modifier.condensed() ? 1.35F : 1.65F);
+        if (!nativeFlow) {
+            ForgedNativePresentation.spawnCircle(
+                    player, state.getColorCode(),
+                    modifier.spread() ? 2.0F : modifier.condensed() ? 1.35F : 1.65F);
+        }
 
         // Replace the old radial Drive ring with phantom swords travelling along
         // the same 360-degree topology. SlashEffect is now the dominant native cue.
@@ -238,13 +259,16 @@ final class ProceduralSlashArtExecutor {
     }
 
     private static void executePiercing(ServerPlayer player, Vec3 aim,
-            LivingEntity lockedTarget, int count, double damagePerHit) {
+            LivingEntity lockedTarget, int count, double damagePerHit,
+            boolean nativeFlow) {
         // Resharped PIERCING_2: forward rush for the opening ticks plus a close
         // area attack. Reuse that movement/sound language but keep damage exact.
-        player.moveRelative(player.isInWater() ? 0.35F : 0.8F,
-                new Vec3(0.0D, 0.0D, 1.0D));
-        player.hasImpulse = true;
-        AttackManager.playPiercingSoundAction(player);
+        if (!nativeFlow) {
+            player.moveRelative(player.isInWater() ? 0.35F : 0.8F,
+                    new Vec3(0.0D, 0.0D, 1.0D));
+            player.hasImpulse = true;
+            AttackManager.playPiercingSoundAction(player);
+        }
 
         LivingEntity target = validPiercingTarget(player, lockedTarget)
                 ? lockedTarget : findPiercingTarget(player, aim);
