@@ -73,30 +73,6 @@ public final class MaterialTextureManager {
     private static final int LOGICAL_ATLAS_SIZE = 128;
     private static final int GENERATED_ATLAS_SIZE = 256;
     private static final String ART_REVISION = "blade-art-2.0-v6-native-item-icons";
-    /**
-     * A 256px RGBA atlas consumes roughly 256 KiB of texture memory. Keeping
-     * the LRU bounded at 48 preserves material variety without retaining
-     * hundreds of generated combinations in long modpack sessions.
-     */
-    private static final int MAX_CACHE_SIZE = 48;
-
-    private static final Map<String, RegisteredTexture> CACHE =
-            new LinkedHashMap<>(32, 0.75F, true);
-    private static final Map<String, RegisteredTexture> EMISSIVE_CACHE =
-            new LinkedHashMap<>(24, 0.75F, true);
-    /**
-     * Signatures whose generated emission mask contains no visible pixels.
-     * Without this negative cache, an ordinary non-luminous blade would load,
-     * recolor, and scan the complete generated atlas on every render pass.
-     */
-    private static final Set<String> NO_EMISSIVE_CACHE =
-            new LinkedHashSet<>(24);
-    private static final Map<String, RegisteredTexture> DURABILITY_BASE_CACHE =
-            new LinkedHashMap<>(16, 0.75F, true);
-    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
-            ThreadLocal.withInitial(() -> false);
-    /** Immutable 256px source for per-signature working copies during one resource cycle. */
-    private static NativeImage GENERATED_ATLAS_TEMPLATE;
     static final Palette RAYSKIN_PALETTE =
             new Palette(0x6D6552, 0xC4B99A, 0xF1E8CC);
 
@@ -244,17 +220,17 @@ public final class MaterialTextureManager {
                 + glowState.signature()
                 + "|" + Math.round(materialIntensity * 100.0D)
                 + "|" + Math.round(soulIntensity * 100.0D);
-        RegisteredTexture cached = EMISSIVE_CACHE.get(signature);
+        ResourceLocation cached = MaterialTextureCache.emissive(signature);
         if (cached != null) {
-            return cached.location();
+            return cached;
         }
-        if (NO_EMISSIVE_CACHE.contains(signature)) {
+        if (MaterialTextureCache.noEmissive(signature)) {
             return null;
         }
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
-            NativeImage image = copyGeneratedAtlas(
+            NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
             recolor(
                     image,
@@ -271,8 +247,7 @@ public final class MaterialTextureManager {
                     textureLayout);
             if (!visible) {
                 image.close();
-                NO_EMISSIVE_CACHE.add(signature);
-                trimNoEmissiveCache();
+                MaterialTextureCache.markNoEmissive(signature);
                 return null;
             }
 
@@ -282,10 +257,8 @@ public final class MaterialTextureManager {
                     "generated/emissive_"
                             + Integer.toUnsignedString(signature.hashCode(), 16));
             minecraft.getTextureManager().register(location, dynamicTexture);
-            EMISSIVE_CACHE.put(
-                    signature,
-                    new RegisteredTexture(location, dynamicTexture));
-            trimEmissiveCache(minecraft);
+            MaterialTextureCache.putEmissive(
+                    signature, location, dynamicTexture, minecraft);
             return location;
         } catch (IOException | RuntimeException exception) {
             LOGGER.warn(
@@ -485,9 +458,9 @@ public final class MaterialTextureManager {
         String cacheKey = bladeMaterial
                 + "|tetra-material-revision="
                 + materialRevision;
-        RegisteredTexture cached = DURABILITY_BASE_CACHE.get(cacheKey);
+        ResourceLocation cached = MaterialTextureCache.durability(cacheKey);
         if (cached != null) {
-            return cached.location();
+            return cached;
         }
 
         Minecraft minecraft = Minecraft.getInstance();
@@ -505,10 +478,8 @@ public final class MaterialTextureManager {
             ResourceLocation location =
                     durabilityBaseLocation(bladeMaterial, materialRevision);
             minecraft.getTextureManager().register(location, dynamicTexture);
-            DURABILITY_BASE_CACHE.put(
-                    cacheKey,
-                    new RegisteredTexture(location, dynamicTexture));
-            trimDurabilityCache(minecraft);
+            MaterialTextureCache.putDurability(
+                    cacheKey, location, dynamicTexture, minecraft);
             return location;
         } catch (IOException | RuntimeException exception) {
             LOGGER.warn(
@@ -576,13 +547,13 @@ public final class MaterialTextureManager {
                 + "|" + ART_REVISION
                 + "|" + textureLayout.serializedName
                 + "|" + glowState.signature();
-        RegisteredTexture cached = CACHE.get(signature);
+        ResourceLocation cached = MaterialTextureCache.material(signature);
         if (cached != null) {
-            return cached.location();
+            return cached;
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        boolean firstGeneratedTexture = CACHE.isEmpty();
+        boolean firstGeneratedTexture = MaterialTextureCache.materialsEmpty();
         try {
             NativeImage image = copyGeneratedAtlas(
                     minecraft.getResourceManager());
@@ -599,10 +570,8 @@ public final class MaterialTextureManager {
                     "generated/material_"
                             + stableTextureHash(signature));
             minecraft.getTextureManager().register(location, dynamicTexture);
-            CACHE.put(
-                    signature,
-                    new RegisteredTexture(location, dynamicTexture));
-            trimCache(minecraft);
+            MaterialTextureCache.putMaterial(
+                    signature, location, dynamicTexture, minecraft);
             if (firstGeneratedTexture) {
                 LOGGER.info(
                         "Blade Tetra dynamic material textures are active; "
@@ -623,19 +592,7 @@ public final class MaterialTextureManager {
         }
     }
 
-    private static synchronized NativeImage copyGeneratedAtlas(
-            ResourceManager resourceManager) throws IOException {
-        if (GENERATED_ATLAS_TEMPLATE == null) {
-            Resource resource = resourceManager.getResourceOrThrow(TEMPLATE);
-            GENERATED_ATLAS_TEMPLATE = loadGeneratedAtlas(resource);
-        }
-        NativeImage copy = new NativeImage(
-                GENERATED_ATLAS_SIZE,
-                GENERATED_ATLAS_SIZE,
-                true);
-        copy.copyFrom(GENERATED_ATLAS_TEMPLATE);
-        return copy;
-    }
+
 
     /**
      * Resamples the authored 512px source atlas into the 256px runtime atlas.
@@ -643,47 +600,7 @@ public final class MaterialTextureManager {
      * coordinates; the smaller runtime image therefore changes memory cost,
      * not model compatibility.
      */
-    private static NativeImage loadGeneratedAtlas(Resource resource)
-            throws IOException {
-        NativeImage source;
-        try (InputStream stream = resource.open()) {
-            source = NativeImage.read(stream);
-        }
-        if (source.getWidth() == GENERATED_ATLAS_SIZE
-                && source.getHeight() == GENERATED_ATLAS_SIZE) {
-            return source;
-        }
 
-        NativeImage target = new NativeImage(
-                GENERATED_ATLAS_SIZE,
-                GENERATED_ATLAS_SIZE,
-                true);
-        try {
-            for (int y = 0; y < GENERATED_ATLAS_SIZE; y++) {
-                int sourceY = Math.min(
-                        source.getHeight() - 1,
-                        Math.round((y + 0.5F)
-                                * source.getHeight()
-                                / GENERATED_ATLAS_SIZE
-                                - 0.5F));
-                for (int x = 0; x < GENERATED_ATLAS_SIZE; x++) {
-                    int sourceX = Math.min(
-                            source.getWidth() - 1,
-                            Math.round((x + 0.5F)
-                                    * source.getWidth()
-                                    / GENERATED_ATLAS_SIZE
-                                    - 0.5F));
-                    target.setPixelRGBA(
-                            x,
-                            y,
-                            source.getPixelRGBA(sourceX, sourceY));
-                }
-            }
-        } finally {
-            source.close();
-        }
-        return target;
-    }
 
     private static String stableTextureHash(String signature) {
         long hash = 0xcbf29ce484222325L;
@@ -1176,63 +1093,16 @@ public final class MaterialTextureManager {
 
 
 
-    private static void trimCache(Minecraft minecraft) {
-        while (CACHE.size() > MAX_CACHE_SIZE) {
-            Iterator<RegisteredTexture> iterator = CACHE.values().iterator();
-            RegisteredTexture oldest = iterator.next();
-            iterator.remove();
-            minecraft.getTextureManager().release(oldest.location());
-        }
-    }
 
-    private static void trimEmissiveCache(Minecraft minecraft) {
-        while (EMISSIVE_CACHE.size() > MAX_CACHE_SIZE) {
-            Iterator<RegisteredTexture> iterator =
-                    EMISSIVE_CACHE.values().iterator();
-            RegisteredTexture oldest = iterator.next();
-            iterator.remove();
-            minecraft.getTextureManager().release(oldest.location());
-        }
-    }
 
-    private static void trimNoEmissiveCache() {
-        while (NO_EMISSIVE_CACHE.size() > MAX_CACHE_SIZE) {
-            Iterator<String> iterator = NO_EMISSIVE_CACHE.iterator();
-            iterator.next();
-            iterator.remove();
-        }
-    }
 
-    private static void trimDurabilityCache(Minecraft minecraft) {
-        while (DURABILITY_BASE_CACHE.size() > 64) {
-            Iterator<RegisteredTexture> iterator =
-                    DURABILITY_BASE_CACHE.values().iterator();
-            RegisteredTexture oldest = iterator.next();
-            iterator.remove();
-            minecraft.getTextureManager().release(oldest.location());
-        }
-    }
 
-    private static synchronized void clearCache() {
-        Minecraft minecraft = Minecraft.getInstance();
-        for (RegisteredTexture texture : CACHE.values()) {
-            minecraft.getTextureManager().release(texture.location());
-        }
-        CACHE.clear();
-        for (RegisteredTexture texture : EMISSIVE_CACHE.values()) {
-            minecraft.getTextureManager().release(texture.location());
-        }
-        EMISSIVE_CACHE.clear();
-        NO_EMISSIVE_CACHE.clear();
-        for (RegisteredTexture texture : DURABILITY_BASE_CACHE.values()) {
-            minecraft.getTextureManager().release(texture.location());
-        }
-        DURABILITY_BASE_CACHE.clear();
-        if (GENERATED_ATLAS_TEMPLATE != null) {
-            GENERATED_ATLAS_TEMPLATE.close();
-            GENERATED_ATLAS_TEMPLATE = null;
-        }
-        LegacyModelPartRenderer.clear();
+
+
+
+
+    private static void clearCache() {
+        MaterialTextureCache.clear();
     }
 
     private static int alpha(int abgr) {
@@ -1258,10 +1128,7 @@ public final class MaterialTextureManager {
         return alpha << 24 | blue << 16 | green << 8 | red;
     }
 
-    private record RegisteredTexture(
-            ResourceLocation location,
-            DynamicTexture texture) {
-    }
+
 
     static record TsubaPixel(int color, int alpha) {
     }
