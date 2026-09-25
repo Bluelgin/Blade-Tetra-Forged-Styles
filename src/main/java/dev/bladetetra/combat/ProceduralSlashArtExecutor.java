@@ -79,15 +79,14 @@ final class ProceduralSlashArtExecutor {
                     boundedCount, damagePerHit, baseDelay);
             case NATIVE_SAKURA -> executeSakura(
                     player, state, aim, target, modifier,
-                    boundedCount, damagePerHit, baseDelay, nativeFlow);
+                    boundedCount, damagePerHit, baseDelay);
             case NATIVE_VOID -> executeVoid(
                     player, state, aim, target, modifier,
                     boundedCount, damagePerHit, baseDelay, angleScale);
             case NATIVE_CIRCLE -> executeCircle(
-                    player, state, boundedCount, damagePerHit, baseDelay, modifier,
-                    nativeFlow);
+                    player, state, boundedCount, damagePerHit, baseDelay, modifier);
             case NATIVE_PIERCING -> executePiercing(
-                    player, aim, target, boundedCount, damagePerHit, nativeFlow);
+                    player, aim, target, boundedCount, damagePerHit);
             case DRIVE -> executeForgedDrives(
                     player, aim, technique.response(), modifier,
                     boundedCount, damagePerHit, baseDelay, angleScale);
