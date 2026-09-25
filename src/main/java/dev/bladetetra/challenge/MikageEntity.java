@@ -1416,7 +1416,7 @@ public final class MikageEntity extends Monster {
         boolean lowHealth = target.getHealth() <= target.getMaxHealth() * 0.35F;
         boolean charging = target instanceof ServerPlayer player && isBladeGuarding(player);
         if (phase == 3) {
-            Technique selected = selectPhaseThreeRotation(lowHealth, charging);
+            Technique selected = combat.selectPhaseThreeRotation(arena, techniques, lowHealth, charging);
             prepareTechnique(selected, target, server);
             combat.previousTechnique = combat.lastTechnique;
             combat.lastTechnique = selected;
@@ -1424,8 +1424,8 @@ public final class MikageEntity extends Monster {
         }
         List<Technique> choices = new ArrayList<>();
         if (vertical > 3.5D) {
-            addWeighted(choices, Technique.DRIVE_FAN, 2);
-            addWeighted(choices, Technique.SUMMONED_VOLLEY, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.DRIVE_FAN, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.SUMMONED_VOLLEY, 2);
             choices.add(Technique.JUDGEMENT_CUT);
         } else if (distance <= 4.5D) {
             choices.add(Technique.STEP_IAIDO);
@@ -1437,9 +1437,9 @@ public final class MikageEntity extends Monster {
                 choices.add(Technique.SAKURA_END);
             }
         } else if (distance <= 12.0D) {
-            addWeighted(choices, Technique.STEP_IAIDO, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.STEP_IAIDO, 2);
             if (techniques.mirrorDuelCooldown <= 0) {
-                addWeighted(choices, Technique.MIRROR_DUEL, charging ? 3 : 2);
+                MikageCombatDirector.addWeighted(choices, Technique.MIRROR_DUEL, charging ? 3 : 2);
             }
             choices.add(Technique.WAVE_EDGE);
             if (phase >= 2) {
@@ -1451,8 +1451,8 @@ public final class MikageEntity extends Monster {
                 }
             }
         } else {
-            addWeighted(choices, Technique.WAVE_EDGE, 2);
-            addWeighted(choices, Technique.DRIVE_FAN, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.WAVE_EDGE, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.DRIVE_FAN, 2);
             choices.add(Technique.SUMMONED_VOLLEY);
             choices.add(Technique.STEP_IAIDO);
             if (phase >= 2 && !lowHealth) {
@@ -1462,10 +1462,10 @@ public final class MikageEntity extends Monster {
         }
         if (phase >= 2) {
             if (techniques.boundarySealCooldown <= 0) {
-                addWeighted(choices, Technique.BOUNDARY_SEAL, lowHealth ? 3 : 2);
+                MikageCombatDirector.addWeighted(choices, Technique.BOUNDARY_SEAL, lowHealth ? 3 : 2);
             }
             if (techniques.moonEchoCooldown <= 0) {
-                addWeighted(choices, Technique.MOON_ECHO, lowHealth ? 3 : 2);
+                MikageCombatDirector.addWeighted(choices, Technique.MOON_ECHO, lowHealth ? 3 : 2);
             }
             if (arena.toriiCageCooldown <= 0 && !lowHealth) {
                 choices.add(Technique.TORII_CAGE);
@@ -1474,13 +1474,13 @@ public final class MikageEntity extends Monster {
         if (hasShadowCrossPressure(target)) {
             choices.removeIf(choice -> choice == Technique.WAVE_EDGE
                     || choice == Technique.DRIVE_FAN);
-            addWeighted(choices, Technique.STEP_IAIDO, 2);
+            MikageCombatDirector.addWeighted(choices, Technique.STEP_IAIDO, 2);
             if (distance <= 6.0D) {
-                addWeighted(choices, Technique.CIRCLE_SLASH, 2);
+                MikageCombatDirector.addWeighted(choices, Technique.CIRCLE_SLASH, 2);
                 choices.add(Technique.FLASH_COUNTER);
             }
             if (phase >= 2 && techniques.moonEchoCooldown <= 0) {
-                addWeighted(choices, Technique.MOON_ECHO, 2);
+                MikageCombatDirector.addWeighted(choices, Technique.MOON_ECHO, 2);
             }
             defense.swordWheelCooldown = Math.min(defense.swordWheelCooldown, 12);
         }
@@ -1503,35 +1503,9 @@ public final class MikageEntity extends Monster {
         combat.lastTechnique = selected;
     }
 
-    private Technique selectPhaseThreeRotation(boolean lowHealth, boolean guarding) {
-        int slot = Math.floorMod(arena.boundaryFlashCharge, 3);
-        int variant = Math.floorMod(arena.boundaryFlashCycle, 3);
-        if (slot == 0) {
-            if (variant != 1 && arena.toriiSweepCooldown <= 0) return Technique.TORII_SWEEP;
-            if (techniques.boundarySealCooldown <= 0) return Technique.BOUNDARY_SEAL;
-            if (arena.toriiSweepCooldown <= 0) return Technique.TORII_SWEEP;
-            return Technique.DANGAKU_CLEAVE;
-        }
-        if (slot == 1) {
-            if (variant == 0 && arena.toriiCageCooldown <= 0 && !lowHealth) {
-                return Technique.TORII_CAGE;
-            }
-            if (variant == 1 && techniques.moonEchoCooldown <= 0) return Technique.MOON_ECHO;
-            if (techniques.mirrorDuelCooldown <= 0) return Technique.MIRROR_DUEL;
-            if (techniques.moonEchoCooldown <= 0) return Technique.MOON_ECHO;
-            if (arena.toriiCageCooldown <= 0 && !lowHealth) return Technique.TORII_CAGE;
-            return guarding ? Technique.FLASH_COUNTER : Technique.STEP_IAIDO;
-        }
-        return switch (variant) {
-            case 1 -> Technique.AERIAL_RAIN;
-            case 2 -> Technique.SUMMONED_VOLLEY;
-            default -> Technique.SUPER_JUDGEMENT;
-        };
-    }
 
-    private static void addWeighted(List<Technique> choices, Technique technique, int weight) {
-        for (int i = 0; i < weight; i++) choices.add(technique);
-    }
+
+
 
     private void prepareTechnique(Technique technique, LivingEntity target,
             ServerLevel server) {
