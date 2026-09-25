@@ -2,7 +2,6 @@ package dev.bladetetra.combat;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -28,9 +27,7 @@ public record ForgedSlashArtPlan(
         double primaryDamagePerHit,
         double secondaryDamagePerHit,
         int primaryDelayTicks,
-        int handoffDelayTicks,
         int secondaryDelayTicks,
-        int echoSpacingTicks,
         double angleScale) {
     private static final double PRIMARY_SHARE = 0.55D;
     private static final double SECONDARY_SHARE = 0.45D;
@@ -69,19 +66,16 @@ public record ForgedSlashArtPlan(
                 / (secondaryCount * cycles);
 
         int primaryDelay = modifier.scaleTicks(primary.attackDelayTicks());
-        int handoff = Math.max(primaryDelay + 2,
-                modifier.scaleTicks(primary.handoffDelayTicks()));
-        // Secondary timing is relative to the moment its own visual-only
-        // ComboState is committed, not relative to the initial cast.
+        // Each phase's authored damage timing is relative to the native graph
+        // entry. A -> B handoff itself is owned by the source ComboState graph.
         int secondaryDelay = modifier.scaleTicks(secondary.attackDelayTicks());
-        int echoSpacing = modifier.scaleTicks(modifier.echoSpacingTicks());
 
         String key = coreVariant + "|" + primary.id() + "|" + secondary.id()
                 + "|" + modifier.id();
         return new ForgedSlashArtPlan(key, coreVariant, power, primary, secondary,
                 modifier, primaryCount, secondaryCount, cycles,
-                primaryDamage, secondaryDamage, primaryDelay, handoff,
-                secondaryDelay, echoSpacing, modifier.angleScale());
+                primaryDamage, secondaryDamage, primaryDelay,
+                secondaryDelay, modifier.angleScale());
     }
 
     static double corePowerFor(String variant) {
@@ -130,16 +124,7 @@ public record ForgedSlashArtPlan(
                 primary, secondary, modifier, primaryCount, secondaryCount,
                 secondaryCycles, primaryDamagePerHit * scale,
                 secondaryDamagePerHit * scale, primaryDelayTicks,
-                handoffDelayTicks, secondaryDelayTicks, echoSpacingTicks,
-                angleScale);
-    }
-
-    public ResourceLocation primaryMotionId() {
-        return ModComboStates.getForgedMotion(primary, modifier.hasteAnimation());
-    }
-
-    public ResourceLocation secondaryMotionId() {
-        return ModComboStates.getForgedMotion(secondary, modifier.hasteAnimation());
+                secondaryDelayTicks, angleScale);
     }
 
     public int totalHits() {
@@ -222,42 +207,40 @@ public record ForgedSlashArtPlan(
     public enum Technique {
         JUDGEMENT_CUT("judgement_cut",
                 ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO,
-                Primitive.TARGETED_SWORDS, 16, 19),
+                Primitive.TARGETED_SWORDS, 16),
         SAKURA_END("sakura_end",
                 ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                Primitive.NATIVE_SAKURA, 1, 8),
+                Primitive.NATIVE_SAKURA, 1),
         VOID_SLASH("void_slash",
                 ProgrammaticFusionProfile.Response.VOID_TRIDENT,
-                Primitive.NATIVE_VOID, 16, 19),
+                Primitive.NATIVE_VOID, 16),
         CIRCLE_SLASH("circle_slash",
                 ProgrammaticFusionProfile.Response.CIRCLE_RING,
-                Primitive.NATIVE_CIRCLE, 4, 10),
+                Primitive.NATIVE_CIRCLE, 4),
         DRIVE_VERTICAL("drive_vertical",
                 ProgrammaticFusionProfile.Response.VERTICAL_DRIVE,
-                Primitive.DRIVE, 3, 7),
+                Primitive.DRIVE, 3),
         DRIVE_HORIZONTAL("drive_horizontal",
                 ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE,
-                Primitive.DRIVE, 3, 7),
+                Primitive.DRIVE, 3),
         WAVE_EDGE("wave_edge",
                 ProgrammaticFusionProfile.Response.WAVE_EDGE,
-                Primitive.DRIVE, 3, 10),
+                Primitive.DRIVE, 3),
         PIERCING("piercing",
                 ProgrammaticFusionProfile.Response.PIERCING_FOCUS,
-                Primitive.NATIVE_PIERCING, 22, 25);
+                Primitive.NATIVE_PIERCING, 22);
 
         private final String id;
         private final ProgrammaticFusionProfile.Response response;
         private final Primitive primitive;
         private final int attackDelayTicks;
-        private final int handoffDelayTicks;
 
         Technique(String id, ProgrammaticFusionProfile.Response response,
-                Primitive primitive, int attackDelayTicks, int handoffDelayTicks) {
+                Primitive primitive, int attackDelayTicks) {
             this.id = id;
             this.response = response;
             this.primitive = primitive;
             this.attackDelayTicks = attackDelayTicks;
-            this.handoffDelayTicks = handoffDelayTicks;
         }
 
         public String id() {
@@ -283,10 +266,6 @@ public record ForgedSlashArtPlan(
             return attackDelayTicks;
         }
 
-        int handoffDelayTicks() {
-            return handoffDelayTicks;
-        }
-
         public String translationKey() {
             return "slash_art.slashblade." + id;
         }
@@ -303,12 +282,12 @@ public record ForgedSlashArtPlan(
     }
 
     public enum Modifier {
-        BALANCED("balanced", 1.0D, 1.00D, 1.00D, 1, 1.00D, 8, false),
-        CONDENSED("condensed", 0.5D, 1.06D, 0.70D, 1, 1.08D, 8, false),
-        SHATTER("shatter", 2.0D, 0.84D, 1.20D, 1, 1.00D, 8, false),
-        SPREAD("spread", 1.0D, 0.90D, 1.80D, 1, 1.00D, 8, false),
-        ECHO("echo", 1.0D, 0.88D, 1.00D, 2, 1.00D, 8, false),
-        HASTE("haste", 1.0D, 0.92D, 1.00D, 1, 0.72D, 6, true);
+        BALANCED("balanced", 1.0D, 1.00D, 1.00D, 1, 1.00D),
+        CONDENSED("condensed", 0.5D, 1.06D, 0.70D, 1, 1.08D),
+        SHATTER("shatter", 2.0D, 0.84D, 1.20D, 1, 1.00D),
+        SPREAD("spread", 1.0D, 0.90D, 1.80D, 1, 1.00D),
+        ECHO("echo", 1.0D, 0.88D, 1.00D, 2, 1.00D),
+        HASTE("haste", 1.0D, 0.92D, 1.00D, 1, 0.72D);
 
         private final String id;
         private final double countScale;
@@ -316,20 +295,15 @@ public record ForgedSlashArtPlan(
         private final double angleScale;
         private final int secondaryCycles;
         private final double timingScale;
-        private final int echoSpacingTicks;
-        private final boolean hasteAnimation;
 
         Modifier(String id, double countScale, double damageEfficiency,
-                double angleScale, int secondaryCycles, double timingScale,
-                int echoSpacingTicks, boolean hasteAnimation) {
+                double angleScale, int secondaryCycles, double timingScale) {
             this.id = id;
             this.countScale = countScale;
             this.damageEfficiency = damageEfficiency;
             this.angleScale = angleScale;
             this.secondaryCycles = secondaryCycles;
             this.timingScale = timingScale;
-            this.echoSpacingTicks = echoSpacingTicks;
-            this.hasteAnimation = hasteAnimation;
         }
 
         public String id() {
@@ -355,14 +329,6 @@ public record ForgedSlashArtPlan(
 
         int scaleTicks(int ticks) {
             return Math.max(1, (int) Math.round(ticks * timingScale));
-        }
-
-        int echoSpacingTicks() {
-            return echoSpacingTicks;
-        }
-
-        public boolean hasteAnimation() {
-            return hasteAnimation;
         }
 
         public boolean condensed() {
