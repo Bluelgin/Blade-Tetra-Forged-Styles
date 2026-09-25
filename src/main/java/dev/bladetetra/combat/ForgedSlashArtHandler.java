@@ -304,8 +304,7 @@ final class ForgedSlashArtHandler {
                     count,
                     damagePerHit,
                     0,
-                    pending.plan.angleScale(),
-                    true);
+                    pending.plan.angleScale());
         } finally {
             int remaining = FORGED_OUTPUT_DEPTH.get() - 1;
             if (remaining <= 0) {
