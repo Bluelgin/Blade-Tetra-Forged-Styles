@@ -43,6 +43,7 @@ import java.util.UUID;
  */
 final class ForgedSlashArtHandler {
     private static final double TARGET_RANGE = 18.0D;
+    private static final String SLASHBLADE_KNOCKBACK_FACTOR = "knockback_factor";
     private static final Map<UUID, PendingCast> PENDING = new HashMap<>();
     private static final List<PendingDiscard> PENDING_DISCARDS = new ArrayList<>();
     private static final ThreadLocal<Integer> FORGED_OUTPUT_DEPTH =
@@ -235,6 +236,16 @@ final class ForgedSlashArtHandler {
         }
         if (entity instanceof EntitySlashEffect slash) {
             slash.setDamage(0.0D);
+            if (activeTechnique(pending) == ForgedSlashArtPlan.Technique.VOID_SLASH
+                    && slash.getLifetime() >= 36) {
+                // Resharped's anonymous Void Slash effect performs its 5.1x
+                // finisher after the 36-tick presentation. Let the complete
+                // visual lifecycle play, then remove it before that combat-only
+                // despawn callback can outlive the forged cast.
+                PENDING_DISCARDS.add(new PendingDiscard(
+                        level.dimension(), slash.getUUID(),
+                        level.getGameTime() + slash.getLifetime()));
+            }
         }
         if (entity instanceof EntityJudgementCut judgement) {
             judgement.setDamage(0.0D);
@@ -259,6 +270,11 @@ final class ForgedSlashArtHandler {
                 : nativeOwner(direct);
         PendingCast pending = owner == null ? null : PENDING.get(owner.getUUID());
         if (pending != null && ownsCurrentNativeGraph(owner, pending)) {
+            // Native Piercing/SlashEffect paths can install this before hurt()
+            // is posted. A canceled hit would otherwise leak the modifier into
+            // the target's next unrelated knockback.
+            event.getEntity().getPersistentData().remove(
+                    SLASHBLADE_KNOCKBACK_FACTOR);
             event.setCanceled(true);
         }
     }
@@ -340,7 +356,7 @@ final class ForgedSlashArtHandler {
             }
             iterator.remove();
             Entity entity = level.getEntity(pending.entityId);
-            if (entity instanceof EntityJudgementCut) {
+            if (entity != null) {
                 entity.discard();
             }
         }
@@ -359,6 +375,12 @@ final class ForgedSlashArtHandler {
         return null;
     }
 
+    private static ForgedSlashArtPlan.Technique activeTechnique(
+            PendingCast pending) {
+        return pending.phase == Phase.PRIMARY
+                ? pending.plan.primary() : pending.plan.secondary();
+    }
+
     private static boolean ownsCurrentNativeGraph(
             ServerPlayer player, PendingCast pending) {
         ItemStack blade = player.getMainHandItem();
@@ -367,10 +389,8 @@ final class ForgedSlashArtHandler {
         if (state == null) {
             return false;
         }
-        ForgedSlashArtPlan.Technique activeTechnique =
-                pending.phase == Phase.PRIMARY
-                        ? pending.plan.primary() : pending.plan.secondary();
-        return ForgedNativeComboFlow.owns(activeTechnique, state.getComboSeq());
+        return ForgedNativeComboFlow.owns(
+                activeTechnique(pending), state.getComboSeq());
     }
 
     private static LivingEntity resolveTarget(
