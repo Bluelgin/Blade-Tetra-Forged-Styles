@@ -136,22 +136,6 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
                     -21, 14,
                     -21, 27,
                     -21, 40);
-    private static final String MODULE_SCHEMA_KEY = "blade_tetra_module_schema";
-    private static final String SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY =
-            "blade_tetra_soul_contract_previous_default";
-    private static final int MODULE_SCHEMA_VERSION = 2;
-    private static final LegacyModuleMapping[] LEGACY_MAPPINGS = {
-            new LegacyModuleMapping(
-                    "sword/blade", BLADE_SLOT, BLADE_MODULE, "katana_blade/", "iron"),
-            new LegacyModuleMapping(
-                    "sword/hilt", TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/", "stick"),
-            new LegacyModuleMapping(
-                    "sword/guard", TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/", "iron"),
-            new LegacyModuleMapping(
-                    "sword/pommel", KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/", "iron"),
-            new LegacyModuleMapping(
-                    "sword/fuller", FULLER_SLOT, FULLER_MODULE, "reinforced_fuller/", "iron")
-    };
     private static final SynergyData[] NO_SYNERGIES = new SynergyData[0];
     private static final int FALLBACK_DURABILITY = 250;
     private static final double IAIDO_REACH_AMPLIFIER = 1.0D;
@@ -159,13 +143,6 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     private static final double DANGAKU_REACH_AMPLIFIER = 4.0D;
     private static final java.util.UUID IMPRINT_AFFINITY_DAMAGE_UUID =
             java.util.UUID.fromString("1e16e1a0-68f1-4f84-a028-2da67d7055d8");
-    private static final String TRANSLATION_KEY = "item.blade_tetra.modular_slashblade";
-    private static final ResourceLocation FALLBACK_MODULAR_MODEL =
-            Objects.requireNonNull(ResourceLocation.tryParse(
-                    "blade_tetra:model/modular/wood.obj"));
-    private static final ResourceLocation MODULAR_TEXTURE =
-            Objects.requireNonNull(ResourceLocation.tryParse(
-                    "blade_tetra:model/modular/standard.png"));
 
     private final Cache<String, Multimap<Attribute, AttributeModifier>> attributeCache =
             CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(5, TimeUnit.MINUTES).build();
@@ -183,13 +160,13 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
 
     public ItemStack createDefaultStack() {
         ItemStack stack = new ItemStack(this);
-        installModule(stack, BLADE_SLOT, BLADE_MODULE, "katana_blade/iron");
-        installModule(stack, TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/stick");
-        installModule(stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/iron");
-        installModule(stack, SAYA_SLOT, SAYA_MODULE, "basic_saya/oak");
-        installModule(stack, HABAKI_SLOT, HABAKI_MODULE, "basic_habaki/iron");
-        installModule(stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/iron");
-        stack.getOrCreateTag().putInt(MODULE_SCHEMA_KEY, MODULE_SCHEMA_VERSION);
+        BladeModuleMigration.installModule(stack, BLADE_SLOT, BLADE_MODULE, "katana_blade/iron");
+        BladeModuleMigration.installModule(stack, TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/stick");
+        BladeModuleMigration.installModule(stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/iron");
+        BladeModuleMigration.installModule(stack, SAYA_SLOT, SAYA_MODULE, "basic_saya/oak");
+        BladeModuleMigration.installModule(stack, HABAKI_SLOT, HABAKI_MODULE, "basic_habaki/iron");
+        BladeModuleMigration.installModule(stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/iron");
+        BladeModuleMigration.markCurrent(stack);
         IModularItem.updateIdentifier(stack);
         syncDerivedBladeState(stack);
         return stack;
@@ -553,132 +530,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         migrateLegacyModules(stack);
         float moduleDamage = (float) AttributeHelper.getMergedAmount(
                 getAttributeModifiersCached(stack).get(Attributes.ATTACK_DAMAGE));
-        int moduleMaxDamage = getMaxDamage(stack);
-        boolean soulInscription = hasBewitchingSoulInscription(stack);
-
-        stack.getCapability(BLADESTATE).ifPresent(state -> {
-            state.setNonEmpty();
-            syncSoulContract(stack, state, soulInscription);
-            ResourceLocation styleRoot = ModComboStates.getRoot(StyleResolver.resolve(stack));
-            if (!styleRoot.equals(state.getComboRoot())) {
-                state.setComboRoot(styleRoot);
-                state.setComboSeq(ComboStateRegistry.NONE.getId());
-            }
-
-            if (state.getMaxDamage() != moduleMaxDamage) {
-                int previousMaxDamage = state.getMaxDamage();
-                int previousDamage = state.getDamage();
-                float damageRatio = previousMaxDamage > 1
-                        ? previousDamage / (float) (previousMaxDamage - 1)
-                        : 0;
-
-                state.setMaxDamage(moduleMaxDamage);
-                state.setDamage(Mth.clamp(
-                        Math.round(damageRatio * (moduleMaxDamage - 1)),
-                        0,
-                        moduleMaxDamage - 1));
-            }
-            if (Float.compare(state.getBaseAttackModifier(), moduleDamage) != 0) {
-                state.setBaseAttackModifier(moduleDamage);
-            }
-            if (!TRANSLATION_KEY.equals(state.getTranslationKey())) {
-                state.setTranslationKey(TRANSLATION_KEY);
-            }
-            ResourceLocation modularModel = resolveModularModel(stack);
-            if (state.getModel().filter(modularModel::equals).isEmpty()) {
-                state.setModel(modularModel);
-            }
-            if (state.getTexture().filter(MODULAR_TEXTURE::equals).isEmpty()) {
-                state.setTexture(MODULAR_TEXTURE);
-            }
-            LegacyFusionHandler.sync(stack, state);
-        });
-    }
-
-    private static boolean hasBewitchingSoulInscription(ItemStack stack) {
-        return ComponentEffectResolver.hasModule(
-                        stack, INSCRIPTION_SLOT, SOUL_INSCRIPTION_MODULE)
-                || ComponentEffectResolver.hasModule(
-                        stack, INSCRIPTION_SLOT, AWAKENED_SOUL_INSCRIPTION_MODULE);
-    }
-
-    private static void syncSoulContract(
-            ItemStack stack,
-            mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState state,
-            boolean awakened) {
-        if (!ModEnchantments.SOUL_CONTRACT.isPresent()) {
-            return;
-        }
-
-        Enchantment soulContract = ModEnchantments.SOUL_CONTRACT.get();
-        Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
-        boolean hasSoulContract = enchantments.containsKey(soulContract);
-
-        if (awakened) {
-            if (!hasSoulContract) {
-                if (state.isDefaultBewitched()) {
-                    stack.getOrCreateTag().putBoolean(
-                            SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY, true);
-                } else {
-                    stack.getOrCreateTag().remove(SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY);
-                }
-                enchantments.put(soulContract, 1);
-                EnchantmentHelper.setEnchantments(enchantments, stack);
-            }
-            if (!state.isDefaultBewitched()) {
-                state.setDefaultBewitched(true);
-            }
-            return;
-        }
-
-        if (hasSoulContract) {
-            enchantments.remove(soulContract);
-            EnchantmentHelper.setEnchantments(enchantments, stack);
-
-            CompoundTag tag = stack.getOrCreateTag();
-            state.setDefaultBewitched(tag.getBoolean(SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY));
-            tag.remove(SOUL_CONTRACT_PREVIOUS_DEFAULT_KEY);
-        }
-    }
-
-    private static ResourceLocation resolveModularModel(ItemStack stack) {
-        String blade = switch (StyleResolver.resolve(stack)) {
-            case RENGEKI -> "wakizashi";
-            case DANGAKU -> "nodachi";
-            case IAIDO -> "katana";
-            case STANDARD -> "orthodox";
-        };
-        String saya;
-        if (ComponentEffectResolver.hasModule(stack, SAYA_SLOT, QUICKDRAW_SAYA_MODULE)) {
-            saya = "quickdraw";
-        } else if (ComponentEffectResolver.hasModule(stack, SAYA_SLOT, SPIRIT_SAYA_MODULE)) {
-            saya = "spirit";
-        } else {
-            saya = "basic";
-        }
-
-        String tsuba;
-        if (ComponentEffectResolver.hasModule(stack, TSUBA_SLOT, LIGHT_TSUBA_MODULE)) {
-            tsuba = "light";
-        } else if (ComponentEffectResolver.hasModule(stack, TSUBA_SLOT, GUARD_TSUBA_MODULE)) {
-            tsuba = "guard";
-        } else {
-            tsuba = "simple";
-        }
-
-        String tsuka;
-        if (ComponentEffectResolver.hasModule(stack, TSUKA_SLOT, SWIFT_TSUKA_MODULE)) {
-            tsuka = "swift";
-        } else if (ComponentEffectResolver.hasModule(stack, TSUKA_SLOT, STABLE_TSUKA_MODULE)) {
-            tsuka = "stable";
-        } else {
-            tsuka = "wrapped";
-        }
-
-        ResourceLocation model = ResourceLocation.tryParse(
-                "blade_tetra:model/modular/alpha9/"
-                        + blade + "_" + saya + "_" + tsuba + "_" + tsuka + ".obj");
-        return model != null ? model : FALLBACK_MODULAR_MODEL;
+        ModularBladeStateSync.sync(stack, moduleDamage, getMaxDamage(stack));
     }
 
     /**
@@ -687,134 +539,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
      * SlashBlade's blade state is left untouched.
      */
     public boolean migrateLegacyModules(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
-        boolean changed = false;
-
-        for (LegacyModuleMapping mapping : LEGACY_MAPPINGS) {
-            if (tag.contains(mapping.oldSlot(), Tag.TAG_STRING)) {
-                String oldModule = tag.getString(mapping.oldSlot());
-                if (!tag.contains(mapping.newSlot(), Tag.TAG_STRING)) {
-                    String material = getLegacyMaterial(tag, oldModule, mapping.fallbackMaterial());
-                    installModule(
-                            stack,
-                            mapping.newSlot(),
-                            mapping.newModule(),
-                            mapping.newVariantPrefix() + material);
-                }
-                migrateSlotData(tag, mapping.oldSlot(), mapping.newSlot());
-                tag.remove(mapping.oldSlot());
-                tag.remove(oldModule + "_material");
-                changed = true;
-            }
-        }
-
-        changed |= installMissingModule(
-                stack, BLADE_SLOT, BLADE_MODULE, "katana_blade/iron");
-        changed |= installMissingModule(
-                stack, TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/stick");
-        changed |= installMissingModule(
-                stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/iron");
-        changed |= installMissingModule(
-                stack, SAYA_SLOT, SAYA_MODULE, "basic_saya/oak");
-        changed |= installMissingModule(
-                stack, HABAKI_SLOT, HABAKI_MODULE, "basic_habaki/iron");
-        changed |= installMissingModule(
-                stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/iron");
-
-        changed |= migrateEnchantmentMappings(tag);
-        if (tag.getInt(MODULE_SCHEMA_KEY) != MODULE_SCHEMA_VERSION) {
-            tag.putInt(MODULE_SCHEMA_KEY, MODULE_SCHEMA_VERSION);
-            changed = true;
-        }
-
-        if (changed) {
-            IModularItem.updateIdentifier(stack);
-            clearCaches();
-        }
-        return changed;
+        return BladeModuleMigration.migrate(stack, this::clearCaches);
     }
 
-    private static void installModule(
-            ItemStack stack,
-            String slot,
-            String module,
-            String variant) {
-        IModularItem.putModuleInSlot(stack, slot, module, module + "_material", variant);
-    }
-
-    private static boolean installMissingModule(
-            ItemStack stack,
-            String slot,
-            String module,
-            String variant) {
-        CompoundTag tag = stack.getOrCreateTag();
-        if (tag.contains(slot, Tag.TAG_STRING)) {
-            return false;
-        }
-        installModule(stack, slot, module, variant);
-        return true;
-    }
-
-    private static String getLegacyMaterial(
-            CompoundTag tag,
-            String oldModule,
-            String fallback) {
-        String variantKey = oldModule + "_material";
-        if (!tag.contains(variantKey, Tag.TAG_STRING)) {
-            return fallback;
-        }
-        String oldVariant = tag.getString(variantKey);
-        int separator = oldVariant.lastIndexOf('/');
-        String material = separator >= 0 ? oldVariant.substring(separator + 1) : oldVariant;
-        return material.isBlank() ? fallback : material;
-    }
-
-    private static void migrateSlotData(
-            CompoundTag tag,
-            String oldSlot,
-            String newSlot) {
-        List<String> keys = new ArrayList<>(tag.getAllKeys());
-        for (String key : keys) {
-            String migratedKey = null;
-            if (key.startsWith(oldSlot + ":")) {
-                migratedKey = newSlot + key.substring(oldSlot.length());
-            } else if (key.startsWith(oldSlot + "_tweak:")) {
-                migratedKey = newSlot + key.substring(oldSlot.length());
-            } else if (key.equals(oldSlot + "/settle_progress")) {
-                migratedKey = newSlot + "/settle_progress";
-            }
-
-            if (migratedKey != null && tag.get(key) != null) {
-                tag.put(migratedKey, tag.get(key).copy());
-                tag.remove(key);
-            }
-        }
-    }
-
-    private static boolean migrateEnchantmentMappings(CompoundTag tag) {
-        if (!tag.contains("EnchantmentMapping", Tag.TAG_COMPOUND)) {
-            return false;
-        }
-        CompoundTag mappings = tag.getCompound("EnchantmentMapping");
-        boolean changed = false;
-        for (String enchantment : mappings.getAllKeys()) {
-            String oldSlot = mappings.getString(enchantment);
-            for (LegacyModuleMapping mapping : LEGACY_MAPPINGS) {
-                if (mapping.oldSlot().equals(oldSlot)) {
-                    mappings.putString(enchantment, mapping.newSlot());
-                    changed = true;
-                    break;
-                }
-            }
-        }
-        return changed;
-    }
-
-    private record LegacyModuleMapping(
-            String oldSlot,
-            String newSlot,
-            String newModule,
-            String newVariantPrefix,
-            String fallbackMaterial) {
-    }
 }
