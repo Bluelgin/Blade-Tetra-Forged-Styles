@@ -110,6 +110,9 @@ class ForgedSlashArtPlanTest {
         assertEquals(2, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
                 SlashBlade.prefix("judgement_cut_slash_just")));
+        assertEquals(0, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                SlashBlade.prefix("judgement_cut_slash_just2")));
         assertEquals(1, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.SAKURA_END,
                 SlashBlade.prefix("sakura_end_right")));
