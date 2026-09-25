@@ -41,4 +41,22 @@ final class MikageTechniqueRuntime {
 
     int interactionOpeningTicks;
     float interactionOpeningMultiplier = 1.0F;
+    boolean isSignatureActive(MikageArenaController arena,
+            MikageDefenseController defense) {
+        return interactionOpeningTicks > 0 || aerialTicks > 0
+                || arena.boundarySlashDelay > 0
+                || arena.toriiSweepTicks > 0 || arena.toriiCageTicks > 0
+                || pursuitRainTicks > 0 || pursuitRainFinalTicks > 0
+                || mirrorDuelTicks > 0 || boundarySealTicks > 0 || moonEchoTicks > 0
+                || defense.zanshinCounterTicks > 0;
+    }
+
+    boolean isAnyActive(MikageArenaController arena,
+            MikageDefenseController defense, MikageCombatDirector combat) {
+        return isSignatureActive(arena, defense)
+                || ((arena.cagePerfectCountered || arena.toriiScissorCountered
+                        || pursuitRainCountered)
+                    && combat.signatureRecoveryTicks > 0)
+                || combat.preparedTicks > 0;
+    }
 }
