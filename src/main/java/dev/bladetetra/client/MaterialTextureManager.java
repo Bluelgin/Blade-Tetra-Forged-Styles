@@ -73,6 +73,8 @@ public final class MaterialTextureManager {
     private static final int LOGICAL_ATLAS_SIZE = 128;
     private static final int GENERATED_ATLAS_SIZE = 256;
     private static final String ART_REVISION = "blade-art-2.0-v6-native-item-icons";
+    private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
+            ThreadLocal.withInitial(() -> false);
     static final Palette RAYSKIN_PALETTE =
             new Palette(0x6D6552, 0xC4B99A, 0xF1E8CC);
 
@@ -555,7 +557,7 @@ public final class MaterialTextureManager {
         Minecraft minecraft = Minecraft.getInstance();
         boolean firstGeneratedTexture = MaterialTextureCache.materialsEmpty();
         try {
-            NativeImage image = copyGeneratedAtlas(
+            NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
 
             recolor(
@@ -1139,7 +1141,7 @@ public final class MaterialTextureManager {
         private static final int BANNER_CANVAS_WIDTH = 42;
         private static final int BANNER_CANVAS_HEIGHT = 41;
 
-        private float coverage(float atlasX, float atlasY) {
+        float coverage(float atlasX, float atlasY) {
             float length = Math.max(
                     0.0F,
                     Math.min(1.0F, (atlasX - 1.0F) / 62.0F));
