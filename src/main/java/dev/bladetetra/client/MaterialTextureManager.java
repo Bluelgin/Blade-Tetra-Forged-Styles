@@ -1105,6 +1105,7 @@ public final class MaterialTextureManager {
 
     private static void clearCache() {
         MaterialTextureCache.clear();
+        LegacyModelPartRenderer.clear();
     }
 
     static int alpha(int abgr) {
