@@ -25,7 +25,6 @@ import java.util.UUID;
 final class VoidScatteringReturnRuntime {
     private static final double RETURN_RANGE = 40.0D;
     private static final int VOID_COLOR = 0xC8A7FF;
-    private static final int MAX_DAMAGE_ATTEMPTS = 2;
 
     private static final List<PendingReturn> PENDING = new ArrayList<>();
     private static final Map<Long, ReturnVolley> VOLLEYS = new HashMap<>();
@@ -113,7 +112,7 @@ final class VoidScatteringReturnRuntime {
     }
 
     static boolean shouldRetryDamage(boolean damaged, int attempts) {
-        return !damaged && attempts < MAX_DAMAGE_ATTEMPTS;
+        return !damaged && attempts < VoidScatteringFusionHandler.RETURN_DAMAGE_MAX_ATTEMPTS;
     }
 
     static void onLevelUnload(ServerLevel level) {
