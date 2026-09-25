@@ -78,16 +78,21 @@ final class VoidScatteringReturnRuntime {
                     || !target.isAlive()
                     || !LegacyFusionCombatSupport.canAffect(player, target)
                     || player.distanceToSqr(target) > RETURN_RANGE * RETURN_RANGE) {
+                discardVisualSword(level, pending);
                 finishVolley(pending, false, level, player, null);
                 iterator.remove();
                 continue;
             }
             if (!pending.launched) {
                 pending.launched = true;
-                pending.dueTick = now + launchVisualSword(player, target, pending.sequence);
+                VisualFlight flight = launchVisualSword(
+                        player, target, pending.sequence);
+                pending.visualEntityId = flight.entityId();
+                pending.dueTick = now + flight.travelTicks();
                 continue;
             }
 
+            discardVisualSword(level, pending);
             pending.damageAttempts++;
             boolean damaged = LegacyFusionCombatSupport.hurtPreservingIFrames(
                     level, player, target, pending.damage);
@@ -127,7 +132,7 @@ final class VoidScatteringReturnRuntime {
         nextVolleyId = 1L;
     }
 
-    private static int launchVisualSword(
+    private static VisualFlight launchVisualSword(
             ServerPlayer player, LivingEntity target, int sequence) {
         ServerLevel level = player.serverLevel();
         Vec3 center = target.getBoundingBox().getCenter();
@@ -154,7 +159,6 @@ final class VoidScatteringReturnRuntime {
         sword.setPos(start.x, start.y, start.z);
         sword.setOwner(player);
         sword.setShooter(player);
-        sword.setHitEntity(target);
         sword.setDamage(0.0D);
         sword.setColor(VOID_COLOR);
         sword.setRoll((float) ((sequence * 61) % 360));
@@ -163,7 +167,21 @@ final class VoidScatteringReturnRuntime {
         LegacyFusionCombatSupport.markVisualOnly(sword);
         sword.shoot(direction.x, direction.y, direction.z, 2.15F, 0.0F);
         level.addFreshEntity(sword);
-        return Math.max(2, (int) Math.ceil(start.distanceTo(center) / 2.15D));
+        int travelTicks = Math.max(
+                2, (int) Math.ceil(start.distanceTo(center) / 2.15D));
+        return new VisualFlight(sword.getUUID(), travelTicks);
+    }
+
+    private static void discardVisualSword(
+            ServerLevel level, PendingReturn pending) {
+        if (level == null || pending.visualEntityId == null) {
+            return;
+        }
+        Entity visual = level.getEntity(pending.visualEntityId);
+        if (visual != null && LegacyFusionCombatSupport.isVisualOnly(visual)) {
+            visual.discard();
+        }
+        pending.visualEntityId = null;
     }
 
     private static void finishVolley(PendingReturn pending, boolean damaged,
@@ -212,6 +230,9 @@ final class VoidScatteringReturnRuntime {
         }
     }
 
+    private record VisualFlight(UUID entityId, int travelTicks) {
+    }
+
     private static final class PendingReturn {
         private final ResourceKey<Level> dimension;
         private final UUID playerId;
@@ -222,6 +243,7 @@ final class VoidScatteringReturnRuntime {
         private long dueTick;
         private boolean launched;
         private int damageAttempts;
+        private UUID visualEntityId;
 
         private PendingReturn(ResourceKey<Level> dimension, UUID playerId,
                 UUID targetId, float damage, long dueTick, int sequence,
