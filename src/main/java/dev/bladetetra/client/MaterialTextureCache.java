@@ -19,6 +19,7 @@ import java.util.Set;
 /** Owns generated texture LRUs and the decoded atlas template lifecycle. */
 final class MaterialTextureCache {
     private static final int MAX_CACHE_SIZE = 48;
+    private static final int MAX_DURABILITY_CACHE_SIZE = 64;
     private static final int GENERATED_ATLAS_SIZE = 256;
     private static final ResourceLocation TEMPLATE =
             ResourceLocation.fromNamespaceAndPath(
@@ -46,7 +47,7 @@ final class MaterialTextureCache {
     static void putMaterial(String key, ResourceLocation location,
             DynamicTexture texture, Minecraft minecraft) {
         MATERIALS.put(key, new RegisteredTexture(location, texture));
-        trim(MATERIALS, minecraft);
+        trim(MATERIALS, MAX_CACHE_SIZE, minecraft);
     }
 
     static ResourceLocation emissive(String key) {
@@ -57,7 +58,7 @@ final class MaterialTextureCache {
     static void putEmissive(String key, ResourceLocation location,
             DynamicTexture texture, Minecraft minecraft) {
         EMISSIVE.put(key, new RegisteredTexture(location, texture));
-        trim(EMISSIVE, minecraft);
+        trim(EMISSIVE, MAX_CACHE_SIZE, minecraft);
     }
 
     static boolean noEmissive(String key) {
@@ -66,7 +67,7 @@ final class MaterialTextureCache {
 
     static void markNoEmissive(String key) {
         NO_EMISSIVE.add(key);
-        while (NO_EMISSIVE.size() > MAX_CACHE_SIZE * 2) {
+        while (NO_EMISSIVE.size() > MAX_CACHE_SIZE) {
             Iterator<String> iterator = NO_EMISSIVE.iterator();
             iterator.next();
             iterator.remove();
@@ -81,7 +82,7 @@ final class MaterialTextureCache {
     static void putDurability(String key, ResourceLocation location,
             DynamicTexture texture, Minecraft minecraft) {
         DURABILITY.put(key, new RegisteredTexture(location, texture));
-        trim(DURABILITY, minecraft);
+        trim(DURABILITY, MAX_DURABILITY_CACHE_SIZE, minecraft);
     }
 
     static synchronized NativeImage copyAtlas(ResourceManager resources) throws IOException {
@@ -108,13 +109,13 @@ final class MaterialTextureCache {
     }
 
     private static void trim(
-            Map<String, RegisteredTexture> values, Minecraft minecraft) {
-        while (values.size() > MAX_CACHE_SIZE) {
+            Map<String, RegisteredTexture> values, int maximum,
+            Minecraft minecraft) {
+        while (values.size() > maximum) {
             Iterator<RegisteredTexture> iterator = values.values().iterator();
             RegisteredTexture oldest = iterator.next();
             iterator.remove();
             minecraft.getTextureManager().release(oldest.location());
-            oldest.texture().close();
         }
     }
 
@@ -122,7 +123,6 @@ final class MaterialTextureCache {
             Map<String, RegisteredTexture> values, Minecraft minecraft) {
         for (RegisteredTexture texture : values.values()) {
             minecraft.getTextureManager().release(texture.location());
-            texture.texture().close();
         }
         values.clear();
     }
