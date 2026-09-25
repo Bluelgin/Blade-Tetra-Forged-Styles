@@ -491,6 +491,19 @@ public final class RengekiMomentumHandler {
         chain.visualSize = 0.0F;
     }
 
+    private static final class SprintHitContext {
+        private final UUID playerId;
+        private final ItemStack blade;
+        private final LivingEntity target;
+        private boolean hitSucceeded;
+
+        private SprintHitContext(UUID playerId, ItemStack blade, LivingEntity target) {
+            this.playerId = playerId;
+            this.blade = blade;
+            this.target = target;
+        }
+    }
+
     private RengekiMomentumHandler() {
     }
 }
