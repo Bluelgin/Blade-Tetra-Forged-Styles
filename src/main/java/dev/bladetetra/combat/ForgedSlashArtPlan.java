@@ -5,33 +5,21 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
- * Compiled runtime description of a player-authored Slash Art.
+ * Compiled routing description of a player-authored Slash Art.
  *
  * <p>The editable composition lives on a Tetra Slash Art Orb. A blade receives a
  * versioned {@link ForgedSlashArtSpec} snapshot; this class compiles that snapshot
- * into bounded runtime damage, timing, motion and attack topology.</p>
+ * into a native ComboState splice plan. SlashBlade remains authoritative over
+ * animation, movement, VFX, hit effects and damage.</p>
  */
 public record ForgedSlashArtPlan(
         String key,
         String coreVariant,
-        double powerBudget,
         Technique primary,
         Technique secondary,
-        Modifier modifier,
-        int primaryCount,
-        int secondaryCount,
-        int secondaryCycles,
-        double primaryDamagePerHit,
-        double secondaryDamagePerHit,
-        int primaryDelayTicks,
-        int secondaryDelayTicks,
-        double angleScale) {
-    private static final double PRIMARY_SHARE = 0.55D;
-    private static final double SECONDARY_SHARE = 0.45D;
-    private static final double WEAPON_ATTACK_RATIO = 1.10D;
+        Modifier modifier) {
 
     /** Compile an inscription already stored on a blade. */
     public static ForgedSlashArtPlan from(ItemStack stack) {
@@ -56,84 +44,10 @@ public record ForgedSlashArtPlan(
             return null;
         }
 
-        double power = corePowerFor(coreVariant);
-        int primaryCount = modifier.modifyCount(primary.baseCount());
-        int secondaryCount = modifier.modifyCount(secondary.baseCount());
-        int cycles = modifier.secondaryCycles();
-        double effective = power * modifier.damageEfficiency();
-        double primaryDamage = effective * PRIMARY_SHARE / primaryCount;
-        double secondaryDamage = effective * SECONDARY_SHARE
-                / (secondaryCount * cycles);
-
-        int primaryDelay = modifier.scaleTicks(primary.attackDelayTicks());
-        // Each phase's authored damage timing is relative to the native graph
-        // entry. A -> B handoff itself is owned by the source ComboState graph.
-        int secondaryDelay = modifier.scaleTicks(secondary.attackDelayTicks());
-
         String key = coreVariant + "|" + primary.id() + "|" + secondary.id()
                 + "|" + modifier.id();
-        return new ForgedSlashArtPlan(key, coreVariant, power, primary, secondary,
-                modifier, primaryCount, secondaryCount, cycles,
-                primaryDamage, secondaryDamage, primaryDelay,
-                secondaryDelay, modifier.angleScale());
-    }
-
-    static double corePowerFor(String variant) {
-        String value = variant == null ? "" : variant.toLowerCase(Locale.ROOT);
-        if (value.contains("netherite")) {
-            return 1.10D;
-        }
-        if (value.contains("diamond")) {
-            return 1.08D;
-        }
-        if (value.contains("emerald")) {
-            return 1.04D;
-        }
-        if (value.contains("obsidian")) {
-            return 1.03D;
-        }
-        if (value.contains("amethyst") || value.contains("quartz")) {
-            return 1.02D;
-        }
-        if (value.contains("gold")) {
-            return 1.00D;
-        }
-        if (value.contains("steel")) {
-            return 1.00D;
-        }
-        if (value.contains("iron")) {
-            return 0.97D;
-        }
-        if (value.contains("copper")) {
-            return 0.93D;
-        }
-        if (value.contains("stone") || value.contains("cobble")) {
-            return 0.90D;
-        }
-        // Unknown MMT materials stay neutral; the blade's actual attack stat is
-        // the primary source of power, not a guessed material tier.
-        return 1.00D;
-    }
-
-    /** Snapshot the current wielded attack stat once, before either phase fires. */
-    public ForgedSlashArtPlan snapshotForAttack(double attackDamage) {
-        double safeAttack = Double.isFinite(attackDamage)
-                ? Math.max(1.0D, attackDamage) : 1.0D;
-        double scale = safeAttack * WEAPON_ATTACK_RATIO;
-        return new ForgedSlashArtPlan(key, coreVariant, powerBudget * scale,
-                primary, secondary, modifier, primaryCount, secondaryCount,
-                secondaryCycles, primaryDamagePerHit * scale,
-                secondaryDamagePerHit * scale, primaryDelayTicks,
-                secondaryDelayTicks, angleScale);
-    }
-
-    public int totalHits() {
-        return primaryCount + secondaryCount * secondaryCycles;
-    }
-
-    public double effectiveDamageBudget() {
-        return primaryDamagePerHit * primaryCount
-                + secondaryDamagePerHit * secondaryCount * secondaryCycles;
+        return new ForgedSlashArtPlan(
+                key, coreVariant, primary, secondary, modifier);
     }
 
     /** Detailed tooltip for an inscribed SlashBlade stack. */
@@ -172,9 +86,7 @@ public record ForgedSlashArtPlan(
                         Component.translatable(plan.modifier().translationKey()))
                 .withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable(
-                        "tooltip.blade_tetra.forged.stats",
-                        String.format(Locale.ROOT, "%.2f", plan.powerBudget()),
-                        plan.totalHits())
+                        "tooltip.blade_tetra.forged.native_route")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 
@@ -195,75 +107,24 @@ public record ForgedSlashArtPlan(
         return Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 
-    public enum Primitive {
-        TARGETED_SWORDS,
-        NATIVE_SAKURA,
-        NATIVE_VOID,
-        NATIVE_CIRCLE,
-        NATIVE_PIERCING,
-        DRIVE
-    }
-
     public enum Technique {
-        JUDGEMENT_CUT("judgement_cut",
-                ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO,
-                Primitive.TARGETED_SWORDS, 16),
-        SAKURA_END("sakura_end",
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                Primitive.NATIVE_SAKURA, 1),
-        VOID_SLASH("void_slash",
-                ProgrammaticFusionProfile.Response.VOID_TRIDENT,
-                Primitive.NATIVE_VOID, 16),
-        CIRCLE_SLASH("circle_slash",
-                ProgrammaticFusionProfile.Response.CIRCLE_RING,
-                Primitive.NATIVE_CIRCLE, 4),
-        DRIVE_VERTICAL("drive_vertical",
-                ProgrammaticFusionProfile.Response.VERTICAL_DRIVE,
-                Primitive.DRIVE, 3),
-        DRIVE_HORIZONTAL("drive_horizontal",
-                ProgrammaticFusionProfile.Response.HORIZONTAL_DRIVE,
-                Primitive.DRIVE, 3),
-        WAVE_EDGE("wave_edge",
-                ProgrammaticFusionProfile.Response.WAVE_EDGE,
-                Primitive.DRIVE, 3),
-        PIERCING("piercing",
-                ProgrammaticFusionProfile.Response.PIERCING_FOCUS,
-                Primitive.NATIVE_PIERCING, 22);
+        JUDGEMENT_CUT("judgement_cut"),
+        SAKURA_END("sakura_end"),
+        VOID_SLASH("void_slash"),
+        CIRCLE_SLASH("circle_slash"),
+        DRIVE_VERTICAL("drive_vertical"),
+        DRIVE_HORIZONTAL("drive_horizontal"),
+        WAVE_EDGE("wave_edge"),
+        PIERCING("piercing");
 
         private final String id;
-        private final ProgrammaticFusionProfile.Response response;
-        private final Primitive primitive;
-        private final int attackDelayTicks;
 
-        Technique(String id, ProgrammaticFusionProfile.Response response,
-                Primitive primitive, int attackDelayTicks) {
+        Technique(String id) {
             this.id = id;
-            this.response = response;
-            this.primitive = primitive;
-            this.attackDelayTicks = attackDelayTicks;
         }
 
         public String id() {
             return id;
-        }
-
-        public ProgrammaticFusionProfile.Response response() {
-            return response;
-        }
-
-        public Primitive primitive() {
-            return primitive;
-        }
-
-        public int baseCount() {
-            // Forged Judgement Cut adds a visible phantom-sword halo around the
-            // native slashdim cue. Keep the generic programmatic-fusion semantic
-            // profile at three; only the authored version uses the richer five.
-            return this == JUDGEMENT_CUT ? 5 : response.projectileCount();
-        }
-
-        int attackDelayTicks() {
-            return attackDelayTicks;
         }
 
         public String translationKey() {
@@ -281,66 +142,38 @@ public record ForgedSlashArtPlan(
         }
     }
 
+    /**
+     * Modifiers now describe routing cadence only. They never synthesize damage
+     * or replace SlashBlade's native combat callbacks.
+     */
     public enum Modifier {
-        BALANCED("balanced", 1.0D, 1.00D, 1.00D, 1, 1.00D),
-        CONDENSED("condensed", 0.5D, 1.06D, 0.70D, 1, 1.08D),
-        SHATTER("shatter", 2.0D, 0.84D, 1.20D, 1, 1.00D),
-        SPREAD("spread", 1.0D, 0.90D, 1.80D, 1, 1.00D),
-        ECHO("echo", 1.0D, 0.88D, 1.00D, 2, 1.00D),
-        HASTE("haste", 1.0D, 0.92D, 1.00D, 1, 0.72D);
+        BALANCED("balanced", 1, false),
+        CONDENSED("condensed", 0, false),
+        SHATTER("shatter", 2, false),
+        SPREAD("spread", 1, false),
+        ECHO("echo", 1, true),
+        HASTE("haste", 0, false);
 
         private final String id;
-        private final double countScale;
-        private final double damageEfficiency;
-        private final double angleScale;
-        private final int secondaryCycles;
-        private final double timingScale;
+        private final int spliceTailTicks;
+        private final boolean repeatsSecondary;
 
-        Modifier(String id, double countScale, double damageEfficiency,
-                double angleScale, int secondaryCycles, double timingScale) {
+        Modifier(String id, int spliceTailTicks, boolean repeatsSecondary) {
             this.id = id;
-            this.countScale = countScale;
-            this.damageEfficiency = damageEfficiency;
-            this.angleScale = angleScale;
-            this.secondaryCycles = secondaryCycles;
-            this.timingScale = timingScale;
+            this.spliceTailTicks = spliceTailTicks;
+            this.repeatsSecondary = repeatsSecondary;
         }
 
         public String id() {
             return id;
         }
 
-        int modifyCount(int base) {
-            return Math.max(1, Math.min(8,
-                    (int) Math.ceil(Math.max(1, base) * countScale)));
+        int spliceTailTicks() {
+            return spliceTailTicks;
         }
 
-        double damageEfficiency() {
-            return damageEfficiency;
-        }
-
-        double angleScale() {
-            return angleScale;
-        }
-
-        int secondaryCycles() {
-            return secondaryCycles;
-        }
-
-        int scaleTicks(int ticks) {
-            return Math.max(1, (int) Math.round(ticks * timingScale));
-        }
-
-        public boolean condensed() {
-            return this == CONDENSED;
-        }
-
-        public boolean shatter() {
-            return this == SHATTER;
-        }
-
-        public boolean spread() {
-            return this == SPREAD;
+        boolean repeatsSecondary() {
+            return repeatsSecondary;
         }
 
         public String translationKey() {
