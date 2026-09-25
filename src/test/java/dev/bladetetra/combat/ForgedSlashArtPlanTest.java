@@ -1,8 +1,11 @@
 package dev.bladetetra.combat;
 
+import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,41 +13,38 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ForgedSlashArtPlanTest {
     @Test
     void nativeFlowPreservesFailAndJustWhileNormalizingSuper() {
-        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Fail,
-                ForgedNativeComboFlow.sourceType(
-                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Fail));
-        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success,
-                ForgedNativeComboFlow.sourceType(
-                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success));
-        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Jackpot,
-                ForgedNativeComboFlow.sourceType(
-                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Jackpot));
-        assertEquals(mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Success,
-                ForgedNativeComboFlow.sourceType(
-                        mods.flammpfeil.slashblade.slasharts.SlashArts.ArtsType.Super));
+        assertEquals(SlashArts.ArtsType.Fail,
+                ForgedNativeComboFlow.sourceType(SlashArts.ArtsType.Fail));
+        assertEquals(SlashArts.ArtsType.Success,
+                ForgedNativeComboFlow.sourceType(SlashArts.ArtsType.Success));
+        assertEquals(SlashArts.ArtsType.Jackpot,
+                ForgedNativeComboFlow.sourceType(SlashArts.ArtsType.Jackpot));
+        assertEquals(SlashArts.ArtsType.Success,
+                ForgedNativeComboFlow.sourceType(SlashArts.ArtsType.Super));
     }
 
     @Test
-    void everyTechniqueAndModifierCombinationCompilesToBoundedDamage() {
-        for (ForgedSlashArtPlan.Technique primary : ForgedSlashArtPlan.Technique.values()) {
-            for (ForgedSlashArtPlan.Technique secondary : ForgedSlashArtPlan.Technique.values()) {
-                for (ForgedSlashArtPlan.Modifier modifier : ForgedSlashArtPlan.Modifier.values()) {
+    void everyTechniqueAndModifierCombinationCompilesToNativeRoute() {
+        for (ForgedSlashArtPlan.Technique primary
+                : ForgedSlashArtPlan.Technique.values()) {
+            for (ForgedSlashArtPlan.Technique secondary
+                    : ForgedSlashArtPlan.Technique.values()) {
+                for (ForgedSlashArtPlan.Modifier modifier
+                        : ForgedSlashArtPlan.Modifier.values()) {
                     ForgedSlashArtPlan plan = ForgedSlashArtPlan.compose(
                             "sa_core/diamond", primary, secondary, modifier);
                     assertNotNull(plan);
-                    assertTrue(plan.primaryCount() >= 1 && plan.primaryCount() <= 8);
-                    assertTrue(plan.secondaryCount() >= 1 && plan.secondaryCount() <= 8);
-                    assertTrue(plan.primaryDamagePerHit() > 0.0D);
-                    assertTrue(plan.secondaryDamagePerHit() > 0.0D);
-                    assertTrue(plan.secondaryDelayTicks() >= 1);
-                    assertTrue(plan.effectiveDamageBudget() <= plan.powerBudget() * 1.061D);
+                    assertEquals(primary, plan.primary());
+                    assertEquals(secondary, plan.secondary());
+                    assertEquals(modifier, plan.modifier());
+                    assertTrue(modifier.spliceTailTicks() >= 0);
                 }
             }
         }
     }
 
     @Test
-    void orderedPrimaryAndSecondaryRemainDifferentArts() {
+    void orderedPrimaryAndSecondaryRemainDifferentRoutes() {
         ForgedSlashArtPlan forward = ForgedSlashArtPlan.compose(
                 "sa_core/iron",
                 ForgedSlashArtPlan.Technique.PIERCING,
@@ -61,114 +61,105 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
-    void modifiersChangeTopologyWithoutCreatingDamageFromHitCount() {
-        ForgedSlashArtPlan balanced = plan(ForgedSlashArtPlan.Modifier.BALANCED);
-        ForgedSlashArtPlan shatter = plan(ForgedSlashArtPlan.Modifier.SHATTER);
-        ForgedSlashArtPlan condensed = plan(ForgedSlashArtPlan.Modifier.CONDENSED);
-        ForgedSlashArtPlan echo = plan(ForgedSlashArtPlan.Modifier.ECHO);
-
-        assertTrue(shatter.totalHits() > balanced.totalHits());
-        assertTrue(shatter.effectiveDamageBudget() < balanced.effectiveDamageBudget());
-        assertTrue(condensed.totalHits() < balanced.totalHits());
-        assertEquals(2, echo.secondaryCycles());
-        assertTrue(echo.secondaryDamagePerHit() < balanced.secondaryDamagePerHit());
+    void modifiersOnlyControlRoutingCadence() {
+        assertEquals(1,
+                ForgedSlashArtPlan.Modifier.BALANCED.spliceTailTicks());
+        assertEquals(0,
+                ForgedSlashArtPlan.Modifier.CONDENSED.spliceTailTicks());
+        assertEquals(0,
+                ForgedSlashArtPlan.Modifier.HASTE.spliceTailTicks());
+        assertEquals(2,
+                ForgedSlashArtPlan.Modifier.SHATTER.spliceTailTicks());
+        assertTrue(ForgedSlashArtPlan.Modifier.ECHO.repeatsSecondary());
+        assertFalse(ForgedSlashArtPlan.Modifier.BALANCED.repeatsSecondary());
     }
 
     @Test
-    void hasteMovesAuthoredDamageEarlierWithoutOwningNativeAnimationSpeed() {
-        ForgedSlashArtPlan balanced = plan(ForgedSlashArtPlan.Modifier.BALANCED);
-        ForgedSlashArtPlan haste = plan(ForgedSlashArtPlan.Modifier.HASTE);
-        assertTrue(haste.primaryDelayTicks() < balanced.primaryDelayTicks());
-        assertTrue(haste.secondaryDelayTicks() < balanced.secondaryDelayTicks());
+    void secondaryEntriesSkipSourceWindupsAndEnterSignatureStates() {
+        assertEquals(ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                        SlashArts.ArtsType.Success, true));
+        assertEquals(ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                        SlashArts.ArtsType.Jackpot, true));
+        assertEquals(ComboStateRegistry.SAKURA_END_RIGHT.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.SAKURA_END,
+                        SlashArts.ArtsType.Success, true));
+        assertEquals(ComboStateRegistry.SAKURA_END_RIGHT_AIR.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.SAKURA_END,
+                        SlashArts.ArtsType.Success, false));
+        assertEquals(ComboStateRegistry.PIERCING_2.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.PIERCING,
+                        SlashArts.ArtsType.Success, true));
+        assertEquals(ComboStateRegistry.PIERCING_JUST.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        ForgedSlashArtPlan.Technique.PIERCING,
+                        SlashArts.ArtsType.Jackpot, true));
     }
 
     @Test
-    void techniquesCompileToMultipleAttackPrimitiveFamilies() {
-        long primitiveFamilies = java.util.Arrays.stream(
-                        ForgedSlashArtPlan.Technique.values())
-                .map(ForgedSlashArtPlan.Technique::primitive)
-                .distinct()
-                .count();
-        assertTrue(primitiveFamilies >= 5);
-        assertEquals(ForgedSlashArtPlan.Primitive.TARGETED_SWORDS,
-                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_SAKURA,
-                ForgedSlashArtPlan.Technique.SAKURA_END.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_VOID,
-                ForgedSlashArtPlan.Technique.VOID_SLASH.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_CIRCLE,
-                ForgedSlashArtPlan.Technique.CIRCLE_SLASH.primitive());
-        assertEquals(ForgedSlashArtPlan.Primitive.NATIVE_PIERCING,
-                ForgedSlashArtPlan.Technique.PIERCING.primitive());
-    }
-
-    @Test
-    void judgementKeepsBoundedPhantomSwordBudget() {
-        ForgedSlashArtPlan balanced = ForgedSlashArtPlan.compose(
-                "sa_core/diamond",
+    void spliceTicksFollowNativeSignatureCallbacks() {
+        assertEquals(1, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ForgedSlashArtPlan.Technique.SAKURA_END,
-                ForgedSlashArtPlan.Modifier.BALANCED);
-        ForgedSlashArtPlan shatter = ForgedSlashArtPlan.compose(
-                "sa_core/diamond",
+                ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()));
+        assertEquals(2, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId()));
+        assertEquals(1, ForgedNativeComboFlow.signatureCompleteTick(
                 ForgedSlashArtPlan.Technique.SAKURA_END,
-                ForgedSlashArtPlan.Modifier.SHATTER);
-        assertEquals(5, balanced.primaryCount());
-        assertEquals(8, shatter.primaryCount());
-        assertTrue(balanced.effectiveDamageBudget() <= balanced.powerBudget() * 1.001D);
+                ComboStateRegistry.SAKURA_END_RIGHT.getId()));
+        assertEquals(17, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.VOID_SLASH,
+                ComboStateRegistry.VOID_SLASH.getId()));
+        assertEquals(8, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
+                ComboStateRegistry.CIRCLE_SLASH.getId()));
+        assertEquals(4, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.DRIVE_VERTICAL,
+                ComboStateRegistry.DRIVE_VERTICAL.getId()));
+        assertEquals(4, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.WAVE_EDGE,
+                ComboStateRegistry.WAVE_EDGE_VERTICAL.getId()));
+        assertEquals(3, ForgedNativeComboFlow.signatureCompleteTick(
+                ForgedSlashArtPlan.Technique.PIERCING,
+                ComboStateRegistry.PIERCING_2.getId()));
     }
 
     @Test
-    void judgementCenterHitIsTakenFromItsSwordBudget() {
+    void sameTechniquePairCanRestartTheSameNativeSignature() {
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.compose(
                 "sa_core/diamond",
-                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ForgedSlashArtPlan.Technique.SAKURA_END,
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
                 ForgedSlashArtPlan.Modifier.BALANCED);
-        double center = ProceduralSlashArtExecutor.judgementCenterDamage(
-                plan.primaryDamagePerHit(), plan.primaryCount());
-        double swords = ProceduralSlashArtExecutor.judgementSwordDamage(
-                plan.primaryDamagePerHit()) * plan.primaryCount();
-        assertTrue(center > 0.0D);
-        assertEquals(plan.primaryDamagePerHit() * plan.primaryCount(),
-                center + swords, 1.0E-9D);
+        assertEquals(plan.primary(), plan.secondary());
+        assertEquals(ComboStateRegistry.CIRCLE_SLASH.getId(),
+                ForgedNativeComboFlow.signatureEntry(
+                        plan.secondary(), SlashArts.ArtsType.Success, true));
     }
 
     @Test
-    void mineralCoreProgressionHasUsefulVanillaAnchors() {
-        assertTrue(ForgedSlashArtPlan.corePowerFor("sa_core/stone")
-                < ForgedSlashArtPlan.corePowerFor("sa_core/iron"));
-        assertTrue(ForgedSlashArtPlan.corePowerFor("sa_core/iron")
-                < ForgedSlashArtPlan.corePowerFor("sa_core/diamond"));
-        assertTrue(ForgedSlashArtPlan.corePowerFor("sa_core/diamond")
-                < ForgedSlashArtPlan.corePowerFor("sa_core/netherite"));
-    }
-
-    @Test
-    void castSnapshotsWieldedAttackWithoutChangingHitTopology() {
-        ForgedSlashArtPlan authored = ForgedSlashArtPlan.compose(
-                "sa_core/iron", ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+    void coreRemainsPersistenceIdentityWithoutOwningNativeDamage() {
+        ForgedSlashArtPlan iron = ForgedSlashArtPlan.compose(
+                "sa_core/iron",
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
                 ForgedSlashArtPlan.Technique.VOID_SLASH,
                 ForgedSlashArtPlan.Modifier.BALANCED);
-        ForgedSlashArtPlan ironBlade = authored.snapshotForAttack(7.0D);
-        ForgedSlashArtPlan strongerBlade = authored.snapshotForAttack(32.0D);
+        ForgedSlashArtPlan diamond = ForgedSlashArtPlan.compose(
+                "sa_core/diamond",
+                ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
+                ForgedSlashArtPlan.Technique.VOID_SLASH,
+                ForgedSlashArtPlan.Modifier.BALANCED);
 
-        assertEquals(7.0D * 1.10D * 0.97D,
-                ironBlade.effectiveDamageBudget(), 1.0E-9D);
-        assertEquals(32.0D * 1.10D * 0.97D,
-                strongerBlade.effectiveDamageBudget(), 1.0E-9D);
-        assertEquals(authored.key(), strongerBlade.key());
-        assertEquals(authored.totalHits(), strongerBlade.totalHits());
-        assertEquals(32.0D / 7.0D,
-                strongerBlade.primaryDamagePerHit()
-                        / ironBlade.primaryDamagePerHit(), 1.0E-9D);
-    }
-
-    @Test
-    void unknownMaterialUsesNeutralCoreModifier() {
-        assertEquals(1.0D, ForgedSlashArtPlan.corePowerFor(
-                "sa_core/mmt_unknown_alloy"));
+        assertNotEquals(iron.key(), diamond.key());
+        assertEquals(iron.primary(), diamond.primary());
+        assertEquals(iron.secondary(), diamond.secondary());
+        assertEquals(iron.modifier(), diamond.modifier());
     }
 
     @Test
@@ -178,25 +169,5 @@ class ForgedSlashArtPlanTest {
             assertEquals("slash_art.slashblade." + technique.id(),
                     technique.translationKey());
         }
-    }
-
-    @Test
-    void generalizedGeometryPreservesLegacyBaseShapes() {
-        assertEquals(-10.0D, ProceduralSlashArtExecutor.responseYaw(
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0, 2, 1.0D), 0.0001D);
-        assertEquals(10.0D, ProceduralSlashArtExecutor.responseYaw(
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS, 1, 2, 1.0D), 0.0001D);
-        assertEquals(90.0D, ProceduralSlashArtExecutor.responseYaw(
-                ProgrammaticFusionProfile.Response.CIRCLE_RING, 1, 4, 1.0D), 0.0001D);
-        assertEquals(-18.0D, ProceduralSlashArtExecutor.responseYaw(
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS, 0, 2, 1.8D), 0.0001D);
-    }
-
-    private static ForgedSlashArtPlan plan(ForgedSlashArtPlan.Modifier modifier) {
-        return ForgedSlashArtPlan.compose(
-                "sa_core/diamond",
-                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ForgedSlashArtPlan.Technique.WAVE_EDGE,
-                modifier);
     }
 }
