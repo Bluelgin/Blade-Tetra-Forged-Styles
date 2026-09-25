@@ -25,12 +25,22 @@ final class ForgedNativeComboFlow {
         }
 
         // The authored SA has one power budget for normal/super casts. Preserve
-        // the native just-entry where it exists, but do not let SlashArts'
-        // default "Super -> Judgement Cut End" leak into unrelated techniques.
-        SlashArts.ArtsType sourceType = requestedType == SlashArts.ArtsType.Jackpot
-                ? SlashArts.ArtsType.Jackpot : SlashArts.ArtsType.Success;
-        ResourceLocation combo = art.doArts(sourceType, user);
+        // native failure/just semantics, but deliberately normalize Super to the
+        // source art's ordinary graph so SlashArts' default
+        // "Super -> Judgement Cut End" cannot leak into unrelated techniques.
+        ResourceLocation combo = art.doArts(sourceType(requestedType), user);
         return combo == null ? ComboStateRegistry.NONE.getId() : combo;
+    }
+
+    static SlashArts.ArtsType sourceType(SlashArts.ArtsType requestedType) {
+        if (requestedType == null) {
+            return SlashArts.ArtsType.Fail;
+        }
+        return switch (requestedType) {
+            case Fail -> SlashArts.ArtsType.Fail;
+            case Jackpot -> SlashArts.ArtsType.Jackpot;
+            case Success, Super -> SlashArts.ArtsType.Success;
+        };
     }
 
     static boolean owns(ForgedSlashArtPlan.Technique technique,
