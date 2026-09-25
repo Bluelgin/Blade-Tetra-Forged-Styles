@@ -1105,23 +1105,23 @@ public final class MaterialTextureManager {
         MaterialTextureCache.clear();
     }
 
-    private static int alpha(int abgr) {
+    static int alpha(int abgr) {
         return abgr >>> 24 & 0xff;
     }
 
-    private static int red(int abgr) {
+    static int red(int abgr) {
         return abgr & 0xff;
     }
 
-    private static int green(int abgr) {
+    static int green(int abgr) {
         return abgr >>> 8 & 0xff;
     }
 
-    private static int blue(int abgr) {
+    static int blue(int abgr) {
         return abgr >>> 16 & 0xff;
     }
 
-    private static int abgr(int alpha, int rgb) {
+    static int abgr(int alpha, int rgb) {
         int red = rgb >>> 16 & 0xff;
         int green = rgb >>> 8 & 0xff;
         int blue = rgb & 0xff;
