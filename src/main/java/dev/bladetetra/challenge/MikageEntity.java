@@ -1,5 +1,8 @@
 package dev.bladetetra.challenge;
 
+import static dev.bladetetra.challenge.MikageArenaController.*;
+import static dev.bladetetra.challenge.MikageDefenseController.*;
+
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.registry.ModEntities;
 import dev.bladetetra.registry.ModItems;
@@ -3336,82 +3339,23 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    static final class CageState {
-        final Vec3 center;
-        int guardedTicks;
-        int lastGuardTick = Integer.MIN_VALUE;
 
-        CageState(Vec3 center) {
-            this.center = center;
-        }
-    }
 
-    static final class ToriiScissorState {
-        final float baseYaw;
-        int consecutiveGuardTicks;
-        int stableGuards;
-        boolean feintPlayed;
 
-        ToriiScissorState(float baseYaw) {
-            this.baseYaw = baseYaw;
-        }
-    }
 
-    static final class BoundaryWallState {
-        final int id;
-        final Vec3 center;
-        final Vec3 direction;
-        double gapAlong = -1.0D;
-        int gapTicks;
-        double pendingGapAlong = -1.0D;
-        int gapWarningTicks;
 
-        BoundaryWallState(int id, Vec3 center, Vec3 direction) {
-            this.id = id;
-            this.center = center;
-            this.direction = direction.normalize();
-        }
 
-        Vec3 left() {
-            return new Vec3(-direction.z, 0.0D, direction.x);
-        }
-    }
 
-    static final class SaPattern {
-        String kind = "";
-        int hits;
-        long lastHit = Long.MIN_VALUE;
-        int lastSerial = Integer.MIN_VALUE;
-        float currentMultiplier = 1.0F;
-    }
 
-    static final class JudgementPattern {
-        int casts;
-        long lastCast = Long.MIN_VALUE;
-        long blockedUntil = Long.MIN_VALUE;
-    }
 
-    static final class PursuitPressure {
-        int hits;
-        long lastHit = Long.MIN_VALUE;
-        long lastCountedHit = Long.MIN_VALUE;
-    }
 
-    static final class ShadowCrossPattern {
-        int crossings;
-        long lastCross = Long.MIN_VALUE;
-        Vec3 lastDirection = Vec3.ZERO;
-        boolean warned;
-    }
 
-    record MovementSample(long tick, Vec3 position) {
-    }
 
-    static final class PlayerDefenseProfile {
-        double rawMultiplier = 1.0D;
-        int lowDamageHits;
-        int boundaryAssistHits;
-    }
+
+
+
+
+
 
     private enum TrialImpact {
         LIGHT(0.06D, 0.14D),
