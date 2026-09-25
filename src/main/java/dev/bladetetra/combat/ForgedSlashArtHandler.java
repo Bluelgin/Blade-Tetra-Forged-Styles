@@ -68,6 +68,7 @@ final class ForgedSlashArtHandler {
         PENDING.put(player.getUUID(), new PendingCast(
                 player.level().dimension(),
                 player.getUUID(),
+                blade,
                 plan.key(),
                 plan.primary(),
                 plan.secondary(),
@@ -96,7 +97,8 @@ final class ForgedSlashArtHandler {
             ISlashBladeState state = blade.getCapability(ItemSlashBlade.BLADESTATE)
                     .orElse(null);
             ForgedSlashArtPlan currentPlan = ForgedSlashArtPlan.from(blade);
-            if (state == null || currentPlan == null
+            if (blade != pending.sourceBlade
+                    || state == null || currentPlan == null
                     || !pending.planKey.equals(currentPlan.key())
                     || !ModSlashBladeAbilities.FORGED_SLASH_ART.getId()
                             .equals(state.getSlashArtsKey())) {
@@ -201,6 +203,7 @@ final class ForgedSlashArtHandler {
     private static final class PendingCast {
         private final ResourceKey<Level> dimension;
         private final UUID playerId;
+        private final ItemStack sourceBlade;
         private final String planKey;
         private final ForgedSlashArtPlan.Technique primary;
         private final ForgedSlashArtPlan.Technique secondary;
@@ -212,6 +215,7 @@ final class ForgedSlashArtHandler {
 
         private PendingCast(ResourceKey<Level> dimension,
                 UUID playerId,
+                ItemStack sourceBlade,
                 String planKey,
                 ForgedSlashArtPlan.Technique primary,
                 ForgedSlashArtPlan.Technique secondary,
@@ -220,6 +224,7 @@ final class ForgedSlashArtHandler {
                 int createdPlayerTick) {
             this.dimension = dimension;
             this.playerId = playerId;
+            this.sourceBlade = sourceBlade;
             this.planKey = planKey;
             this.primary = primary;
             this.secondary = secondary;
