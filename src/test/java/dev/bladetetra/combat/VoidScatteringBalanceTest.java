@@ -95,6 +95,18 @@ class VoidScatteringBalanceTest {
     }
 
     @Test
+    void returnSwordUsesRealVisualFlightWithoutNativeAttachmentBurst()
+            throws Exception {
+        String runtime = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/VoidScatteringReturnRuntime.java"));
+        assertFalse(runtime.contains("sword.setHitEntity(target)"),
+                "Pre-attaching a summoned sword skips flight and enters SlashBlade's burst path");
+        assertTrue(runtime.contains("pending.visualEntityId = flight.entityId()"));
+        assertTrue(runtime.contains("discardVisualSword(level, pending);"));
+        assertTrue(runtime.contains("LegacyFusionCombatSupport.markVisualOnly(sword)"));
+    }
+
+    @Test
     void visualSourceAndRuntimeShaderResourcesArePackaged() {
         assertNotNull(getClass().getResource(
                 "/assets/blade_tetra/textures/gui/void_scattering_ready.png"));
