@@ -140,6 +140,20 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void forgedNativeSuppressionDoesNotCaptureGenericPlayerProjectiles()
+            throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
+        assertFalse(source.contains("instanceof Projectile"),
+                "Forged native suppression must never treat arbitrary player projectiles as SlashBlade output");
+        assertTrue(source.contains("direct == player"),
+                "Only direct player melee should use the player-owned suppression path");
+        assertTrue(source.contains("entity instanceof EntityAbstractSummonedSword"));
+        assertTrue(source.contains("entity instanceof EntitySlashEffect"));
+        assertTrue(source.contains("entity instanceof EntityJudgementCut"));
+    }
+
+    @Test
     void clientVfxRegistryDoesNotDependOnNetworkTransport() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/vfx/TechniqueVfxRegistry.java"));
