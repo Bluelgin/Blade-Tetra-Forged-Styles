@@ -41,4 +41,52 @@ final class MikageArenaController {
     boolean toriiSweepVoiced;
     boolean toriiCageVoiced;
     boolean cagePerfectCountered;
+    Vec3 separatedBoundaryDirection(Vec3 candidate) {
+        if (boundaryWalls.isEmpty()) {
+            return candidate;
+        }
+        double candidateAngle = Math.atan2(candidate.z, candidate.x);
+        double minimum = Math.PI;
+        List<Double> angles = new ArrayList<>();
+        for (MikageEntity.BoundaryWallState wall : boundaryWalls) {
+            double angle = Math.atan2(wall.direction.z, wall.direction.x);
+            if (angle < 0.0D) {
+                angle += Math.PI * 2.0D;
+            }
+            angles.add(angle);
+            double delta = Math.abs(net.minecraft.util.Mth.wrapDegrees(
+                    Math.toDegrees(candidateAngle - angle)));
+            minimum = Math.min(minimum, Math.toRadians(delta));
+        }
+        if (minimum >= Math.toRadians(24.0D)) {
+            return candidate;
+        }
+        angles.sort(Double::compareTo);
+        double largestGap = -1.0D;
+        double chosen = candidateAngle;
+        for (int i = 0; i < angles.size(); i++) {
+            double from = angles.get(i);
+            double to = i + 1 < angles.size()
+                    ? angles.get(i + 1) : angles.get(0) + Math.PI * 2.0D;
+            if (to - from > largestGap) {
+                largestGap = to - from;
+                chosen = from + largestGap * 0.5D;
+            }
+        }
+        return new Vec3(Math.cos(chosen), 0.0D, Math.sin(chosen));
+    }
+
+    Vec3 horizontalDirection(Vec3 from, Vec3 to, Vec3 fallback) {
+        Vec3 direction = to.subtract(from).multiply(1.0D, 0.0D, 1.0D);
+        if (direction.lengthSqr() < 0.0001D) {
+            direction = fallback.multiply(1.0D, 0.0D, 1.0D);
+        }
+        return direction.lengthSqr() < 0.0001D
+                ? new Vec3(0.0D, 0.0D, 1.0D) : direction.normalize();
+    }
+
+    static double smoothStep(double value) {
+        double t = net.minecraft.util.Mth.clamp(value, 0.0D, 1.0D);
+        return t * t * (3.0D - 2.0D * t);
+    }
 }
