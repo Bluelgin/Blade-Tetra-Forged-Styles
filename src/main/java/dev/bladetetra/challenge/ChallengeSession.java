@@ -852,12 +852,12 @@ final class ChallengeSession {
             returnFromPersistentOrigin(player);
             return;
         }
-        ServerLevel destination = player.getServer().getLevel(origin.dimension);
+        ServerLevel destination = player.getServer().getLevel(origin.dimension());
         if (destination == null) {
             destination = player.getServer().overworld();
         }
-        player.teleportTo(destination, origin.position.x, origin.position.y,
-                origin.position.z, origin.yaw, origin.pitch);
+        player.teleportTo(destination, origin.position().x, origin.position().y,
+                origin.position().z, origin.yaw(), origin.pitch());
         clearPersistentChallenge(player, destination.getGameTime());
     }
 
