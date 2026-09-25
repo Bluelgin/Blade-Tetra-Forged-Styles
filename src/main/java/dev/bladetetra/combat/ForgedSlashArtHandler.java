@@ -239,12 +239,11 @@ final class ForgedSlashArtHandler {
         if (SoulLegacyDamageGuard.isSecondary(event.getSource())) {
             return;
         }
-        ServerPlayer owner = null;
-        if (event.getSource().getEntity() instanceof ServerPlayer player) {
-            owner = player;
-        } else {
-            owner = nativeOwner(event.getSource().getDirectEntity());
-        }
+        Entity causing = event.getSource().getEntity();
+        Entity direct = event.getSource().getDirectEntity();
+        ServerPlayer owner = causing instanceof ServerPlayer player && direct == player
+                ? player
+                : nativeOwner(direct);
         if (owner != null && PENDING.containsKey(owner.getUUID())) {
             event.setCanceled(true);
         }
