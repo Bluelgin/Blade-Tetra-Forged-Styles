@@ -249,8 +249,10 @@ final class ForgedSlashArtHandler {
         if (entity instanceof EntityJudgementCut judgement) {
             judgement.setDamage(0.0D);
             // Native Judgement bursts into potion effects after its ten-tick
-            // presentation. Keep the real slashdim lifecycle, but cut it off
-            // before that combat-only cleanup path.
+            // presentation. Extend the entity's internal deadline so entity
+            // tick ordering can never race the server-end discard below; the
+            // visible lifetime is still the original ten ticks.
+            judgement.setLifetime(1000);
             PENDING_DISCARDS.add(new PendingDiscard(
                     level.dimension(), judgement.getUUID(),
                     level.getGameTime() + 10L));
