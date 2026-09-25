@@ -88,7 +88,7 @@
   "tetra/schematic/slashblade/forged_secondary_wave_edge.description": "Follow the primary phase with staggered wave drives.",
   "tetra/schematic/slashblade/forged_secondary_wave_edge.slot1": "Proud Soul medium",
   "tetra/schematic/slashblade/forged_secondary_piercing.name": "Secondary: Piercing Focus",
-  "tetra/schematic/slashblade/forged_secondary_piercing.description": "Follow with a native-style forward rush and bounded close-range thrust."
+  "tetra/schematic/slashblade/forged_secondary_piercing.description": "Follow with a native-style forward rush and bounded close-range thrust.",
   "tetra/schematic/slashblade/forged_secondary_piercing.slot1": "Proud Soul medium",
 
   "tetra/schematic/slashblade/forged_modifier_balanced.name": "Modifier: Balanced",
