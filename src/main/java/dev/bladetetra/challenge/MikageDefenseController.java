@@ -31,4 +31,40 @@ final class MikageDefenseController {
     final Map<UUID, PlayerDefenseProfile> playerDefenseProfiles = new HashMap<>();
     int mirrorCounterCooldown;
     long lastParryVfxTick = Long.MIN_VALUE;
+
+    static final class SaPattern {
+        String kind = "";
+        int hits;
+        long lastHit = Long.MIN_VALUE;
+        int lastSerial = Integer.MIN_VALUE;
+        float currentMultiplier = 1.0F;
+    }
+
+    static final class JudgementPattern {
+        int casts;
+        long lastCast = Long.MIN_VALUE;
+        long blockedUntil = Long.MIN_VALUE;
+    }
+
+    static final class PursuitPressure {
+        int hits;
+        long lastHit = Long.MIN_VALUE;
+        long lastCountedHit = Long.MIN_VALUE;
+    }
+
+    static final class ShadowCrossPattern {
+        int crossings;
+        long lastCross = Long.MIN_VALUE;
+        Vec3 lastDirection = Vec3.ZERO;
+        boolean warned;
+    }
+
+    record MovementSample(long tick, Vec3 position) {
+    }
+
+    static final class PlayerDefenseProfile {
+        double rawMultiplier = 1.0D;
+        int lowDamageHits;
+        int boundaryAssistHits;
+    }
 }
