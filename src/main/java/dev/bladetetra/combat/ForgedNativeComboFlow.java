@@ -1,7 +1,6 @@
 package dev.bladetetra.combat;
 
 import mods.flammpfeil.slashblade.SlashBlade;
-import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
@@ -24,10 +23,10 @@ final class ForgedNativeComboFlow {
             SlashArts.ArtsType requestedType, LivingEntity user) {
         SlashArts art = nativeArt(technique);
         if (art == null) {
-            return ComboStateRegistry.NONE.getId();
+            return SlashBlade.prefix("none");
         }
         ResourceLocation combo = art.doArts(sourceType(requestedType), user);
-        return combo == null ? ComboStateRegistry.NONE.getId() : combo;
+        return combo == null ? SlashBlade.prefix("none") : combo;
     }
 
     static ResourceLocation secondaryEntry(
@@ -42,23 +41,30 @@ final class ForgedNativeComboFlow {
             ForgedSlashArtPlan.Technique technique,
             SlashArts.ArtsType sourceType,
             boolean onGround) {
+        return SlashBlade.prefix(signaturePath(technique, sourceType, onGround));
+    }
+
+    static String signaturePath(
+            ForgedSlashArtPlan.Technique technique,
+            SlashArts.ArtsType sourceType,
+            boolean onGround) {
         return switch (technique) {
             case JUDGEMENT_CUT -> sourceType == SlashArts.ArtsType.Jackpot
-                    ? ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId()
+                    ? "judgement_cut_slash_just"
                     : onGround
-                            ? ComboStateRegistry.JUDGEMENT_CUT_SLASH.getId()
-                            : ComboStateRegistry.JUDGEMENT_CUT_SLASH_AIR.getId();
+                            ? "judgement_cut_slash"
+                            : "judgement_cut_slash_air";
             case SAKURA_END -> onGround
-                    ? ComboStateRegistry.SAKURA_END_RIGHT.getId()
-                    : ComboStateRegistry.SAKURA_END_RIGHT_AIR.getId();
-            case VOID_SLASH -> ComboStateRegistry.VOID_SLASH.getId();
-            case CIRCLE_SLASH -> ComboStateRegistry.CIRCLE_SLASH.getId();
-            case DRIVE_VERTICAL -> ComboStateRegistry.DRIVE_VERTICAL.getId();
-            case DRIVE_HORIZONTAL -> ComboStateRegistry.DRIVE_HORIZONTAL.getId();
-            case WAVE_EDGE -> ComboStateRegistry.WAVE_EDGE_VERTICAL.getId();
+                    ? "sakura_end_right"
+                    : "sakura_end_right_air";
+            case VOID_SLASH -> "void_slash";
+            case CIRCLE_SLASH -> "circle_slash";
+            case DRIVE_VERTICAL -> "drive_vertical";
+            case DRIVE_HORIZONTAL -> "drive_horizontal";
+            case WAVE_EDGE -> "wave_edge_vertical";
             case PIERCING -> sourceType == SlashArts.ArtsType.Jackpot
-                    ? ComboStateRegistry.PIERCING_JUST.getId()
-                    : ComboStateRegistry.PIERCING_2.getId();
+                    ? "piercing_just"
+                    : "piercing_2";
         };
     }
 
