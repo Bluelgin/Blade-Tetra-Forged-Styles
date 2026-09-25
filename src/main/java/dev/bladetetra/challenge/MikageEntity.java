@@ -2602,22 +2602,11 @@ public final class MikageEntity extends Monster {
     }
 
     boolean isUsingTechnique() {
-        return techniques.interactionOpeningTicks > 0
-                || ((arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
-                && combat.signatureRecoveryTicks > 0) || combat.preparedTicks > 0
-                || techniques.aerialTicks > 0 || arena.boundarySlashDelay > 0
-                || arena.toriiSweepTicks > 0 || arena.toriiCageTicks > 0
-                || techniques.pursuitRainTicks > 0 || techniques.pursuitRainFinalTicks > 0
-                || techniques.mirrorDuelTicks > 0 || techniques.boundarySealTicks > 0 || techniques.moonEchoTicks > 0
-                || defense.zanshinCounterTicks > 0;
+        return techniques.isAnyActive(arena, defense, combat);
     }
 
     private boolean isUsingSignatureTechnique() {
-        return techniques.interactionOpeningTicks > 0 || techniques.aerialTicks > 0 || arena.boundarySlashDelay > 0
-                || arena.toriiSweepTicks > 0 || arena.toriiCageTicks > 0
-                || techniques.pursuitRainTicks > 0 || techniques.pursuitRainFinalTicks > 0
-                || techniques.mirrorDuelTicks > 0 || techniques.boundarySealTicks > 0 || techniques.moonEchoTicks > 0
-                || defense.zanshinCounterTicks > 0;
+        return techniques.isSignatureActive(arena, defense);
     }
 
     private void executeBoundarySlash() {
