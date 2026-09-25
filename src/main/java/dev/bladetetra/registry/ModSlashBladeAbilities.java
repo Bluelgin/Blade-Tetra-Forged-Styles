@@ -1,6 +1,7 @@
 package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.ForgedSlashArtEntrypoint;
 import dev.bladetetra.combat.ForgedSlashArtPlan;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
@@ -38,7 +39,10 @@ public final class ModSlashBladeAbilities {
             SLASH_ARTS.register("forged_slash_art", () -> new SlashArts(
                     ModSlashBladeAbilities::forgedCombo)
                     .setComboStateJust(ModSlashBladeAbilities::forgedCombo)
-                    .setComboStateSuper(ModSlashBladeAbilities::forgedCombo)
+                    // Resharped's SuperSlashArts path bypasses
+                    // PerformSlashArtEvent, so it must arm the forged runtime
+                    // directly before returning the native primary entry.
+                    .setComboStateSuper(ForgedSlashArtEntrypoint::superCombo)
                     .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> TWIN_FOX_PIERCING =
