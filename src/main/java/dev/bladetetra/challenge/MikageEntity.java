@@ -149,6 +149,19 @@ public final class MikageEntity extends Monster {
         xpReward = 80;
     }
 
+    MikageCombatDirector combatDirector() { return combat; }
+    MikageDefenseController defenseController() { return defense; }
+    MikageTechniqueRuntime techniqueRuntime() { return techniques; }
+    MikageArenaController arenaController() { return arena; }
+    MikageAttackTimeline attackTimeline() { return attackTimeline; }
+
+    boolean shouldResetExpiredAction() {
+        return getAction() != MikageAction.IDLE
+                && tickCount - entityData.get(ACTION_START) > entityData.get(ACTION_LENGTH)
+                && combat.preparedTicks <= 0
+                && !isUsingSignatureTechnique();
+    }
+
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 560.0D)
@@ -630,112 +643,7 @@ public final class MikageEntity extends Monster {
         }
 
         ServerLevel server = (ServerLevel) level();
-        sampleParticipantMovement(server);
-        attackTimeline.tick(server);
-        if (combat.preparedTicks > 0) {
-            tickPreparedTechnique(server);
-        }
-        if (arena.toriiSweepCooldown > 0) {
-            arena.toriiSweepCooldown--;
-        }
-        if (arena.toriiCageCooldown > 0) {
-            arena.toriiCageCooldown--;
-        }
-        if (techniques.pursuitRainCooldown > 0) {
-            techniques.pursuitRainCooldown--;
-        }
-        if (techniques.mirrorDuelCooldown > 0) techniques.mirrorDuelCooldown--;
-        if (techniques.boundarySealCooldown > 0) techniques.boundarySealCooldown--;
-        if (techniques.moonEchoCooldown > 0) techniques.moonEchoCooldown--;
-        if (defense.mirrorCounterCooldown > 0) defense.mirrorCounterCooldown--;
-        if (combat.phaseProtectionTicks > 0) combat.phaseProtectionTicks--;
-        if (arena.boundaryFlashReadyTicks > 0) arena.boundaryFlashReadyTicks--;
-        if (tickCount % 100 == 0) {
-            long now = level().getGameTime();
-            defense.hurtCooldownUntil.entrySet().removeIf(entry -> entry.getValue() <= now);
-            defense.pursuitPressure.entrySet().removeIf(entry -> entry.getValue().lastHit != Long.MIN_VALUE
-                    && now - entry.getValue().lastHit > 160L);
-        }
-        tickJudgementCutAdaptation(server);
-        tickBrokenLocks(server);
-        tickSwordWheel(server);
-        if (combat.signatureRecoveryTicks > 0) {
-            combat.signatureRecoveryTicks--;
-            if (arena.cagePerfectCountered || arena.toriiScissorCountered
-                    || techniques.pursuitRainCountered || defense.swordWheelBreakTicks > 0) {
-                navigation.stop();
-                setDeltaMovement(Vec3.ZERO);
-            }
-            if (combat.signatureRecoveryTicks == 0
-                    && (arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
-                    && defense.swordWheelBreakTicks <= 0) {
-                setAction(MikageAction.IDLE, 1);
-                flashStepAwayFromNearestPlayer(server);
-                arena.cagePerfectCountered = false;
-                arena.toriiScissorCountered = false;
-                techniques.pursuitRainCountered = false;
-            }
-        }
-        if (techniques.interactionOpeningTicks > 0) {
-            techniques.interactionOpeningTicks--;
-            navigation.stop();
-            setDeltaMovement(Vec3.ZERO);
-            if (techniques.interactionOpeningTicks == 0) {
-                techniques.interactionOpeningMultiplier = 1.0F;
-                setAction(MikageAction.IDLE, 1);
-                flashStepAwayFromNearestPlayer(server);
-            }
-        }
-        if (getAction() != MikageAction.IDLE
-                && tickCount - entityData.get(ACTION_START) > entityData.get(ACTION_LENGTH)
-                && combat.preparedTicks <= 0 && !isUsingSignatureTechnique()) {
-            setAction(MikageAction.IDLE, 1);
-        }
-
-        if (arena.toriiSweepTicks > 0) {
-            tickToriiSweep(server);
-        }
-        if (arena.toriiCageTicks > 0) {
-            tickToriiCages(server);
-        }
-        if (techniques.pursuitRainTicks > 0) {
-            tickPursuitRain(server);
-        }
-        if (techniques.pursuitRainFinalTicks > 0) {
-            tickPursuitRainFinal(server);
-        }
-        if (techniques.mirrorDuelTicks > 0) tickMirrorDuel(server);
-        if (techniques.boundarySealTicks > 0) tickBoundarySeal(server);
-        if (techniques.moonEchoTicks > 0) tickMoonEcho(server);
-        if (defense.zanshinCounterTicks > 0) tickZanshinCounter(server);
-
-        if (techniques.aerialTicks > 0) {
-            tickAerialTechnique();
-        }
-
-        if (arena.boundarySlashDelay > 0) tickBoundaryFlash(server);
-        if (!arena.boundaryWalls.isEmpty()) tickBoundaryWalls(server);
-        if (arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0
-                && phase == 3 && combat.phaseProtectionTicks <= 0
-                && !isUsingTechnique()) {
-            ServerPlayer executionTarget = nearestChallengeParticipant(server);
-            if (executionTarget != null) {
-                arena.boundaryFlashPending = false;
-                beginBoundaryFlash(executionTarget, server);
-            }
-        }
-        if (!isUsingTechnique() && techniques.pursuitRainCooldown <= 0) {
-            ServerPlayer pursuitTarget = selectPursuitTarget(server);
-            if (pursuitTarget != null) {
-                beginPursuitRain(pursuitTarget, server);
-            }
-        }
-        if (!isUsingTechnique()
-                && --combat.techniqueCooldown <= 0) {
-            useTechnique(phase);
-            combat.techniqueCooldown = combat.scaledCooldown(phase == 1 ? 48 : phase == 2 ? 36 : 26);
-        }
-        enforceArenaBoundary();
+        MikageRuntimeCoordinator.tick(this, server, phase);
     }
 
     private void teleportWithinArena(double x, double y, double z) {
@@ -743,7 +651,7 @@ public final class MikageEntity extends Monster {
         teleportTo(clamped.x, clamped.y, clamped.z);
     }
 
-    private void enforceArenaBoundary() {
+    void enforceArenaBoundary() {
         Vec3 clamped = ChallengeManager.clampMikagePosition(this, position());
         if (clamped.distanceToSqr(position()) < 0.0001D) return;
         teleportTo(clamped.x, clamped.y, clamped.z);
@@ -760,7 +668,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private ServerPlayer nearestChallengeParticipant(ServerLevel server) {
+    ServerPlayer nearestChallengeParticipant(ServerLevel server) {
         ServerPlayer nearest = null;
         double nearestDistance = Double.MAX_VALUE;
         for (ServerPlayer player : server.players()) {
@@ -873,7 +781,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private ServerPlayer selectPursuitTarget(ServerLevel server) {
+    ServerPlayer selectPursuitTarget(ServerLevel server) {
         int threshold = GameplayConfig.MIKAGE_PURSUIT_RAIN_HIT_THRESHOLD.get();
         long now = level().getGameTime();
         ServerPlayer selected = null;
@@ -899,7 +807,7 @@ public final class MikageEntity extends Monster {
         return selected;
     }
 
-    private void beginPursuitRain(ServerPlayer target, ServerLevel server) {
+    void beginPursuitRain(ServerPlayer target, ServerLevel server) {
         techniques.pursuitRainTarget = target.getUUID();
         techniques.pursuitRainFinalTicks = 0;
         techniques.pursuitRainFinalSword = null;
@@ -927,7 +835,7 @@ public final class MikageEntity extends Monster {
                 techniques.pursuitRainTicks, random.nextInt()), lock);
     }
 
-    private void tickPursuitRain(ServerLevel server) {
+    void tickPursuitRain(ServerLevel server) {
         Player found = techniques.pursuitRainTarget == null
                 ? null : server.getPlayerByUUID(techniques.pursuitRainTarget);
         ServerPlayer target = found instanceof ServerPlayer player ? player : null;
@@ -1057,7 +965,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 1.0F, 1.7F);
     }
 
-    private void tickPursuitRainFinal(ServerLevel server) {
+    void tickPursuitRainFinal(ServerLevel server) {
         Player found = techniques.pursuitRainTarget == null
                 ? null : server.getPlayerByUUID(techniques.pursuitRainTarget);
         ServerPlayer target = found instanceof ServerPlayer player ? player : null;
@@ -1300,7 +1208,7 @@ public final class MikageEntity extends Monster {
         return pattern != null && level().getGameTime() < pattern.blockedUntil;
     }
 
-    private void tickJudgementCutAdaptation(ServerLevel server) {
+    void tickJudgementCutAdaptation(ServerLevel server) {
         long now = level().getGameTime();
         int resetTicks = GameplayConfig.MIKAGE_JUDGEMENT_RESET_TICKS.get();
         defense.judgementPatterns.entrySet().removeIf(entry -> {
@@ -1352,7 +1260,7 @@ public final class MikageEntity extends Monster {
                 .ifPresent(state -> state.setTargetEntityId(-1));
     }
 
-    private void tickBrokenLocks(ServerLevel server) {
+    void tickBrokenLocks(ServerLevel server) {
         long now = server.getGameTime();
         defense.lockBreakUntil.entrySet().removeIf(entry -> {
             if (entry.getValue() < now) return true;
@@ -1365,7 +1273,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void tickSwordWheel(ServerLevel server) {
+    void tickSwordWheel(ServerLevel server) {
         if (defense.swordWheelCooldown > 0) defense.swordWheelCooldown--;
         if (defense.swordWheelCounterCooldown > 0) defense.swordWheelCounterCooldown--;
         if (defense.swordWheelBreakTicks > 0) {
@@ -1496,7 +1404,7 @@ public final class MikageEntity extends Monster {
                 .forEach(Entity::discard);
     }
 
-    private void useTechnique(int phase) {
+    void useTechnique(int phase) {
         LivingEntity target = getTarget();
         if (target == null || !(level() instanceof ServerLevel server)) {
             return;
@@ -1648,7 +1556,7 @@ public final class MikageEntity extends Monster {
                         ? 1.45F : 1.1F);
     }
 
-    private void tickPreparedTechnique(ServerLevel server) {
+    void tickPreparedTechnique(ServerLevel server) {
         LivingEntity target = combat.preparedTarget != null && combat.preparedTarget.isAlive()
                 ? combat.preparedTarget : getTarget();
         navigation.stop();
@@ -1865,7 +1773,7 @@ public final class MikageEntity extends Monster {
                 "message.blade_tetra.mikage.iaido_evaded");
     }
 
-    private void sampleParticipantMovement(ServerLevel server) {
+    void sampleParticipantMovement(ServerLevel server) {
         long now = server.getGameTime();
         for (ServerPlayer player : server.players()) {
             if (!player.isAlive() || !ChallengeManager.isParticipant(this, player)) continue;
@@ -1950,7 +1858,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 0.85F, 1.9F);
     }
 
-    private void tickZanshinCounter(ServerLevel server) {
+    void tickZanshinCounter(ServerLevel server) {
         navigation.stop();
         Entity found = defense.zanshinCounterTarget == null ? null : server.getEntity(defense.zanshinCounterTarget);
         ServerPlayer target = found instanceof ServerPlayer player ? player : null;
@@ -2011,7 +1919,7 @@ public final class MikageEntity extends Monster {
                 MIRROR_DUEL_TOTAL_TICKS, random.nextInt()), techniques.mirrorDuelStart);
     }
 
-    private void tickMirrorDuel(ServerLevel server) {
+    void tickMirrorDuel(ServerLevel server) {
         Entity found = techniques.mirrorDuelTarget == null ? null : server.getEntity(techniques.mirrorDuelTarget);
         LivingEntity target = found instanceof LivingEntity living ? living : null;
         if (target == null || !target.isAlive()) {
@@ -2125,7 +2033,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 1.2F, 0.75F);
     }
 
-    private void tickBoundarySeal(ServerLevel server) {
+    void tickBoundarySeal(ServerLevel server) {
         navigation.stop();
         setDeltaMovement(Vec3.ZERO);
         if (techniques.boundarySealsBroken >= 3) {
@@ -2220,7 +2128,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 1.1F, 1.15F);
     }
 
-    private void tickMoonEcho(ServerLevel server) {
+    void tickMoonEcho(ServerLevel server) {
         navigation.stop();
         setDeltaMovement(Vec3.ZERO);
         if (tickCount % 2 == 0) {
@@ -2407,7 +2315,7 @@ public final class MikageEntity extends Monster {
                 18, 0.5D, 0.15D, 0.5D, 0.05D);
     }
 
-    private void tickAerialTechnique() {
+    void tickAerialTechnique() {
         ServerLevel server = (ServerLevel) level();
         LivingEntity target = techniques.aerialTarget != null && techniques.aerialTarget.isAlive()
                 ? techniques.aerialTarget : getTarget();
@@ -2470,7 +2378,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 0.7F, 1.65F);
     }
 
-    private void beginBoundaryFlash(LivingEntity target, ServerLevel server) {
+    void beginBoundaryFlash(LivingEntity target, ServerLevel server) {
         arena.boundaryFlashPending = false;
         arena.boundaryFlashReadyTicks = 0;
         arena.boundarySlashCenter = ChallengeManager.arenaCenter(this);
@@ -2500,7 +2408,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void tickBoundaryFlash(ServerLevel server) {
+    void tickBoundaryFlash(ServerLevel server) {
         navigation.stop();
         setDeltaMovement(Vec3.ZERO);
         setNoGravity(true);
@@ -2688,7 +2596,7 @@ public final class MikageEntity extends Monster {
                 SoundEvents.FIRECHARGE_USE, SoundSource.HOSTILE, 1.25F, 0.58F);
     }
 
-    private void tickBoundaryWalls(ServerLevel server) {
+    void tickBoundaryWalls(ServerLevel server) {
         if (arena.boundaryWalls.size() >= 3 && --arena.boundaryGapCycleTicks <= 0) {
             for (BoundaryWallState wall : arena.boundaryWalls) {
                 wall.pendingGapAlong = 14.0D + random.nextDouble() * 28.0D;
@@ -2859,7 +2767,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void tickToriiSweep(ServerLevel server) {
+    void tickToriiSweep(ServerLevel server) {
         navigation.stop();
         setDeltaMovement(Vec3.ZERO);
         if (position().distanceToSqr(arena.toriiSweepCenter) > 0.04D) {
@@ -3014,7 +2922,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void tickToriiCages(ServerLevel server) {
+    void tickToriiCages(ServerLevel server) {
         navigation.stop();
         setDeltaMovement(Vec3.ZERO);
         int warningStart = TORII_CAGE_TOTAL_TICKS - TORII_CAGE_WARNING_TICKS;
@@ -3156,7 +3064,7 @@ public final class MikageEntity extends Monster {
                 18, 1.4D, 0.8D, 1.4D, 0.04D);
     }
 
-    private void flashStepAwayFromNearestPlayer(ServerLevel server) {
+    void flashStepAwayFromNearestPlayer(ServerLevel server) {
         LivingEntity target = getTarget();
         if (target != null && target.isAlive()) {
             flashStepAway(target, server, 10.5D);
