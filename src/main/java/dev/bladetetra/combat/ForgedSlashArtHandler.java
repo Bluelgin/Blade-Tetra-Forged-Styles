@@ -239,16 +239,12 @@ final class ForgedSlashArtHandler {
         }
         if (entity instanceof EntitySlashEffect slash) {
             slash.setDamage(0.0D);
-            if (activeTechnique(pending) == ForgedSlashArtPlan.Technique.VOID_SLASH
-                    && slash.getLifetime() >= 36) {
-                // Resharped's anonymous Void Slash effect performs its 5.1x
-                // finisher after the 36-tick presentation. Let the complete
-                // visual lifecycle play, then remove it before that combat-only
-                // despawn callback can outlive the forged cast.
-                PENDING_DISCARDS.add(new PendingDiscard(
-                        level.dimension(), slash.getUUID(),
-                        level.getGameTime() + slash.getLifetime()));
-            }
+            // EntitySlashEffect's renderer/lifetime are independent from its
+            // shooter, while its internal areaAttack is not. Detaching here
+            // preserves Sakura/Circle/Void presentation and prevents rank
+            // damage, knockback state, and Void's late 5.1x target list from
+            // ever being populated.
+            slash.setShooter(null);
         }
         if (entity instanceof EntityJudgementCut judgement) {
             judgement.setDamage(0.0D);
