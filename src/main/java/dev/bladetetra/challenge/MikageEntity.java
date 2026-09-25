@@ -730,7 +730,7 @@ public final class MikageEntity extends Monster {
         if (!isUsingTechnique()
                 && --combat.techniqueCooldown <= 0) {
             useTechnique(phase);
-            combat.techniqueCooldown = scaledCooldown(phase == 1 ? 48 : phase == 2 ? 36 : 26);
+            combat.techniqueCooldown = combat.scaledCooldown(phase == 1 ? 48 : phase == 2 ? 36 : 26);
         }
         enforceArenaBoundary();
     }
@@ -755,10 +755,6 @@ public final class MikageEntity extends Monster {
                 setDeltaMovement(motion.subtract(normal.scale(outwardSpeed)));
             }
         }
-    }
-
-    private int scaledCooldown(int baseTicks) {
-        return Math.max(1, Mth.ceil(baseTicks / Math.max(1.0D, combat.skillSpeedMultiplier)));
     }
 
     private ServerPlayer nearestChallengeParticipant(ServerLevel server) {
@@ -1148,7 +1144,7 @@ public final class MikageEntity extends Monster {
         techniques.pursuitRainFinalSword = null;
         techniques.pursuitRainCountered = true;
         combat.signatureRecoveryTicks = GameplayConfig.MIKAGE_PURSUIT_RAIN_STAGGER_TICKS.get();
-        techniques.pursuitRainCooldown = scaledCooldown(
+        techniques.pursuitRainCooldown = combat.scaledCooldown(
                 GameplayConfig.MIKAGE_PURSUIT_RAIN_COOLDOWN_TICKS.get());
         combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.signatureRecoveryTicks);
         setAction(MikageAction.STAGGERED, combat.signatureRecoveryTicks);
@@ -1179,9 +1175,9 @@ public final class MikageEntity extends Monster {
         techniques.pursuitRainTarget = null;
         techniques.pursuitRainFinalSword = null;
         techniques.pursuitRainFinalLaunched = false;
-        techniques.pursuitRainCooldown = scaledCooldown(
+        techniques.pursuitRainCooldown = combat.scaledCooldown(
                 GameplayConfig.MIKAGE_PURSUIT_RAIN_COOLDOWN_TICKS.get());
-        combat.techniqueCooldown = Math.max(combat.techniqueCooldown, scaledCooldown(40));
+        combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.scaledCooldown(40));
         setAction(MikageAction.IDLE, 1);
     }
 
@@ -1993,7 +1989,7 @@ public final class MikageEntity extends Monster {
 
     private void beginMirrorDuel(LivingEntity target, ServerLevel server) {
         techniques.mirrorDuelTicks = MIRROR_DUEL_TOTAL_TICKS;
-        techniques.mirrorDuelCooldown = scaledCooldown(220);
+        techniques.mirrorDuelCooldown = combat.scaledCooldown(220);
         techniques.mirrorDuelTarget = target.getUUID();
         techniques.mirrorDuelStart = position();
         Vec3 direction = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
@@ -2093,7 +2089,7 @@ public final class MikageEntity extends Monster {
 
     private void beginBoundarySeal(ServerLevel server) {
         techniques.boundarySealTicks = BOUNDARY_SEAL_TOTAL_TICKS;
-        techniques.boundarySealCooldown = scaledCooldown(560);
+        techniques.boundarySealCooldown = combat.scaledCooldown(560);
         techniques.boundarySealsBroken = 0;
         techniques.boundarySealEntities.clear();
         Vec3 center = ChallengeManager.arenaCenter(this);
@@ -2185,7 +2181,7 @@ public final class MikageEntity extends Monster {
 
     private void beginMoonEcho(LivingEntity target, ServerLevel server) {
         techniques.moonEchoTicks = MOON_ECHO_TOTAL_TICKS;
-        techniques.moonEchoCooldown = scaledCooldown(480);
+        techniques.moonEchoCooldown = combat.scaledCooldown(480);
         techniques.moonEchoEntities.clear();
         for (ServerPlayer participant : server.players()) {
             if (ChallengeManager.isParticipant(this, participant)) {
@@ -2597,7 +2593,7 @@ public final class MikageEntity extends Monster {
             arena.boundaryFlashCharge = 0;
             arena.boundaryFlashCycle++;
             arena.boundaryFlashReadyTicks = 0;
-            combat.techniqueCooldown = Math.max(combat.techniqueCooldown, scaledCooldown(50));
+            combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.scaledCooldown(50));
             setAction(MikageAction.IDLE, 1);
         }
     }
@@ -2822,53 +2818,22 @@ public final class MikageEntity extends Monster {
     }
 
     private Vec3 separatedBoundaryDirection(Vec3 candidate) {
-        if (arena.boundaryWalls.isEmpty()) return candidate;
-        double candidateAngle = Math.atan2(candidate.z, candidate.x);
-        double minimum = Math.PI;
-        List<Double> angles = new ArrayList<>();
-        for (BoundaryWallState wall : arena.boundaryWalls) {
-            double angle = Math.atan2(wall.direction.z, wall.direction.x);
-            if (angle < 0.0D) angle += Math.PI * 2.0D;
-            angles.add(angle);
-            double delta = Math.abs(Mth.wrapDegrees(Math.toDegrees(
-                    candidateAngle - angle)));
-            minimum = Math.min(minimum, Math.toRadians(delta));
-        }
-        if (minimum >= Math.toRadians(24.0D)) return candidate;
-        angles.sort(Double::compareTo);
-        double largestGap = -1.0D;
-        double chosen = candidateAngle;
-        for (int i = 0; i < angles.size(); i++) {
-            double from = angles.get(i);
-            double to = i + 1 < angles.size() ? angles.get(i + 1)
-                    : angles.get(0) + Math.PI * 2.0D;
-            if (to - from > largestGap) {
-                largestGap = to - from;
-                chosen = from + largestGap * 0.5D;
-            }
-        }
-        return new Vec3(Math.cos(chosen), 0.0D, Math.sin(chosen));
+        return arena.separatedBoundaryDirection(candidate);
     }
 
     private Vec3 horizontalDirection(Vec3 from, Vec3 to) {
-        Vec3 direction = to.subtract(from).multiply(1.0D, 0.0D, 1.0D);
-        if (direction.lengthSqr() < 0.0001D) {
-            direction = getLookAngle().multiply(1.0D, 0.0D, 1.0D);
-        }
-        return direction.lengthSqr() < 0.0001D
-                ? new Vec3(0.0D, 0.0D, 1.0D) : direction.normalize();
+        return arena.horizontalDirection(from, to, getLookAngle());
     }
 
     private static double smoothStep(double value) {
-        double t = Mth.clamp(value, 0.0D, 1.0D);
-        return t * t * (3.0D - 2.0D * t);
+        return MikageArenaController.smoothStep(value);
     }
 
     private void beginToriiSweep(ServerLevel server) {
         attackTimeline.clear();
         arena.toriiSweepCenter = ChallengeManager.arenaCenter(this);
         arena.toriiSweepTicks = TORII_SWEEP_TOTAL_TICKS;
-        arena.toriiSweepCooldown = scaledCooldown(620);
+        arena.toriiSweepCooldown = combat.scaledCooldown(620);
         arena.toriiScissorStates.clear();
         arena.toriiSweepFocusTarget = null;
         arena.toriiScissorCountered = false;
@@ -3032,7 +2997,7 @@ public final class MikageEntity extends Monster {
         techniques.pursuitRainFinalSword = null;
         arena.cagePerfectCountered = false;
         arena.toriiCageTicks = TORII_CAGE_TOTAL_TICKS;
-        arena.toriiCageCooldown = scaledCooldown(500);
+        arena.toriiCageCooldown = combat.scaledCooldown(500);
         navigation.stop();
         setAction(MikageAction.RITUAL, TORII_CAGE_TOTAL_TICKS);
         for (ServerPlayer player : server.players()) {
