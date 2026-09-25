@@ -56,6 +56,7 @@ final class VoidScatteringFusionHandler {
     static final int RESIDUAL_DOMAIN_REFUND_TICKS = 10;
     static final int COUNTER_WINDUP_TICKS = 7;
     static final int COUNTER_STAGGER_TICKS = 3;
+    static final int RETURN_DAMAGE_MAX_ATTEMPTS = 2;
 
     private static final double DOMAIN_PROJECTILE_RADIUS = 3.25D;
     private static final double RETURN_RANGE = 40.0D;
