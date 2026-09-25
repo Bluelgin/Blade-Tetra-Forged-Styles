@@ -18,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -336,15 +335,13 @@ final class ForgedSlashArtHandler {
     }
 
     private static ServerPlayer nativeOwner(Entity entity) {
-        if (entity == null) {
+        if (!(entity instanceof EntityAbstractSummonedSword
+                || entity instanceof EntitySlashEffect
+                || entity instanceof EntityJudgementCut)) {
             return null;
         }
         if (entity instanceof IShootable shootable
                 && shootable.getShooter() instanceof ServerPlayer player) {
-            return player;
-        }
-        if (entity instanceof Projectile projectile
-                && projectile.getOwner() instanceof ServerPlayer player) {
             return player;
         }
         return null;
