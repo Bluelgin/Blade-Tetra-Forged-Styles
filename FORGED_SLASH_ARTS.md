@@ -131,11 +131,15 @@ recreating every Slash Art from Drive projectiles:
 | Wave Edge | native Drive family with staggered speed/timing | forged budget/count |
 | Piercing | native-style forward rush + piercing sound | exact bounded close-range hit |
 
-Native presentation entities are sanitized while a forged cast owns their
-shooter: their native damage is zeroed or canceled, and unsafe terminal entity
-behavior is cut off where required. The shooter relationship is retained when the
-native entity needs it for its real presentation lifecycle; unrelated player
-projectiles are deliberately excluded from this suppression path.
+Native presentation entities are sanitized by type. Native `EntitySlashEffect`
+instances are detached from their shooter so their internal area-attack loop never
+runs; visual-only SlashBlade projectiles skip entity-impact callbacks so Drive-like
+presentation cannot clear hurt windows or apply collision combat; Judgement Cut
+keeps the shooter relationship needed for its authentic just-cut presentation but
+is removed before its potion burst. Direct native melee damage is canceled while
+the forged graph owns the player, and any pre-hit SlashBlade knockback marker is
+cleared. Unrelated player projectiles are deliberately excluded from this
+suppression path.
 
 ## Modifiers
 
