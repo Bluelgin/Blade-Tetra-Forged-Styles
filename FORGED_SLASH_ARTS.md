@@ -80,18 +80,24 @@ modular katana delegates restoration to its structural synchronizer.
 The orb is reusable in the first implementation. Proud Soul costs can be added to
 the inscription operation later without changing the data model.
 
-## Animation ownership
+## Animation and state-machine ownership
 
-Both primary and secondary techniques copy only the native Resharped ComboState's
-visual metadata: motion resource, frame window, priority, speed, loop/aerial shape
-and recovery. Source `clickAction`, `tickAction`, `hitEffect`, transitions and
-damage callbacks are not copied. At the compiled handoff point, Blade Tetra commits
-the secondary visual-only ComboState and schedules the second attack relative to
-that motion. Haste has separate visual-only states at 1.25× animation speed.
+Primary and secondary techniques now enter Resharped's **real SlashArt / ComboState
+graphs**. Blade Tetra no longer clones one visual node and guesses the remainder of
+the timeline. Native `clickAction`, `tickAction`, movement, pose changes, sounds,
+timeout edges and recovery nodes are allowed to execute normally, so multi-node
+arts such as Piercing and Sakura End retain their complete source choreography.
 
-This keeps the player's motion recognizably SlashBlade while Blade Tetra owns all
-combat output and the Slash Art Core remains authoritative over the total damage
-budget.
+Blade Tetra still owns combat power. Native entities spawned while a forged graph
+owns the player are tagged presentation-only and native direct damage is suppressed.
+The bounded forged budget is emitted separately at the technique's signature timing.
+The A -> B handoff occurs only after SlashBlade naturally leaves A's native graph;
+foreign ComboStates are treated as interruption rather than a valid handoff.
+
+Haste still scales the authored damage timing and efficiency. Native source graph
+playback is intentionally not time-warped in this first delegation pass; changing a
+global registered ComboState's speed per cast would affect non-forged users and will
+need a dedicated per-cast proxy if accelerated native choreography is added later.
 
 ## Technique set
 
@@ -152,16 +158,19 @@ never multiplies total power for free.
 ## Runtime lifecycle
 
 `ForgedSlashArtSpec` is the persistence boundary. `ForgedSlashArtPlan` validates
-and compiles that snapshot into damage, timing, two motion IDs and topology.
-`ForgedSlashArtHandler` snapshots the cast direction and compiled plan, verifies
-the primary visual-only ComboState, executes the primary signature, commits the
-secondary visual-only ComboState at handoff, then schedules the secondary signature
-relative to that second motion.
+and compiles that snapshot into bounded damage, timing and topology.
+`ForgedNativeComboFlow` resolves each authored technique back to SlashBlade's
+registered SlashArt and identifies the native ComboState graph it owns.
+`ForgedSlashArtHandler` snapshots the cast direction and compiled plan, redirects
+the PerformSlashArt event into A's native entry, observes the graph until natural
+recovery, then enters B's native entry. Echo repeats B by entering the complete
+native graph again rather than replaying only a synthetic effect.
 
-`ProceduralSlashArtExecutor` keeps the conservative Drive-only grammar used by
-programmatic-fusion fallback, but forged Slash Arts use richer authored primitives:
-native Judgement Cut presentation + bounded phantom swords, localized cross cuts,
-summoned-sword fans, radial drives and focused drive families.
+`ProceduralSlashArtExecutor` remains the bounded combat layer. During native
+delegation it does not respawn the hand-built Judgement/Sakura/Void/Circle cues or
+repeat Piercing's movement/sound; those now come from SlashBlade itself. Forged
+phantom swords / drives remain available as the authored modifier layer and carry
+only the compiled Blade Tetra damage budget.
 
 Forged Judgement Cut directly reuses SlashBlade's own `EntityJudgementCut`
 renderer/model for presentation, but the entity is spawned with no shooter and
