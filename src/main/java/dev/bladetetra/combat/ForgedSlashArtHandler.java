@@ -54,19 +54,28 @@ final class ForgedSlashArtHandler {
                 .equals(state.getSlashArtsKey())) {
             return;
         }
+        ResourceLocation entry = beginCast(
+                player, blade, state, event.getType());
+        if (!ComboStateRegistry.NONE.getId().equals(entry)) {
+            event.setComboState(entry);
+        }
+    }
 
+    static ResourceLocation beginCast(ServerPlayer player,
+            ItemStack blade, ISlashBladeState state,
+            SlashArts.ArtsType type) {
         PENDING.remove(player.getUUID());
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.from(blade);
-        if (plan == null) {
-            return;
+        if (plan == null || type == null || type == SlashArts.ArtsType.Fail) {
+            return ComboStateRegistry.NONE.getId();
         }
         plan = plan.snapshotForAttack(
                 player.getAttributeValue(Attributes.ATTACK_DAMAGE));
 
         ResourceLocation primaryEntry = ForgedNativeComboFlow.entry(
-                plan.primary(), event.getType(), player);
+                plan.primary(), type, player);
         if (ComboStateRegistry.NONE.getId().equals(primaryEntry)) {
-            return;
+            return primaryEntry;
         }
 
         Vec3 look = player.getLookAngle();
@@ -77,17 +86,16 @@ final class ForgedSlashArtHandler {
                 && validTarget(player, target) ? target.getUUID() : null;
 
         int created = player.tickCount;
-        event.setComboState(primaryEntry);
         PENDING.put(player.getUUID(), new PendingCast(
                 player.level().dimension(),
                 player.getUUID(),
                 targetId,
                 plan,
                 aim,
-                event.getType(),
-                primaryEntry,
+                type,
                 created,
                 created + plan.primaryDelayTicks()));
+        return primaryEntry;
     }
 
     static void tick(TickEvent.ServerTickEvent event) {
@@ -277,7 +285,6 @@ final class ForgedSlashArtHandler {
         }
 
         pending.phase = Phase.SECONDARY;
-        pending.expectedCombo = secondaryEntry;
         pending.secondaryCycle++;
         pending.secondaryExecuted = false;
         pending.phaseDamageDueTick =
@@ -376,7 +383,6 @@ final class ForgedSlashArtHandler {
         private final ForgedSlashArtPlan plan;
         private final Vec3 aim;
         private final SlashArts.ArtsType sourceType;
-        private ResourceLocation expectedCombo;
         private final int createdPlayerTick;
         private int phaseDamageDueTick;
         private Phase phase = Phase.PRIMARY;
@@ -391,7 +397,6 @@ final class ForgedSlashArtHandler {
                 ForgedSlashArtPlan plan,
                 Vec3 aim,
                 SlashArts.ArtsType sourceType,
-                ResourceLocation expectedCombo,
                 int createdPlayerTick,
                 int phaseDamageDueTick) {
             this.dimension = dimension;
@@ -400,7 +405,6 @@ final class ForgedSlashArtHandler {
             this.plan = plan;
             this.aim = aim;
             this.sourceType = sourceType;
-            this.expectedCombo = expectedCombo;
             this.createdPlayerTick = createdPlayerTick;
             this.phaseDamageDueTick = phaseDamageDueTick;
         }
