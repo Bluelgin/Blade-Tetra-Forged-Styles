@@ -406,20 +406,6 @@ final class ChallengeSession {
 
     void tickVisitor(MinecraftServer server, ServerLevel mirror, ServerLevel easter) {
         prepareEasterRoom(easter);
-        if (!bossSpawned) {
-            mirror.getEntitiesOfClass(MikageEntity.class,
-                            new AABB(offsetX - 32, 50, offsetZ - 172,
-                                    offsetX + 290, 230, offsetZ + 152))
-                    .forEach(MikageEntity::discard);
-            MikageEntity mikage = ModEntities.MIKAGE.get().create(mirror);
-            if (mikage != null) {
-                mikage.moveTo(offsetX + 172.5D, 64.0D, offsetZ - 2.5D,
-                        -90.0F, 0.0F);
-                mikage.configureVisitor(id);
-                mirror.addFreshEntity(mikage);
-                bossSpawned = true;
-            }
-        }
         forEachPlayer(server, player -> {
             if (visitorArrivals.add(player.getUUID())) {
                 player.teleportTo(mirror, offsetX + 163.5D, 64.0D,
@@ -428,6 +414,11 @@ final class ChallengeSession {
                         "message.blade_tetra.visitor.arrived"));
             }
         });
+        // Arrival loads the guide's chunk; retry instead of treating an unchecked
+        // spawn into an inactive chunk as permanent success.
+        if (server.getTickCount() % 20 == 0 && anyPlayer(server, player -> true)) {
+            ensureVisitorGuide(mirror);
+        }
         renderReturn(mirror, offsetX + 158.5D, offsetZ - 2.5D);
         forEachPlayer(server, player -> {
             if (!easterRoomPlayers.contains(player.getUUID())
@@ -446,6 +437,49 @@ final class ChallengeSession {
                     returnPlayer(player);
                 }
             });
+        }
+    }
+
+    private void ensureVisitorGuide(ServerLevel mirror) {
+        if (!mirror.hasChunkAt(new BlockPos(offsetX + 172, 64, offsetZ - 3))) {
+            return;
+        }
+        MikageEntity guide = null;
+        Entity tracked = bossEntityId == null ? null : mirror.getEntity(bossEntityId);
+        if (tracked instanceof MikageEntity candidate && candidate.isAlive()
+                && candidate.isVisitorGuide()
+                && candidate.getPersistentData().getLong("blade_tetra_challenge") == id) {
+            guide = candidate;
+        }
+        for (MikageEntity candidate : mirror.getEntitiesOfClass(MikageEntity.class,
+                new AABB(offsetX - 32, 50, offsetZ - 172,
+                        offsetX + 290, 230, offsetZ + 152))) {
+            long owner = candidate.getPersistentData().getLong("blade_tetra_challenge");
+            if (candidate.isVisitorGuide() && candidate.isAlive() && owner == id) {
+                if (guide == null) {
+                    guide = candidate;
+                } else if (candidate != guide) {
+                    candidate.discard();
+                }
+            } else if (candidate.isVisitorGuide()
+                    && !ChallengeManager.isCurrentVisitorGuide(candidate)) {
+                candidate.discard();
+            }
+        }
+        if (guide != null) {
+            bossEntityId = guide.getUUID();
+            bossSpawned = true;
+            return;
+        }
+        bossSpawned = false;
+        MikageEntity replacement = ModEntities.MIKAGE.get().create(mirror);
+        if (replacement != null) {
+            replacement.moveTo(offsetX + 172.5D, 64.0D, offsetZ - 2.5D, -90.0F, 0.0F);
+            replacement.configureVisitor(id);
+            if (mirror.addFreshEntity(replacement)) {
+                bossEntityId = replacement.getUUID();
+                bossSpawned = true;
+            }
         }
     }
 

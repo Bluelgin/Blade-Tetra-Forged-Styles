@@ -291,7 +291,19 @@ public final class ChallengeManager {
         return challenge != null && challenge.tryVoice(mikage.getServer(), line);
     }
 
+    static boolean isCurrentVisitorGuide(MikageEntity mikage) {
+        ChallengeSession session = CHALLENGES.get(
+                mikage.getPersistentData().getLong("blade_tetra_challenge"));
+        return session != null && !session.closed && session.mode == GateMode.VISITOR
+                && !session.participants.isEmpty()
+                && (session.bossEntityId == null || session.bossEntityId.equals(mikage.getUUID()));
+    }
+
     public static void openVisitorDialogue(ServerPlayer player, MikageEntity mikage) {
+        if (mikage.isVisitorGuide() && !isCurrentVisitorGuide(mikage)) {
+            mikage.discard();
+            return;
+        }
         ChallengeSession challenge = CHALLENGES.get(
                 mikage.getPersistentData().getLong("blade_tetra_challenge"));
         if (challenge != null && challenge.mode == GateMode.VISITOR

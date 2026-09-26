@@ -591,6 +591,11 @@ public final class MikageEntity extends Monster {
         // Explicit challenge cleanup still uses discard() and is unaffected.
         noActionTime = 0;
         if (isVisitorGuide()) {
+            // Chunk inactivity may outlive the visitor session that owned this guide.
+            if (tickCount % 20 == 0 && !ChallengeManager.isCurrentVisitorGuide(this)) {
+                discard();
+                return;
+            }
             setTarget(null);
             setDeltaMovement(Vec3.ZERO);
             bossBar.setVisible(false);
