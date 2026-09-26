@@ -8,8 +8,10 @@ import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.level.LevelEvent;
@@ -18,9 +20,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Event facade for named-blade fusion abilities. Ability reconciliation and
- * authored combat behavior live in dedicated handlers so this class remains a
- * small routing layer as more fusions are added.
+ * Event facade for named-blade fusion abilities and player-authored Slash Arts.
+ * Ability reconciliation and combat behavior live in dedicated handlers so this
+ * class remains a small routing layer as systems are added.
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LegacyFusionHandler {
@@ -37,6 +39,11 @@ public final class LegacyFusionHandler {
         }
         ItemStack blade = player.getMainHandItem();
         var art = event.getSlashBladeState().getSlashArtsKey();
+        if (ModSlashBladeAbilities.FORGED_SLASH_ART.getId().equals(art)) {
+            ForgedSlashArtHandler.onSlashArt(event,
+                    player, blade, event.getSlashBladeState());
+            return;
+        }
         if (ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId().equals(art)) {
             ProgrammaticFusionHandler.onSlashArt(event,
                     player, blade, event.getSlashBladeState());
@@ -87,6 +94,16 @@ public final class LegacyFusionHandler {
     }
 
     @SubscribeEvent
+    public static void onProjectileImpact(ProjectileImpactEvent event) {
+        if (event.getRayTraceResult().getType() == HitResult.Type.ENTITY
+                && LegacyFusionCombatSupport.isVisualOnly(
+                        event.getProjectile())) {
+            event.setImpactResult(
+                    ProjectileImpactEvent.ImpactResult.SKIP_ENTITY);
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
         VoidScatteringFusionHandler.onLivingHurt(event);
         RustReleaseFusionHandler.onLivingHurt(event);
@@ -97,6 +114,7 @@ public final class LegacyFusionHandler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        ForgedSlashArtHandler.tick(event);
         ProgrammaticFusionHandler.tick(event);
         TwinFoxFusionHandler.tick(event);
         TwinPhaseFusionHandler.tick(event);
@@ -109,6 +127,7 @@ public final class LegacyFusionHandler {
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel level) {
+            ForgedSlashArtHandler.onLevelUnload(level);
             ProgrammaticFusionHandler.onLevelUnload(level);
             TwinFoxFusionHandler.onLevelUnload(level);
             TwinPhaseFusionHandler.onLevelUnload(level);
@@ -121,6 +140,7 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
+        ForgedSlashArtHandler.clear();
         ProgrammaticFusionHandler.clear();
         TwinFoxFusionHandler.clear();
         TwinPhaseFusionHandler.clear();

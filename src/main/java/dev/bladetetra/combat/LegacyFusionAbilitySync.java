@@ -14,7 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Reconciles structural Slash Arts and Special Effects with assembled legacy fittings. */
+/** Reconciles structural Slash Arts and Special Effects with assembled blade modules. */
 final class LegacyFusionAbilitySync {
     private static final String LAST_ACTIVE = "blade_tetra_legacy_fusion_active";
     private static final String PREVIOUS_SLASH_ART =
@@ -25,6 +25,7 @@ final class LegacyFusionAbilitySync {
 
     static void sync(ItemStack blade, ISlashBladeState state) {
         LegacyFusion active = LegacyFusion.active(blade);
+        ForgedSlashArtPlan forged = ForgedSlashArtPlan.from(blade);
         CompoundTag tag = blade.getOrCreateTag();
         String previous = tag.getString(LAST_ACTIVE);
         String current = active == null ? "" : active.id();
@@ -43,17 +44,30 @@ final class LegacyFusionAbilitySync {
             orthodox = null;
         }
 
+        // Structural named-blade identity wins over a forged inscription.
+        // A forged spec may stay on the item as a dormant player-authored preset,
+        // but it must never replace an authored/programmatic/inherited SA while
+        // leaving that fitting's coupled SE behind (for example Dead Thought).
+        //
+        // Priority:
+        // authored fusion > programmatic mixed fusion > orthodox inheritance
+        // > forged custom SA > previous/external SA.
         String owner = active != null
                 ? "fusion:" + active.id()
                 : programmatic != null
                         ? "programmatic:" + programmatic.key()
-                        : orthodox == null ? "" : "orthodox:" + orthodox.id();
+                        : orthodox != null
+                                ? "orthodox:" + orthodox.id()
+                                : forged == null ? "" : "forged:" + forged.key();
         ResourceLocation desiredSlashArt = active != null
                 ? active.slashArt()
                 : programmatic != null
                         ? ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
-                        : orthodox == null ? null
-                                : LegacyAbilityResolver.registeredSlashArt(orthodox.slashArt());
+                        : orthodox != null
+                                ? LegacyAbilityResolver.registeredSlashArt(
+                                        orthodox.slashArt())
+                                : forged == null ? null
+                                        : ModSlashBladeAbilities.FORGED_SLASH_ART.getId();
         List<ResourceLocation> desiredEffects = active != null
                 ? active.specialEffects()
                 : programmatic != null
@@ -84,7 +98,7 @@ final class LegacyFusionAbilitySync {
                 tag.putString(ABILITY_OWNER, owner);
             }
         } else if (!owner.isEmpty()) {
-            // Structural abilities remain authoritative while their fitting owner is
+            // Structural abilities remain authoritative while their owner is
             // assembled, but registry/data changes must also be able to withdraw an
             // ability without requiring the player to disassemble the weapon first.
             reconcileStructuralSlashArt(tag, state, desiredSlashArt);

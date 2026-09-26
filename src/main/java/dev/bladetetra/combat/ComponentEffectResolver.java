@@ -16,6 +16,26 @@ public final class ComponentEffectResolver {
                 && module.equals(tag.getString(slot));
     }
 
+    /**
+     * Returns the active Tetra variant for a slot. Tetra stores material/variant
+     * identity under the selected module id plus {@code _material}, rather than
+     * under the slot id itself.
+     */
+    public static String moduleVariant(ItemStack stack, String slot) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(slot, Tag.TAG_STRING)) {
+            return "";
+        }
+        String module = tag.getString(slot);
+        if (module.isBlank()) {
+            return "";
+        }
+        String variantKey = module + "_material";
+        return tag.contains(variantKey, Tag.TAG_STRING)
+                ? tag.getString(variantKey)
+                : "";
+    }
+
     private ComponentEffectResolver() {
     }
 }

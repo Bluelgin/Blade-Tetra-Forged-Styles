@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <title>斩术魂珠 · 美术预览</title>
+  <desc>像素风锻造魂珠，四枚金属刻点环绕青蓝魂核，一道朱红刀光穿过中心。</desc>
+
+  <!-- Silhouette and four forged fittings. -->
+  <path fill="#201b29" d="M12 2h8v2h3v2h3v3h2v3h2v8h-2v3h-2v3h-3v2h-3v2h-8v-2H9v-2H6v-3H4v-3H2v-8h2V9h2V6h3V4h3z"/>
+  <path fill="#554258" d="M12 3h8v2h3v2h3v3h2v3h1v6h-1v3h-2v3h-3v2h-3v2h-8v-2H9v-2H6v-3H4v-3H3v-6h1v-3h2V7h3V5h3z"/>
+  <path fill="#a76d48" d="M13 3h6v2h3v2h-3V6h-6v1h-3V5h3zM4 13h3v-3h2v3H8v6h1v3H7v-3H4zM23 10h2v3h3v6h-3v3h-2v-3h1v-6h-1zM10 25h3v1h6v-1h3v2h-3v2h-6v-2h-3z"/>
+  <path fill="#efd39a" d="M14 4h4v1h-4zM4 14h2v4H4zM26 14h2v4h-2zM14 27h4v1h-4z"/>
+
+  <!-- Orb rim; cool facets carry the four techniques. -->
+  <path fill="#142b41" d="M12 7h8v2h3v3h2v8h-2v3h-3v2h-8v-2H9v-3H7v-8h2V9h3z"/>
+  <path fill="#407f91" d="M12 8h8v2h3v3h1v6h-1v3h-3v2h-8v-2H9v-3H8v-6h1v-3h3z"/>
+  <path fill="#81c9c9" d="M13 8h6v1h-6zM9 12h1v-2h3v1h-2v2H9zM22 12h1v7h-1zM12 23h8v1h-8z"/>
+  <path fill="#213c5d" d="M12 10h8v2h2v8h-2v2h-8v-2h-2v-8h2z"/>
+  <path fill="#315e80" d="M12 11h7v1h2v4h-2v2h-2v-4h-5z"/>
+  <path fill="#3c7090" d="M12 18h2v2h6v1h-8v-1h-1v-5h1z"/>
+
+  <!-- Four component marks, intentionally asymmetric in value for depth. -->
+  <path fill="#e3b77b" d="M15 8h2v2h-2zM22 15h2v2h-2zM15 22h2v2h-2zM8 15h2v2H8z"/>
+  <path fill="#fff0b6" d="M15 8h1v1h-1zM22 15h1v1h-1z"/>
+
+  <!-- Forged diagonal slash, with a pale cutting edge and a warm wake. -->
+  <path fill="#421d36" d="M21 9h2v2h-2v2h-2v2h-2v2h-2v2h-2v2h-2v2H9v-2h2v-2h2v-2h2v-2h2v-2h2v-2h2z"/>
+  <path fill="#e35467" d="M21 10h2v1h-2v2h-2v2h-2v2h-2v2h-2v2h-2v1H9v-1h2v-2h2v-2h2v-2h2v-2h2v-2h2z"/>
+  <path fill="#ffe9d0" d="M21 10h1v1h-1v2h-2v2h-2v2h-2v2h-2v2h-2v1h-1v-1h1v-2h2v-2h2v-2h2v-2h2v-2h2z"/>
+  <path fill="#e77686" d="M19 15h2v1h-2v2h-2v2h-2v2h-2v-1h2v-2h2v-2h2z"/>
+
+  <!-- Small soul spark, separate from the cutting edge. -->
+  <path fill="#9de4e3" d="M13 12h2v1h1v1h-1v1h-2v-1h-1v-1h1z"/>
+  <path fill="#efffff" d="M13 12h1v1h-1z"/>
+</svg>

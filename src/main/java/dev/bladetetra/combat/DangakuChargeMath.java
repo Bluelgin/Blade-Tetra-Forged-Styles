@@ -2,8 +2,8 @@ package dev.bladetetra.combat;
 
 /** Shared charge/range math for Dangaku's held right-click sweep. */
 public final class DangakuChargeMath {
-    public static final int FULL_CHARGE_TICKS = 44;
-    public static final int PEAK_GRACE_TICKS = 5;
+    public static final int FULL_CHARGE_TICKS = 32;
+    public static final int PEAK_GRACE_TICKS = 8;
     public static final double MIN_DECAYED_CHARGE = 0.25D;
 
     static final double REFERENCE_PANEL_DAMAGE = 24.0D;
@@ -13,9 +13,9 @@ public final class DangakuChargeMath {
     static final double CHARGED_RANGE_BASE = 8.50D;
     static final double CHARGED_RANGE_MAX = 12.0D;
     static final double PARTIAL_RANGE_FLOOR = 5.50D;
-    static final float DAMAGE_RATIO_FLOOR = 0.42F;
-    static final float DAMAGE_RATIO_BASE = 0.58F;
-    static final float DAMAGE_RATIO_MAX = 0.68F;
+    static final float DAMAGE_RATIO_FLOOR = 0.30F;
+    static final float DAMAGE_RATIO_BASE = 0.42F;
+    static final float DAMAGE_RATIO_MAX = 0.48F;
 
     public static double chargeForHeldTicks(long heldTicks) {
         if (heldTicks <= 0L) {

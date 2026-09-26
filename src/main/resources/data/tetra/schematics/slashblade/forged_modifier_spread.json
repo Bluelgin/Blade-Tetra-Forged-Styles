@@ -1,0 +1,8 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_modifier" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 64, "textureY": 112, "tint": "79B8D9" },
+  "outcomes": [ { "material": { "items": [ "minecraft:prismarine_crystals" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/spread" } ]
+}

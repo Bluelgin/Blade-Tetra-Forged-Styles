@@ -66,8 +66,6 @@ public final class RengekiShortStepHandler {
                     .range(64.0D)
                     .ignoreInvisibilityTesting()
                     .selector(new TargetSelector.AttackablePredicate());
-    private static final Map<UUID, ChaseWindow> CHASE_WINDOWS = new HashMap<>();
-    private static final Map<UUID, KillTransfer> KILL_TRANSFERS = new HashMap<>();
 
     /**
      * HitEvent arrives after Resharped has applied the melee damage. Native B
@@ -103,13 +101,13 @@ public final class RengekiShortStepHandler {
 
         // Recovery nodes may receive delayed non-lethal hits, but they cannot
         // advance B1 -> B2 etc. Only active B1-B6 nodes arm ordinary chase.
-        if (KILL_TRANSFERS.containsKey(playerId) || !canAdvanceBComboId(combo)) {
+        if (RengekiRuntimeState.killTransfers().containsKey(playerId) || !canAdvanceBComboId(combo)) {
             return;
         }
 
-        CHASE_WINDOWS.put(
+        RengekiRuntimeState.chaseWindows().put(
                 playerId,
-                new ChaseWindow(
+                new RengekiRuntimeState.ChaseWindow(
                         player.level().getGameTime() + CHASE_WINDOW_TICKS,
                         event.getBlade()));
     }
@@ -117,10 +115,10 @@ public final class RengekiShortStepHandler {
     private static void scheduleKillTransfer(ServerPlayer player, ItemStack blade) {
         UUID playerId = player.getUUID();
         long now = player.level().getGameTime();
-        CHASE_WINDOWS.remove(playerId);
-        KILL_TRANSFERS.put(
+        RengekiRuntimeState.chaseWindows().remove(playerId);
+        RengekiRuntimeState.killTransfers().put(
                 playerId,
-                new KillTransfer(
+                new RengekiRuntimeState.KillTransfer(
                         now + KILL_TRANSFER_DELAY_TICKS,
                         now + KILL_TRANSFER_WINDOW_TICKS,
                         blade));
@@ -155,7 +153,7 @@ public final class RengekiShortStepHandler {
         if (event.isCanceled()
                 || !(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI) {
-            clearTransientState(playerId);
+            RengekiRuntimeState.clearShortStep(playerId);
             return;
         }
 
@@ -166,16 +164,16 @@ public final class RengekiShortStepHandler {
         boolean expectedBAdvance = isExpectedBAdvance(current, next);
         boolean rightClickAdvance = expectedBAdvance && isRightClickAdvance(player);
 
-        KillTransfer killTransfer = KILL_TRANSFERS.get(playerId);
+        RengekiRuntimeState.KillTransfer killTransfer = RengekiRuntimeState.killTransfers().get(playerId);
         if (killTransfer != null) {
             long now = player.level().getGameTime();
             if (killTransfer.expiresAt() < now
                     || killTransfer.blade() != blade) {
-                KILL_TRANSFERS.remove(playerId);
+                RengekiRuntimeState.killTransfers().remove(playerId);
             } else if (expectedBAdvance) {
                 if (canGroundTransfer(player)) {
-                    KILL_TRANSFERS.remove(playerId);
-                    CHASE_WINDOWS.remove(playerId);
+                    RengekiRuntimeState.killTransfers().remove(playerId);
+                    RengekiRuntimeState.chaseWindows().remove(playerId);
                     tryMoveToTarget(
                             player,
                             KILL_TRANSFER_SEARCH_DISTANCE,
@@ -184,11 +182,11 @@ public final class RengekiShortStepHandler {
                     return;
                 }
             } else if (!isPassiveBFlowTransition(current, next)) {
-                KILL_TRANSFERS.remove(playerId);
+                RengekiRuntimeState.killTransfers().remove(playerId);
             }
         }
 
-        ChaseWindow window = CHASE_WINDOWS.remove(playerId);
+        RengekiRuntimeState.ChaseWindow window = RengekiRuntimeState.chaseWindows().remove(playerId);
         if (window == null
                 || window.expiresAt() < player.level().getGameTime()
                 || window.blade() != blade
@@ -231,7 +229,7 @@ public final class RengekiShortStepHandler {
         }
 
         UUID playerId = player.getUUID();
-        KillTransfer transfer = KILL_TRANSFERS.get(playerId);
+        RengekiRuntimeState.KillTransfer transfer = RengekiRuntimeState.killTransfers().get(playerId);
         if (transfer == null) {
             return;
         }
@@ -241,8 +239,8 @@ public final class RengekiShortStepHandler {
             return;
         }
 
-        KILL_TRANSFERS.remove(playerId);
-        CHASE_WINDOWS.remove(playerId);
+        RengekiRuntimeState.killTransfers().remove(playerId);
+        RengekiRuntimeState.chaseWindows().remove(playerId);
         ItemStack blade = player.getMainHandItem();
         if (now > transfer.expiresAt()
                 || transfer.blade() != blade
@@ -259,29 +257,8 @@ public final class RengekiShortStepHandler {
                 MAX_KILL_TRANSFER_DISTANCE);
     }
 
-    @SubscribeEvent
-    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        clearTransientState(event.getEntity().getUUID());
-    }
-
-    @SubscribeEvent
-    public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        clearTransientState(event.getEntity().getUUID());
-    }
-
-    @SubscribeEvent
-    public static void onClone(PlayerEvent.Clone event) {
-        clearTransientState(event.getOriginal().getUUID());
-        clearTransientState(event.getEntity().getUUID());
-    }
-
     static boolean hasPendingKillTransfer(UUID playerId) {
-        return KILL_TRANSFERS.containsKey(playerId);
-    }
-
-    private static void clearTransientState(UUID playerId) {
-        CHASE_WINDOWS.remove(playerId);
-        KILL_TRANSFERS.remove(playerId);
+        return RengekiRuntimeState.killTransfers().containsKey(playerId);
     }
 
     private static boolean canGroundTransfer(ServerPlayer player) {
@@ -540,12 +517,6 @@ public final class RengekiShortStepHandler {
                 && level.hasChunkAt(BlockPos.containing(minX, y, maxZ))
                 && level.hasChunkAt(BlockPos.containing(maxX, y, minZ))
                 && level.hasChunkAt(BlockPos.containing(maxX, y, maxZ));
-    }
-
-    private record ChaseWindow(long expiresAt, ItemStack blade) {
-    }
-
-    private record KillTransfer(long readyAt, long expiresAt, ItemStack blade) {
     }
 
     private RengekiShortStepHandler() {

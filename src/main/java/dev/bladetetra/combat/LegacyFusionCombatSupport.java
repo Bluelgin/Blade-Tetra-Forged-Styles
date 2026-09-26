@@ -58,6 +58,11 @@ final class LegacyFusionCombatSupport {
         entity.getPersistentData().putBoolean(VISUAL_ONLY, true);
     }
 
+    static boolean isVisualOnly(Entity entity) {
+        return entity != null
+                && entity.getPersistentData().getBoolean(VISUAL_ONLY);
+    }
+
     /**
      * Spawns SlashBlade's native slash mesh as a cosmetic entity only. Clearing
      * its shooter is intentional: EntitySlashEffect's indirect attack path scales

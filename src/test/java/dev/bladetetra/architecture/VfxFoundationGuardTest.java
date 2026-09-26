@@ -13,6 +13,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VfxFoundationGuardTest {
     @Test
     void migratedClientsUseSharedPrimitivesInsteadOfLocalCopies() throws IOException {
+        String techniques = read(
+                "src/main/java/dev/bladetetra/client/BladeTechniqueVfxClient.java");
+        String geometry = read(
+                "src/main/java/dev/bladetetra/client/BladeTechniqueVfxGeometry.java");
+        assertTrue(geometry.contains("VfxPrimitives"),
+                "Legacy technique geometry should delegate common emission to VfxPrimitives");
+        assertFalse(techniques.contains("private static void ringHorizontal("));
+        assertFalse(techniques.contains("private static void ringVertical("));
+        assertFalse(techniques.contains("private static void quad("));
+        assertFalse(techniques.contains("private static void vertex("));
+
         String combat = read("src/main/java/dev/bladetetra/client/BladeCombatVfxClient.java");
         assertTrue(combat.contains("VfxPrimitives"),
                 "Blade combat VFX should render common geometry through VfxPrimitives");

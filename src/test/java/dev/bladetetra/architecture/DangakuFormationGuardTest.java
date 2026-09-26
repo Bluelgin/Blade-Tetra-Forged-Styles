@@ -37,8 +37,13 @@ class DangakuFormationGuardTest {
                 "Captured right-click must terminate the native item-use dispatch cleanly");
         assertTrue(handler.contains("player.startUsingItem(hand);"),
                 "Dangaku should enter the held-use state without calling native progressCombo");
-        assertTrue(handler.contains("boolean armed = isNeutralForCharge"),
-                "Rapid clicks during a locked attack should be swallowed rather than animation-cancel spam");
+        assertTrue(handler.contains("if (!isNeutralForCharge(player, blade))"),
+                "Held right-click should wait for recovery before beginning item use");
+        assertTrue(handler.indexOf("if (!isNeutralForCharge(player, blade))")
+                        < handler.indexOf("player.startUsingItem(hand);"),
+                "Recovery must not start a doomed charge or accrue charge time");
+        assertTrue(handler.contains("event.setCancellationResult(InteractionResult.FAIL)"),
+                "Blocked use should let the client retry held input after recovery");
         assertTrue(handler.contains("|| !state.armed()"),
                 "A captured but locked right-click must never leak into a native release action");
         assertFalse(handler.contains("onChargeStart(LivingEntityUseItemEvent.Start"),
@@ -62,9 +67,9 @@ class DangakuFormationGuardTest {
         String math = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/DangakuChargeMath.java"));
 
-        assertTrue(math.contains("FULL_CHARGE_TICKS = 44"),
-                "Dangaku should take about 2.2 seconds to reach peak charge");
-        assertTrue(math.contains("PEAK_GRACE_TICKS = 5"),
+        assertTrue(math.contains("FULL_CHARGE_TICKS = 32"),
+                "Dangaku should take about 1.6 seconds to reach peak charge");
+        assertTrue(math.contains("PEAK_GRACE_TICKS = 8"),
                 "Peak release needs a small human reaction window");
         assertTrue(math.contains("MIN_DECAYED_CHARGE = 0.25D"),
                 "Overholding should decay without cycling back to another peak");
@@ -72,9 +77,9 @@ class DangakuFormationGuardTest {
                 "Even a low-panel full charge should feel meaningfully large");
         assertTrue(math.contains("CHARGED_RANGE_MAX = 12.0D"),
                 "Panel scaling must remain hard-capped");
-        assertTrue(math.contains("DAMAGE_RATIO_FLOOR = 0.42F"),
+        assertTrue(math.contains("DAMAGE_RATIO_FLOOR = 0.30F"),
                 "Dangaku charged sweep should prioritize control over raw damage");
-        assertTrue(math.contains("DAMAGE_RATIO_MAX = 0.68F"),
+        assertTrue(math.contains("DAMAGE_RATIO_MAX = 0.48F"),
                 "Even a high-panel full charge should remain below the old damage ceiling");
         assertTrue(math.contains("Math.sqrt(Math.max(1.0D, panelDamage)"),
                 "Panel scaling should be soft rather than linear runaway");
@@ -120,11 +125,11 @@ class DangakuFormationGuardTest {
                 "The old 90-degree visual plane reads as a vertical cleave");
         assertTrue(source.contains("MAX_CHARGED_TARGETS = 24"),
                 "Large sweep still needs a hard target budget");
-        assertTrue(source.contains("SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.72F"),
+        assertTrue(source.contains("SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.55F"),
                 "SA overlay sweep should deal reduced sidecar damage");
-        assertTrue(source.contains("ORDINARY_SWEEP_DAMAGE_FACTOR = 0.68D"),
+        assertTrue(source.contains("ORDINARY_SWEEP_DAMAGE_FACTOR = 0.58D"),
                 "Ordinary sweep damage should stay secondary to formation control");
-        assertTrue(source.contains("CLEAVE_DAMAGE_FACTOR = 0.95D"),
+        assertTrue(source.contains("CLEAVE_DAMAGE_FACTOR = 0.80D"),
                 "Dangaku cleave should be toned down from the previous multiplier");
         assertTrue(source.contains("AttackManager.doMeleeAttack(player, target, false, false, damageRatio)"),
                 "Charged hits must preserve existing hurt windows");

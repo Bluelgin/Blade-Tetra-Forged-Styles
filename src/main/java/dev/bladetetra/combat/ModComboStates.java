@@ -17,9 +17,9 @@ import java.util.function.Supplier;
 
 /**
  * Style combo graphs reuse Resharped's animation and combat timelines while
- * replacing their transitions. This keeps hit timing compatible with
- * Resharped, but prevents a style root from replaying one signature attack for
- * every click.
+ * replacing only their transitions. Player-authored Forged Slash Arts delegate
+ * directly to SlashBlade's native ComboState graphs and therefore do not
+ * register shadow/visual-only copies here.
  */
 public final class ModComboStates {
     static final int IAIDO_SHEATHE_MINIMUM_NEXT_FRAME = 7;

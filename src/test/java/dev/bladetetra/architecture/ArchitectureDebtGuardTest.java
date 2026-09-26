@@ -22,22 +22,43 @@ class ArchitectureDebtGuardTest {
     void legacyHotspotsDoNotKeepGrowing() throws IOException {
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/BladeTechniqueVfxClient.java",
-                2_900L);
+                850L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/BladeTechniqueMikageVfxRenderer.java",
+                1_450L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java",
-                4_100L);
+                1_400L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/MaterialTextureStyleEngine.java",
+                1_850L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/MaterialTextureComponentPainter.java",
+                850L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                3_900L);
+                3_500L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java",
+                180L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/ChallengeManager.java",
-                1_800L);
+                700L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/ChallengeSession.java",
+                1_100L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java",
                 950L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/VoidScatteringFusionHandler.java",
-                1_050L);
+                800L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/combat/VoidScatteringReturnRuntime.java",
+                300L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/item/ModularSlashBladeItem.java",
+                650L);
     }
 
     @Test
@@ -79,10 +100,12 @@ class ArchitectureDebtGuardTest {
         assertFalse(source.contains("List<MikageEntity> orphaned = new ArrayList<>()"),
                 "Recurring orphan lists indicate the old once-per-second full-dimension scan returned");
 
-        long challengeClosures = source.lines()
+        String session = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/ChallengeSession.java"));
+        long challengeClosures = session.lines()
                 .filter(line -> line.contains("closed = true;"))
                 .count();
-        long arenaAttackCleanups = source.lines()
+        long arenaAttackCleanups = session.lines()
                 .filter(line -> line.contains("cleanupChallengeAttacks(mirror, this);"))
                 .count();
         assertTrue(arenaAttackCleanups >= challengeClosures,
@@ -93,15 +116,17 @@ class ArchitectureDebtGuardTest {
     void materialTextureTemplateIsDecodedOncePerResourceCycle() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
-        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE"),
+        String cache = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureCache.java"));
+        assertTrue(source.contains("MaterialTextureCache.copyAtlas("),
+                "Atlas generation should consume the dedicated cache service");
+        assertTrue(cache.contains("atlasTemplate"),
                 "The normalized material atlas should be cached for one resource cycle");
-        assertTrue(source.contains("copyGeneratedAtlas("),
-                "Material and emissive generation should copy the normalized template");
-        assertTrue(source.contains("copy.copyFrom(GENERATED_ATLAS_TEMPLATE);"),
+        assertTrue(cache.contains("copy.copyFrom(atlasTemplate);"),
                 "Each generated signature still needs an isolated mutable image");
-        assertTrue(source.contains("GENERATED_ATLAS_TEMPLATE.close();"),
+        assertTrue(cache.contains("atlasTemplate.close();"),
                 "The native template image must be released on resource reload");
-        long directTemplateLoads = source.lines()
+        long directTemplateLoads = cache.lines()
                 .filter(line -> line.contains("getResourceOrThrow(TEMPLATE)"))
                 .count();
         assertTrue(directTemplateLoads <= 1,
@@ -122,6 +147,15 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
+    void materialReloadClearsBothTextureAndLegacyModelCaches() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
+        assertTrue(source.contains("MaterialTextureCache.clear();"));
+        assertTrue(source.contains("LegacyModelPartRenderer.clear();"),
+                "Material reload must also invalidate legacy model-part caches");
+    }
+
+    @Test
     void materialTextureCompositorDoesNotGainDirectAddonPresenceChecks() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
@@ -130,6 +164,65 @@ class ArchitectureDebtGuardTest {
                         + "not MaterialTextureManager");
         assertFalse(source.contains("isLoaded("),
                 "MaterialTextureManager must stay provider-agnostic");
+    }
+
+    @Test
+    void forgedSuperSlashArtArmsTheSameNativeRuntime() throws IOException {
+        String registry = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/registry/ModSlashBladeAbilities.java"));
+        String entrypoint = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedSlashArtEntrypoint.java"));
+        assertTrue(registry.contains(
+                ".setComboStateSuper(ForgedSlashArtEntrypoint::superCombo)"),
+                "SuperSlashArts bypasses PerformSlashArtEvent and must use the direct forged entrypoint");
+        assertTrue(entrypoint.contains("ForgedSlashArtHandler.beginCast("));
+        assertTrue(entrypoint.contains("SlashArts.ArtsType.Super"));
+    }
+
+    @Test
+    void forgedRuntimeOnlyOwnsNativeGraphRouting() throws IOException {
+        String handler = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedSlashArtHandler.java"));
+        String flow = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedNativeComboFlow.java"));
+        String facade = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/LegacyFusionHandler.java"));
+
+        assertTrue(handler.contains("ForgedNativeComboFlow.shouldSplice("));
+        assertTrue(handler.contains("state.updateComboSeq(player, entry)"));
+        assertTrue(handler.contains("blade != pending.sourceBlade"),
+                "Switching to another identically-authored blade must cancel the pending route");
+        assertTrue(flow.contains("signatureEntry("));
+        assertTrue(flow.contains("ComboState.getElapsed(user)"));
+
+        assertFalse(handler.contains("LivingAttackEvent"),
+                "Forged runtime must not cancel SlashBlade's native damage");
+        assertFalse(handler.contains("EntityJoinLevelEvent"),
+                "Forged runtime must not sanitize native presentation entities");
+        assertFalse(handler.contains("ProceduralSlashArtExecutor"),
+                "Forged runtime must not maintain a second combat executor");
+        assertFalse(handler.contains("FORGED_OUTPUT_DEPTH"),
+                "Forged output suppression depth belonged to the removed custom-damage path");
+        assertFalse(facade.contains("ForgedSlashArtHandler.onLivingAttack"),
+                "The event facade must not route native damage through forged suppression");
+        assertFalse(facade.contains("ForgedSlashArtHandler.onEntityJoin"),
+                "The event facade must not rewrite native SlashBlade entities");
+    }
+
+    @Test
+    void forgedSecondaryStartsAtSignatureInsteadOfSecondFullSlashArt() throws IOException {
+        String flow = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/ForgedNativeComboFlow.java"));
+        assertTrue(flow.contains("\"judgement_cut_slash\""));
+        assertTrue(flow.contains("\"sakura_end_right\""));
+        assertTrue(flow.contains("\"piercing_2\""));
+        int secondaryStart = flow.indexOf("static ResourceLocation secondaryEntry");
+        int signatureStart = flow.indexOf("static ResourceLocation signatureEntry", secondaryStart);
+        assertTrue(secondaryStart >= 0 && signatureStart > secondaryStart);
+        String secondaryBody = flow.substring(secondaryStart, signatureStart);
+        assertTrue(secondaryBody.contains("signatureEntry("));
+        assertFalse(secondaryBody.contains("doArts("),
+                "Secondary routing should enter the signature node directly instead of releasing a second full SA");
     }
 
     @Test

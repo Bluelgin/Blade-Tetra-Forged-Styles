@@ -1,0 +1,8 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_modifier" ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 64, "textureY": 112, "tint": "E4C76D" },
+  "outcomes": [ { "material": { "items": [ "minecraft:amethyst_block" ] }, "moduleKey": "slashblade/sa_modifier", "moduleVariant": "sa_modifier/condensed" } ]
+}

@@ -52,14 +52,14 @@ import java.util.UUID;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DangakuFormationHandler {
-    static final double ORDINARY_SWEEP_DAMAGE_FACTOR = 0.68D;
-    static final double CLEAVE_DAMAGE_FACTOR = 0.95D;
+    static final double ORDINARY_SWEEP_DAMAGE_FACTOR = 0.58D;
+    static final double CLEAVE_DAMAGE_FACTOR = 0.80D;
     static final double ORDINARY_FOCUS_DISTANCE = 2.70D;
     static final double ORDINARY_PULL_STRENGTH = 0.52D;
     static final double CLUSTER_RADIUS = 1.80D;
     static final int CLUSTER_REQUIRED_TARGETS = 3;
     static final float CLUSTER_DAMAGE_MULTIPLIER = 1.06F;
-    static final float SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.72F;
+    static final float SLASH_ART_SWEEP_DAMAGE_FACTOR = 0.55F;
     static final int CHARGED_STRIKE_DELAY_TICKS = 4;
     static final int MAX_CHARGED_TARGETS = 24;
     static final double CHARGED_MAX_HEIGHT_DIFFERENCE = 3.0D;
@@ -102,8 +102,8 @@ public final class DangakuFormationHandler {
      *
      * <p>If the previous Dangaku attack has not actually returned to neutral,
      * the use is still captured so it cannot leak into the native combo tree,
-     * but release is intentionally disarmed instead of becoming an animation
-     * cancel / sweep-spam shortcut.</p>
+     * but item use does not start yet. Minecraft retries held right-click once
+     * recovery ends, so the actual charge timer cannot include recovery time.</p>
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
@@ -120,14 +120,18 @@ public final class DangakuFormationHandler {
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
 
+        if (!isNeutralForCharge(player, blade)) {
+            event.setCancellationResult(InteractionResult.FAIL);
+            return;
+        }
+
         if (player instanceof ServerPlayer serverPlayer) {
-            boolean armed = isNeutralForCharge(serverPlayer, blade);
             ACTIVE_CHARGES.put(
                     serverPlayer.getUUID(),
                     new ChargeState(
                             blade,
                             serverPlayer.level().getGameTime(),
-                            armed));
+                            true));
         }
 
         player.startUsingItem(hand);
@@ -481,7 +485,7 @@ public final class DangakuFormationHandler {
     }
 
     private static boolean isNeutralForCharge(
-            ServerPlayer player,
+            Player player,
             ItemStack blade) {
         return blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> ComboStateRegistry.NONE.getId().equals(

@@ -1,6 +1,8 @@
 package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.ForgedSlashArtEntrypoint;
+import dev.bladetetra.combat.ForgedSlashArtPlan;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import dev.bladetetra.forging.LegacyFusion;
@@ -12,7 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
-/** Native SlashBlade registrations used by ordered legacy fusions. */
+/** Native SlashBlade registrations used by Blade Tetra structural abilities. */
 public final class ModSlashBladeAbilities {
     public static final DeferredRegister<SlashArts> SLASH_ARTS =
             DeferredRegister.create(SlashArts.REGISTRY_KEY, BladeTetra.MOD_ID);
@@ -30,6 +32,17 @@ public final class ModSlashBladeAbilities {
                             entity, ProgrammaticTrigger.JUST))
                     .setComboStateSuper(entity -> programmaticCombo(
                             entity, ProgrammaticTrigger.SUPER))
+                    .setProudSoulCost(45));
+
+    /** One structural registry entry for every four-part Tetra-authored Slash Art. */
+    public static final RegistryObject<SlashArts> FORGED_SLASH_ART =
+            SLASH_ARTS.register("forged_slash_art", () -> new SlashArts(
+                    ModSlashBladeAbilities::forgedCombo)
+                    .setComboStateJust(ModSlashBladeAbilities::forgedCombo)
+                    // Resharped's SuperSlashArts path bypasses
+                    // PerformSlashArtEvent, so it must arm the forged runtime
+                    // directly before returning the native primary entry.
+                    .setComboStateSuper(ForgedSlashArtEntrypoint::superCombo)
                     .setProudSoulCost(45));
 
     public static final RegistryObject<SlashArts> TWIN_FOX_PIERCING =
@@ -103,6 +116,15 @@ public final class ModSlashBladeAbilities {
     public static final RegistryObject<SpecialEffect> LIFE_EROSION =
             SPECIAL_EFFECTS.register("life_erosion",
                     () -> new SpecialEffect(0, false, false));
+
+    private static ResourceLocation forgedCombo(LivingEntity entity) {
+        ForgedSlashArtPlan plan = ForgedSlashArtPlan.from(entity.getMainHandItem());
+        // ForgedSlashArtHandler replaces this placeholder with the selected
+        // native SlashBlade entry during PerformSlashArtEvent. A non-NONE
+        // placeholder keeps the normal SlashArt release/cost path active.
+        return plan == null ? ComboStateRegistry.NONE.getId()
+                : ComboStateRegistry.STANDBY.getId();
+    }
 
     private static ResourceLocation programmaticCombo(LivingEntity entity,
             ProgrammaticTrigger trigger) {

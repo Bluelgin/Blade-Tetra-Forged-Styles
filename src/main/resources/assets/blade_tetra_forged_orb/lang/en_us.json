@@ -1,0 +1,9 @@
+{
+  "item.blade_tetra.forged_slash_art_orb": "Slash Art Orb",
+  "tooltip.blade_tetra.forged.orb.apply": "Use with a SlashBlade in the other hand to inscribe this Slash Art.",
+  "tooltip.blade_tetra.forged.orb.clear": "Sneak-use with an inscribed SlashBlade to erase the custom inscription.",
+  "message.blade_tetra.forged.applied": "Forged Slash Art inscription applied.",
+  "message.blade_tetra.forged.stored_dormant": "Forged Slash Art stored; the current named-blade ability has priority.",
+  "message.blade_tetra.forged.cleared": "Forged Slash Art inscription cleared.",
+  "message.blade_tetra.forged.incomplete": "The Slash Art Orb is incomplete."
+}

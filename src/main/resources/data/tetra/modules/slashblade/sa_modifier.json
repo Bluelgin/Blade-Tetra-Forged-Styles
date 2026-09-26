@@ -1,0 +1,13 @@
+{
+  "replace": true,
+  "slots": [ "slashblade/sa_modifier" ],
+  "type": "tetra:basic_module",
+  "variants": [
+    { "key": "sa_modifier/balanced", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "C8C8C8" } },
+    { "key": "sa_modifier/condensed", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "E4C76D" } },
+    { "key": "sa_modifier/shatter", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "D97979" } },
+    { "key": "sa_modifier/spread", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "79B8D9" } },
+    { "key": "sa_modifier/echo", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "A889D9" } },
+    { "key": "sa_modifier/haste", "integrity": 0, "glyph": { "textureX": 64, "textureY": 112, "tint": "8FD98C" } }
+  ]
+}
