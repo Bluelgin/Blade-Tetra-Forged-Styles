@@ -74,7 +74,7 @@ public final class DangakuChargeHud {
         }
 
         ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
-                .map(state -> state.getComboSeq())
+                .map(state -> state.resolvCurrentComboState(minecraft.player))
                 .orElse(ComboStateRegistry.NONE.getId());
         return ComboStateRegistry.NONE.getId().equals(combo);
     }
