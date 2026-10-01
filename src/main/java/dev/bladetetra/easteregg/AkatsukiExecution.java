@@ -141,11 +141,9 @@ public final class AkatsukiExecution {
         if (!(event.getEntity().level() instanceof ServerLevel level)) return;
         Execution active = EXECUTIONS.get(event.getEntity().getUUID());
         if (active != null) {
-            // Death can fire synchronously from target.hurt while the server-tick
-            // iterator owns this map. Let that iterator close the timeline safely.
-            if (event.getSource().is(EXECUTION_DAMAGE)) return;
-            EXECUTIONS.remove(event.getEntity().getUUID());
-            finish(level, active, true);
+            // Any damage callback (including a resonance chain killing another
+            // execution target) can run inside the tick iterator. Defer removal.
+            active.observeDeath();
             return;
         }
         PendingStart pending = PENDING.stream()
@@ -246,6 +244,12 @@ public final class AkatsukiExecution {
             Entity found = level == null ? null : level.getEntity(execution.targetId);
             LivingEntity target = found instanceof LivingEntity living ? living : null;
             long now = level == null ? Long.MAX_VALUE : level.getGameTime();
+
+            if (execution.deathObserved) {
+                if (level != null) finish(level, execution, true);
+                iterator.remove();
+                continue;
+            }
 
             if (level == null || attacker == null || target == null || !target.isAlive()) {
                 if (level != null) finish(level, execution, target != null && !target.isAlive());
@@ -436,7 +440,7 @@ public final class AkatsukiExecution {
             UUID targetId, UUID bladeId, long startAt, float threshold, float pulseDamage) {
     }
 
-    private static final class Execution {
+    static final class Execution {
         final ResourceKey<Level> dimension;
         final UUID attackerId;
         final UUID targetId;
@@ -447,6 +451,11 @@ public final class AkatsukiExecution {
         long lastManualHit;
         long lastProgress;
         long nextPulse;
+        boolean deathObserved;
+
+        void observeDeath() {
+            deathObserved = true;
+        }
 
         Execution(ResourceKey<Level> dimension, UUID attackerId, UUID targetId,
                 UUID bladeId, long startedAt, long lastManualHit,

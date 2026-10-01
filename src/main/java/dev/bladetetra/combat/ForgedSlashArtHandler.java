@@ -31,6 +31,7 @@ import java.util.UUID;
  */
 final class ForgedSlashArtHandler {
     private static final Map<UUID, PendingCast> PENDING = new HashMap<>();
+    private static final int MAX_CAST_TICKS = 100;
 
     static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event,
             ServerPlayer player, ItemStack blade, ISlashBladeState state) {
@@ -72,9 +73,9 @@ final class ForgedSlashArtHandler {
                 plan.key(),
                 plan.primary(),
                 plan.secondary(),
-                plan.modifier(),
                 type,
-                player.tickCount));
+                player.tickCount,
+                ForgedSlashArtCore.bonus(plan.coreVariant())));
         return primaryEntry;
     }
 
@@ -88,7 +89,8 @@ final class ForgedSlashArtHandler {
                     .getPlayer(pending.playerId);
 
             if (level == null || player == null || player.level() != level
-                    || !player.isAlive()) {
+                    || !player.isAlive()
+                    || player.tickCount - pending.createdPlayerTick > MAX_CAST_TICKS) {
                 iterator.remove();
                 continue;
             }
@@ -132,8 +134,12 @@ final class ForgedSlashArtHandler {
                 continue;
             }
 
+            if (pending.phase == Phase.SECONDARY) {
+                continue;
+            }
+
             if (!ForgedNativeComboFlow.shouldSplice(
-                    active, currentCombo, player, pending.modifier)) {
+                    active, currentCombo, player)) {
                 continue;
             }
 
@@ -143,34 +149,41 @@ final class ForgedSlashArtHandler {
                                 pending.secondary,
                                 pending.sourceType,
                                 player);
+                pending.phase = Phase.SECONDARY;
                 if (!enterNativeState(
                         player, state, pending.secondary, secondaryEntry)) {
                     iterator.remove();
                     continue;
                 }
 
-                if (pending.modifier.repeatsSecondary()) {
-                    pending.phase = Phase.SECONDARY_ECHO;
-                    continue;
-                }
-
-                // The secondary signature and everything after it are now fully
-                // SlashBlade-owned. No forged runtime needs to stay attached.
-                iterator.remove();
                 continue;
             }
 
-            // Echo is the only modifier that needs a second handoff. Re-entering
-            // the same native signature state resets its native timeline and
-            // clickAction even when primary/secondary resolve to identical IDs.
-            ResourceLocation echoEntry =
-                    ForgedNativeComboFlow.secondaryEntry(
-                            pending.secondary,
-                            pending.sourceType,
-                            player);
-            enterNativeState(player, state, pending.secondary, echoEntry);
-            iterator.remove();
         }
+    }
+
+    static float activeDamageScale(ServerPlayer player) {
+        PendingCast pending = PENDING.get(player.getUUID());
+        if (pending == null || player.level().dimension() != pending.dimension
+                || player.tickCount - pending.createdPlayerTick > MAX_CAST_TICKS) {
+            return 1.0F;
+        }
+        ItemStack blade = player.getMainHandItem();
+        ISlashBladeState state = blade.getCapability(ItemSlashBlade.BLADESTATE)
+                .orElse(null);
+        if (blade != pending.sourceBlade || state == null
+                || !ModSlashBladeAbilities.FORGED_SLASH_ART.getId()
+                        .equals(state.getSlashArtsKey())) {
+            return 1.0F;
+        }
+        ForgedSlashArtPlan.Technique active = pending.phase == Phase.PRIMARY
+                ? pending.primary : pending.secondary;
+        boolean activeCombo = ForgedNativeComboFlow.owns(active, state.getComboSeq())
+                || (!pending.armed
+                && player.tickCount == pending.createdPlayerTick);
+        return activeCombo ? ForgedSlashArtCore.phaseScale(
+                pending.phase == Phase.SECONDARY, pending.coreBonus)
+                : 1.0F;
     }
 
     static void onLevelUnload(ServerLevel level) {
@@ -195,9 +208,9 @@ final class ForgedSlashArtHandler {
                 technique, state.getComboSeq());
     }
 
-    private enum Phase {
+    enum Phase {
         PRIMARY,
-        SECONDARY_ECHO
+        SECONDARY
     }
 
     private static final class PendingCast {
@@ -207,9 +220,9 @@ final class ForgedSlashArtHandler {
         private final String planKey;
         private final ForgedSlashArtPlan.Technique primary;
         private final ForgedSlashArtPlan.Technique secondary;
-        private final ForgedSlashArtPlan.Modifier modifier;
         private final SlashArts.ArtsType sourceType;
         private final int createdPlayerTick;
+        private final float coreBonus;
         private Phase phase = Phase.PRIMARY;
         private boolean armed;
 
@@ -219,18 +232,17 @@ final class ForgedSlashArtHandler {
                 String planKey,
                 ForgedSlashArtPlan.Technique primary,
                 ForgedSlashArtPlan.Technique secondary,
-                ForgedSlashArtPlan.Modifier modifier,
                 SlashArts.ArtsType sourceType,
-                int createdPlayerTick) {
+                int createdPlayerTick, float coreBonus) {
             this.dimension = dimension;
             this.playerId = playerId;
             this.sourceBlade = sourceBlade;
             this.planKey = planKey;
             this.primary = primary;
             this.secondary = secondary;
-            this.modifier = modifier;
             this.sourceType = sourceType;
             this.createdPlayerTick = createdPlayerTick;
+            this.coreBonus = coreBonus;
         }
     }
 

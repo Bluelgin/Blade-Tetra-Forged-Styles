@@ -103,6 +103,8 @@ public final class DivineDomainProtectionEvents {
         event.setCanceled(true);
         player.setHealth(1.0F);
         player.removeAllEffects();
+        player.clearFire();
+        player.invulnerableTime = Math.max(player.invulnerableTime, 40);
         long challengeId = player.getPersistentData().getLong(DIVINE_CHALLENGE);
         int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
         int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);

@@ -81,14 +81,13 @@ final class ForgedNativeComboFlow {
 
     static boolean shouldSplice(ForgedSlashArtPlan.Technique technique,
             ResourceLocation combo,
-            LivingEntity user,
-            ForgedSlashArtPlan.Modifier modifier) {
+            LivingEntity user) {
         int signatureTick = signatureCompleteTick(technique, combo);
         if (signatureTick < 0) {
             return false;
         }
         long elapsed = ComboState.getElapsed(user);
-        return elapsed >= signatureTick + modifier.spliceTailTicks();
+        return elapsed >= signatureTick + 1;
     }
 
     /**

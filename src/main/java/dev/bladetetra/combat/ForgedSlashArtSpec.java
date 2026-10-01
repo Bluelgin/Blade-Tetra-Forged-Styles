@@ -15,9 +15,8 @@ import net.minecraft.world.item.ItemStack;
 public record ForgedSlashArtSpec(
         String coreVariant,
         ForgedSlashArtPlan.Technique primary,
-        ForgedSlashArtPlan.Technique secondary,
-        ForgedSlashArtPlan.Modifier modifier) {
-    private static final int VERSION = 1;
+        ForgedSlashArtPlan.Technique secondary) {
+    private static final int VERSION = 2;
     private static final String INSCRIPTION_KEY = "blade_tetra_forged_slash_art";
     private static final String PREVIOUS_SLASH_ART_KEY =
             "blade_tetra_forged_previous_slash_art";
@@ -25,7 +24,6 @@ public record ForgedSlashArtSpec(
     private static final String CORE_KEY = "core";
     private static final String PRIMARY_KEY = "primary";
     private static final String SECONDARY_KEY = "secondary";
-    private static final String MODIFIER_KEY = "modifier";
 
     public static ForgedSlashArtSpec fromOrb(ItemStack orb) {
         if (orb == null || !(orb.getItem() instanceof ForgedSlashArtOrbItem)
@@ -37,10 +35,7 @@ public record ForgedSlashArtSpec(
                         ForgedSlashArtOrbItem.SA_PRIMARY_MODULE)
                 || !ComponentEffectResolver.hasModule(
                         orb, ForgedSlashArtOrbItem.SA_SECONDARY_SLOT,
-                        ForgedSlashArtOrbItem.SA_SECONDARY_MODULE)
-                || !ComponentEffectResolver.hasModule(
-                        orb, ForgedSlashArtOrbItem.SA_MODIFIER_SLOT,
-                        ForgedSlashArtOrbItem.SA_MODIFIER_MODULE)) {
+                        ForgedSlashArtOrbItem.SA_SECONDARY_MODULE)) {
             return null;
         }
 
@@ -54,14 +49,10 @@ public record ForgedSlashArtSpec(
                 ForgedSlashArtPlan.Technique.fromVariant(
                         ComponentEffectResolver.moduleVariant(
                                 orb, ForgedSlashArtOrbItem.SA_SECONDARY_SLOT));
-        ForgedSlashArtPlan.Modifier modifier =
-                ForgedSlashArtPlan.Modifier.fromVariant(
-                        ComponentEffectResolver.moduleVariant(
-                                orb, ForgedSlashArtOrbItem.SA_MODIFIER_SLOT));
-        if (core.isBlank() || primary == null || secondary == null || modifier == null) {
+        if (core.isBlank() || primary == null || secondary == null) {
             return null;
         }
-        return new ForgedSlashArtSpec(core, primary, secondary, modifier);
+        return new ForgedSlashArtSpec(core, primary, secondary);
     }
 
     public static ForgedSlashArtSpec fromBlade(ItemStack blade) {
@@ -76,7 +67,8 @@ public record ForgedSlashArtSpec(
     }
 
     static ForgedSlashArtSpec fromTag(CompoundTag tag) {
-        if (tag == null || tag.getInt(VERSION_KEY) != VERSION) {
+        if (tag == null || (tag.getInt(VERSION_KEY) != 1
+                && tag.getInt(VERSION_KEY) != VERSION)) {
             return null;
         }
         String core = tag.getString(CORE_KEY);
@@ -84,12 +76,11 @@ public record ForgedSlashArtSpec(
                 ForgedSlashArtPlan.Technique.fromVariant(tag.getString(PRIMARY_KEY));
         ForgedSlashArtPlan.Technique secondary =
                 ForgedSlashArtPlan.Technique.fromVariant(tag.getString(SECONDARY_KEY));
-        ForgedSlashArtPlan.Modifier modifier =
-                ForgedSlashArtPlan.Modifier.fromVariant(tag.getString(MODIFIER_KEY));
-        if (core.isBlank() || primary == null || secondary == null || modifier == null) {
+        // Version 1's modifier is deliberately ignored, including old Echo.
+        if (core.isBlank() || primary == null || secondary == null) {
             return null;
         }
-        return new ForgedSlashArtSpec(core, primary, secondary, modifier);
+        return new ForgedSlashArtSpec(core, primary, secondary);
     }
 
     CompoundTag toTag() {
@@ -98,7 +89,6 @@ public record ForgedSlashArtSpec(
         tag.putString(CORE_KEY, coreVariant);
         tag.putString(PRIMARY_KEY, primary.id());
         tag.putString(SECONDARY_KEY, secondary.id());
-        tag.putString(MODIFIER_KEY, modifier.id());
         return tag;
     }
 
@@ -137,11 +127,6 @@ public record ForgedSlashArtSpec(
                 ForgedSlashArtOrbItem.SA_SECONDARY_MODULE)) {
             count++;
         }
-        if (ComponentEffectResolver.hasModule(
-                orb, ForgedSlashArtOrbItem.SA_MODIFIER_SLOT,
-                ForgedSlashArtOrbItem.SA_MODIFIER_MODULE)) {
-            count++;
-        }
         return count;
     }
 
@@ -170,7 +155,6 @@ public record ForgedSlashArtSpec(
     }
 
     public String key() {
-        return coreVariant + "|" + primary.id() + "|" + secondary.id()
-                + "|" + modifier.id();
+        return coreVariant + "|" + primary.id() + "|" + secondary.id();
     }
 }

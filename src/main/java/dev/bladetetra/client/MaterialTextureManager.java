@@ -97,35 +97,39 @@ public final class MaterialTextureManager {
         }
         if (DefaultResources.resourceDurabilityTexture.equals(
                 event.getOriginalTexture())) {
-            // Resharped's durability "base" group is only a hollow frame.
-            // Use a private compatible model whose base also contains a rear
-            // face, while retaining the original color/color_r gauge groups.
+            event.setGetRenderType(MikageBackplateRenderType::get);
+            event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
+            // Keep the native hollow frame/gauges; render the portrait separately.
             event.setModel(BladeModelManager.getInstance()
                     .getModel(DURABILITY_MODEL));
             if ("base".equals(event.getOriginalTarget())) {
                 ResourceLocation baseTexture =
-                        ensureDurabilityBaseTexture(appearance.blade());
+                        ensureDurabilityBaseTexture(appearance.blade(),
+                                AkatsukiAwakening.isActive(event.getStack()));
                 if (baseTexture != null) {
-                    // Resharped normally multiplies this group by a global
-                    // gray-to-magenta damage tint intended for its grayscale
-                    // frame. Our texture is already material-colored, so draw
-                    // it through a guarded pass with a neutral vertex color.
-                    // Disabling effect here also keeps an item's foil glint
-                    // from masking the material across the filled rear face.
+                    // The portrait has its own colors: do not multiply it by
+                    // the native gray-to-magenta damage tint or foil glint.
                     event.setCanceled(true);
-                    BladeRenderState.resetCol();
                     RENDERING_INTERNAL_PASS.set(true);
                     try {
+                        // Preserve the native dark/damage-tinted frame color.
+                        // Resetting it before this pass turns the outline white.
                         BladeRenderState.renderOverrided(
                                 event.getStack(),
                                 event.getModel(),
                                 event.getTarget(),
-                                baseTexture,
+                                DefaultResources.resourceDurabilityTexture,
                                 event.getPoseStack(),
                                 event.getBuffer(),
                                 event.getPackedLightIn(),
                                 event.getGetRenderType(),
                                 false);
+                        BladeRenderState.resetCol();
+                        BladeRenderState.renderOverrided(
+                                event.getStack(), event.getModel(), "portrait", baseTexture,
+                                event.getPoseStack(), event.getBuffer(),
+                                net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
+                                MikageBackplateRenderType::get, false);
                     } finally {
                         RENDERING_INTERNAL_PASS.set(false);
                         BladeRenderState.resetCol();
@@ -141,6 +145,10 @@ public final class MaterialTextureManager {
         GlowState glowState = GlowState.fromStack(event.getStack());
         TextureLayout textureLayout = TextureLayout.fromTarget(
                 event.getOriginalTarget());
+        if (textureLayout == TextureLayout.ITEM) {
+            event.setGetRenderType(MikageBackplateRenderType::get);
+            event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
+        }
         ResourceLocation texture = ensureTexture(
                 appearance, glowState, textureLayout);
         if (texture == null) {
@@ -455,9 +463,10 @@ public final class MaterialTextureManager {
     }
 
     private static synchronized ResourceLocation ensureDurabilityBaseTexture(
-            String bladeMaterial) {
+            String bladeMaterial, boolean akatsuki) {
         long materialRevision = TetraMaterialVisualResolver.revision();
         String cacheKey = bladeMaterial
+                + (akatsuki ? "|mikage" : "|flow")
                 + "|tetra-material-revision="
                 + materialRevision;
         ResourceLocation cached = MaterialTextureCache.durability(cacheKey);
@@ -467,18 +476,12 @@ public final class MaterialTextureManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
-            Resource resource = minecraft.getResourceManager()
-                    .getResourceOrThrow(
-                            DefaultResources.resourceDurabilityTexture);
-            NativeImage image;
-            try (InputStream stream = resource.open()) {
-                image = NativeImage.read(stream);
-            }
+            NativeImage image = MaterialTextureCache.copyBackplate(minecraft.getResourceManager(), akatsuki);
 
-            recolorDurabilityBase(image, bladeMaterial);
+            recolorDurabilityBase(image, bladeMaterial, akatsuki);
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location =
-                    durabilityBaseLocation(bladeMaterial, materialRevision);
+                    durabilityBaseLocation(cacheKey, materialRevision);
             minecraft.getTextureManager().register(location, dynamicTexture);
             MaterialTextureCache.putDurability(
                     cacheKey, location, dynamicTexture, minecraft);
@@ -494,12 +497,8 @@ public final class MaterialTextureManager {
 
     private static void recolorDurabilityBase(
             NativeImage image,
-            String bladeMaterial) {
+            String bladeMaterial, boolean akatsuki) {
         Palette palette = styleFor(bladeMaterial).palette();
-        int visibleHighlight = Palette.lerp(
-                palette.highlight(),
-                0xFFFFFF,
-                0.12F);
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
                 int source = image.getPixelRGBA(x, y);
@@ -507,16 +506,24 @@ public final class MaterialTextureManager {
                 if (sourceAlpha == 0) {
                     continue;
                 }
+                if (akatsuki && !MikageBackplateTint.isHair(red(source), green(source), blue(source))) continue;
                 int luminance = (
                         red(source) * 30
                                 + green(source) * 59
                                 + blue(source) * 11)
                         / 100;
-                float tone = 0.58F + luminance / 255.0F * 0.42F;
+                float tone = luminance / 255.0F;
                 int materialColor = Palette.lerp(
                         palette.mid(),
-                        visibleHighlight,
+                        Palette.lerp(palette.highlight(), 0xFFFFFF, 0.35F),
                         tone);
+                int original = red(source) << 16 | green(source) << 8 | blue(source);
+                // A pale portrait should take on the material's hue, not its
+                // dark metallic value. Keep most of the authored highlights.
+                materialColor = akatsuki
+                        ? Palette.lerp(original, materialColor, 0.40F)
+                        : Palette.lerp(Palette.scale(palette.mid(), 0.45F),
+                                Palette.lerp(palette.highlight(), 0xFFFFFF, 0.30F), tone);
                 image.setPixelRGBA(
                         x,
                         y,

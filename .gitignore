@@ -27,6 +27,9 @@ tools/
 tmp/
 audio-pack/
 
+# Local art review renders; retain editable SVGs and generation scripts.
+art-previews/**/*.png
+
 # Generated and local files
 *.log
 *.tmp

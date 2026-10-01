@@ -14,6 +14,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -95,7 +97,9 @@ public final class LegacyFusionHandler {
 
     @SubscribeEvent
     public static void onProjectileImpact(ProjectileImpactEvent event) {
-        if (event.getRayTraceResult().getType() == HitResult.Type.ENTITY
+        // SlashBlade can fire this event with no hit while summoned swords fly.
+        HitResult hit = event.getRayTraceResult();
+        if (hit != null && hit.getType() == HitResult.Type.ENTITY
                 && LegacyFusionCombatSupport.isVisualOnly(
                         event.getProjectile())) {
             event.setImpactResult(
@@ -107,6 +111,16 @@ public final class LegacyFusionHandler {
     public static void onLivingHurt(LivingHurtEvent event) {
         VoidScatteringFusionHandler.onLivingHurt(event);
         RustReleaseFusionHandler.onLivingHurt(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onForgedSlashArtHurt(LivingHurtEvent event) {
+        ForgedSlashArtDamageBalance.onLivingHurt(event);
+    }
+
+    @SubscribeEvent
+    public static void onEntityJoin(EntityJoinLevelEvent event) {
+        ForgedSlashArtDamageBalance.onEntityJoin(event);
     }
 
     @SubscribeEvent

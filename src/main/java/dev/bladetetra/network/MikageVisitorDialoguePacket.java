@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 /** Opens or updates Mikage's peaceful visitor dialogue. */
 public record MikageVisitorDialoguePacket(String nodeId, String textKey,
         String voiceEvent, String expression, List<Option> options) {
+    private static final int MAX_OPTIONS = 10;
     public record Option(String id, String labelKey) {
     }
 
@@ -24,6 +25,9 @@ public record MikageVisitorDialoguePacket(String nodeId, String textKey,
         List<Option> options = packet.nodeId.equals("topics")
                 && packet.options.stream().noneMatch(option -> option.id.equals("divine_lore"))
                 ? appendDivineTopic(packet.options) : packet.options;
+        if (options.size() > MAX_OPTIONS) {
+            throw new io.netty.handler.codec.EncoderException("Too many visitor dialogue options");
+        }
         buffer.writeVarInt(options.size());
         for (Option option : options) {
             buffer.writeUtf(option.id, 64);
@@ -42,7 +46,10 @@ public record MikageVisitorDialoguePacket(String nodeId, String textKey,
         String textKey = buffer.readUtf(512);
         String voiceEvent = buffer.readUtf(192);
         String expression = buffer.readUtf(64);
-        int size = Math.min(buffer.readVarInt(), 10);
+        int size = buffer.readVarInt();
+        if (size < 0 || size > MAX_OPTIONS) {
+            throw new io.netty.handler.codec.DecoderException("Invalid visitor dialogue option count: " + size);
+        }
         List<Option> options = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             options.add(new Option(buffer.readUtf(64), buffer.readUtf(192)));

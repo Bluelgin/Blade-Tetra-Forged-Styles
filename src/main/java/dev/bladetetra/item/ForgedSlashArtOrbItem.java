@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Tetra-editable carrier for a player-authored Slash Art.
  *
- * <p>The four authoring modules live on this orb, never on the weapon. Using a
+ * <p>The three authoring modules live on this orb, never on the weapon. Using a
  * complete orb with a SlashBlade in the opposite hand snapshots the authored
  * specification onto that blade.</p>
  */
@@ -37,15 +37,13 @@ public final class ForgedSlashArtOrbItem extends ModularItem {
     public static final String SA_CORE_SLOT = "slashblade/sa_core";
     public static final String SA_PRIMARY_SLOT = "slashblade/sa_primary";
     public static final String SA_SECONDARY_SLOT = "slashblade/sa_secondary";
-    public static final String SA_MODIFIER_SLOT = "slashblade/sa_modifier";
 
     public static final String SA_CORE_MODULE = "slashblade/sa_core";
     public static final String SA_PRIMARY_MODULE = "slashblade/sa_primary";
     public static final String SA_SECONDARY_MODULE = "slashblade/sa_secondary";
-    public static final String SA_MODIFIER_MODULE = "slashblade/sa_modifier";
 
     private static final GuiModuleOffsets ORB_MINOR_OFFSETS =
-            new GuiModuleOffsets(-14, -8, 14, -8, -14, 14, 14, 14);
+            new GuiModuleOffsets(0, -14, -16, 10, 16, 10);
 
     public ForgedSlashArtOrbItem() {
         super(new Item.Properties().stacksTo(1).rarity(Rarity.RARE));
@@ -53,8 +51,7 @@ public final class ForgedSlashArtOrbItem extends ModularItem {
         this.minorModuleKeys = new String[] {
                 SA_CORE_SLOT,
                 SA_PRIMARY_SLOT,
-                SA_SECONDARY_SLOT,
-                SA_MODIFIER_SLOT
+                SA_SECONDARY_SLOT
         };
         this.requiredModules = new String[0];
         this.canHone = false;
@@ -89,6 +86,14 @@ public final class ForgedSlashArtOrbItem extends ModularItem {
                 .withStyle(ChatFormatting.DARK_GRAY));
         tooltip.add(Component.translatable("tooltip.blade_tetra.forged.orb.clear")
                 .withStyle(ChatFormatting.DARK_GRAY));
+        boolean expanded = TooltipKeyState.isAltDown();
+        tooltip.add(Component.translatable(expanded
+                        ? "tooltip.blade_tetra.details.collapse"
+                        : "tooltip.blade_tetra.details.expand")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        if (expanded) {
+            ForgedSlashArtPlan.appendOrbDetails(stack, tooltip);
+        }
     }
 
     @Override

@@ -89,6 +89,8 @@ public final class ChallengeEvents {
         event.setCanceled(true);
         player.setHealth(1.0F);
         player.removeAllEffects();
+        player.clearFire();
+        player.invulnerableTime = Math.max(player.invulnerableTime, 40);
         ChallengeManager.ejectDefeatedPlayer(player);
         player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
                 "message.blade_tetra.challenge.failed"));

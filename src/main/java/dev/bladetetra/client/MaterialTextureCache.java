@@ -34,6 +34,26 @@ final class MaterialTextureCache {
     private static final Map<String, RegisteredTexture> DURABILITY =
             new LinkedHashMap<>(16, 0.75F, true);
     private static NativeImage atlasTemplate;
+    private static NativeImage portraitTemplate;
+    private static NativeImage flowTemplate;
+
+    static synchronized NativeImage copyBackplate(ResourceManager resources, boolean akatsuki) throws IOException {
+        NativeImage template = akatsuki ? portraitTemplate : flowTemplate;
+        if (template == null) {
+            Resource resource = resources.getResourceOrThrow(ResourceLocation.fromNamespaceAndPath(
+                    BladeTetra.MOD_ID, akatsuki ? "textures/item/mikage_backplate.png"
+                            : "textures/item/flow_backplate.png"));
+            try (InputStream stream = resource.open(); NativeImage source = NativeImage.read(stream)) {
+                template = new NativeImage(256, 256, true);
+                source.resizeSubRectTo(0, 0, source.getWidth(), source.getHeight(), template);
+            }
+            if (akatsuki) portraitTemplate = template;
+            else flowTemplate = template;
+        }
+        NativeImage copy = new NativeImage(256, 256, true);
+        copy.copyFrom(template);
+        return copy;
+    }
 
     static ResourceLocation material(String key) {
         RegisteredTexture value = MATERIALS.get(key);
@@ -102,6 +122,15 @@ final class MaterialTextureCache {
         closeAll(EMISSIVE, minecraft);
         closeAll(DURABILITY, minecraft);
         NO_EMISSIVE.clear();
+        MikageBackplateRenderType.clear();
+        if (flowTemplate != null) {
+            flowTemplate.close();
+            flowTemplate = null;
+        }
+        if (portraitTemplate != null) {
+            portraitTemplate.close();
+            portraitTemplate = null;
+        }
         if (atlasTemplate != null) {
             atlasTemplate.close();
             atlasTemplate = null;

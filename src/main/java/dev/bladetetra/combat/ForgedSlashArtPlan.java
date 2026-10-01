@@ -18,8 +18,7 @@ public record ForgedSlashArtPlan(
         String key,
         String coreVariant,
         Technique primary,
-        Technique secondary,
-        Modifier modifier) {
+        Technique secondary) {
 
     /** Compile an inscription already stored on a blade. */
     public static ForgedSlashArtPlan from(ItemStack stack) {
@@ -34,20 +33,19 @@ public record ForgedSlashArtPlan(
     static ForgedSlashArtPlan compose(ForgedSlashArtSpec spec) {
         return spec == null
                 ? null
-                : compose(spec.coreVariant(), spec.primary(), spec.secondary(), spec.modifier());
+                : compose(spec.coreVariant(), spec.primary(), spec.secondary());
     }
 
     static ForgedSlashArtPlan compose(String coreVariant,
-            Technique primary, Technique secondary, Modifier modifier) {
+            Technique primary, Technique secondary) {
         if (coreVariant == null || coreVariant.isBlank()
-                || primary == null || secondary == null || modifier == null) {
+                || primary == null || secondary == null) {
             return null;
         }
 
-        String key = coreVariant + "|" + primary.id() + "|" + secondary.id()
-                + "|" + modifier.id();
+        String key = coreVariant + "|" + primary.id() + "|" + secondary.id();
         return new ForgedSlashArtPlan(
-                key, coreVariant, primary, secondary, modifier);
+                key, coreVariant, primary, secondary);
     }
 
     /** Detailed tooltip for an inscribed SlashBlade stack. */
@@ -58,53 +56,49 @@ public record ForgedSlashArtPlan(
         }
     }
 
-    /** Detailed tooltip for the editable Tetra carrier. */
+    /** Compact default tooltip; keyboard handling remains in the item/client layer. */
     public static void appendOrbTooltip(ItemStack stack, List<Component> tooltip) {
         ForgedSlashArtPlan plan = fromOrb(stack);
         if (plan == null) {
             int installed = ForgedSlashArtSpec.installedOrbComponentCount(stack);
             tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.forged.incomplete", installed, 4)
+                            "tooltip.blade_tetra.forged.incomplete", installed, 3)
                     .withStyle(ChatFormatting.DARK_GRAY));
-            return;
+        } else {
+            appendTitle(plan, tooltip);
         }
-        appendPlanTooltip(plan, tooltip);
+        ForgedSlashArtCore.appendBonusTooltip(ForgedSlashArtCore.orbVariant(stack), tooltip);
     }
 
-    private static void appendPlanTooltip(
+    /** Alt-only details, including useful core identity on incomplete orbs. */
+    public static void appendOrbDetails(ItemStack stack, List<Component> tooltip) {
+        ForgedSlashArtPlan plan = fromOrb(stack);
+        ForgedSlashArtCore.appendDetailsTooltip(ForgedSlashArtCore.orbVariant(stack), tooltip, plan != null);
+        if (plan != null) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.forged.native_route")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.translatable("tooltip.blade_tetra.forged.damage_context")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+    }
+
+    private static void appendTitle(
             ForgedSlashArtPlan plan, List<Component> tooltip) {
         tooltip.add(Component.translatable(
                         "tooltip.blade_tetra.forged.title",
                         Component.translatable(plan.primary().translationKey()),
                         Component.translatable(plan.secondary().translationKey()))
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.translatable(
-                        "tooltip.blade_tetra.forged.core", plan.coreDisplayName())
-                .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable(
-                        "tooltip.blade_tetra.forged.modifier",
-                        Component.translatable(plan.modifier().translationKey()))
-                .withStyle(ChatFormatting.GRAY));
+    }
+
+    private static void appendPlanTooltip(ForgedSlashArtPlan plan, List<Component> tooltip) {
+        appendTitle(plan, tooltip);
+        ForgedSlashArtCore.appendTooltip(plan.coreVariant(), tooltip);
         tooltip.add(Component.translatable(
                         "tooltip.blade_tetra.forged.native_route")
                 .withStyle(ChatFormatting.DARK_GRAY));
-    }
-
-    private String coreDisplayName() {
-        String value = coreVariant;
-        int separator = value.lastIndexOf('/');
-        if (separator >= 0 && separator + 1 < value.length()) {
-            value = value.substring(separator + 1);
-        }
-        int namespace = value.lastIndexOf(':');
-        if (namespace >= 0 && namespace + 1 < value.length()) {
-            value = value.substring(namespace + 1);
-        }
-        value = value.replace('_', ' ');
-        if (value.isBlank()) {
-            return "Core";
-        }
-        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
+        tooltip.add(Component.translatable("tooltip.blade_tetra.forged.damage_context")
+                .withStyle(ChatFormatting.DARK_GRAY));
     }
 
     public enum Technique {
@@ -136,55 +130,6 @@ public record ForgedSlashArtPlan(
             for (Technique technique : values()) {
                 if (technique.id.equals(id)) {
                     return technique;
-                }
-            }
-            return null;
-        }
-    }
-
-    /**
-     * Modifiers now describe routing cadence only. They never synthesize damage
-     * or replace SlashBlade's native combat callbacks.
-     */
-    public enum Modifier {
-        BALANCED("balanced", 1, false),
-        CONDENSED("condensed", 0, false),
-        SHATTER("shatter", 2, false),
-        SPREAD("spread", 1, false),
-        ECHO("echo", 1, true),
-        HASTE("haste", 0, false);
-
-        private final String id;
-        private final int spliceTailTicks;
-        private final boolean repeatsSecondary;
-
-        Modifier(String id, int spliceTailTicks, boolean repeatsSecondary) {
-            this.id = id;
-            this.spliceTailTicks = spliceTailTicks;
-            this.repeatsSecondary = repeatsSecondary;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        int spliceTailTicks() {
-            return spliceTailTicks;
-        }
-
-        boolean repeatsSecondary() {
-            return repeatsSecondary;
-        }
-
-        public String translationKey() {
-            return "tooltip.blade_tetra.forged.modifier." + id;
-        }
-
-        static Modifier fromVariant(String variant) {
-            String id = suffix(variant);
-            for (Modifier modifier : values()) {
-                if (modifier.id.equals(id)) {
-                    return modifier;
                 }
             }
             return null;

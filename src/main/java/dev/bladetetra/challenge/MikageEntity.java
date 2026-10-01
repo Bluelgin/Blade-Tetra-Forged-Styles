@@ -393,6 +393,10 @@ public final class MikageEntity extends Monster {
         float before = player.getHealth() + player.getAbsorptionAmount();
         int immunityBefore = player.invulnerableTime;
         boolean hurt = player.hurt(source, requested);
+        // A fatal hit can synchronously eject the player to another dimension.
+        if (player.level() != level() || !ChallengeManager.isParticipant(this, player)) {
+            return false;
+        }
         float after = player.getHealth() + player.getAbsorptionAmount();
         float actual = Math.max(0.0F, before - after);
 
@@ -2599,7 +2603,8 @@ public final class MikageEntity extends Monster {
             if (wall.gapTicks > 0) wall.gapTicks--;
         }
         if (tickCount % BOUNDARY_FLAME_DAMAGE_INTERVAL != 0) return;
-        for (ServerPlayer player : server.players()) {
+        // Defeat teleports remove players from server.players() inside hurt().
+        for (ServerPlayer player : List.copyOf(server.players())) {
             if (!player.isAlive() || player.isCreative() || player.isSpectator()
                     || !ChallengeManager.isParticipant(this, player)) continue;
             for (BoundaryWallState wall : arena.boundaryWalls) {
@@ -2634,7 +2639,8 @@ public final class MikageEntity extends Monster {
         DamageSource source = new DamageSource(server.registryAccess()
                 .registryOrThrow(Registries.DAMAGE_TYPE)
                 .getHolderOrThrow(BOUNDARY_FLAME_DAMAGE), this);
-        if (!player.hurt(source, damage)) return;
+        if (!player.hurt(source, damage) || player.level() != server
+                || !player.isAlive() || !ChallengeManager.isParticipant(this, player)) return;
         Vec3 contact = player.position().add(0.0D, 0.65D, 0.0D);
         server.sendParticles(new DustParticleOptions(new Vector3f(1.0F, 0.015F, 0.025F), 1.35F),
                 contact.x, contact.y, contact.z, 12,

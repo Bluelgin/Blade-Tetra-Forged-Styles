@@ -4,5 +4,5 @@
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": { "textureX": 48, "textureY": 112, "tint": "7E74FF" },
-  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_primary", "moduleVariant": "sa_primary/judgement_cut" } ]
+  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "requiredTools": { "hammer_dig": "minecraft:netherite" }, "moduleKey": "slashblade/sa_primary", "moduleVariant": "sa_primary/judgement_cut" } ]
 }

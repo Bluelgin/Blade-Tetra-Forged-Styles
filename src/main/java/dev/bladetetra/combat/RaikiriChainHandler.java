@@ -35,6 +35,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -175,6 +176,12 @@ public final class RaikiriChainHandler {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         PENDING_STRIKES.entrySet().removeIf(entry ->
                 entry.getValue().dimension.equals(level.dimension().location()));
+    }
+
+    @SubscribeEvent
+    public static void onServerStopped(ServerStoppedEvent event) {
+        PENDING_STRIKES.clear();
+        APPLYING_CHAIN_DAMAGE.clear();
     }
 
     private static void discharge(ServerLevel level, ServerPlayer player, ItemStack blade,

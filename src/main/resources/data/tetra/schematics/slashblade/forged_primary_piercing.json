@@ -4,5 +4,5 @@
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": { "textureX": 48, "textureY": 112, "tint": "D77A7A" },
-  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "moduleKey": "slashblade/sa_primary", "moduleVariant": "sa_primary/piercing" } ]
+  "outcomes": [ { "material": { "items": [ "slashblade:proudsoul_ingot" ] }, "requiredTools": { "hammer_dig": "minecraft:diamond" }, "moduleKey": "slashblade/sa_primary", "moduleVariant": "sa_primary/piercing" } ]
 }

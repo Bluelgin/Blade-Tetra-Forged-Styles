@@ -5,7 +5,6 @@ import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,21 +23,16 @@ class ForgedSlashArtPlanTest {
     }
 
     @Test
-    void everyTechniqueAndModifierCombinationCompilesToNativeRoute() {
+    void everyTechniquePairCompilesToNativeRoute() {
         for (ForgedSlashArtPlan.Technique primary
                 : ForgedSlashArtPlan.Technique.values()) {
             for (ForgedSlashArtPlan.Technique secondary
                     : ForgedSlashArtPlan.Technique.values()) {
-                for (ForgedSlashArtPlan.Modifier modifier
-                        : ForgedSlashArtPlan.Modifier.values()) {
                     ForgedSlashArtPlan plan = ForgedSlashArtPlan.compose(
-                            "sa_core/diamond", primary, secondary, modifier);
+                            "sa_core/diamond", primary, secondary);
                     assertNotNull(plan);
                     assertEquals(primary, plan.primary());
                     assertEquals(secondary, plan.secondary());
-                    assertEquals(modifier, plan.modifier());
-                    assertTrue(modifier.spliceTailTicks() >= 0);
-                }
             }
         }
     }
@@ -48,30 +42,14 @@ class ForgedSlashArtPlanTest {
         ForgedSlashArtPlan forward = ForgedSlashArtPlan.compose(
                 "sa_core/iron",
                 ForgedSlashArtPlan.Technique.PIERCING,
-                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ForgedSlashArtPlan.Modifier.BALANCED);
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH);
         ForgedSlashArtPlan reverse = ForgedSlashArtPlan.compose(
                 "sa_core/iron",
                 ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ForgedSlashArtPlan.Technique.PIERCING,
-                ForgedSlashArtPlan.Modifier.BALANCED);
+                ForgedSlashArtPlan.Technique.PIERCING);
         assertNotEquals(forward.key(), reverse.key());
         assertNotEquals(forward.primary(), reverse.primary());
         assertNotEquals(forward.secondary(), reverse.secondary());
-    }
-
-    @Test
-    void modifiersOnlyControlRoutingCadence() {
-        assertEquals(1,
-                ForgedSlashArtPlan.Modifier.BALANCED.spliceTailTicks());
-        assertEquals(0,
-                ForgedSlashArtPlan.Modifier.CONDENSED.spliceTailTicks());
-        assertEquals(0,
-                ForgedSlashArtPlan.Modifier.HASTE.spliceTailTicks());
-        assertEquals(2,
-                ForgedSlashArtPlan.Modifier.SHATTER.spliceTailTicks());
-        assertTrue(ForgedSlashArtPlan.Modifier.ECHO.repeatsSecondary());
-        assertFalse(ForgedSlashArtPlan.Modifier.BALANCED.repeatsSecondary());
     }
 
     @Test
@@ -138,8 +116,7 @@ class ForgedSlashArtPlanTest {
         ForgedSlashArtPlan plan = ForgedSlashArtPlan.compose(
                 "sa_core/diamond",
                 ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ForgedSlashArtPlan.Technique.CIRCLE_SLASH,
-                ForgedSlashArtPlan.Modifier.BALANCED);
+                ForgedSlashArtPlan.Technique.CIRCLE_SLASH);
         assertEquals(plan.primary(), plan.secondary());
         assertEquals(SlashBlade.prefix("circle_slash"),
                 ForgedNativeComboFlow.signatureEntry(
@@ -151,18 +128,15 @@ class ForgedSlashArtPlanTest {
         ForgedSlashArtPlan iron = ForgedSlashArtPlan.compose(
                 "sa_core/iron",
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ForgedSlashArtPlan.Technique.VOID_SLASH,
-                ForgedSlashArtPlan.Modifier.BALANCED);
+                ForgedSlashArtPlan.Technique.VOID_SLASH);
         ForgedSlashArtPlan diamond = ForgedSlashArtPlan.compose(
                 "sa_core/diamond",
                 ForgedSlashArtPlan.Technique.JUDGEMENT_CUT,
-                ForgedSlashArtPlan.Technique.VOID_SLASH,
-                ForgedSlashArtPlan.Modifier.BALANCED);
+                ForgedSlashArtPlan.Technique.VOID_SLASH);
 
         assertNotEquals(iron.key(), diamond.key());
         assertEquals(iron.primary(), diamond.primary());
         assertEquals(iron.secondary(), diamond.secondary());
-        assertEquals(iron.modifier(), diamond.modifier());
     }
 
     @Test
