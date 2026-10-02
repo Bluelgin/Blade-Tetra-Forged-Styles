@@ -5,6 +5,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.challenge.MikageEchoEntity;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -17,7 +18,7 @@ public final class MikageEchoRenderer extends LivingEntityRenderer<MikageEchoEnt
             BladeTetra.MOD_ID, "textures/entity/mikage.png");
 
     public MikageEchoRenderer(EntityRendererProvider.Context context) {
-        super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM), true), 0.25F);
+        super(context, new EchoModel(context.bakeLayer(ModelLayers.PLAYER_SLIM)), 0.25F);
     }
 
     @Override
@@ -35,6 +36,17 @@ public final class MikageEchoRenderer extends LivingEntityRenderer<MikageEchoEnt
 
     @Override
     public ResourceLocation getTextureLocation(MikageEchoEntity entity) {
+        if (((MikageTailoredModel<?>) model).hasTailoredRig()) return MikageTailoredModel.TEXTURE;
         return TEXTURE;
+    }
+
+    private static final class EchoModel extends MikageTailoredModel<MikageEchoEntity> {
+        EchoModel(ModelPart root) { super(root); }
+        @Override
+        public void setupAnim(MikageEchoEntity entity, float swing, float amount, float age,
+                float yaw, float pitch) {
+            super.setupAnim(entity, swing, amount, age, yaw, pitch);
+            applySwordPose(MikageSingleSwordPose.IDLE);
+        }
     }
 }

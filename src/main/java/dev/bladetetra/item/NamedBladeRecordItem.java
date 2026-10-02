@@ -61,6 +61,8 @@ public final class NamedBladeRecordItem extends WrittenBookItem {
             @Nullable Level level,
             List<Component> tooltip,
             TooltipFlag flag) {
+        tooltip.add(Component.translatable(SmithingBookMetadata.AUTHOR_TOOLTIP)
+                .withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_record")
                 .withStyle(ChatFormatting.GOLD));
         tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_record.use")
@@ -69,8 +71,7 @@ public final class NamedBladeRecordItem extends WrittenBookItem {
 
     static void prepareBook(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
-        tag.putString("title", "Named Blade Record");
-        tag.putString("author", "佚名刀匠");
+        SmithingBookMetadata.normalize(tag, "Named Blade Record");
         tag.putInt("generation", 0);
         tag.putBoolean("resolved", true);
         tag.put("pages", NamedBladeRecordPages.build(LegacyFusionGuide.entries()));

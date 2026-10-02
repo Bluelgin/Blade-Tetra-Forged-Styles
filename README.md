@@ -61,7 +61,7 @@ gradlew build
 
 ## 许可证与第三方资源
 
-本项目代码与自有资源以 [MIT](LICENSE) 许可发布。第三方来源与保留声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。独立的赤月模型包采用 CC BY-NC-SA 4.0，不属于本仓库的 MIT 授权范围。
+本项目代码与自有资源以 [MIT](LICENSE) 许可发布。内置御影模型、贴图为酒狐衍生美术，采用 CC BY-NC-SA 4.0（署名、非商业、相同方式共享），不属于 MIT 授权范围；分发时须保留对应署名与许可。第三方来源、改动与完整许可位置见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。独立的赤月模型包同样采用 CC BY-NC-SA 4.0。
 
 ## 版本记录
 

@@ -10,7 +10,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import se.mickelus.tetra.blocks.workbench.gui.WorkbenchStatsGui;
-import se.mickelus.tetra.items.modular.impl.holo.gui.craft.HoloStatsGui;
 import se.mickelus.tetra.gui.stats.bar.GuiStatBar;
 import se.mickelus.tetra.gui.stats.getter.IStatGetter;
 import se.mickelus.tetra.gui.stats.getter.LabelGetterBasic;
@@ -25,7 +24,7 @@ public final class ForgedSlashArtStats {
             for (int stat = 0; stat < 3; stat++) {
                 // Each GUI needs its own element instance (different parents).
                 WorkbenchStatsGui.addBar(new CoreBar(stat, 100));
-                HoloStatsGui.addBar(new CoreBar(stat, 60));
+                TetraHoloStatsCompat.addBar(new CoreBar(stat, 60));
             }
         });
     }

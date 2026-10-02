@@ -197,6 +197,12 @@ public final class MikageEntity extends Monster {
                 / Math.max(1.0F, entityData.get(ACTION_LENGTH)), 0.0F, 1.0F);
     }
 
+    /** Read-only client pose discriminator; damage and technique timing remain server-owned. */
+    public boolean isBoundaryFlashPose() {
+        return getAction() == MikageAction.RITUAL
+                && entityData.get(ACTION_LENGTH) == BOUNDARY_FLASH_TOTAL_TICKS;
+    }
+
     void setAction(MikageAction action, int duration) {
         entityData.set(ACTION, action.ordinal());
         entityData.set(ACTION_START, tickCount);

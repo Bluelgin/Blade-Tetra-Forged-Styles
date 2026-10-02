@@ -1198,6 +1198,11 @@ public final class MaterialTextureManager {
             boolean broken = stack.getCapability(ModularSlashBladeItem.BLADESTATE)
                     .map(state -> state.isBroken())
                     .orElse(false);
+            // Reuse Akatsuki's exact palette/pattern only inside the dedicated boss blade pass.
+            // No item mutation, ritual unlock or awakened combat ability is involved.
+            if (MikageBladeVisuals.isRendering()) {
+                return new GlowState(SoulGlow.AKATSUKI, broken);
+            }
             SoulGlow soul = SoulGlow.NONE;
             if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.AKATSUKI)) {
                 soul = SoulGlow.AKATSUKI;

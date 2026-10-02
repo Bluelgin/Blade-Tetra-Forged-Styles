@@ -90,6 +90,8 @@ public final class SmithingJournalItem extends WrittenBookItem {
         int completed = tag == null ? 0
                 : Integer.bitCount(tag.getInt("BladeTetraCompletedClues"));
         boolean nbtSage = tag != null && tag.getBoolean("BladeTetraNbtSage");
+        tooltip.add(Component.translatable(SmithingBookMetadata.AUTHOR_TOOLTIP)
+                .withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable(
                         "tooltip.blade_tetra.smithing_journal", count, SmithingLore.CLUES.size())
                 .withStyle(ChatFormatting.GOLD));
@@ -109,6 +111,8 @@ public final class SmithingJournalItem extends WrittenBookItem {
 
     public static void refresh(ItemStack stack, Player player) {
         CompoundTag tag = stack.getOrCreateTag();
+        // Upgrade old metadata even when the player's discovery state has not changed.
+        SmithingBookMetadata.normalize(tag, "Smithing Journal");
         int count = SmithingLore.discoveredCount(player);
         int completionMask = player instanceof ServerPlayer serverPlayer
                 ? SmithingLore.completionMask(serverPlayer) : 0;
@@ -148,8 +152,7 @@ public final class SmithingJournalItem extends WrittenBookItem {
                     "lore.blade_tetra.nbt_sage.page")));
         }
 
-        tag.putString("title", "Smithing Journal");
-        tag.putString("author", "佚名刀匠");
+        SmithingBookMetadata.normalize(tag, "Smithing Journal");
         tag.putInt("generation", 0);
         tag.putBoolean("resolved", true);
         tag.put("pages", pages);
@@ -160,8 +163,7 @@ public final class SmithingJournalItem extends WrittenBookItem {
 
     private static void makeBaseBook(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
-        tag.putString("title", "Smithing Journal");
-        tag.putString("author", "佚名刀匠");
+        SmithingBookMetadata.normalize(tag, "Smithing Journal");
         tag.putInt("generation", 0);
         tag.putBoolean("resolved", true);
         ListTag pages = new ListTag();

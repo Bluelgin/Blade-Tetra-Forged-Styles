@@ -512,6 +512,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         boolean expanded = TooltipKeyState.isAltDown();
         if (expanded) {
             BladeDetailTooltip.append(stack, tooltip);
+            tooltip.add(Component.translatable("tooltip.blade_tetra.speed_efficiency")
+                    .withStyle(ChatFormatting.GRAY));
         }
         tooltip.add(Component.translatable(expanded
                         ? "tooltip.blade_tetra.details.collapse"

@@ -85,6 +85,7 @@ final class ChallengeSession {
     MikageDialogue pendingIntroSecond;
     boolean built;
     boolean easterBuilt;
+    boolean easterBooksLocalized;
     boolean bossSpawned;
     UUID bossEntityId;
     float lastBossHealthFraction = 1.0F;
@@ -510,6 +511,10 @@ final class ChallengeSession {
     }
 
     void ensureEasterRoomEntities(ServerLevel mirror) {
+        if (!easterBooksLocalized) {
+            localizeExistingEasterBooks(mirror);
+            easterBooksLocalized = true;
+        }
         if (!hasCompletedEasterEntities(mirror)) {
             loadEasterRoomEntities(mirror, false);
             markEasterEntitiesComplete(mirror);
@@ -565,6 +570,9 @@ final class ChallengeSession {
                 continue;
             }
             var tag = entry.tag().copy();
+            if (tag.getCompound("Book").getString("id").equals("minecraft:written_book")) {
+                EasterRoomBooks.localize(tag.getCompound("Book").getCompound("tag"));
+            }
             tag.putInt("x", pos.getX());
             tag.putInt("y", pos.getY());
             tag.putInt("z", pos.getZ());
@@ -572,6 +580,24 @@ final class ChallengeSession {
             blockEntity.setChanged();
             mirror.sendBlockUpdated(pos, mirror.getBlockState(pos),
                     mirror.getBlockState(pos), 3);
+        }
+    }
+
+    private void localizeExistingEasterBooks(ServerLevel mirror) {
+        for (EasterRoomData.BlockEntityEntry entry : EasterRoomData.blockEntities()) {
+            if (!entry.tag().getString("id").equals("minecraft:lectern")) continue;
+            BlockPos pos = new BlockPos(easterOriginX() + entry.x(),
+                    63 + entry.y(), easterOriginZ() + entry.z());
+            if (mirror.getBlockEntity(pos) instanceof
+                    net.minecraft.world.level.block.entity.LecternBlockEntity lectern) {
+                ItemStack book = lectern.getBook();
+                if (book.is(net.minecraft.world.item.Items.WRITTEN_BOOK)
+                        && book.hasTag() && EasterRoomBooks.localize(book.getTag())) {
+                    lectern.setChanged();
+                    mirror.sendBlockUpdated(pos, mirror.getBlockState(pos),
+                            mirror.getBlockState(pos), 3);
+                }
+            }
         }
     }
 

@@ -4,6 +4,12 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 /** World/server-owned gameplay controls with current balance as defaults. */
 public final class GameplayConfig {
+    public static final ForgeConfigSpec.BooleanValue ENABLE_SPEED_EFFICIENCY;
+    public static final ForgeConfigSpec.DoubleValue SPEED_EFFICIENCY_REFERENCE;
+    public static final ForgeConfigSpec.DoubleValue SPEED_EFFICIENCY_MAX_REDUCTION;
+    public static final ForgeConfigSpec.DoubleValue SPEED_EFFICIENCY_SWORD_REDUCTION;
+    public static final ForgeConfigSpec.DoubleValue SPEED_EFFICIENCY_SA_REDUCTION;
+    public static final ForgeConfigSpec.DoubleValue SPEED_EFFICIENCY_SUPER_REDUCTION;
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
@@ -401,6 +407,27 @@ public final class GameplayConfig {
         OFFENSIVE_COOLDOWN_TICKS = builder
                 .comment("Per-blade offensive lightning cooldown in ticks; 20 ticks are one second.")
                 .defineInRange("offensiveCooldownTicks", 140, 0, 12000);
+        builder.pop();
+
+        builder.push("speedEfficiency");
+        ENABLE_SPEED_EFFICIENCY = builder
+                .comment("Convert held modular blade attack speed into preparation/recovery efficiency, not damage or combo speed.")
+                .define("enabled", true);
+        SPEED_EFFICIENCY_REFERENCE = builder
+                .comment("Attack-speed reference in attacks/second. At or below this value timings remain native; twice this value reaches the cap.")
+                .defineInRange("referenceAttackSpeed", 1.6D, .1D, 20D);
+        SPEED_EFFICIENCY_MAX_REDUCTION = builder
+                .comment("Ground-dodge recovery reduction only. Keeps the original key and existing value for compatibility; other actions now have separate caps. Native invulnerability remains unchanged.")
+                .defineInRange("maximumTimeReduction", .20D, 0D, .20D);
+        SPEED_EFFICIENCY_SWORD_REDUCTION = builder
+                .comment("Special summoned-sword preparation reduction; linear attack-speed scaling, native damage and costs unchanged.")
+                .defineInRange("swordPreparationReduction", .40D, 0D, .40D);
+        SPEED_EFFICIENCY_SA_REDUCTION = builder
+                .comment("Normal SA preparation reduction; readiness feedback and release threshold advance together.")
+                .defineInRange("normalSaPreparationReduction", 1D / 3D, 0D, 1D / 3D);
+        SPEED_EFFICIENCY_SUPER_REDUCTION = builder
+                .comment("Super SA preparation reduction; does not shorten the released attack animation.")
+                .defineInRange("superSaPreparationReduction", .30D, 0D, .30D);
         builder.pop();
 
         SPEC = builder.build();

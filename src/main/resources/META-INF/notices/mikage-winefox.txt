@@ -1,0 +1,26 @@
+Mikage native character model and texture / 御影原生角色模型与贴图
+
+Resources:
+assets/blade_tetra/models/entity/mikage_tailored.json
+assets/blade_tetra/textures/entity/mikage_tailored.png
+
+Original character: Wine Fox / 酒狐, TartaricAcid / 酒石酸菌.
+Model and texture contributors: Touhou Little Maid model-pack contributors
+(original author field: Very Many Authors).
+Akatsuki Taisho Wine Fox adaptation: Taki and Blade Tetra contributors.
+Mikage adaptation and new pose implementation: Blade Tetra contributors.
+
+Source project: https://github.com/TartaricAcid/TouhouLittleMaid
+Source model: https://github.com/TartaricAcid/TouhouLittleMaid/blob/1.20/src/main/resources/assets/touhou_little_maid/tlm_custom_pack/touhou_little_maid-1.0.0/assets/geckolib/models/entity/winefox.json
+Source texture: https://github.com/TartaricAcid/TouhouLittleMaid/blob/1.20/src/main/resources/assets/touhou_little_maid/tlm_custom_pack/touhou_little_maid-1.0.0/assets/geckolib/textures/entity/winefox.png
+
+Changes: Mikage colors and ornaments; visible fox features removed;
+tailored red/white clothing; segmented ponytail, nape and transition hair;
+skin, socks and sole shading; conversion to a native cube rig; new
+permanently drawn single-sword poses. Original animation files are not bundled.
+
+Artwork license: CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike).
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+Full text: META-INF/licenses/winefox-CC-BY-NC-SA-4.0.txt
+These derivative assets are not licensed under the core mod's MIT license.
+No endorsement by TartaricAcid or Touhou Little Maid is implied.

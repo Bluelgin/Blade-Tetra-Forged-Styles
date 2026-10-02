@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('speedEfficiencySmoke')) {
+                workingDirectory project.file("build/speed-efficiency-smoke-${tetra_file_id}")
+                property 'blade_tetra.speedEfficiencySmoke', 'true'
+            }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
                         ? '-sjap-yakumo'
@@ -34,6 +38,9 @@ minecraft {
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile',
                     "${projectDir}/build/createSrgToMcp/output.srg"
+            // Development class directories have no production jar manifest.
+            // Register the same config explicitly so userdev tests exercise our hooks.
+            args '--mixin', 'blade_tetra.mixins.json'
 
             mods {
                 "${mod_id}" {
