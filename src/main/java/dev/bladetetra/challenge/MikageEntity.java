@@ -95,9 +95,9 @@ public final class MikageEntity extends Monster {
     private static final int TORII_CAGE_WARNING_TICKS = 25;
     private static final int TORII_CAGE_RECOVERY_TICKS = 10;
     private static final double TORII_CAGE_RADIUS = 4.6D;
-    private static final int PURSUIT_RAIN_WARNING_TICKS = 20;
-    private static final int PURSUIT_RAIN_FINAL_TICKS = 22;
-    private static final int PURSUIT_RAIN_FINAL_LAUNCH_TICK = 8;
+    static final int PURSUIT_RAIN_WARNING_TICKS = 20;
+    static final int PURSUIT_RAIN_FINAL_TICKS = 22;
+    static final int PURSUIT_RAIN_FINAL_LAUNCH_TICK = 8;
     private static final int MIRROR_DUEL_TOTAL_TICKS = 30;
     private static final int MIRROR_DUEL_DASH_START = 16;
     private static final int BOUNDARY_SEAL_TOTAL_TICKS = 140;
@@ -143,6 +143,7 @@ public final class MikageEntity extends Monster {
     private final MikageTechniqueRuntime techniques = new MikageTechniqueRuntime();
     private final MikageArenaController arena = new MikageArenaController();
     private final MikageAttackTimeline attackTimeline = new MikageAttackTimeline(this);
+    private final MikagePursuitRainController pursuitRain = new MikagePursuitRainController(this);
 
     public MikageEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -567,11 +568,9 @@ public final class MikageEntity extends Monster {
             }
             if (attacker instanceof ServerPlayer player && !rewardedOpening
                     && combat.signatureRecoveryTicks <= 0) {
-                registerPursuitPressure(player, now);
-            }
-            if (attacker instanceof ServerPlayer player) {
-                registerShadowCrossIaido(player, now);
-            }
+    private void registerPursuitPressure(ServerPlayer attacker, long now) {
+        pursuitRain.registerPressure(attacker, now);
+    }
         }
         return hurt;
     }
@@ -717,7 +716,7 @@ public final class MikageEntity extends Monster {
                 SoundSource.HOSTILE, 0.55F, phase == 3 ? 1.18F : 1.32F);
     }
 
-    private void sendCombatVfx(ServerLevel server, int type, Vec3 position,
+    void sendCombatVfx(ServerLevel server, int type, Vec3 position,
             float yaw, float intensity, int focusEntityId) {
         BladeCombatVfxPacket packet = new BladeCombatVfxPacket(type,
                 position.x, position.y, position.z, yaw, intensity, focusEntityId);
@@ -730,7 +729,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void sendTechniqueVfx(ServerLevel server, BladeTechniqueVfxPacket packet,
+    void sendTechniqueVfx(ServerLevel server, BladeTechniqueVfxPacket packet,
             Vec3 center) {
         for (ServerPlayer viewer : server.players()) {
             if (viewer.level() == server
@@ -741,7 +740,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void playBladeParrySound(ServerLevel server, Vec3 position,
+    void playBladeParrySound(ServerLevel server, Vec3 position,
             SoundSource source, boolean perfect) {
         BlockPos soundPos = BlockPos.containing(position);
         server.playSound(null, soundPos, SoundEvents.TRIDENT_HIT, source,
@@ -797,161 +796,16 @@ public final class MikageEntity extends Monster {
     }
 
     ServerPlayer selectPursuitTarget(ServerLevel server) {
-        int threshold = GameplayConfig.MIKAGE_PURSUIT_RAIN_HIT_THRESHOLD.get();
-        long now = level().getGameTime();
-        ServerPlayer selected = null;
-        int highest = threshold - 1;
-        for (Map.Entry<UUID, PursuitPressure> entry : defense.pursuitPressure.entrySet()) {
-            PursuitPressure pressure = entry.getValue();
-            if (pressure.hits < threshold || now - pressure.lastHit > 120L) {
-                continue;
-            }
-            Player found = server.getPlayerByUUID(entry.getKey());
-            if (!(found instanceof ServerPlayer player) || !player.isAlive() || player.isCreative()
-                    || player.isSpectator() || !ChallengeManager.isParticipant(this, player)) {
-                continue;
-            }
-            if (player.getHealth() <= player.getMaxHealth() * 0.30F) {
-                continue;
-            }
-            if (pressure.hits > highest) {
-                highest = pressure.hits;
-                selected = player;
-            }
-        }
-        return selected;
+        return pursuitRain.selectTarget(server);
     }
 
     void beginPursuitRain(ServerPlayer target, ServerLevel server) {
-        techniques.pursuitRainTarget = target.getUUID();
-        techniques.pursuitRainFinalTicks = 0;
-        techniques.pursuitRainFinalSword = null;
-        techniques.pursuitRainFinalLaunched = false;
-        techniques.pursuitRainCountered = false;
-        techniques.pursuitRainActiveTicks = GameplayConfig.MIKAGE_PURSUIT_RAIN_DURATION_TICKS.get();
-        techniques.pursuitRainTicks = techniques.pursuitRainActiveTicks + PURSUIT_RAIN_WARNING_TICKS;
-        techniques.pursuitRainWave = 0;
-        PursuitPressure pressure = defense.pursuitPressure.get(target.getUUID());
-        if (pressure != null) {
-            pressure.hits = 0;
-        }
-        setAction(MikageAction.CAST_READY, PURSUIT_RAIN_WARNING_TICKS);
-        server.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_RETURN,
-                SoundSource.HOSTILE, 1.1F, 0.65F);
-        server.sendParticles(new DustParticleOptions(
-                        new Vector3f(0.86F, 0.025F, 0.09F), 1.25F),
-                target.getX(), target.getY() + 3.1D, target.getZ(),
-                28, 0.55D, 0.20D, 0.55D, 0.02D);
-        Vec3 lock = target.position().add(0.0D, 2.8D, 0.0D);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.PURSUIT_LOCK,
-                lock.x, lock.y, lock.z, lock.x, lock.y, lock.z,
-                target.getYRot(), 1.0F, -1, target.getId(),
-                techniques.pursuitRainTicks, random.nextInt()), lock);
+        pursuitRain.begin(target, server);
     }
 
     void tickPursuitRain(ServerLevel server) {
-        Player found = techniques.pursuitRainTarget == null
-                ? null : server.getPlayerByUUID(techniques.pursuitRainTarget);
-        ServerPlayer target = found instanceof ServerPlayer player ? player : null;
-        if (target == null || !target.isAlive() || target.isCreative()
-                || target.isSpectator() || !ChallengeManager.isParticipant(this, target)) {
-            finishPursuitRain(server);
-            return;
-        }
-
-        boolean warning = techniques.pursuitRainTicks > techniques.pursuitRainActiveTicks;
-        if (warning) {
-            if (techniques.pursuitRainTicks % 4 == 0) {
-                server.sendParticles(new DustParticleOptions(
-                                new Vector3f(0.92F, 0.02F, 0.08F), 0.9F),
-                        target.getX(), target.getY() + 3.0D, target.getZ(),
-                        8, 0.35D, 0.08D, 0.35D, 0.0D);
-            }
-        } else {
-            if (techniques.pursuitRainTicks == techniques.pursuitRainActiveTicks) {
-                setAction(MikageAction.IDLE, 1);
-            }
-            int interval = GameplayConfig.MIKAGE_PURSUIT_RAIN_INTERVAL_TICKS.get();
-            if ((techniques.pursuitRainActiveTicks - techniques.pursuitRainTicks) % interval == 0) {
-                castPursuitRainWave(target, server);
-            }
-        }
-
-        if (--techniques.pursuitRainTicks <= 0) {
-            beginPursuitRainFinal(target, server);
-        }
-    }
-
-    private void castPursuitRainWave(ServerPlayer target, ServerLevel server) {
-        Vec3 velocity = target.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D);
-        Vec3 travel = velocity.lengthSqr() > 0.0025D
-                ? velocity.normalize()
-                : target.getLookAngle().multiply(1.0D, 0.0D, 1.0D).normalize();
-        if (travel.lengthSqr() < 0.01D) {
-            travel = new Vec3(0.0D, 0.0D, 1.0D);
-        }
-        Vec3 rear = travel.reverse();
-        Vec3 right = new Vec3(-travel.z, 0.0D, travel.x);
-        int lane = techniques.pursuitRainWave++ % 3;
-        Vec3 originOffset = switch (lane) {
-            case 0 -> rear.scale(4.8D).add(right.scale(-2.8D)).add(0.0D, 3.4D, 0.0D);
-            case 1 -> rear.scale(4.8D).add(right.scale(2.8D)).add(0.0D, 3.4D, 0.0D);
-            default -> rear.scale(1.4D).add(0.0D, 6.2D, 0.0D);
-        };
-        Vec3 origin = target.getEyePosition().add(originOffset);
-        // Lock the position at cast time instead of steering afterward. A moving
-        // player escapes; stopping to eat leaves every following sword on target.
-        Vec3 lockedAim = target.getEyePosition();
-        Vec3 direction = lockedAim.subtract(origin);
-        double distance = direction.length();
-
-        EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
-                SlashBlade.RegistryEvents.SummonedSword, server);
-        sword.setOwner(this);
-        sword.setShooter(this);
-        sword.setColor(0xD51F3F);
-        sword.setDamage(0.0D);
-        sword.setRoll(lane == 0 ? -18.0F : lane == 1 ? 18.0F : 0.0F);
-        sword.setPos(origin);
-        Vec3 shot = direction.normalize();
-        float speed = 1.65F;
-        sword.shoot(shot.x, shot.y, shot.z, speed, 0.0F);
-        sword.getPersistentData().putBoolean("blade_tetra_mikage_attack", true);
-        server.addFreshEntity(sword);
-
-        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE)
-                * GameplayConfig.MIKAGE_PURSUIT_RAIN_DAMAGE_MULTIPLIER.get().floatValue();
-        int travelTicks = Math.max(3, Mth.ceil(distance / speed));
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.PURSUIT_SWORD,
-                origin.x, origin.y, origin.z,
-                lockedAim.x, lockedAim.y, lockedAim.z,
-                0.0F, 0.88F, sword.getId(), -1,
-                travelTicks + 7, lane), lockedAim);
-        attackTimeline.circle(travelTicks, target.position(), 1.25D, 2.6D,
-                damage, 0.12D);
-        if (techniques.pursuitRainWave % 3 == 1) {
-            server.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_THROW,
-                    SoundSource.HOSTILE, 0.38F, 1.65F);
-        }
-    }
-
-    private void beginPursuitRainFinal(ServerPlayer target, ServerLevel server) {
-        techniques.pursuitRainTicks = 0;
-        techniques.pursuitRainFinalTicks = PURSUIT_RAIN_FINAL_TICKS;
-        techniques.pursuitRainFinalLaunched = false;
-        Vec3 facing = target.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
-        if (facing.lengthSqr() < 0.01D) {
-            facing = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
-        }
-        if (facing.lengthSqr() < 0.01D) {
-            facing = new Vec3(0.0D, 0.0D, 1.0D);
-        }
-        facing = facing.normalize();
-        techniques.pursuitRainFinalOrigin = target.getEyePosition().add(facing.scale(5.2D))
-                .add(0.0D, 0.8D, 0.0D);
-        techniques.pursuitRainFinalAim = target.getEyePosition();
+        pursuitRain.tick(server);
+    }osition();
 
         EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
                 SlashBlade.RegistryEvents.SummonedSword, server);
@@ -981,73 +835,8 @@ public final class MikageEntity extends Monster {
     }
 
     void tickPursuitRainFinal(ServerLevel server) {
-        Player found = techniques.pursuitRainTarget == null
-                ? null : server.getPlayerByUUID(techniques.pursuitRainTarget);
-        ServerPlayer target = found instanceof ServerPlayer player ? player : null;
-        Entity entity = techniques.pursuitRainFinalSword == null
-                ? null : server.getEntity(techniques.pursuitRainFinalSword);
-        EntityAbstractSummonedSword sword = entity instanceof EntityAbstractSummonedSword summoned
-                ? summoned : null;
-        if (target == null || !target.isAlive() || target.isCreative()
-                || target.isSpectator() || !ChallengeManager.isParticipant(this, target)) {
-            finishPursuitRain(server);
-            return;
-        }
-
-        if (!techniques.pursuitRainFinalLaunched) {
-            if (sword != null) {
-                sword.setPos(techniques.pursuitRainFinalOrigin);
-                sword.setDeltaMovement(Vec3.ZERO);
-            }
-            server.sendParticles(new DustParticleOptions(
-                            new Vector3f(1.0F, 0.025F, 0.08F), 1.15F),
-                    techniques.pursuitRainFinalOrigin.x, techniques.pursuitRainFinalOrigin.y,
-                    techniques.pursuitRainFinalOrigin.z, 7, 0.32D, 0.32D, 0.32D, 0.01D);
-        }
-
-        if (!techniques.pursuitRainFinalLaunched
-                && techniques.pursuitRainFinalTicks == PURSUIT_RAIN_FINAL_LAUNCH_TICK) {
-            if (isPursuitFinalGuarding(target)) {
-                reflectPursuitFinalSword(target, sword, server);
-                return;
-            }
-            techniques.pursuitRainFinalLaunched = true;
-            Vec3 direction = techniques.pursuitRainFinalAim.subtract(
-                    sword == null ? techniques.pursuitRainFinalOrigin : sword.position());
-            if (sword != null) {
-                sword.setNoClip(false);
-                sword.shoot(direction.x, direction.y, direction.z, 1.85F, 0.0F);
-            }
-            float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE)
-                    * GameplayConfig.MIKAGE_PURSUIT_RAIN_FINAL_DAMAGE_MULTIPLIER
-                    .get().floatValue();
-            int travelTicks = Math.max(2, Mth.ceil(direction.length() / 1.85D));
-            attackTimeline.circle(travelTicks, techniques.pursuitRainFinalAim,
-                    1.30D, 2.8D, damage, 0.20D);
-            server.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_THROW,
-                    SoundSource.HOSTILE, 0.9F, 0.75F);
-        }
-
-        if (--techniques.pursuitRainFinalTicks <= 0) {
-            finishPursuitRain(server);
-        }
-    }
-
-    private boolean isPursuitFinalGuarding(ServerPlayer player) {
-        if (!isBladeGuarding(player)) {
-            return false;
-        }
-        Vec3 toSword = techniques.pursuitRainFinalOrigin.subtract(player.getEyePosition());
-        return toSword.lengthSqr() > 0.01D
-                && player.getLookAngle().normalize().dot(toSword.normalize()) >= 0.35D;
-    }
-
-    private void reflectPursuitFinalSword(ServerPlayer player,
-            EntityAbstractSummonedSword sword, ServerLevel server) {
-        attackTimeline.clear();
-        Vec3 clashStart = player.getEyePosition();
-        Vec3 clashEnd = getEyePosition();
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        pursuitRain.tickFinal(server);
+    }sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.COUNTER_CLASH,
                 clashStart.x, clashStart.y, clashStart.z,
                 clashEnd.x, clashEnd.y, clashEnd.z,
@@ -1400,7 +1189,7 @@ public final class MikageEntity extends Monster {
                 16, 0.42D, 0.65D, 0.42D, 0.05D);
     }
 
-    private void recallSwordWheel(ServerLevel server, int cooldown) {
+    void recallSwordWheel(ServerLevel server, int cooldown) {
         clearSwordWheelEntities(server);
         entityData.set(SWORD_WHEEL_DEPLOYED, false);
         defense.swordWheelCooldown = Math.max(defense.swordWheelCooldown, cooldown);
