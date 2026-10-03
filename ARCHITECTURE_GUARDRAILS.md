@@ -12,7 +12,6 @@ review:
 - `client/MaterialTextureManager.java`
 - `challenge/MikageEntity.java`
 - `challenge/ChallengeManager.java`
-- `combat/StyleCombatHandler.java`
 - `combat/VoidScatteringFusionHandler.java`
 
 They are not being rewritten in one risky change. Instead, this branch freezes
@@ -142,6 +141,56 @@ ChallengeManager
 
 That work should happen in dedicated PRs with targeted regression tests rather
 than being mixed into addon compatibility work.
+
+## Style combat ownership
+
+`StyleCombatHandler` is now a Forge-event facade only. It may perform cheap
+common filtering and route an event by `BladeStyle`, but style-specific state,
+NBT keys, geometry and presentation belong to focused collaborators:
+
+- `IaidoStyleCombat` owns Iaido transient state, draw readiness, spacing,
+  deflect timing and Iaido-only slash feedback.
+- `DangakuStyleCombat` owns cleave/sweep target geometry, damage tuning and
+  armor timing.
+- `StyleTargeting` owns reusable geometric predicates.
+
+Do not put a new style's runtime state machine back into
+`StyleCombatHandler`. Add a focused style collaborator and keep the subscriber
+thin.
+
+## Material style ownership
+
+`MaterialTextureStyleEngine` owns pixel decoration, surface algorithms and
+emission behavior. It no longer owns the material identity catalog.
+
+`MaterialStyleCatalog` owns:
+
+- exact built-in material mappings;
+- curated addon material mappings;
+- Tetra semantic material resolution;
+- ordered fallback heuristics and generated palettes.
+
+The ordering in the catalog is behavior. New compatibility rules should be
+reviewed there rather than mixed with rendering algorithms.
+
+## Mikage signature controllers
+
+`MikageEntity` remains the Minecraft entity lifecycle and stable public
+surface, but authored multi-tick encounter scripts should move into focused
+controllers when they become independently reviewable.
+
+Current extracted domains:
+
+- `MikagePursuitRainController` — pressure tracking, rain waves, final return
+  sword and counter/stagger path.
+- `MikageToriiController` — torii sweep/scissor guard sequence and torii cage
+  sequence.
+
+Mutable encounter data stays in the existing state holders
+(`MikageTechniqueRuntime`, `MikageArenaController`,
+`MikageDefenseController`). Controllers advance that state; they do not create
+parallel copies of it. `MikageEntity` keeps thin delegate methods where other
+runtime coordinators already depend on the stable method surface.
 
 ## Combat balance configuration
 
