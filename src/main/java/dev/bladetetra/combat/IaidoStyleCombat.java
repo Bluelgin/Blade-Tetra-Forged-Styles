@@ -168,7 +168,6 @@ final class IaidoStyleCombat {
     static int applySlashPresentation(
             EntitySlashEffect slashEffect,
             LivingEntity user,
-            ItemStack blade,
             ResourceLocation combo,
             MaterialSlashEffectResolver.SlashVisual visual,
             int color,
