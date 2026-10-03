@@ -134,7 +134,7 @@ public final class StyleCombatHandler {
 
         if (style == BladeStyle.IAIDO) {
             color = IaidoStyleCombat.applySlashPresentation(
-                    slashEffect, user, blade, combo, visual, color,
+                    slashEffect, user, combo, visual, color,
                     (ServerLevel) event.getLevel());
         } else if (style == BladeStyle.RENGEKI) {
             slashEffect.setBaseSize(0.82F);
