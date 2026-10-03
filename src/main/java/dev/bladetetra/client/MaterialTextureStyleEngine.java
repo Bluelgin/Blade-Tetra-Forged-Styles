@@ -1,58 +1,15 @@
 package dev.bladetetra.client;
 
-import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.datafixers.util.Pair;
-import com.mojang.logging.LogUtils;
-import dev.bladetetra.BladeTetra;
-import dev.bladetetra.config.ClientVisualConfig;
-import dev.bladetetra.easteregg.AkatsukiAwakening;
-import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
-import dev.bladetetra.easteregg.KyoukaAwakening;
-import dev.bladetetra.easteregg.NbtSageEasterEgg;
-import dev.bladetetra.easteregg.SenbonzakuraAwakening;
-import dev.bladetetra.easteregg.SoulLegacyState;
-import dev.bladetetra.item.ModularSlashBladeItem;
-import dev.bladetetra.visual.MaterialAppearance;
 import dev.bladetetra.forging.FoxLegacyParts;
-import dev.bladetetra.visual.SayaBannerSkin;
-import dev.bladetetra.visual.SayaPresetSkin;
-import dev.bladetetra.visual.TetraMaterialVisualResolver;
-import dev.bladetetra.visual.TsukaWrapColor;
-import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
-import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
-import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
-import mods.flammpfeil.slashblade.init.DefaultResources;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.block.entity.BannerPattern;
-import org.slf4j.Logger;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
 import static dev.bladetetra.client.MaterialTextureManager.*;
 
 /**
- * Material semantic layer for the procedural blade atlas.
+ * Pixel and surface-pattern engine for the procedural blade atlas.
  *
- * <p>Resolves material ids into palettes/surface patterns and owns the pattern
- * algorithms. Atlas loading, caching and component painting remain in
- * MaterialTextureManager.</p>
+ * <p>Material identity and fallback ordering live in {@link MaterialStyleCatalog};
+ * this class owns rendering-facing style types, decoration algorithms and the
+ * small compatibility facade used by existing texture composition code.</p>
  */
 final class MaterialTextureStyleEngine {
     static MaterialStyle styleFor(String material) {
@@ -73,44 +30,8 @@ final class MaterialTextureStyleEngine {
         return MaterialStyleCatalog.componentStyle(material, potatoBaseColor);
     }
 
-    static MaterialStyle style(Palette palette, SurfacePattern pattern, String material) {
-        return MaterialStyleCatalog.style(palette, pattern, material);
-    }
-
-    static MaterialStyle wood(int base) {
-        return MaterialStyleCatalog.wood(base);
-    }
-
-    static MaterialStyle stone(Palette palette, String material) {
-        return MaterialStyleCatalog.stone(palette, material);
-    }
-
-    static MaterialStyle crystal(Palette palette, String material) {
-        return MaterialStyleCatalog.crystal(palette, material);
-    }
-
-    static MaterialStyle externalMaterialStyle(String material) {
-        return MaterialStyleCatalog.externalMaterialStyle(material);
-    }
-
-    static MaterialStyle curatedAdventureStyle(String material) {
-        return MaterialStyleCatalog.curatedAdventureStyle(material);
-    }
-
     static MaterialStyle tetraMaterialStyle(String material) {
         return MaterialStyleCatalog.tetraMaterialStyle(material);
-    }
-
-    static Palette externalMetalPalette(String material) {
-        return MaterialStyleCatalog.externalMetalPalette(material);
-    }
-
-    static boolean containsAny(String value, String... needles) {
-        return MaterialStyleCatalog.containsAny(value, needles);
-    }
-
-    static Palette generatedPalette(String material) {
-        return MaterialStyleCatalog.generatedPalette(material);
     }
 
     static int decorateDragonScales(
