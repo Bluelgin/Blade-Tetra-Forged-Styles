@@ -569,9 +569,11 @@ public final class MikageEntity extends Monster {
             }
             if (attacker instanceof ServerPlayer player && !rewardedOpening
                     && combat.signatureRecoveryTicks <= 0) {
-    private void registerPursuitPressure(ServerPlayer attacker, long now) {
-        pursuitRain.registerPressure(attacker, now);
-    }
+                registerPursuitPressure(player, now);
+            }
+            if (attacker instanceof ServerPlayer player) {
+                registerShadowCrossIaido(player, now);
+            }
         }
         return hurt;
     }
@@ -781,19 +783,7 @@ public final class MikageEntity extends Monster {
     }
 
     private void registerPursuitPressure(ServerPlayer attacker, long now) {
-        PursuitPressure pressure = defense.pursuitPressure.computeIfAbsent(attacker.getUUID(),
-                id -> new PursuitPressure());
-        if (pressure.lastHit == Long.MIN_VALUE || now - pressure.lastHit > 80L) {
-            pressure.hits = 0;
-        }
-        pressure.lastHit = now;
-        // SlashBlade effects often submit several damage events for one input.
-        // Count at most one effective hit every eight ticks.
-        if (pressure.lastCountedHit == Long.MIN_VALUE
-                || now - pressure.lastCountedHit >= 8L) {
-            pressure.hits++;
-            pressure.lastCountedHit = now;
-        }
+        pursuitRain.registerPressure(attacker, now);
     }
 
     ServerPlayer selectPursuitTarget(ServerLevel server) {
@@ -806,96 +796,21 @@ public final class MikageEntity extends Monster {
 
     void tickPursuitRain(ServerLevel server) {
         pursuitRain.tick(server);
-    }osition();
-
-        EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
-                SlashBlade.RegistryEvents.SummonedSword, server);
-        sword.setOwner(this);
-        sword.setShooter(this);
-        sword.setColor(0xFF1838);
-        sword.setDamage(0.0D);
-        sword.setNoClip(true);
-        sword.setPos(techniques.pursuitRainFinalOrigin);
-        sword.setDeltaMovement(Vec3.ZERO);
-        Vec3 aim = techniques.pursuitRainFinalAim.subtract(techniques.pursuitRainFinalOrigin).normalize();
-        sword.setYRot((float) (Mth.atan2(aim.x, aim.z) * Mth.RAD_TO_DEG));
-        sword.setXRot((float) (Mth.atan2(aim.y,
-                Math.sqrt(aim.x * aim.x + aim.z * aim.z)) * Mth.RAD_TO_DEG));
-        sword.getPersistentData().putBoolean("blade_tetra_mikage_attack", true);
-        sword.getPersistentData().putBoolean("blade_tetra_pursuit_final", true);
-        server.addFreshEntity(sword);
-        techniques.pursuitRainFinalSword = sword.getUUID();
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.PURSUIT_RETURN,
-                techniques.pursuitRainFinalOrigin.x, techniques.pursuitRainFinalOrigin.y, techniques.pursuitRainFinalOrigin.z,
-                techniques.pursuitRainFinalAim.x, techniques.pursuitRainFinalAim.y, techniques.pursuitRainFinalAim.z,
-                getYRot(), 1.0F, sword.getId(), -1,
-                PURSUIT_RAIN_FINAL_TICKS, random.nextInt()), techniques.pursuitRainFinalAim);
-        server.playSound(null, target.blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE,
-                SoundSource.HOSTILE, 1.0F, 1.7F);
     }
+
+
+
+
 
     void tickPursuitRainFinal(ServerLevel server) {
         pursuitRain.tickFinal(server);
-    }sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.COUNTER_CLASH,
-                clashStart.x, clashStart.y, clashStart.z,
-                clashEnd.x, clashEnd.y, clashEnd.z,
-                player.getYRot(), 1.12F, -1, -1, 14, random.nextInt()), clashStart);
-        if (sword != null) {
-            Vec3 origin = player.getEyePosition().add(player.getLookAngle().normalize().scale(1.1D));
-            Vec3 reflected = getEyePosition().subtract(origin).normalize();
-            sword.setPos(origin);
-            sword.setNoClip(true);
-            sword.setColor(0xFFB0B8);
-            sword.shoot(reflected.x, reflected.y, reflected.z, 2.2F, 0.0F);
-        }
-        if (isSwordWheelDeployed()) {
-            recallSwordWheel(server, 90);
-        }
-        techniques.pursuitRainTicks = 0;
-        techniques.pursuitRainFinalTicks = 0;
-        techniques.pursuitRainFinalLaunched = true;
-        techniques.pursuitRainTarget = null;
-        techniques.pursuitRainFinalSword = null;
-        techniques.pursuitRainCountered = true;
-        combat.signatureRecoveryTicks = GameplayConfig.MIKAGE_PURSUIT_RAIN_STAGGER_TICKS.get();
-        techniques.pursuitRainCooldown = combat.scaledCooldown(
-                GameplayConfig.MIKAGE_PURSUIT_RAIN_COOLDOWN_TICKS.get());
-        combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.signatureRecoveryTicks);
-        setAction(MikageAction.STAGGERED, combat.signatureRecoveryTicks);
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        server.playSound(null, blockPosition(), SoundEvents.ANVIL_LAND,
-                SoundSource.HOSTILE, 1.15F, 1.75F);
-        server.sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
-                getX(), getY() + 1.0D, getZ(), 45,
-                0.8D, 1.0D, 0.8D, 0.12D);
-        for (ServerPlayer participant : server.players()) {
-            if (ChallengeManager.isParticipant(this, participant)) {
-                participant.displayClientMessage(Component.translatable(
-                        "message.blade_tetra.mikage.pursuit_stagger"), true);
-            }
-        }
     }
 
-    private void finishPursuitRain(ServerLevel server) {
-        if (!techniques.pursuitRainFinalLaunched && techniques.pursuitRainFinalSword != null) {
-            Entity sword = server.getEntity(techniques.pursuitRainFinalSword);
-            if (sword != null) {
-                sword.discard();
-            }
-        }
-        techniques.pursuitRainTicks = 0;
-        techniques.pursuitRainFinalTicks = 0;
-        techniques.pursuitRainTarget = null;
-        techniques.pursuitRainFinalSword = null;
-        techniques.pursuitRainFinalLaunched = false;
-        techniques.pursuitRainCooldown = combat.scaledCooldown(
-                GameplayConfig.MIKAGE_PURSUIT_RAIN_COOLDOWN_TICKS.get());
-        combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.scaledCooldown(40));
-        setAction(MikageAction.IDLE, 1);
-    }
+
+
+
+
+
 
     private float handleSlashArtPressure(LivingEntity attacker) {
         long now = level().getGameTime();
