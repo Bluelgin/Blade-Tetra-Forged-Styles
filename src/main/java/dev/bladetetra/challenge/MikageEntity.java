@@ -84,17 +84,17 @@ import java.util.UUID;
 
 public final class MikageEntity extends Monster {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final int TORII_SWEEP_TOTAL_TICKS = 154;
-    private static final int TORII_SWEEP_FIRST_IMPACT_AGE = 34;
-    private static final int TORII_SWEEP_SECOND_IMPACT_AGE = 72;
-    private static final int TORII_SWEEP_FAKE_IMPACT_AGE = 108;
-    private static final int TORII_SWEEP_FINAL_IMPACT_AGE = 136;
-    private static final int TORII_SWEEP_STABLE_GUARD_TICKS = 6;
+    static final int TORII_SWEEP_TOTAL_TICKS = 154;
+    static final int TORII_SWEEP_FIRST_IMPACT_AGE = 34;
+    static final int TORII_SWEEP_SECOND_IMPACT_AGE = 72;
+    static final int TORII_SWEEP_FAKE_IMPACT_AGE = 108;
+    static final int TORII_SWEEP_FINAL_IMPACT_AGE = 136;
+    static final int TORII_SWEEP_STABLE_GUARD_TICKS = 6;
     private static final int TORII_SWEEP_RECOVERY_TICKS = 18;
-    private static final int TORII_CAGE_TOTAL_TICKS = 110;
-    private static final int TORII_CAGE_WARNING_TICKS = 25;
-    private static final int TORII_CAGE_RECOVERY_TICKS = 10;
-    private static final double TORII_CAGE_RADIUS = 4.6D;
+    static final int TORII_CAGE_TOTAL_TICKS = 110;
+    static final int TORII_CAGE_WARNING_TICKS = 25;
+    static final int TORII_CAGE_RECOVERY_TICKS = 10;
+    static final double TORII_CAGE_RADIUS = 4.6D;
     static final int PURSUIT_RAIN_WARNING_TICKS = 20;
     static final int PURSUIT_RAIN_FINAL_TICKS = 22;
     static final int PURSUIT_RAIN_FINAL_LAUNCH_TICK = 8;
@@ -144,6 +144,7 @@ public final class MikageEntity extends Monster {
     private final MikageArenaController arena = new MikageArenaController();
     private final MikageAttackTimeline attackTimeline = new MikageAttackTimeline(this);
     private final MikagePursuitRainController pursuitRain = new MikagePursuitRainController(this);
+    private final MikageToriiController torii = new MikageToriiController(this);
 
     public MikageEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -368,7 +369,7 @@ public final class MikageEntity extends Monster {
                 guarded, false);
     }
 
-    private boolean dealAdjustedTrialDamage(ServerPlayer player, float adjustedDamage,
+    boolean dealAdjustedTrialDamage(ServerPlayer player, float adjustedDamage,
             boolean protectedResponse) {
         return dealTrialDamage(player, adjustedDamage, 1.0F, protectedResponse, true);
     }
@@ -660,7 +661,7 @@ public final class MikageEntity extends Monster {
         MikageRuntimeCoordinator.tick(this, server, phase);
     }
 
-    private void teleportWithinArena(double x, double y, double z) {
+    void teleportWithinArena(double x, double y, double z) {
         Vec3 clamped = ChallengeManager.clampMikagePosition(this, new Vec3(x, y, z));
         teleportTo(clamped.x, clamped.y, clamped.z);
     }
@@ -2510,258 +2511,24 @@ public final class MikageEntity extends Monster {
     }
 
     private void beginToriiSweep(ServerLevel server) {
-        attackTimeline.clear();
-        arena.toriiSweepCenter = ChallengeManager.arenaCenter(this);
-        arena.toriiSweepTicks = TORII_SWEEP_TOTAL_TICKS;
-        arena.toriiSweepCooldown = combat.scaledCooldown(620);
-        arena.toriiScissorStates.clear();
-        arena.toriiSweepFocusTarget = null;
-        arena.toriiScissorCountered = false;
-        navigation.stop();
-        setAction(MikageAction.RITUAL, TORII_SWEEP_TOTAL_TICKS);
-        teleportWithinArena(arena.toriiSweepCenter.x, arena.toriiSweepCenter.y, arena.toriiSweepCenter.z);
-        for (ServerPlayer player : server.players()) {
-            if (!player.isAlive() || player.isCreative() || player.isSpectator()
-                    || !ChallengeManager.isParticipant(this, player)) continue;
-            Vec3 aim = player.position().subtract(arena.toriiSweepCenter)
-                    .multiply(1.0D, 0.0D, 1.0D);
-            float baseYaw = aim.lengthSqr() < 0.0001D ? getYRot()
-                    : (float) Math.toDegrees(Math.atan2(aim.z, aim.x));
-            arena.toriiScissorStates.put(player.getUUID(), new ToriiScissorState(baseYaw));
-            Vec3 target = player.position().add(0.0D, 1.0D, 0.0D);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.TORII_SWEEP,
-                    arena.toriiSweepCenter.x, arena.toriiSweepCenter.y + 1.0D, arena.toriiSweepCenter.z,
-                    target.x, target.y, target.z,
-                    baseYaw, 1.0F, getId(), player.getId(),
-                    TORII_SWEEP_TOTAL_TICKS, player.getId()), target);
-            if (arena.toriiSweepFocusTarget == null) arena.toriiSweepFocusTarget = player.getUUID();
-            server.playSound(null, player.blockPosition(), SoundEvents.CHAIN_PLACE,
-                    SoundSource.HOSTILE, 0.9F, 0.66F);
-        }
-        server.playSound(null, blockPosition(), SoundEvents.BEACON_ACTIVATE,
-                SoundSource.HOSTILE, 1.35F, 0.62F);
-        if (!arena.toriiSweepVoiced) {
-            arena.toriiSweepVoiced = true;
-            ChallengeManager.tryVoice(this, MikageDialogue.TORII_SWEEP);
-        }
+        torii.beginSweep(server);
     }
 
     void tickToriiSweep(ServerLevel server) {
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        if (position().distanceToSqr(arena.toriiSweepCenter) > 0.04D) {
-            teleportWithinArena(arena.toriiSweepCenter.x, arena.toriiSweepCenter.y, arena.toriiSweepCenter.z);
-        }
-        ServerPlayer focus = arena.toriiSweepFocusTarget == null ? null
-                : server.getServer().getPlayerList().getPlayer(arena.toriiSweepFocusTarget);
-        if (focus == null || !focus.isAlive()
-                || !ChallengeManager.isParticipant(this, focus)) {
-            focus = null;
-            for (UUID playerId : arena.toriiScissorStates.keySet()) {
-                ServerPlayer candidate = server.getServer().getPlayerList().getPlayer(playerId);
-                if (candidate != null && candidate.isAlive()
-                        && ChallengeManager.isParticipant(this, candidate)
-                        && (focus == null || distanceToSqr(candidate) < distanceToSqr(focus))) {
-                    focus = candidate;
-                }
-            }
-            arena.toriiSweepFocusTarget = focus == null ? null : focus.getUUID();
-        }
-        if (focus != null) lookAt(focus, 180.0F, 180.0F);
-        int age = TORII_SWEEP_TOTAL_TICKS - arena.toriiSweepTicks;
-        for (Map.Entry<UUID, ToriiScissorState> entry : arena.toriiScissorStates.entrySet()) {
-            ServerPlayer player = server.getServer().getPlayerList().getPlayer(entry.getKey());
-            if (player == null || !player.isAlive()
-                    || !ChallengeManager.isParticipant(this, player)) continue;
-            ToriiScissorState state = entry.getValue();
-            if (isBladeGuarding(player)) state.consecutiveGuardTicks++;
-            else state.consecutiveGuardTicks = 0;
-
-            if (age == TORII_SWEEP_FAKE_IMPACT_AGE && !state.feintPlayed) {
-                state.feintPlayed = true;
-                Vec3 feint = player.position().add(0.0D, 1.0D, 0.0D);
-                sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                        BladeTechniqueVfxPacket.SCISSOR_FEINT,
-                        feint.x, feint.y, feint.z, feint.x, feint.y, feint.z,
-                        state.baseYaw, 0.82F, -1, player.getId(), 12,
-                        random.nextInt()), feint);
-                server.playSound(null, player.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE,
-                        SoundSource.HOSTILE, 0.75F, 1.65F);
-            }
-            if (age == TORII_SWEEP_FIRST_IMPACT_AGE
-                    || age == TORII_SWEEP_SECOND_IMPACT_AGE
-                    || age == TORII_SWEEP_FINAL_IMPACT_AGE) {
-                applyToriiScissorImpact(player, state, server,
-                        age == TORII_SWEEP_FINAL_IMPACT_AGE);
-            }
-        }
-        if (--arena.toriiSweepTicks <= 0) {
-            arena.toriiSweepTicks = 0;
-            combat.signatureRecoveryTicks = arena.toriiScissorCountered
-                    ? GameplayConfig.MIKAGE_CAGE_STAGGER_TICKS.get() : 28;
-            combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.signatureRecoveryTicks);
-            arena.toriiScissorStates.clear();
-            arena.toriiSweepFocusTarget = null;
-            server.playSound(null, blockPosition(), SoundEvents.BEACON_DEACTIVATE,
-                    SoundSource.HOSTILE, 1.0F, arena.toriiScissorCountered ? 0.72F : 1.4F);
-            if (arena.toriiScissorCountered) {
-                Vec3 breakPoint = position().add(0.0D, 1.0D, 0.0D);
-                sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                        BladeTechniqueVfxPacket.SCISSOR_BREAK,
-                        breakPoint.x, breakPoint.y, breakPoint.z,
-                        breakPoint.x, breakPoint.y, breakPoint.z,
-                        getYRot(), 1.25F, -1, -1, 22, random.nextInt()), breakPoint);
-                sendCombatVfx(server, BladeCombatVfxPacket.STAGGER,
-                        breakPoint, getYRot(), 1.16F, -1);
-                setAction(MikageAction.STAGGERED, combat.signatureRecoveryTicks);
-            } else {
-                setAction(MikageAction.IDLE, 1);
-            }
-        }
+        torii.tickSweep(server);
     }
 
-    private void applyToriiScissorImpact(ServerPlayer player, ToriiScissorState state,
-            ServerLevel server, boolean finalImpact) {
-        boolean guarding = isBladeGuarding(player);
-        boolean stable = guarding
-                && state.consecutiveGuardTicks >= TORII_SWEEP_STABLE_GUARD_TICKS;
-        Vec3 impact = player.position().add(player.getLookAngle().normalize().scale(0.65D))
-                .add(0.0D, 1.0D, 0.0D);
-        if (stable) {
-            state.stableGuards++;
-            boolean completed = finalImpact && state.stableGuards >= 3;
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SCISSOR_GUARD,
-                    impact.x, impact.y, impact.z, impact.x, impact.y, impact.z,
-                    player.getYRot(), completed ? 1.22F : 0.92F,
-                    -1, player.getId(), completed ? 20 : 12,
-                    state.stableGuards), impact);
-            sendCombatVfx(server, completed ? BladeCombatVfxPacket.PERFECT_GUARD
-                    : BladeCombatVfxPacket.PARRY, impact, player.getYRot(),
-                    completed ? 1.18F : 0.82F, player.getId());
-            playBladeParrySound(server, impact, SoundSource.PLAYERS, completed);
-            if (completed) arena.toriiScissorCountered = true;
-        } else {
-            float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.80F;
-            dealTrialDamage(player, damage, guarding);
-            int result = guarding ? BladeTechniqueVfxPacket.SCISSOR_GUARD
-                    : BladeTechniqueVfxPacket.SCISSOR_FAILURE;
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    result, impact.x, impact.y, impact.z,
-                    impact.x, impact.y, impact.z,
-                    player.getYRot(), guarding ? 0.58F : 1.0F,
-                    -1, player.getId(), 14, random.nextInt()), impact);
-            if (guarding) {
-                playBladeParrySound(server, impact, SoundSource.PLAYERS, false);
-            } else {
-                server.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                        SoundSource.HOSTILE, 1.15F, 0.72F);
-            }
-        }
-        server.sendParticles(ParticleTypes.SWEEP_ATTACK,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                stable ? 4 : 9, 0.42D, 0.55D, 0.42D, 0.0D);
-    }
+
 
     private void beginToriiCages(ServerLevel server) {
-        attackTimeline.clear();
-        arena.toriiCages.clear();
-        if (techniques.pursuitRainFinalSword != null) {
-            Entity finalSword = server.getEntity(techniques.pursuitRainFinalSword);
-            if (finalSword != null) finalSword.discard();
-        }
-        techniques.pursuitRainTicks = 0;
-        techniques.pursuitRainFinalTicks = 0;
-        techniques.pursuitRainTarget = null;
-        techniques.pursuitRainFinalSword = null;
-        arena.cagePerfectCountered = false;
-        arena.toriiCageTicks = TORII_CAGE_TOTAL_TICKS;
-        arena.toriiCageCooldown = combat.scaledCooldown(500);
-        navigation.stop();
-        setAction(MikageAction.RITUAL, TORII_CAGE_TOTAL_TICKS);
-        for (ServerPlayer player : server.players()) {
-            if (!player.isAlive() || player.isCreative() || player.isSpectator()
-                    || !ChallengeManager.isParticipant(this, player)) {
-                continue;
-            }
-            arena.toriiCages.put(player.getUUID(), new CageState(player.position()));
-            Vec3 cageCenter = player.position();
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.TORII_CAGE,
-                    cageCenter.x, cageCenter.y, cageCenter.z,
-                    cageCenter.x, cageCenter.y + 1.0D, cageCenter.z,
-                    player.getYRot(), 1.0F, -1, player.getId(),
-                    TORII_CAGE_TOTAL_TICKS, random.nextInt()), cageCenter);
-            server.playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE,
-                    SoundSource.HOSTILE, 1.1F, 0.55F);
-        }
-        if (!arena.toriiCageVoiced) {
-            arena.toriiCageVoiced = true;
-            ChallengeManager.tryVoice(this, MikageDialogue.TORII_CAGE);
-        }
+        torii.beginCages(server);
     }
 
     void tickToriiCages(ServerLevel server) {
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        int warningStart = TORII_CAGE_TOTAL_TICKS - TORII_CAGE_WARNING_TICKS;
-        boolean active = arena.toriiCageTicks <= warningStart
-                && arena.toriiCageTicks > TORII_CAGE_RECOVERY_TICKS;
-        for (Map.Entry<UUID, CageState> entry : arena.toriiCages.entrySet()) {
-            ServerPlayer player = server.getServer().getPlayerList()
-                    .getPlayer(entry.getKey());
-            if (player == null || !player.isAlive()
-                    || !ChallengeManager.isParticipant(this, player)) {
-                continue;
-            }
-            CageState cage = entry.getValue();
-            ToriiParticles.renderCage(server, cage.center, TORII_CAGE_RADIUS, active);
-            if (!active) {
-                continue;
-            }
-            if (isBladeGuarding(player)) {
-                cage.guardedTicks++;
-                cage.lastGuardTick = tickCount;
-                if (tickCount % 6 == 0) {
-                    server.sendParticles(ParticleTypes.ENCHANT,
-                            player.getX(), player.getY() + 1.0D, player.getZ(),
-                            5, 0.35D, 0.55D, 0.35D, 0.0D);
-                }
-            }
-            confineToCage(player, cage.center, server);
-            if (arena.toriiCageTicks % 12 == 0) {
-                applyCagePulse(player, cage, server,
-                        arena.toriiCageTicks <= TORII_CAGE_RECOVERY_TICKS + 12);
-            }
-        }
-        if (--arena.toriiCageTicks <= 0) {
-            arena.toriiCageTicks = 0;
-            combat.signatureRecoveryTicks = arena.cagePerfectCountered
-                    ? GameplayConfig.MIKAGE_CAGE_STAGGER_TICKS.get() : 0;
-            combat.techniqueCooldown = Math.max(combat.techniqueCooldown,
-                    arena.cagePerfectCountered ? combat.signatureRecoveryTicks : 18);
-            server.playSound(null, blockPosition(), SoundEvents.GLASS_BREAK,
-                    SoundSource.HOSTILE, 1.25F, 0.7F);
-            arena.toriiCages.clear();
-            setAction(arena.cagePerfectCountered ? MikageAction.STAGGERED : MikageAction.IDLE,
-                    Math.max(1, combat.signatureRecoveryTicks));
-            if (arena.cagePerfectCountered) {
-                sendCombatVfx(server, BladeCombatVfxPacket.STAGGER,
-                        position().add(0.0D, 1.0D, 0.0D), getYRot(), 1.18F, -1);
-                server.playSound(null, blockPosition(), SoundEvents.GLASS_BREAK,
-                        SoundSource.HOSTILE, 1.15F, 0.82F);
-                for (ServerPlayer participant : server.players()) {
-                    if (ChallengeManager.isParticipant(this, participant)) {
-                        participant.displayClientMessage(Component.translatable(
-                                "message.blade_tetra.mikage.cage_stagger"), true);
-                    }
-                }
-            }
-        }
+        torii.tickCages(server);
     }
 
-    private boolean isBladeGuarding(ServerPlayer player) {
+    boolean isBladeGuarding(ServerPlayer player) {
         ItemStack blade = player.getMainHandItem();
         return blade.getItem() instanceof ItemSlashBlade
                 && player.getCapability(CapabilityInputState.INPUT_STATE)
@@ -2769,80 +2536,9 @@ public final class MikageEntity extends Monster {
                         .orElse(false);
     }
 
-    private void confineToCage(ServerPlayer player, Vec3 center, ServerLevel server) {
-        Vec3 offset = player.position().subtract(center).multiply(1.0D, 0.0D, 1.0D);
-        double distance = offset.length();
-        if (distance <= TORII_CAGE_RADIUS - 0.25D || distance < 0.001D) {
-            return;
-        }
-        Vec3 inward = offset.normalize().reverse();
-        if (distance > TORII_CAGE_RADIUS + 1.0D) {
-            Vec3 edge = center.add(offset.normalize().scale(TORII_CAGE_RADIUS - 0.55D));
-            player.teleportTo(server, edge.x, player.getY(), edge.z,
-                    player.getYRot(), player.getXRot());
-        }
-        player.setDeltaMovement(player.getDeltaMovement().scale(0.35D)
-                .add(inward.scale(0.72D)));
-        player.hurtMarked = true;
-    }
 
-    private void applyCagePulse(ServerPlayer player, CageState cage,
-            ServerLevel server, boolean finalPulse) {
-        boolean guarding = tickCount - cage.lastGuardTick <= 4;
-        boolean perfectGuard = finalPulse && guarding && cage.guardedTicks
-                >= GameplayConfig.MIKAGE_CAGE_PERFECT_GUARD_TICKS.get();
-        float amount = (float) getAttributeValue(Attributes.ATTACK_DAMAGE)
-                * GameplayConfig.MIKAGE_CAGE_PULSE_DAMAGE.get().floatValue();
-        Vec3 pulseTarget = player.position().add(0.0D, 1.0D, 0.0D);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.CAGE_PULSE,
-                cage.center.x, cage.center.y + 0.08D, cage.center.z,
-                pulseTarget.x, pulseTarget.y, pulseTarget.z,
-                player.getYRot(), finalPulse ? 1.18F : 0.82F,
-                -1, player.getId(), 12, random.nextInt()), cage.center);
-        if (perfectGuard) {
-            amount = 0.0F;
-            arena.cagePerfectCountered = true;
-            Vec3 impact = player.position().add(player.getLookAngle().normalize().scale(0.72D))
-                    .add(0.0D, 1.1D, 0.0D);
-            sendCombatVfx(server, BladeCombatVfxPacket.PERFECT_GUARD,
-                    impact, player.getYRot(), 1.15F, player.getId());
-            playBladeParrySound(server, impact, SoundSource.PLAYERS, true);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.CAGE_SUCCESS,
-                    impact.x, impact.y, impact.z, impact.x, impact.y, impact.z,
-                    player.getYRot(), 1.2F, -1, player.getId(), 18,
-                    random.nextInt()), impact);
-            if (!arena.cageGuardPraised) {
-                arena.cageGuardPraised = true;
-                ChallengeManager.tryDialogue(this, MikageDialogue.CAGE_GUARD);
-            }
-        } else if (guarding) {
-            amount *= GameplayConfig.MIKAGE_CAGE_GUARD_MULTIPLIER.get().floatValue();
-            Vec3 impact = player.position().add(player.getLookAngle().normalize().scale(0.68D))
-                    .add(0.0D, 1.05D, 0.0D);
-            sendCombatVfx(server, BladeCombatVfxPacket.PARRY,
-                    impact, player.getYRot(), 0.78F, player.getId());
-            playBladeParrySound(server, impact, SoundSource.PLAYERS, false);
-        }
-        if (finalPulse && !perfectGuard) {
-            amount += (float) getAttributeValue(Attributes.ATTACK_DAMAGE)
-                    * GameplayConfig.MIKAGE_CAGE_FINAL_DAMAGE.get().floatValue();
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.CAGE_FAILURE,
-                    pulseTarget.x, pulseTarget.y, pulseTarget.z,
-                    pulseTarget.x, pulseTarget.y, pulseTarget.z,
-                    player.getYRot(), 1.15F, -1, player.getId(), 18,
-                    random.nextInt()), pulseTarget);
-        }
-        if (amount > 0.0F) {
-            dealAdjustedTrialDamage(player, amount, guarding);
-        }
-        server.sendParticles(new DustParticleOptions(
-                        new Vector3f(0.82F, 0.025F, 0.08F), 1.0F),
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                18, 1.4D, 0.8D, 1.4D, 0.04D);
-    }
+
+
 
     void flashStepAwayFromNearestPlayer(ServerLevel server) {
         LivingEntity target = getTarget();
