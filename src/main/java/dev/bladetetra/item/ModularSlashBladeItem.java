@@ -116,26 +116,6 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String FOX_SAYA_MODULE = "slashblade/fox_saya";
     public static final String FOX_TSUBA_MODULE = "slashblade/fox_tsuba";
 
-    private static final String[] MAJOR_MODULES = { BLADE_SLOT, TSUKA_SLOT };
-    private static final String[] MINOR_MODULES = {
-            SAYA_SLOT,
-            TSUBA_SLOT,
-            HABAKI_SLOT,
-            KASHIRA_SLOT,
-            FULLER_SLOT,
-            INSCRIPTION_SLOT
-    };
-    private static final String[] REQUIRED_MODULES = { BLADE_SLOT, TSUKA_SLOT, SAYA_SLOT };
-    private static final GuiModuleOffsets MAJOR_GUI_OFFSETS =
-            new GuiModuleOffsets(22, -2, 22, 18);
-    private static final GuiModuleOffsets MINOR_GUI_OFFSETS =
-            new GuiModuleOffsets(
-                    -21, -25,
-                    -21, -12,
-                    -21, 1,
-                    -21, 14,
-                    -21, 27,
-                    -21, 40);
     private static final SynergyData[] NO_SYNERGIES = new SynergyData[0];
     private static final int FALLBACK_DURABILITY = 250;
     private static final double IAIDO_REACH_AMPLIFIER = 1.0D;
@@ -191,29 +171,29 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
 
     @Override
     public String[] getMajorModuleKeys(ItemStack itemStack) {
-        return MAJOR_MODULES;
+        return BladeComponentLayout.MAJOR;
     }
 
     @Override
     public String[] getMinorModuleKeys(ItemStack itemStack) {
-        return MINOR_MODULES;
+        return BladeComponentLayout.MINOR;
     }
 
     @Override
     public String[] getRequiredModules(ItemStack itemStack) {
-        return REQUIRED_MODULES;
+        return BladeComponentLayout.REQUIRED;
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public GuiModuleOffsets getMajorGuiOffsets(ItemStack itemStack) {
-        return MAJOR_GUI_OFFSETS;
+        return BladeComponentLayout.MAJOR_OFFSETS;
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public GuiModuleOffsets getMinorGuiOffsets(ItemStack itemStack) {
-        return MINOR_GUI_OFFSETS;
+        return BladeComponentLayout.MINOR_OFFSETS;
     }
 
     @Override
@@ -344,6 +324,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             LivingEntity attacker) {
         boolean result = super.hurtEnemy(stack, target, attacker);
         if (stack.getCapability(BLADESTATE).map(state -> !state.isBroken()).orElse(false)) {
+            dev.bladetetra.compat.attachments.NativeSwordHitEffects.apply(stack, target, attacker);
             applyUsageEffects(attacker, stack, 1);
         }
         return result;

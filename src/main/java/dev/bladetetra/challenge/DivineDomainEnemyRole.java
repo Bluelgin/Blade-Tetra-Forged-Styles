@@ -23,7 +23,7 @@ public enum DivineDomainEnemyRole {
 
     static void assign(Mob mob, DivineDomainTier tier, int index, boolean elite, boolean finalBoss) {
         DivineDomainEnemyRole role = finalBoss ? FINAL : elite ? TAINTED : ORDINARY;
-        if (!finalBoss && tier.hasCompanion()) {
+        if (!finalBoss && tier.hasAdvancedRoles()) {
             role = switch (Math.floorMod(index, 7)) {
                 case 0 -> INVADER;
                 case 1 -> GUARDIAN;

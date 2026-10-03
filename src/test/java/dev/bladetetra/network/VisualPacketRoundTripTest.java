@@ -164,9 +164,7 @@ class VisualPacketRoundTripTest {
         DivineSupportStatePacket expected = new DivineSupportStatePacket(
                 8080L,
                 true,
-                4,
                 95,
-                37,
                 true,
                 false);
         assertEquals(expected, roundTrip(expected,

@@ -37,7 +37,7 @@ public final class ComponentCombatHandler {
                 ModularSlashBladeItem.QUICKDRAW_SAYA_MODULE)
                 && ModComboStates.IAIDO_DRAW.getId().equals(
                         event.getSlashBladeState().getComboSeq())) {
-            event.setDamage(event.getDamage() * 1.15D);
+            event.setDamage(event.getDamage() * (1 + ComponentCombatValues.DRAW_BONUS));
         }
 
         long spiritUntil = event.getUser().getPersistentData().getLong(SPIRIT_SAYA_UNTIL);
@@ -51,7 +51,7 @@ public final class ComponentCombatHandler {
                 ModularSlashBladeItem.SAYA_SLOT,
                 ModularSlashBladeItem.SPIRIT_SAYA_MODULE)
                 && event.getUser().level().getGameTime() <= spiritUntil) {
-            event.setDamage(event.getDamage() * 1.15D);
+            event.setDamage(event.getDamage() * (1 + ComponentCombatValues.SPIRIT_BONUS));
         }
 
         if (ComponentEffectResolver.hasModule(
@@ -79,7 +79,7 @@ public final class ComponentCombatHandler {
                 && event.getType() == SlashArts.ArtsType.Success) {
             int extendedJustEnd = event.getSlashBladeState().getFullChargeTicks(user)
                     + SlashArts.getJustReceptionSpan(user)
-                    + 2;
+                    + ComponentCombatValues.JUST_EXTRA_TICKS;
             if (event.getElapsed() < extendedJustEnd) {
                 event.setComboState(
                         event.getSlashBladeState().getSlashArts().getComboStateJust(user));
@@ -94,7 +94,7 @@ public final class ComponentCombatHandler {
                 && !ComboStateRegistry.NONE.getId().equals(event.getComboState())) {
             user.getPersistentData().putLong(
                     SPIRIT_SAYA_UNTIL,
-                    user.level().getGameTime() + 40L);
+                    user.level().getGameTime() + ComponentCombatValues.SPIRIT_TICKS);
         }
     }
 
@@ -112,7 +112,7 @@ public final class ComponentCombatHandler {
             event.getUser().getCapability(ConcentrationRankCapabilityProvider.RANK_POINT)
                     .ifPresent(rank -> rank.addRankPoint(
                             event.getUser(),
-                            Math.max(1L, rank.getUnitCapacity() / 50L)));
+                            ComponentCombatValues.rankGain(rank.getUnitCapacity())));
         }
     }
 
@@ -132,8 +132,8 @@ public final class ComponentCombatHandler {
                 blade,
                 ModularSlashBladeItem.TSUBA_SLOT,
                 ModularSlashBladeItem.GUARD_TSUBA_MODULE)) {
-            event.setAmount(event.getAmount() * 0.75F);
-            blade.hurtAndBreak(1, defender, ItemSlashBlade.getOnBroken(blade));
+            event.setAmount(event.getAmount() * (1 - ComponentCombatValues.GUARD_REDUCTION));
+            blade.hurtAndBreak(ComponentCombatValues.GUARD_DURABILITY_COST, defender, ItemSlashBlade.getOnBroken(blade));
         }
     }
 

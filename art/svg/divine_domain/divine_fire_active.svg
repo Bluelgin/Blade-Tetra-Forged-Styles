@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Divine fire — rescue burning</title>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="128" cy="131" r="86" fill="none" stroke="#381b28" stroke-width="14"/>
+    <path d="M78 61a86 86 0 0 1 114 27M204 170a86 86 0 0 1-100 43M48 161a86 86 0 0 1-4-50" fill="none" stroke="#e2bd79" stroke-width="7"/>
+    <path d="m196 70 11 26-28-3M104 208l-16 12 19 14M34 118l10-23 17 20" fill="#e2bd79"/>
+    <path d="M128 36c18 27-7 48 18 75 11-14 14-29 13-42 23 22 25 50 19 64 13-6 17-13 18-22 18 41-4 99-66 99-53 0-78-47-56-86 0 22 8 32 18 36-9-33 6-45 20-63 1 12 3 19 9 23-9-36 0-54 7-84z" fill="#bd304b" stroke="#381b28" stroke-width="7"/>
+    <path d="M131 95c12 34 4 42 16 54 8-11 14-15 22-19-1 19 7 48-12 62-10 7-18 9-29 9-30 0-47-26-32-51 2 15 8 19 16 21-6-30 12-51 19-76z" fill="#ff8d93"/>
+    <path d="M130 146c8 14 1 25 11 34 10-4 11-10 12-15 8 21-3 34-23 35-18-1-28-12-23-25 1 8 6 11 10 11-2-20 8-26 13-40z" fill="#fff2dc"/>
+    <path d="M128 166v22m-11-11h22" fill="none" stroke="#c79b5d" stroke-width="5"/>
+    <path d="m34 51 4 10-4 10-4-10zm188 67 5 10-5 10-5-10zM113 19l5 10-5 10-5-10z" fill="#f4b9a3"/>
+  </g>
+</svg>

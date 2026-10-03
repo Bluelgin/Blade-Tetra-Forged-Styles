@@ -41,10 +41,11 @@ class DivineSupportRulesTest {
         assertEquals(1.2F,DivineSupportRules.playerWindowMultiplier(true,false));
         assertEquals(1.2F,DivineSupportRules.playerWindowMultiplier(true,true));
     }
-    @Test void onlyHighTiersSpawnACompanionAndAllWavesRespectHardCaps() {
+    @Test void onlyHighTiersHaveAdvancedRolesAndAllWavesRespectHardCaps() {
         assertFalse(DivineDomainTier.GRUDGE.hasSupport());
         assertTrue(DivineDomainTier.HUNDRED_GHOSTS.hasSupport());
-        assertFalse(DivineDomainTier.HUNDRED_GHOSTS.hasCompanion());
+        assertFalse(DivineDomainTier.HUNDRED_GHOSTS.hasAdvancedRoles());
+        assertTrue(DivineDomainTier.ASURA.hasAdvancedRoles());
         for(var tier:DivineDomainTier.values()) for(int wave=1;wave<=tier.waves();wave++) {
             assertTrue(tier.concurrentForWave(wave)<=tier.hostileCap());
             assertTrue(tier.hostileCap()<=20);

@@ -242,7 +242,7 @@ public final class MaterialTextureManager {
         try {
             NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
-            recolor(
+            MaterialTextureCompositor.recolor(
                     image,
                     appearance,
                     minecraft.getResourceManager(),
@@ -567,7 +567,7 @@ public final class MaterialTextureManager {
             NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
 
-            recolor(
+            MaterialTextureCompositor.recolor(
                     image,
                     appearance,
                     minecraft.getResourceManager(),
@@ -680,220 +680,8 @@ public final class MaterialTextureManager {
         }
     }
 
-    private static void recolor(
-            NativeImage image,
-            MaterialAppearance appearance,
-            ResourceManager resourceManager,
-            TextureLayout textureLayout) {
-        boolean completePotato = appearance.physicalComponentsMatch("potato");
-        int potatoYellow = 0xD9AD4F;
-        MaterialStyle blade = componentStyle(appearance.blade(), potatoYellow);
-        MaterialStyle tsuka = componentStyle(
-                appearance.tsuka(), completePotato ? potatoYellow : 0x956033);
-        MaterialStyle tsuba = componentStyle(
-                appearance.tsuba(), completePotato ? potatoYellow : 0xB17A31);
-        MaterialStyle saya = componentStyle(appearance.saya(), 0x9D6635);
-        MaterialStyle habaki = componentStyle(
-                appearance.habaki(), completePotato ? potatoYellow : 0x704222);
-        MaterialStyle kashira = componentStyle(
-                appearance.kashira(), completePotato ? potatoYellow : 0x744525);
-        MaterialStyle fuller = styleFor(appearance.fuller());
-        FoxLegacyParts fox = appearance.foxLegacy();
-        blade = foxStyle(blade, fox.blade(), true);
-        saya = foxStyle(saya, fox.saya(), false);
-        tsuba = foxStyle(tsuba, fox.tsuba(), false);
-        tsuka = foxStyle(tsuka, fox.tsuka(), false);
-        DyeColor tsukaWrapColor = TsukaWrapColor.dye(
-                appearance.tsukaWrapColor());
-        List<BannerLayer> bannerLayers = loadBannerLayers(
-                resourceManager,
-                appearance.sayaSkin());
-        NativeImage presetSaya = loadPresetSaya(
-                resourceManager,
-                appearance.sayaPreset());
 
-        try {
-            for (int y = 0; y < image.getHeight(); y++) {
-                for (int x = 0; x < image.getWidth(); x++) {
-                    float atlasX = logicalCoordinate(x, image.getWidth());
-                    float atlasY = logicalCoordinate(y, image.getHeight());
-                    int source = image.getPixelRGBA(x, y);
-                    int alpha = alpha(source);
-                    if (alpha == 0) {
-                        continue;
-                    }
-
-                    int red = red(source);
-                    int green = green(source);
-                    int blue = blue(source);
-                    int luminance = (red * 30 + green * 59 + blue * 11) / 100;
-                    MaterialStyle style = null;
-                    float tone = 0.5F;
-
-                    BladeCoordinateMap.Coordinates bladeCoordinates =
-                            bladeCoordinates(
-                                    textureLayout,
-                                    x,
-                                    y,
-                                    image.getWidth(),
-                                    image.getHeight(),
-                                    atlasX,
-                                    atlasY);
-                    if (bladeCoordinates.valid()) {
-                        float bladeX = bladeCoordinates.bladeX();
-                        float bladeY = bladeCoordinates.bladeY();
-                        tone = normalize(luminance, 60, 235);
-                        tone = cleanBladeTone(
-                                luminance, bladeX, bladeY);
-                        int bladeColor = blade.sampleBlade(
-                                tone, bladeX, bladeY);
-                        int structuredColor = applyMasterBladePlanes(
-                                bladeColor,
-                                blade.palette(),
-                                bladeX,
-                                bladeY);
-                        structuredColor = applyBladeFormComposition(
-                                structuredColor,
-                                blade.palette(),
-                                appearance.bladeFormProfile(),
-                                bladeX,
-                                bladeY);
-                        structuredColor = applyForgingProfile(
-                                structuredColor,
-                                blade.palette(),
-                                appearance.forgingProfile(),
-                                bladeX,
-                                bladeY);
-                        int finishedColor = applyFuller(
-                                structuredColor,
-                                blade,
-                                fuller,
-                                appearance.fullerProfile(),
-                                bladeX,
-                                bladeY);
-                        finishedColor = applyEdgeFinish(
-                                finishedColor,
-                                blade.palette(),
-                                appearance.edgeFinishProfile(),
-                                bladeX,
-                                bladeY);
-                        finishedColor = applyFoxAccent(
-                                finishedColor, fox.blade(), bladeX, bladeY, 0);
-                        image.setPixelRGBA(x, y, abgr(alpha, finishedColor));
-                        continue;
-                    } else if (inside(atlasX, atlasY, 1, 35, 63, 55)) {
-                        boolean fittingBand = red > 90 && green > 70;
-                        if (completePotato && !fittingBand) {
-                            image.setPixelRGBA(x, y, abgr(0, 0));
-                            continue;
-                        }
-                        style = fittingBand ? habaki : saya;
-                        tone = fittingBand
-                                ? normalize(luminance, 85, 190)
-                                : normalize(luminance, 20, 75);
-                        int sayaColor = fittingBand
-                                ? habaki.sample(tone, x, y)
-                                : sampleSayaMaterial(
-                                        saya,
-                                        tone,
-                                        atlasX,
-                                        atlasY,
-                                        appearance.sayaProfile());
-                        if (!fittingBand && presetSaya != null) {
-                            sayaColor = applyPresetSaya(
-                                    sayaColor,
-                                    tone,
-                                    atlasX,
-                                    atlasY,
-                                    presetSaya);
-                        } else if (!fittingBand
-                                && appearance.sayaSkin().present()) {
-                            sayaColor = applySayaSkin(
-                                    sayaColor,
-                                    tone,
-                                    atlasX,
-                                    atlasY,
-                                    appearance.sayaSkin(),
-                                    bannerLayers);
-                        }
-                        if (!fittingBand) {
-                            sayaColor = applySayaLacquer(
-                                    sayaColor,
-                                    saya.palette(),
-                                    appearance.sayaProfile(),
-                                    atlasX,
-                                    atlasY);
-                            sayaColor = applyFoxAccent(
-                                    sayaColor, fox.saya(), atlasX, atlasY, 1);
-                        }
-                        image.setPixelRGBA(
-                                x,
-                                y,
-                                abgr(alpha, sayaColor));
-                        continue;
-                    } else if (inside(atlasX, atlasY, 1, 59, 47, 81)) {
-                        tone = normalize(luminance, 15, 190);
-                        int tsukaColor = completePotato
-                                ? tsuka.sample(tone, x, y)
-                                : applyTsukaProfile(
-                                        tsuka,
-                                        kashira,
-                                        tone,
-                                        atlasX,
-                                        atlasY,
-                                        x,
-                                        y,
-                                        appearance.tsukaProfile(),
-                                        tsukaWrapColor);
-                        tsukaColor = applyFoxAccent(
-                                tsukaColor, fox.tsuka(), atlasX, atlasY, 2);
-                        image.setPixelRGBA(
-                                x,
-                                y,
-                                abgr(alpha, tsukaColor));
-                        continue;
-                    } else if (inside(atlasX, atlasY, 52, 58, 76, 82)) {
-                        if (completePotato) {
-                            image.setPixelRGBA(x, y, abgr(0, 0));
-                            continue;
-                        }
-                        tone = normalize(luminance, 18, 105);
-                        TsubaPixel tsubaPixel = applyTsubaProfile(
-                                tsuba.sample(tone, x, y),
-                                alpha,
-                                atlasX,
-                                atlasY,
-                                appearance.tsubaProfile(),
-                                tsuba.palette());
-                        int foxTsubaColor = applyFoxAccent(
-                                tsubaPixel.color(), fox.tsuba(), atlasX, atlasY, 3);
-                        image.setPixelRGBA(
-                                x,
-                                y,
-                                abgr(tsubaPixel.alpha(), foxTsubaColor));
-                        continue;
-                    } else if (inside(atlasX, atlasY, 80, 58, 96, 82)) {
-                        style = habaki;
-                        tone = normalize(luminance, 80, 190);
-                    }
-
-                    if (style != null) {
-                        image.setPixelRGBA(
-                                x,
-                                y,
-                                abgr(alpha, style.sample(tone, x, y)));
-                    }
-                }
-            }
-        } finally {
-            bannerLayers.forEach(BannerLayer::close);
-            if (presetSaya != null) {
-                presetSaya.close();
-            }
-        }
-    }
-
-    private static NativeImage loadPresetSaya(
+    static NativeImage loadPresetSaya(
             ResourceManager resourceManager,
             SayaPresetSkin preset) {
         if (!preset.present()) {
@@ -914,7 +702,7 @@ public final class MaterialTextureManager {
         }
     }
 
-    private static List<BannerLayer> loadBannerLayers(
+    static List<BannerLayer> loadBannerLayers(
             ResourceManager resourceManager,
             SayaBannerSkin skin) {
         if (!skin.present() || skin.patternCount() == 0) {
@@ -1027,7 +815,7 @@ public final class MaterialTextureManager {
      * separate generated textures preserves the native icon transforms and
      * its per-style silhouette without contaminating the in-world blade art.
      */
-    private static BladeCoordinateMap.Coordinates bladeCoordinates(
+    static BladeCoordinateMap.Coordinates bladeCoordinates(
             TextureLayout textureLayout,
             int x,
             int y,
@@ -1045,7 +833,7 @@ public final class MaterialTextureManager {
         return BladeCoordinateMap.sample(x, y, imageWidth, imageHeight);
     }
 
-    private static boolean inside(
+    static boolean inside(
             float x,
             float y,
             float minX,
@@ -1055,7 +843,7 @@ public final class MaterialTextureManager {
         return x >= minX && x < maxX && y >= minY && y < maxY;
     }
 
-    private static float normalize(int value, int minimum, int maximum) {
+    static float normalize(int value, int minimum, int maximum) {
         if (value <= minimum) {
             return 0.0F;
         }
@@ -1285,7 +1073,7 @@ public final class MaterialTextureManager {
 
 
 
-    private enum TextureLayout {
+    enum TextureLayout {
         WORLD("world"),
         ITEM("item");
 

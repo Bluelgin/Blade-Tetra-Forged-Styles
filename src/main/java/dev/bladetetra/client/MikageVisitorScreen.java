@@ -1,6 +1,5 @@
 package dev.bladetetra.client;
 
-import dev.bladetetra.BladeTetra;
 import dev.bladetetra.network.MikageVisitorChoicePacket;
 import dev.bladetetra.network.MikageVisitorDialoguePacket;
 import dev.bladetetra.network.ModNetwork;
@@ -10,21 +9,13 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
 
 /** Visual-novel presentation for Mikage's peaceful visitor conversations. */
 public final class MikageVisitorScreen extends Screen {
-    private static final int TEXTURE_WIDTH = 512;
-    // Portrait assets are cropped to the only 560 rows this screen renders.
-    private static final int TEXTURE_HEIGHT = 560;
-    private static final int PORTRAIT_CROP_HEIGHT = 560;
-    private static final ResourceLocation PORTRAIT_NEUTRAL = portrait("neutral");
-    private static final ResourceLocation PORTRAIT_SOFT = portrait("soft");
-    private static final ResourceLocation PORTRAIT_DISTANT = portrait("distant");
-    private static final ResourceLocation PORTRAIT_SERIOUS = portrait("serious");
+    private MikageDialoguePortraits.Portrait portrait;
 
     private final MikageVisitorDialoguePacket dialogue;
     private int boxX;
@@ -43,13 +34,9 @@ public final class MikageVisitorScreen extends Screen {
         this.dialogue = dialogue;
     }
 
-    private static ResourceLocation portrait(String expression) {
-        return new ResourceLocation(BladeTetra.MOD_ID,
-                "textures/gui/mikage_dialogue/mikage_" + expression + ".png");
-    }
-
     @Override
     protected void init() {
+        portrait = MikageDialoguePortraits.resolve(minecraft.getResourceManager(), dialogue.expression()).orElse(null);
         boxWidth = Math.min(960, width - 24);
         boxHeight = Math.min(142, height - 34);
         boxX = (width - boxWidth) / 2;
@@ -57,12 +44,11 @@ public final class MikageVisitorScreen extends Screen {
 
         portraitHeight = Math.min(height - 4,
                 Math.max(280, Math.round(height * 0.94F)));
-        portraitWidth = Math.round(portraitHeight * (TEXTURE_WIDTH / (float) PORTRAIT_CROP_HEIGHT));
+        portraitWidth = portrait == null ? 0 : Math.round(portraitHeight * (portrait.width() / (float) portrait.height()));
         portraitX = Math.max(0, boxX + Math.min(42, boxWidth / 18));
         portraitY = height - portraitHeight;
 
-        textX = Math.max(boxX + 214,
-                Math.min(boxX + portraitWidth - 12, boxX + boxWidth / 3));
+        textX = portrait == null ? boxX + 22 : boxX + Math.min(boxWidth / 3, Math.max(22, portraitWidth - 12));
         textWidth = boxX + boxWidth - textX - 22;
 
         List<MikageVisitorDialoguePacket.Option> options = dialogue.options();
@@ -90,12 +76,12 @@ public final class MikageVisitorScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0x38000000);
-        ResourceLocation portrait = expressionTexture();
-        Minecraft.getInstance().getTextureManager().getTexture(portrait)
-                .setFilter(false, false);
-        graphics.blit(portrait, portraitX, portraitY,
-                portraitWidth, portraitHeight, 0.0F, 0.0F,
-                TEXTURE_WIDTH, PORTRAIT_CROP_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        if (portrait != null) {
+            Minecraft.getInstance().getTextureManager().getTexture(portrait.texture()).setFilter(false, false);
+            graphics.blit(portrait.texture(), portraitX, portraitY,
+                    portraitWidth, portraitHeight, 0.0F, 0.0F,
+                    portrait.width(), portrait.height(), portrait.width(), portrait.height());
+        }
 
         graphics.fill(boxX - 2, boxY - 2, boxX + boxWidth + 2,
                 boxY + boxHeight + 2, 0x77000000);
@@ -123,15 +109,6 @@ public final class MikageVisitorScreen extends Screen {
         graphics.drawString(font, title, boxX + 13, boxY + boxHeight - 13,
                 0xFF756568, false);
         super.render(graphics, mouseX, mouseY, partialTick);
-    }
-
-    private ResourceLocation expressionTexture() {
-        return switch (dialogue.expression()) {
-            case "soft" -> PORTRAIT_SOFT;
-            case "distant" -> PORTRAIT_DISTANT;
-            case "serious" -> PORTRAIT_SERIOUS;
-            default -> PORTRAIT_NEUTRAL;
-        };
     }
 
     @Override

@@ -293,7 +293,8 @@ public final class BladeTechniqueHandler {
         PENDING_ZANSHIN.add(new PendingZanshin(
                 level.dimension(), player.getUUID(), target.getUUID(), now + 12L,
                 (float) techniqueDamage(player, 0.30D, 6.0D),
-                MaterialSlashEffectResolver.resolve(blade).color(), player.getYRot()));
+                MaterialSlashEffectResolver.resolve(blade).color(), player.getYRot(),
+                StyleResolver.resolve(blade), CombatBalanceRuntime.kind(player, null)));
         level.playSound(null, player.blockPosition(), SoundEvents.ARMOR_EQUIP_CHAIN,
                 SoundSource.PLAYERS, 0.24F, 1.72F);
     }
@@ -307,7 +308,8 @@ public final class BladeTechniqueHandler {
                 target.position().add(0.0D, target.getBbHeight() * 0.52D, 0.0D),
                 pending.yaw() + 180.0F, pending.color(),
                 Math.max(1.0F, Math.min(2.8F, target.getBbHeight() * 0.95F)), 10);
-        target.hurt(techniqueDamageSource(level, player), pending.damage());
+        CombatBalanceRuntime.authoredDamage(target, techniqueDamageSource(level, player), pending.damage(),
+                pending.style(), pending.kind());
         level.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT,
                 SoundSource.PLAYERS, 0.72F, 0.92F);
     }
@@ -455,7 +457,7 @@ public final class BladeTechniqueHandler {
             long dueTick,
             float damage,
             int color,
-            float yaw) {
+            float yaw, BladeStyle style, CombatBalanceRules.AttackKind kind) {
     }
 
     public static void appendTooltip(ItemStack blade, List<Component> tooltip) {

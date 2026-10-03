@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Divine fire — ready</title>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M73 190a78 78 0 0 1-19-109M202 81a78 78 0 0 1-19 109" fill="none" stroke="#3d1d28" stroke-width="15"/>
+    <path d="M73 190a78 78 0 0 1-19-109M202 81a78 78 0 0 1-19 109" fill="none" stroke="#c5985c" stroke-width="7"/>
+    <path d="m128 21 9 15-9 15-9-15zM33 127l8-8 8 8-8 8zm174 0 8-8 8 8-8 8z" fill="#e2bd79"/>
+    <path d="M127 55c13 31-7 40 13 60 7-12 18-19 23-33 7 24 33 45 26 80-5 29-29 48-60 48-40 0-66-27-61-57 4-27 21-44 39-64-4 23-1 36 7 43 6-21-6-43 13-77z" fill="#381b28" stroke="#381b28" stroke-width="12"/>
+    <path d="M127 55c13 31-7 40 13 60 7-12 18-19 23-33 7 24 33 45 26 80-5 29-29 48-60 48-40 0-66-27-61-57 4-27 21-44 39-64-4 23-1 36 7 43 6-21-6-43 13-77z" fill="#a93a50"/>
+    <path d="M126 113c13 19 7 30 18 36l13-16c16 30 10 58-27 64-26-2-38-22-28-45 1 13 5 18 12 18-4-21 0-35 12-57z" fill="#ec7c86"/>
+    <path d="M128 150c3 20 17 24 12 39-4 12-22 12-27 0-4-10 5-25 15-39z" fill="#fff0db"/>
+    <path d="M99 225h58" fill="none" stroke="#e2bd79" stroke-width="6"/>
+  </g>
+</svg>

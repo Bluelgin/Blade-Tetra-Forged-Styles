@@ -616,6 +616,7 @@ final class MaterialTextureStyleEngine {
             case BONE -> SurfacePattern.BONE;
             case WOOD -> SurfacePattern.WOOD;
             case STONE -> SurfacePattern.STONE;
+            case CLOTH, LEATHER -> SurfacePattern.BONE;
             case METAL -> switch (visual.surface()) {
                 case POLISHED -> SurfacePattern.POLISHED_METAL;
                 case CRUDE -> SurfacePattern.CRUDE_METAL;

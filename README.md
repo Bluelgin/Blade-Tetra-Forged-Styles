@@ -20,6 +20,10 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 
 ## 核心内容
 
+### 整合包战斗平衡配置
+
+模块刀提供总伤害、四流派、SA 和非 SA 幻影剑共 7 个倍率，默认全部为 **1.0**。由存档/服务器的 `serverconfig/blade-tetra-server.toml` 控制，不影响其他模组的刀或御影伤害。配置菜单、修改生效与兼容边界见 [战斗平衡配置说明（中文 / English）](docs/COMBAT_BALANCE_CONFIG.md)。
+
 - **模块化锻刀**：自由组合刀身、刀柄、刀镡、刀鞘等部件，并继承 Tetra 的材料、完整度、加工、修复与打磨体系。
 - **四种战斗流派**：本传、居合、连舞与断岳拥有不同的攻击节奏、范围、连段与风险收益。
 - **名刀映锻**：研习重锋本体及标准附属名刀，将其刀鞘与完整镡柄仿造成可混装的 Tetra 部件；同源刀装会形成动态映锻契合。
@@ -35,7 +39,7 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 - [名刀映锻说明](NAMED_BLADE_IMPRINTING.md)
 - [附属兼容说明](ADDON_COMPATIBILITY.md)
 - [配置说明](CONFIGURATION.md)
-- [1.5.2 更新日志](RELEASE_NOTES-1.5.2-ZH.md)
+- [1.5.8 更新日志](RELEASE_NOTES-1.5.8-ZH.md)
 
 ## 环境与安装
 
@@ -371,7 +375,7 @@ gradlew build
 
 ## Alpha 13：通用材料兼容层
 
-> 1.3.0 起该功能已停止提供；以下内容仅保留为历史记录。第三方材料现由 MMT 等 Tetra 材料提供方负责。
+> 1.3.0 起该功能已停止提供；以下内容及配置键仅保留为历史记录。当前版本不再读取 `blade_tetra-common.toml` 的 `automatic_materials` 设置；旧文件留在配置目录也不会启用自动材料。第三方材料现由 MMT 等 Tetra 材料提供方负责。
 
 - 服务器在数据包加载完成后检查所有非空的 `forge:ingots/*` 物品标签。
   如果某个标签没有被已有 Tetra 材料引用，也没有同名材料定义，Blade Tetra

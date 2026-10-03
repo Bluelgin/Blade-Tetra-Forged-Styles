@@ -73,6 +73,24 @@ Rules:
 - use the provider's public Tetra material data first;
 - explicit overrides should remain visual only.
 
+## Sword attachments and component texture composition
+
+Sword socket/wrap/coating compatibility belongs in `compat/attachments`, not in
+`ModularSlashBladeItem` or a provider-specific branch of the renderer. These
+adapters retain loaded Tetra module/improvement values; do not introduce a
+parallel balance table for gems, fabrics or coatings.
+
+`BladeComponentLayout` owns the physical slot layout. `BladeAttachmentAppearance`
+reads native attachment identities without duplicate persisted material NBT.
+`MaterialTextureCompositor` now owns the extracted component-painting loop;
+`AttachmentFinishPainter` handles the visual finishes. `MaterialTextureManager`
+keeps rendering entrypoints and atlas/cache lifecycle responsibilities. New
+attachment visuals should extend the focused painter, not grow the manager.
+
+Material/attribute compatibility does not promise every third-party combat
+behavior works: providers that require `ItemModularHandheld` need a separate
+review because our item must remain an `ItemSlashBlade`.
+
 ## Named-blade addon discovery
 
 `NamedLegacyCatalog` is the generic discovery path. It reads installed
@@ -124,3 +142,16 @@ ChallengeManager
 
 That work should happen in dedicated PRs with targeted regression tests rather
 than being mixed into addon compatibility work.
+
+## Combat balance configuration
+
+`CombatBalanceConfig` belongs to the existing SERVER spec. Defaults must stay
+neutral (1.0), with no hard dependency on a configuration-menu mod.
+`CombatBalanceRules` is registry-free arithmetic; `CombatBalanceRuntime` owns
+server-side attack classification and projectile identity snapshots. Do not
+copy these multipliers into material tables, animation timings or item stats.
+SA and ordinary summoned-sword categories are mutually exclusive. Secondary
+effects which inherit an already-scaled budget must use `InheritedCombatDamage`
+instead of multiplying that budget again. Recursion guards alone do not mean
+that damage has already been balanced. Keep player attacks isolated from boss
+and third-party damage, and preserve delayed attacks' originating style.

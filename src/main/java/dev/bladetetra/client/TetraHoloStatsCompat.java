@@ -12,14 +12,18 @@ final class TetraHoloStatsCompat {
             "se.mickelus.tetra.items.modular.impl.holo.gui.craft.schematic.HoloStatsGui"
     };
     private static final Method ADD_BAR = resolve();
+    private static boolean failed;
     private TetraHoloStatsCompat() { }
 
-    static void addBar(GuiStatBase bar) {
-        if (ADD_BAR == null) return;
+    static boolean addBar(GuiStatBase bar) {
+        if (ADD_BAR == null || failed) return false;
         try {
             ADD_BAR.invoke(null, bar);
-        } catch (IllegalAccessException | InvocationTargetException failure) {
-            throw new IllegalStateException("Unable to register Tetra holographic SA stats", failure);
+            return true;
+        } catch (IllegalAccessException | InvocationTargetException | LinkageError failure) {
+            failed = true;
+            LogUtils.getLogger().warn("Tetra holographic extension unavailable; keeping native stats", failure);
+            return false;
         }
     }
 
@@ -28,7 +32,7 @@ final class TetraHoloStatsCompat {
             try {
                 return Class.forName(name, false, TetraHoloStatsCompat.class.getClassLoader())
                         .getMethod("addBar", GuiStatBase.class);
-            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+            } catch (ClassNotFoundException | NoSuchMethodException | LinkageError ignored) {
                 // Try the alternate package, not a hard-coded version comparison.
             }
         }

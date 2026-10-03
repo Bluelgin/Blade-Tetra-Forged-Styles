@@ -156,7 +156,9 @@ public final class TetraMaterialVisualResolver {
         GEM,
         BONE,
         WOOD,
-        STONE;
+        STONE,
+        CLOTH,
+        LEATHER;
 
         private static MaterialKind from(String category) {
             if (category == null) {
@@ -164,10 +166,12 @@ public final class TetraMaterialVisualResolver {
             }
             return switch (category.toLowerCase(Locale.ROOT)) {
                 case "metal" -> METAL;
-                case "gem" -> GEM;
+                case "gem", "socket" -> GEM;
                 case "bone" -> BONE;
                 case "wood" -> WOOD;
                 case "stone" -> STONE;
+                case "fibre", "fabric" -> CLOTH;
+                case "skin" -> LEATHER;
                 default -> null;
             };
         }

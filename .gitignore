@@ -20,10 +20,24 @@ HANDOFF.md
 /META-INF/
 
 # Working art and local asset-generation tools are not build inputs
-art/
+art/*
+!art/svg/
+art/svg/*
+!art/svg/divine_domain/
+art/svg/divine_domain/*
+!art/svg/divine_domain/divine_fire_ready.svg
+!art/svg/divine_domain/divine_fire_active.svg
+!art/svg/divine_domain/divine_fire_spent.svg
+!art/svg/divine_domain/karmic_mirror_*.svg
+!art/svg/divine_domain/dead_thought_soul_seal.svg
+!art/svg/divine_domain/sword_ghost_remnant.svg
+!art/divine-domain-items-preview.png
+!art/divine-fire-rescue-preview.png
 art_previews/
 concepts/
-tools/
+tools/*
+!tools/render_divine_fire_art.cjs
+!tools/render_divine_domain_items.cjs
 tmp/
 audio-pack/
 

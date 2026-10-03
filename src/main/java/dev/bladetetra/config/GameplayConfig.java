@@ -430,6 +430,7 @@ public final class GameplayConfig {
                 .defineInRange("superSaPreparationReduction", .30D, 0D, .30D);
         builder.pop();
 
+        CombatBalanceConfig.define(builder);
         SPEC = builder.build();
     }
 

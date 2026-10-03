@@ -35,7 +35,8 @@ class DivineSupportAssetTest {
             assertNotNull(input); var png=ImageIO.read(input); assertEquals(256,png.getWidth());
             assertEquals(0xEEE6D5,png.getRGB(20,80)&0xFFFFFF);
         }
-        for(String name:new String[]{"mikage_support","purification_array","boundary_cut","divine_guard","divine_mark","final_binding"})
+        for(String name:new String[]{"mikage_support","purification_array","boundary_cut","divine_guard","divine_mark","final_binding",
+                "divine_fire_ready","divine_fire_active","divine_fire_spent"})
             for(int size:new int[]{256,128,64,32}) try(var input=getClass().getResourceAsStream(ROOT+"textures/divine/"+name+"_"+size+".png")) {
                 assertNotNull(input,name+size); var png=ImageIO.read(input);
                 assertEquals(size,png.getWidth()); assertEquals(size,png.getHeight());

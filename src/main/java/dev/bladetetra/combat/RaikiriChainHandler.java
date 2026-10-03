@@ -213,8 +213,8 @@ public final class RaikiriChainHandler {
                 emitRaikiriArc(level, player, from, to, hop, overload);
                 float damage = (float) (Math.min(triggeringDamage * ratio, cap)
                         * Math.pow(DAMAGE_DECAY, hop));
-                SoulLegacyDamageGuard.apply(() -> target.hurt(
-                        level.damageSources().playerAttack(player), damage));
+                InheritedCombatDamage.apply(() -> SoulLegacyDamageGuard.apply(() -> target.hurt(
+                        level.damageSources().playerAttack(player), damage)));
                 from = to;
                 completedHops++;
             }
@@ -267,8 +267,8 @@ public final class RaikiriChainHandler {
                 emitRaikiriArc(level, player, from, to, hop, overload, color);
                 float damage = (float) (totalBudget / maxHops
                         * Math.pow(DAMAGE_DECAY, hop));
-                SoulLegacyDamageGuard.apply(() -> target.hurt(
-                        level.damageSources().playerAttack(player), damage));
+                InheritedCombatDamage.apply(() -> SoulLegacyDamageGuard.apply(() -> target.hurt(
+                        level.damageSources().playerAttack(player), damage)));
                 from = to;
                 completed++;
             }

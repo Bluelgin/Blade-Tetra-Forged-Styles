@@ -10,23 +10,23 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
 
-/** Centralized player-facing notice for the unfinished Divine Domain postgame route. */
+/** Shared presentation of Blade Tetra's self-contained Divine Domain prologue. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DivineDomainWipNotice {
-    private static final String ENTRY_LABEL = "进入神域 [开发中]";
-    private static final String TITLE = "⚠ 神域残响 · 开发中";
-    private static final String DETAIL = "当前流程可正常体验，但地图、战斗、奖励与演出仍可能调整。";
+    private static final String ENTRY_LABEL = "screen.blade_tetra.divine.enter";
+    private static final String TITLE = "screen.blade_tetra.divine.title";
+    private static final String DETAIL = "screen.blade_tetra.divine.detail";
 
     public static String entryLabel() {
         return ENTRY_LABEL;
     }
 
     public static Component title() {
-        return Component.literal(TITLE).withStyle(ChatFormatting.GOLD);
+        return Component.translatable(TITLE).withStyle(ChatFormatting.GOLD);
     }
 
     public static Component detail() {
-        return Component.literal(DETAIL).withStyle(ChatFormatting.GRAY);
+        return Component.translatable(DETAIL).withStyle(ChatFormatting.GRAY);
     }
 
     public static void appendTooltip(List<Component> tooltip) {

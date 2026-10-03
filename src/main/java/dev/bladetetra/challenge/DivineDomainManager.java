@@ -295,9 +295,8 @@ public final class DivineDomainManager {
     }
 
     static boolean ownsCompanion(long id, UUID companion) {
-        Session s = SESSIONS.get(id);
-        return s != null && s.state == State.ACTIVE && s.support != null
-                && companion.equals(s.support.companionId());
+        // Legacy companion entities self-clean; fire rescue has no server entity host.
+        return false;
     }
 
     static final class Session {
@@ -460,7 +459,7 @@ public final class DivineDomainManager {
             int selector = Math.floorMod(waveIndex * 3 + index, 7);
             // Mechanic roles need ground navigation. A Vex ignores Navigation.moveTo and
             // cannot reliably be assigned the virtual array anchor as its destination.
-            if(tier.hasCompanion()) {
+            if(tier.hasAdvancedRoles()) {
                 int role=Math.floorMod(index,7);
                 if(role==0 || role==1) return EntityType.WITHER_SKELETON;
                 if(role==2) return EntityType.HUSK;
@@ -488,6 +487,7 @@ public final class DivineDomainManager {
                 for (UUID uuid : Set.copyOf(players)) {
                     ServerPlayer player = server.getPlayerList().getPlayer(uuid);
                     if (player == null || player.level() != level) continue;
+                    DivineDomainAfterword.grant(player);
                     ItemStack remnants = new ItemStack(ModItems.SWORD_GHOST_REMNANT.get(),
                             1 + tier.ordinal());
                     giveOrDrop(player, remnants);

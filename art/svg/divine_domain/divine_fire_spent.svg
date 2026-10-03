@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Divine fire — spent ember</title>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M68 184a80 80 0 0 1-17-90M205 94a80 80 0 0 1-17 90" fill="none" stroke="#342931" stroke-width="14"/>
+    <path d="M68 184a80 80 0 0 1-17-90M205 94a80 80 0 0 1-17 90" fill="none" stroke="#73615c" stroke-width="6"/>
+    <path d="M123 48c-11 15 10 26 2 38m12 10c-11 12 5 19-1 30" fill="none" stroke="#9a7880" stroke-width="6"/>
+    <path d="m77 198 15-50 35-15 35 15 17 50-48 20z" fill="#57414b" stroke="#342931" stroke-width="9"/>
+    <path d="m92 148 39 24 31-24m-31 24v46" fill="none" stroke="#8f6970" stroke-width="6"/>
+    <path d="m123 179 9-12 9 12-9 13z" fill="#cf6c73"/>
+    <path d="M102 231h52" fill="none" stroke="#73615c" stroke-width="5"/>
+  </g>
+</svg>

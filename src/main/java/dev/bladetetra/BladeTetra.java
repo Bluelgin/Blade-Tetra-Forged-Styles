@@ -58,6 +58,7 @@ public final class BladeTetra {
 
     private static void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            dev.bladetetra.compat.attachments.NativeSocketKashira.register();
             CraftingEffectRegistry.registerConditionType(
                     "blade_tetra:legacy_imprint_slot", LegacyImprintCraftingCondition.class);
             CraftingEffectRegistry.registerEffectType(

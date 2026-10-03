@@ -4,6 +4,9 @@
   "package": "dev.bladetetra.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "CombatBalanceBladeStateMixin",
+    "CombatBalanceSlashArtsMixin",
+    "SwordAttachmentSchematicMixin",
     "SpeedEfficiencyBladeStateMixin",
     "SpeedEfficiencySummonedSwordMixin",
     "SpeedEfficiencySuperSaMixin",

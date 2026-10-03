@@ -32,7 +32,7 @@ public final class MikageDivineVfxEvents {
     private static final String[] EFFECT_KINDS = {
             "array", "wall", "mark", "guard", "binding", "entrance",
             "dash", "strike", "volley", "hazard", "anchor_hit",
-            "array_end", "wall_end", "end"
+            "array_end", "wall_end", "rescue", "rescue_end", "end"
     };
     private record Key(int ritual, String kind, int target, int serial) {}
 
@@ -58,6 +58,10 @@ public final class MikageDivineVfxEvents {
         String kind = data.effectId().getPath().substring("divine/".length());
         // Cleanup must work even if a user disabled VFX or moved beyond the draw distance.
         if (kind.equals("end")) { SCENES.keySet().removeIf(k -> k.ritual == data.seed()); return; }
+        if (kind.equals("rescue_end")) {
+            SCENES.keySet().removeIf(k -> k.ritual == data.seed() && k.kind.equals("rescue") && k.target == data.targetEntityId());
+            return;
+        }
         if (kind.equals("array_end") || kind.equals("wall_end")) {
             String ended = kind.substring(0, kind.indexOf('_'));
             SCENES.keySet().removeIf(k -> k.ritual == data.seed() && k.kind.equals(ended));
@@ -107,7 +111,7 @@ public final class MikageDivineVfxEvents {
         Scene(String kind, TechniqueVfxData data, ClientLevel level) {
             this.kind = kind; duration = Math.max(1, Math.min(240, data.duration()));
             at = previous = new Vec3(data.endX(), data.endY(), data.endZ()); targetId = data.targetEntityId();
-            follows = kind.equals("guard") || kind.equals("mark") || kind.equals("binding")
+            follows = kind.equals("rescue") || kind.equals("guard") || kind.equals("mark") || kind.equals("binding")
                     || kind.equals("strike") || kind.equals("volley");
             if (follows) bind(level.getEntity(targetId));
         }

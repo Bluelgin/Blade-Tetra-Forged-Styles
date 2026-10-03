@@ -21,6 +21,14 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('combatBalanceSmoke')) {
+                workingDirectory project.file('build/combat-balance-smoke')
+                property 'blade_tetra.combatBalanceSmoke', 'true'
+            }
+            if (project.hasProperty('attachmentSmoke')) {
+                workingDirectory project.file("build/attachment-smoke-${tetra_file_id}")
+                property 'blade_tetra.attachmentSmoke', 'true'
+            }
             if (project.hasProperty('speedEfficiencySmoke')) {
                 workingDirectory project.file("build/speed-efficiency-smoke-${tetra_file_id}")
                 property 'blade_tetra.speedEfficiencySmoke', 'true'
@@ -74,6 +82,9 @@ minecraft {
 
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
+    // Keep archived dialogue artwork locally, but let a future story mod own
+    // the optional portraits. Core only ships the descriptor-reading interface.
+    exclude 'assets/blade_tetra/textures/gui/mikage_dialogue/**'
 }
 
 repositories {
@@ -129,6 +140,10 @@ dependencies {
     compileOnly fg.deobf(
             "mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
 
+    // Optional local profile for verifying Forge configuration-menu integration.
+    if (project.hasProperty('configuredTest')) {
+        runtimeOnly fg.deobf("curse.maven:configured-457570:5096828")
+    }
     // Optional local profile for verifying JEI integration in the userdev client.
     if (project.hasProperty('jeiTest')) {
         runtimeOnly fg.deobf(
@@ -211,9 +226,11 @@ dependencies {
     // userdev client. Production jars are remapped by ForgeGradle instead of
     // being copied into run/mods, which keeps their mixins compatible with the
     // named development runtime. None of these become release dependencies.
-    if (project.hasProperty('largeCompatTest')) {
+    if (project.hasProperty('iceAndFireTest') || project.hasProperty('largeCompatTest')) {
         runtimeOnly fg.deobf("local:citadel:2.6.3-1.20.1")
         runtimeOnly fg.deobf("local:iceandfire:2.1.13-1.20.1-beta-5")
+    }
+    if (project.hasProperty('largeCompatTest')) {
         runtimeOnly fg.deobf("local:goety:2.5.56.0")
         runtimeOnly fg.deobf("local:EndingLibrary:1.20.1-2.1.19fix-all")
         runtimeOnly fg.deobf("local:GoetyRevelation:2.3.3fix")

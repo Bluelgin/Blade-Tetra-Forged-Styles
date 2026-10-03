@@ -276,8 +276,9 @@ public final class AkatsukiExecution {
             }
             execution.nextPulse = now + GameplayConfig.AKATSUKI_EXECUTION_PULSE_TICKS.get();
             float before = target.getHealth();
-            boolean accepted = SoulLegacyDamageGuard.apply(() -> target.hurt(
-                    executionDamage(level, attacker), execution.pulseDamage));
+            boolean accepted = dev.bladetetra.combat.InheritedCombatDamage.apply(() ->
+                    SoulLegacyDamageGuard.apply(() -> target.hurt(
+                            executionDamage(level, attacker), execution.pulseDamage)));
             float progress = Math.max(0.0F, before - target.getHealth());
             if (!target.isAlive()) {
                 finish(level, execution, true);

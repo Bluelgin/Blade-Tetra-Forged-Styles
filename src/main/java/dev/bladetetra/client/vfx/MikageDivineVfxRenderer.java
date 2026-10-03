@@ -13,6 +13,7 @@ final class MikageDivineVfxRenderer {
         float unfold = Mth.clamp(time / 12, .01F, 1);
         Vec3 at = s.previous.lerp(s.at, partial);
         switch (s.kind) {
+            case "rescue" -> dev.bladetetra.client.DivineFireRescueRenderer.draw(p, at, time, alpha, quality, camera);
             case "array" -> {
                 model(p,b,"three_sword_anchor",at.add(0,.05,0),0,90,0,5*unfold,5*unfold,1,alpha);
                 for (int i=0;i<3;i++) {

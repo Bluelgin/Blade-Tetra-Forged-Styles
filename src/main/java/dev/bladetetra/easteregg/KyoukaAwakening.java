@@ -417,8 +417,8 @@ public final class KyoukaAwakening {
         float directDamage = pending.damage() - petalBudget;
         spawnNativeSlash(attacker, target, pending);
         target.invulnerableTime = 0;
-        boolean applied = SoulLegacyDamageGuard.apply(() -> target.hurt(
-                mirrorDamage(level, attacker), directDamage));
+        boolean applied = dev.bladetetra.combat.InheritedCombatDamage.apply(() ->
+                SoulLegacyDamageGuard.apply(() -> target.hurt(mirrorDamage(level, attacker), directDamage)));
         if (!applied) return;
         if (petalBudget > 0.0F && target.isAlive()) {
             SenbonzakuraAwakening.releaseMirrorPetals(attacker, target, petalBudget);

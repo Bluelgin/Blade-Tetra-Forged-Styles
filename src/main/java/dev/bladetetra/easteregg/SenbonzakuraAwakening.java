@@ -480,6 +480,7 @@ public final class SenbonzakuraAwakening {
         sword.setOwner(player);
         sword.setShooter(player);
         SoulLegacyDamageGuard.markSecondary(sword);
+        dev.bladetetra.combat.InheritedCombatDamage.mark(sword);
         sword.setColor(volley.mirrored ? 0xC8F1FF : SWORD_COLOR);
         sword.setRoll(volley.nextIndex * (360.0F / volley.count));
         sword.setDelay(0);

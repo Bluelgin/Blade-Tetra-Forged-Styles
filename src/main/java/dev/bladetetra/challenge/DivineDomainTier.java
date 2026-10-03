@@ -63,7 +63,7 @@ public enum DivineDomainTier {
     public int hostileCap() { return this == AVICI ? 20 : this == ASURA ? 16 : 12; }
     public int reinforcementBudget() { return this == AVICI ? 12 : this == ASURA ? 8 : this == HUNDRED_GHOSTS ? 4 : 0; }
     public boolean hasSupport() { return ordinal() >= HUNDRED_GHOSTS.ordinal(); }
-    public boolean hasCompanion() { return ordinal() >= ASURA.ordinal(); }
+    public boolean hasAdvancedRoles() { return ordinal() >= ASURA.ordinal(); }
 
     public double eliteChance() {
         return eliteChance;

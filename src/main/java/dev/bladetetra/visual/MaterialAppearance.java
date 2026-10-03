@@ -36,7 +36,8 @@ public record MaterialAppearance(
         SayaProfile sayaProfile,
         SayaBannerSkin sayaSkin,
         SayaPresetSkin sayaPreset,
-        FoxLegacyParts foxLegacy) {
+        FoxLegacyParts foxLegacy,
+        BladeAttachmentAppearance attachments) {
 
     public static MaterialAppearance fromStack(ItemStack stack) {
         String blade = materialInSlot(
@@ -81,7 +82,8 @@ public record MaterialAppearance(
                 sayaProfile,
                 sayaSkin,
                 sayaPreset,
-                FoxLegacyParts.fromStack(stack));
+                FoxLegacyParts.fromStack(stack),
+                BladeAttachmentAppearance.fromStack(stack));
     }
 
     public String signature() {
@@ -105,7 +107,9 @@ public record MaterialAppearance(
                 sayaProfile.serializedName,
                 sayaSkin.signature(),
                 sayaPreset.serializedName(),
-                foxLegacy.signature());
+                foxLegacy.signature(),
+                attachments.signature(),
+                Long.toString(dev.bladetetra.compat.attachments.SwordAttachmentSchematics.revision()));
     }
 
     /** Returns true when all six physical construction slots use one material. */

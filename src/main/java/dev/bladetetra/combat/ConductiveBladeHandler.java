@@ -130,7 +130,10 @@ public final class ConductiveBladeHandler {
                 GameplayConfig.OFFENSIVE_DAMAGE_CAP.get(),
                 GameplayConfig.OFFENSIVE_DAMAGE_BASE.get()
                         + score * GameplayConfig.OFFENSIVE_DAMAGE_PER_POINT.get());
-        event.getTarget().hurt(level.damageSources().lightningBolt(), damage);
+        float balancedDamage = CombatBalanceRules.damage(damage,
+                dev.bladetetra.config.CombatBalanceConfig.multiplier(StyleResolver.resolve(blade),
+                        CombatBalanceRules.AttackKind.ORDINARY), false);
+        InheritedCombatDamage.apply(() -> event.getTarget().hurt(level.damageSources().lightningBolt(), balancedDamage));
         blade.getOrCreateTag().putLong(
                 STRIKE_COOLDOWN,
                 now + GameplayConfig.OFFENSIVE_COOLDOWN_TICKS.get());

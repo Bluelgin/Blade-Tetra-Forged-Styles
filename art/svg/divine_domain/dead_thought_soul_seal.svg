@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+<title>无生残印</title>
+<path fill="#2a202b" d="M11 3h7v1h4v3h2v5h1v10h-3v4h-4v2h-7v-2H8v-3H6V12h1V7h3V5h1zM26 6h2v3h-2zM3 23h2v3H3z"/>
+<path fill="#5e3449" d="M11 5h7v1h3v3h2v11h-2v5h-4v1h-6v-2H9v-3H8V12h1V8h2z"/>
+<path fill="#a34c61" d="M11 5h6v2h3v3h1v10h-2v3h-7v-1h-2V12h1z"/>
+<path fill="#d37a83" d="M11 5h3v2h-2v5h-2v6H9v-6h1V8h1zm4 3h4v2h-4z"/>
+<path fill="#79394f" d="M19 14h2v6h-2v3h-5v-2h4v-3h1z"/>
+<path fill="#c89662" d="M11 11h4v1h-4zm7 1h3v1h-3zm-7 7h3v1h-3zm6 0h3v1h-3z"/>
+<path fill="#f2c79c" d="M14 4h1v4h1v3h-1v2h-1v2h1v3h1v2h-1v3h-1v3h-1v-4h1v-3h-1v-4h-1v-2h1v-3h1V8h-1V5h1z"/>
+<path fill="#382335" d="M15 4h1v4h1v3h-1v2h-1v2h1v3h1v2h-1v3h-1v3h-1v-3h1v-3h1v-2h-1v-3h-1v-2h1v-2h1V8h-1z"/>
+<path fill="#c17b83" d="M26 6h1v2h-1zM3 23h1v2H3z"/>
+</svg>

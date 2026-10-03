@@ -1,0 +1,6 @@
+{
+  "replace": true,
+  "slots": ["slashblade/kashira"],
+  "type": "blade_tetra:native_sword_socket",
+  "variants": []
+}
