@@ -150,10 +150,6 @@ public final class StyleCombatHandler {
         IaidoStyleCombat.onLivingTick(event.getEntity());
     }
 
-    static float calculatePerfectIaidoBonus(float targetMaxHealth) {
-        return IaidoStyleCombat.calculatePerfectBonus(targetMaxHealth);
-    }
-
     static void primeIaidoTarget(
             LivingEntity attacker,
             LivingEntity target,
