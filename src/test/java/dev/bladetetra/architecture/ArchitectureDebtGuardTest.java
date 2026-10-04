@@ -31,13 +31,22 @@ class ArchitectureDebtGuardTest {
                 1_400L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureStyleEngine.java",
-                1_850L);
+                1_250L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/client/MaterialStyleCatalog.java",
+                700L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/client/MaterialTextureComponentPainter.java",
                 850L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                3_500L);
+                2_850L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikagePursuitRainController.java",
+                460L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageToriiController.java",
+                540L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java",
                 180L);
@@ -49,7 +58,13 @@ class ArchitectureDebtGuardTest {
                 1_100L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java",
-                950L);
+                220L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/combat/IaidoStyleCombat.java",
+                650L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/combat/DangakuStyleCombat.java",
+                160L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/combat/VoidScatteringFusionHandler.java",
                 800L);
@@ -62,23 +77,28 @@ class ArchitectureDebtGuardTest {
     }
 
     @Test
-    void styleCombatLivingTickKeepsItsFastExit() throws IOException {
-        String source = Files.readString(Path.of(
+    void styleCombatFacadeKeepsIaidoStateMachineIsolated() throws IOException {
+        String facade = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/combat/StyleCombatHandler.java"));
-        assertTrue(source.contains(
-                "if (!modularBlade && !hasIaidoState)"),
-                "Unrelated living entities must leave StyleCombatHandler.onLivingTick early");
-        assertFalse(source.contains("hasBrokenStanceState"),
-                "Removed Dangaku broken-stance state must not keep unrelated entities in the living-tick path");
-        assertTrue(source.contains("hasIaidoTickState(CompoundTag data)"),
+        String iaido = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/combat/IaidoStyleCombat.java"));
+
+        assertTrue(facade.contains("IaidoStyleCombat.onLivingTick(event.getEntity())"),
+                "The global Forge subscriber should only route Iaido ticking");
+        assertFalse(facade.contains("blade_tetra_iaido_"),
+                "Iaido transient NBT belongs in the style-owned runtime, not the event facade");
+
+        assertTrue(iaido.contains("if (!modularBlade && !hasIaidoState)"),
+                "Unrelated living entities must leave IaidoStyleCombat.onLivingTick early");
+        assertTrue(iaido.contains("hasTickState(CompoundTag data)"),
                 "Iaido transient-state detection must stay explicit and allocation-free");
-        assertTrue(source.contains("data.contains(IAIDO_DRAW_POWER_UNTIL, Tag.TAG_LONG)"),
+        assertTrue(iaido.contains("data.contains(DRAW_POWER_UNTIL, Tag.TAG_LONG)"),
                 "Missing transient tags must not trigger pointless cleanup writes every tick");
-        assertTrue(source.contains("data.contains(IAIDO_SPACING_UNTIL, Tag.TAG_LONG)"),
+        assertTrue(iaido.contains("data.contains(SPACING_UNTIL, Tag.TAG_LONG)"),
                 "Missing spacing state must not trigger pointless cleanup writes every tick");
-        assertTrue(source.contains("data.contains(IAIDO_DEFLECT_UNTIL, Tag.TAG_LONG)"),
+        assertTrue(iaido.contains("data.contains(DEFLECT_UNTIL, Tag.TAG_LONG)"),
                 "Missing deflect state must not trigger pointless cleanup writes every tick");
-        assertTrue(source.contains("data.contains(IAIDO_DISRUPTED_UNTIL, Tag.TAG_LONG)"),
+        assertTrue(iaido.contains("data.contains(DISRUPTED_UNTIL, Tag.TAG_LONG)"),
                 "Missing disrupted state must not trigger pointless cleanup writes every tick");
     }
 
@@ -231,6 +251,33 @@ class ArchitectureDebtGuardTest {
                 "src/main/java/dev/bladetetra/client/vfx/TechniqueVfxRegistry.java"));
         assertFalse(source.contains("dev.bladetetra.network"),
                 "The renderer registry should consume neutral VFX data, not network packets");
+    }
+
+    @Test
+    void materialStyleResolutionStaysOutsidePixelEngine() throws IOException {
+        String engine = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialTextureStyleEngine.java"));
+        String catalog = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/client/MaterialStyleCatalog.java"));
+
+        assertTrue(engine.contains("MaterialStyleCatalog.styleFor(material)"));
+        assertTrue(catalog.contains("static MaterialStyle externalMaterialStyle"));
+        assertFalse(catalog.contains("NativeImage"),
+                "Material classification must not acquire renderer/resource lifecycle ownership");
+    }
+
+    @Test
+    void mikageSignatureDomainsStayDelegated() throws IOException {
+        String entity = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/MikageEntity.java"));
+        assertTrue(entity.contains("new MikagePursuitRainController(this)"));
+        assertTrue(entity.contains("new MikageToriiController(this)"));
+        assertTrue(entity.contains("pursuitRain.tickFinal(server)"));
+        assertTrue(entity.contains("torii.tickSweep(server)"));
+        assertFalse(entity.contains("private void castPursuitRainWave"),
+                "Pursuit Rain scripting belongs in its controller");
+        assertFalse(entity.contains("private void applyToriiScissorImpact"),
+                "Torii impact scripting belongs in its controller");
     }
 
     private static void assertLinesAtMost(String path, long maximum) throws IOException {
