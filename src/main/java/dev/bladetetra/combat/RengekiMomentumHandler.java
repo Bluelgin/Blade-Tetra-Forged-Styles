@@ -18,28 +18,25 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Rengeki's momentum layer: a stronger damage tradeoff for the native B chain
- * plus a speed-scaled, B-styled visual flurry while the player keeps sprinting
+ * plus a B-styled visual flurry and half-strength ordinary B rush hits while sprinting
  * in neutral.
  *
  * <p>The sprint flow deliberately does not install or advance a real ComboState.
  * Its B1-B7 visual rhythm is decoupled from a denser single-target hit pulse, so
  * the passive feels like an actual running flurry instead of many visual slashes
- * hiding one sparse damage event. Real hits remain bounded and frontal.</p>
+ * hiding one sparse damage event. Real hits remain single-target and frontal.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RengekiMomentumHandler {
-    static final double NATIVE_B_DAMAGE_MULTIPLIER = 0.85D;
+    static final double NATIVE_B_DAMAGE_MULTIPLIER = RengekiFlowRules.NATIVE_B_DAMAGE_MULTIPLIER;
 
     static final int SPRINT_VISUAL_INTERVAL_TICKS = 10;
     static final int SPRINT_HIT_INTERVAL_TICKS = 4;
@@ -49,8 +46,6 @@ public final class RengekiMomentumHandler {
     static final double SPRINT_SLASH_SPEED_CAP = 0.36D;
     static final double SPRINT_SLASH_MIN_RANGE = 1.35D;
     static final double SPRINT_SLASH_MAX_RANGE = 2.75D;
-    static final float SPRINT_SLASH_MIN_DAMAGE_RATIO = 0.03F;
-    static final float SPRINT_SLASH_MAX_DAMAGE_RATIO = 0.07F;
     static final double MIN_SPRINT_SLASH_DOT = Math.cos(Math.toRadians(55.0D));
 
     private static final double SPRINT_SLASH_MAX_HEIGHT_DIFFERENCE = 1.25D;
@@ -68,15 +63,16 @@ public final class RengekiMomentumHandler {
 
     /**
      * The native B tree and its authored recovery slashes trade more raw damage
-     * for Rengeki's pursuit, kill hand-off and sprint-pressure tools. Other
+     * for Rengeki's sprint-pressure tools. No pursuit or kill hand-off remains. Other
      * attacks remain untouched.
      */
     @SubscribeEvent
     public static void onRengekiSlash(SlashBladeEvent.DoSlashEvent event) {
         if (!(event.getBlade().getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(event.getBlade()) != BladeStyle.RENGEKI
-                || !RengekiShortStepHandler.isNativeBFlowState(
-                        event.getSlashBladeState().getComboSeq())) {
+                || !RengekiFlowRules.isNativeBFlow(
+                        event.getSlashBladeState().getComboSeq().getNamespace(),
+                        event.getSlashBladeState().getComboSeq().getPath())) {
             return;
         }
 
@@ -109,7 +105,6 @@ public final class RengekiMomentumHandler {
                 .map(state -> state.getComboSeq())
                 .orElse(ComboStateRegistry.NONE.getId());
         if (!ComboStateRegistry.NONE.getId().equals(combo)
-                || RengekiShortStepHandler.hasPendingKillTransfer(playerId)
                 || !player.isSprinting()
                 || !player.onGround()
                 || player.isPassenger()
@@ -125,15 +120,12 @@ public final class RengekiMomentumHandler {
                 ignored -> new RengekiRuntimeState.SprintChainState());
 
         double speedScale = speedScale(speed);
-        double range = lerp(
-                SPRINT_SLASH_MIN_RANGE,
-                SPRINT_SLASH_MAX_RANGE,
-                speedScale);
+        double range = sprintSlashRangeForSpeed(speed);
         float visualSize = (float) lerp(
                 SPRINT_SLASH_MIN_VISUAL_SIZE,
                 SPRINT_SLASH_MAX_VISUAL_SIZE,
                 speedScale);
-        float damageRatio = sprintSlashDamageRatioForSpeed(speed);
+        float damageRatio = RengekiFlowRules.SPRINT_DAMAGE_RATIO;
 
         if (chain.activeBeat >= 0) {
             emitSprintBVisualTick(
@@ -179,7 +171,7 @@ public final class RengekiMomentumHandler {
     /**
      * Server END-tick deltaMovement is already damped by ground friction, so use
      * actual horizontal displacement between consecutive server ticks. A large
-     * discontinuity is treated as a teleport/knockback/pursuit jump rather than
+     * discontinuity is treated as a teleport/knockback jump rather than
      * sprint speed, preventing external movement from arming Sprint B.
      */
     private static double sampleHorizontalDisplacement(
@@ -343,7 +335,8 @@ public final class RengekiMomentumHandler {
 
     /**
      * Reuse Resharped's melee attack path so damage scales from the normal
-     * weapon/player panel path. Only the speed-provided ratio is capped.
+     * weapon/player panel path at half an ordinary non-critical B rush slash,
+     * without an absolute damage cap.
      *
      * <p>Temporarily suppress vanilla sprint-hit knockback, then restore both
      * the exact pre-hit motion vector and sprint flag in finally so the passive
@@ -372,6 +365,8 @@ public final class RengekiMomentumHandler {
                 target);
         SPRINT_HIT_CONTEXT.set(context);
         player.setSprinting(false);
+        // A previous charged SA must not classify this neutral sprint hit as SA damage.
+        CombatBalanceRuntime.ordinaryCombo(player);
         try {
             AttackManager.doMeleeAttack(
                     player,
@@ -437,13 +432,6 @@ public final class RengekiMomentumHandler {
         return lerp(
                 SPRINT_SLASH_MIN_RANGE,
                 SPRINT_SLASH_MAX_RANGE,
-                speedScale(speed));
-    }
-
-    static float sprintSlashDamageRatioForSpeed(double speed) {
-        return (float) lerp(
-                SPRINT_SLASH_MIN_DAMAGE_RATIO,
-                SPRINT_SLASH_MAX_DAMAGE_RATIO,
                 speedScale(speed));
     }
 

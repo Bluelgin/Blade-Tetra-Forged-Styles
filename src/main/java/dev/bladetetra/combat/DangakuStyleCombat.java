@@ -28,11 +28,17 @@ final class DangakuStyleCombat {
     private static final int ARMOR_END_TICK = 11;
 
     static void onSlash(SlashBladeEvent.DoSlashEvent event, ResourceLocation combo) {
-        if (isSlash(combo)) {
-            event.setDamage(event.getDamage() * 1.12D);
+        if (DangakuSpinCombos.SPIN.getId().equals(combo)) {
+            event.setDamage(event.getDamage() * DangakuSpinRules.damageScale(event.isCritical()));
+            event.setKnockback(KnockBacks.cancel);
+        } else if (isCircle(combo)) {
+            event.setDamage(event.getDamage() * DangakuCircleSlashRules.damageScale(event.isCritical()));
+            event.setKnockback(KnockBacks.cancel);
+        } else if (isSlash(combo)) {
+            event.setDamage(event.getDamage() * 0.55D);
             event.setKnockback(KnockBacks.smash);
         } else if (isSweep(combo)) {
-            event.setDamage(event.getDamage() * 0.92D);
+            event.setDamage(event.getDamage() * 0.85D);
         }
     }
 
@@ -40,6 +46,8 @@ final class DangakuStyleCombat {
             LivingEntity attacker,
             LivingEntity target,
             ResourceLocation combo) {
+        // Native Circle Slash owns reach; the old front-only gate must not cut off its rear half.
+        if (isCircle(combo) || DangakuSpinCombos.SPIN.getId().equals(combo)) return true;
         if (isSlash(combo)) {
             return StyleTargeting.isInsideFrontArc(
                     attacker, target, CLEAVE_RANGE, CLEAVE_MIN_DOT);
@@ -92,6 +100,11 @@ final class DangakuStyleCombat {
 
     static int applySlashPresentation(EntitySlashEffect slashEffect,
             ResourceLocation combo, int color) {
+        if (DangakuSpinCombos.SPIN.getId().equals(combo)) {
+            slashEffect.setBaseSize(1.18F);
+            return color;
+        }
+        if (BranchingStyleCombos.phase(combo) == null) return color;
         slashEffect.setBaseSize(isSlash(combo) ? 1.55F : 1.18F);
         return isSlash(combo)
                 ? MaterialSlashEffectResolver.blendTowardBlack(color, 0.10F)
@@ -99,11 +112,19 @@ final class DangakuStyleCombat {
     }
 
     static boolean isSlash(ResourceLocation combo) {
-        return ModComboStates.DANGAKU_CLEAVE.getId().equals(combo);
+        return BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_HEAVY
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_AIR_HEAVY;
     }
 
     static boolean isSweep(ResourceLocation combo) {
-        return ModComboStates.DANGAKU_SWEEP.getId().equals(combo);
+        var phase = BranchingStyleCombos.phase(combo);
+        return phase == StyleBranchRules.Phase.D_SWEEP || phase == StyleBranchRules.Phase.D_RETURN
+                || phase == StyleBranchRules.Phase.D_LAND
+                || phase == StyleBranchRules.Phase.D_AIR_FIRST || phase == StyleBranchRules.Phase.D_AIR_SECOND;
+    }
+
+    static boolean isCircle(ResourceLocation combo) {
+        return DangakuCircleSlashRules.matches(BranchingStyleCombos.phase(combo));
     }
 
     private DangakuStyleCombat() {

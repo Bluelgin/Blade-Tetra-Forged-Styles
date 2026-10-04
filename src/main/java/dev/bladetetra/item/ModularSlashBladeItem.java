@@ -8,6 +8,7 @@ import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ComponentEffectResolver;
 import dev.bladetetra.combat.ModComboStates;
+import dev.bladetetra.combat.DangakuSpinHandler;
 import dev.bladetetra.combat.PotatoBladeHandler;
 import dev.bladetetra.combat.StyleInputBuffer;
 import dev.bladetetra.combat.StyleResolver;
@@ -136,6 +137,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         DataManager.instance.moduleData.onReload(this::clearCaches);
         SchematicRegistry.instance.registerSchematic(
                 new RepairSchematic(this, "modular_slashblade"));
+        SchematicRegistry.instance.registerSchematic(new dev.bladetetra.forging.DeadThoughtRemovalSchematic());
     }
 
     public ItemStack createDefaultStack() {
@@ -459,7 +461,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             Level level,
             Player player,
             InteractionHand hand) {
-        StyleInputBuffer.queueIfLocked(player.getItemInHand(hand), player);
+        StyleInputBuffer.queueIfLocked(player.getItemInHand(hand), player, true);
         return super.use(level, player, hand);
     }
 
@@ -468,12 +470,14 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             ItemStack stack,
             Player player,
             Entity target) {
+        if (DangakuSpinHandler.suppressLeftClick(player, stack)) return true;
         StyleInputBuffer.queueIfLocked(stack, player);
         return super.onLeftClickEntity(stack, player, target);
     }
 
     @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
+        if (DangakuSpinHandler.suppressLeftClick(entity, stack)) return true;
         if (ComboState.getElapsed(entity) > 0L) {
             StyleInputBuffer.queueIfLocked(stack, entity);
         }

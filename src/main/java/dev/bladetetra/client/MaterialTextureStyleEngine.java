@@ -617,13 +617,8 @@ final class MaterialTextureStyleEngine {
                         color, palette, progress, atlasY, seed);
                 case INFINITY -> cosmicBlade(
                         color, palette, atlasX, atlasY, seed);
-                case DRAGON_FIRE, DRAGON_ICE, DRAGON_LIGHTNING ->
-                        decorateDragonScales(
-                                color,
-                                palette,
-                                Math.round(atlasX * 2.0F),
-                                Math.round(atlasY * 2.0F),
-                                seed);
+                case DRAGON_FIRE, DRAGON_ICE, DRAGON_LIGHTNING -> dragonBlade(
+                        color, palette, progress, atlasY);
                 case TOXIC -> toxicBlade(
                         color, palette, progress, atlasY, seed);
                 default -> color;
@@ -721,6 +716,23 @@ final class MaterialTextureStyleEngine {
                 case TOXIC -> distance < 0.34D ? 105 : 0;
                 default -> 0;
             };
+        }
+
+        private int dragonBlade(int color, Palette palette, float progress, float width) {
+            if (progress < .10F || progress > .91F || width < 4 || width > 25) return color;
+            float line = switch (this) {
+                case DRAGON_FIRE -> 15.0F + (float)Math.sin(progress*24)*.85F;
+                case DRAGON_ICE -> 14.5F + (float)Math.abs(Math.sin(progress*19))*2.3F;
+                default -> 14.8F + (float)(Math.floor(progress*12)%2)*1.25F;
+            };
+            float distance = Math.abs(width-line);
+            if (distance < .32F) return Palette.lerp(color, switch (this) {
+                case DRAGON_FIRE -> 0xF3A065;
+                case DRAGON_ICE -> 0xD7F7FF;
+                default -> 0xE5D6FF;
+            }, .52F);
+            if (distance < .72F) return Palette.lerp(color, palette.shadow(), .24F);
+            return color;
         }
 
         static int generatedSurface(

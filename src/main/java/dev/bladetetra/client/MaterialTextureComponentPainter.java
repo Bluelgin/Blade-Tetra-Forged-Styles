@@ -289,6 +289,8 @@ final class MaterialTextureComponentPainter {
             float collarTone = 0.34F
                     + clamp01(endDistance / 2.15F) * 0.34F;
             int collar = fitting.sample(collarTone, pixelX, pixelY);
+            collar = ComponentDetailPainter.fitting(collar, fitting.palette(),
+                    clamp01(endDistance / 2.15F), clamp01((atlasY-59)/22));
             if (endDistance > 1.55F) {
                 collar = Palette.lerp(
                         collar, fitting.palette().highlight(), 0.34F);
@@ -376,77 +378,8 @@ final class MaterialTextureComponentPainter {
             float atlasY,
             MaterialAppearance.TsubaProfile profile,
             Palette palette) {
-        float normalizedX = (atlasX - 64.0F) / 12.0F;
-        float normalizedY = (atlasY - 70.0F) / 12.0F;
-        float radius = (float) Math.sqrt(
-                normalizedX * normalizedX
-                        + normalizedY * normalizedY);
-
-        return switch (profile) {
-            case NONE -> new TsubaPixel(baseColor, 0);
-            case MARU -> {
-                int color = baseColor;
-                if (radius > 0.70F) {
-                    color = Palette.lerp(
-                            color,
-                            palette.highlight(),
-                            0.42F);
-                } else if (radius < 0.28F) {
-                    color = Palette.lerp(
-                            color,
-                            palette.shadow(),
-                            0.56F);
-                } else if (Math.abs(radius - 0.42F) < 0.06F) {
-                    color = Palette.lerp(
-                            color,
-                            palette.highlight(),
-                            0.20F);
-                }
-                yield new TsubaPixel(color, baseAlpha);
-            }
-            case MOKKO -> {
-                float holeDistance = Float.MAX_VALUE;
-                for (int horizontal : new int[]{-1, 1}) {
-                    for (int vertical : new int[]{-1, 1}) {
-                        float deltaX = normalizedX - horizontal * 0.38F;
-                        float deltaY = normalizedY - vertical * 0.38F;
-                        holeDistance = Math.min(
-                                holeDistance,
-                                deltaX * deltaX + deltaY * deltaY);
-                    }
-                }
-                if (holeDistance < 0.020F) {
-                    yield new TsubaPixel(baseColor, 0);
-                }
-                int color = radius > 0.64F
-                        ? Palette.lerp(
-                                baseColor,
-                                palette.highlight(),
-                                0.46F)
-                        : Palette.scale(baseColor, 0.88F);
-                yield new TsubaPixel(color, baseAlpha);
-            }
-            case KAKU -> {
-                float edge = Math.max(
-                        Math.abs(normalizedX),
-                        Math.abs(normalizedY));
-                int color;
-                if (edge > 0.67F) {
-                    color = Palette.lerp(
-                            baseColor,
-                            palette.highlight(),
-                            0.52F);
-                } else if (edge < 0.48F) {
-                    color = Palette.lerp(
-                            baseColor,
-                            palette.shadow(),
-                            0.30F);
-                } else {
-                    color = Palette.scale(baseColor, 0.91F);
-                }
-                yield new TsubaPixel(color, baseAlpha);
-            }
-        };
+        return new TsubaPixel(ForgedGuardPainter.color(baseColor,palette,atlasX,atlasY,profile),
+                profile==MaterialAppearance.TsubaProfile.NONE ? 0 : baseAlpha);
     }
 
     static int shadeDye(DyeColor dyeColor, float tone) {

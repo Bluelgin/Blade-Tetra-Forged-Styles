@@ -81,6 +81,17 @@ final class RustReleaseFusionHandler {
 
     static int phase(ResourceLocation combo) {
         if (combo == null) return 0;
+        var branch = BranchingStyleCombos.phase(combo);
+        if (branch != null) {
+            return switch (branch) {
+                case R_FIRST, D_SWEEP, R_AIR_FIRST, D_AIR_FIRST -> RustReleaseBalance.OPENING;
+                case R_SECOND, D_RETURN, R_AIR_SECOND, D_AIR_SECOND, R_CHASE, R_UPPER, D_UPPER -> RustReleaseBalance.MIDDLE;
+                case R_FLURRY, R_AIR_FLURRY, R_AIR_RISE -> RustReleaseBalance.LATE;
+                case R_FINISH, D_FINISH, D_HEAVY, R_AIR_FINISH, D_AIR_FINISH, D_AIR_HEAVY,
+                        R_AIR_DROP, R_LAND, D_LAND -> RustReleaseBalance.FINISHER;
+                default -> 0;
+            };
+        }
         if (same(combo, ComboStateRegistry.COMBO_A4.getId())
                 || same(combo, ComboStateRegistry.COMBO_A5.getId())
                 || same(combo, ComboStateRegistry.COMBO_B7.getId())

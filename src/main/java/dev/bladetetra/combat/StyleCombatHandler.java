@@ -42,7 +42,10 @@ public final class StyleCombatHandler {
             case IAIDO -> IaidoStyleCombat.onSlash(event, combo);
             case DANGAKU -> DangakuStyleCombat.onSlash(event, combo);
             case RENGEKI -> {
-                // Wakizashi already trades per-hit damage for speed and pressure.
+                if (BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.R_FLURRY
+                        || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.R_AIR_FLURRY) {
+                    event.setDamage(event.getDamage() * .85D);
+                }
             }
             default -> {
             }
@@ -136,7 +139,9 @@ public final class StyleCombatHandler {
             color = IaidoStyleCombat.applySlashPresentation(
                     slashEffect, user, combo, visual, color,
                     (ServerLevel) event.getLevel());
-        } else if (style == BladeStyle.RENGEKI) {
+        } else if (style == BladeStyle.RENGEKI && (BranchingStyleCombos.phase(combo) != null
+                || RengekiFlowRules.isNativeBFlow(combo.getNamespace(), combo.getPath())
+                || RengekiFlowRules.isNativeAirFlow(combo.getNamespace(), combo.getPath()))) {
             slashEffect.setBaseSize(0.82F);
         } else if (style == BladeStyle.DANGAKU) {
             color = DangakuStyleCombat.applySlashPresentation(

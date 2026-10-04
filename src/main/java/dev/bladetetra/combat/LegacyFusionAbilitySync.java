@@ -136,14 +136,16 @@ final class LegacyFusionAbilitySync {
         if (slashArt == null || slashArt.equals(state.getSlashArtsKey())) {
             return;
         }
-        tag.putString(PREVIOUS_SLASH_ART, state.getSlashArtsKey().toString());
+        ResourceLocation previous = state.getSlashArtsKey();
+        if (previous == null) tag.remove(PREVIOUS_SLASH_ART);
+        else tag.putString(PREVIOUS_SLASH_ART, previous.toString());
         tag.putString(APPLIED_SLASH_ART, slashArt.toString());
         state.setSlashArtsKey(slashArt);
     }
 
     private static void reconcileStructuralSlashArt(CompoundTag tag,
             ISlashBladeState state, ResourceLocation slashArt) {
-        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        ResourceLocation applied = storedAbility(tag.getString(APPLIED_SLASH_ART));
         if (slashArt == null) {
             if (applied != null) {
                 restoreStructuralSlashArt(tag, state);
@@ -163,16 +165,21 @@ final class LegacyFusionAbilitySync {
 
     private static void restoreStructuralSlashArt(CompoundTag tag,
             ISlashBladeState state) {
-        ResourceLocation applied = ResourceLocation.tryParse(tag.getString(APPLIED_SLASH_ART));
+        ResourceLocation applied = storedAbility(tag.getString(APPLIED_SLASH_ART));
         if (applied != null && applied.equals(state.getSlashArtsKey())) {
-            ResourceLocation restored = ResourceLocation.tryParse(
-                    tag.getString(PREVIOUS_SLASH_ART));
+            ResourceLocation restored = storedAbility(tag.getString(PREVIOUS_SLASH_ART));
             state.setSlashArtsKey(restored == null
                     ? mods.flammpfeil.slashblade.registry.SlashArtsRegistry.NONE.getId()
                     : restored);
         }
         tag.remove(PREVIOUS_SLASH_ART);
         tag.remove(APPLIED_SLASH_ART);
+    }
+
+    // ResourceLocation.tryParse("") returns minecraft:<empty>, not null.
+    // Absence must stay absence, or initial inheritance never records the displaced SA.
+    static ResourceLocation storedAbility(String value) {
+        return value == null || value.isBlank() ? null : ResourceLocation.tryParse(value);
     }
 
     private static void reconcileOwnedSpecialEffects(CompoundTag tag,

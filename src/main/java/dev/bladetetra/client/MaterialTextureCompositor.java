@@ -140,6 +140,10 @@ final class MaterialTextureCompositor {
                                         atlasX,
                                         atlasY,
                                         appearance.sayaProfile());
+                        if (fittingBand) {
+                            sayaColor = ComponentDetailPainter.fitting(sayaColor, habaki.palette(),
+                                    clamp01((atlasX-1)/62), clamp01((atlasY-35)/20));
+                        }
                         if (!fittingBand && presetSaya != null) {
                             sayaColor = applyPresetSaya(
                                     sayaColor,
@@ -166,6 +170,8 @@ final class MaterialTextureCompositor {
                                     atlasY);
                             sayaColor = applyFoxAccent(
                                     sayaColor, fox.saya(), atlasX, atlasY, 1);
+                            sayaColor = ComponentDetailPainter.saya(sayaColor, saya.palette(),
+                                    atlasX, atlasY, appearance.sayaProfile());
                         }
                         image.setPixelRGBA(
                                 x,
@@ -188,6 +194,8 @@ final class MaterialTextureCompositor {
                                         tsukaWrapColor);
                         tsukaColor = applyFoxAccent(
                                 tsukaColor, fox.tsuka(), atlasX, atlasY, 2);
+                        tsukaColor = ComponentDetailPainter.wrap(tsukaColor, tsuka,
+                                appearance.attachments().wrap(), atlasX, atlasY);
                         tsukaColor = AttachmentFinishPainter.socket(
                                 tsukaColor, appearance.attachments(), socket, atlasX, atlasY);
                         image.setPixelRGBA(
@@ -200,14 +208,9 @@ final class MaterialTextureCompositor {
                             image.setPixelRGBA(x, y, abgr(0, 0));
                             continue;
                         }
-                        tone = normalize(luminance, 18, 105);
-                        TsubaPixel tsubaPixel = applyTsubaProfile(
-                                tsuba.sample(tone, x, y),
-                                alpha,
-                                atlasX,
-                                atlasY,
-                                appearance.tsubaProfile(),
-                                tsuba.palette());
+                        tone = .56F; // New face finish, not the old block-shaped template shading.
+                        TsubaPixel tsubaPixel = applyTsubaProfile(tsuba.sample(tone,x,y),alpha,
+                                atlasX,atlasY,appearance.tsubaProfile(),tsuba.palette());
                         int foxTsubaColor = applyFoxAccent(
                                 tsubaPixel.color(), fox.tsuba(), atlasX, atlasY, 3);
                         image.setPixelRGBA(
@@ -221,10 +224,15 @@ final class MaterialTextureCompositor {
                     }
 
                     if (style != null) {
+                        int color = style.sample(tone, x, y);
+                        if (inside(atlasX, atlasY, 80, 58, 96, 82)) {
+                            color = ComponentDetailPainter.fitting(color, style.palette(),
+                                    clamp01((atlasX-80)/16), clamp01((atlasY-58)/24));
+                        }
                         image.setPixelRGBA(
                                 x,
                                 y,
-                                abgr(alpha, style.sample(tone, x, y)));
+                                abgr(alpha, color));
                     }
                 }
             }

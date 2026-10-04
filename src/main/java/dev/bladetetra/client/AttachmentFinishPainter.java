@@ -24,21 +24,32 @@ final class AttachmentFinishPainter {
     static int socket(int base, BladeAttachmentAppearance attachments, MaterialStyle gem, float x, float y) {
         if (attachments.socket().isBlank()) return base;
         // Keep one small inset at the kashira end, not gemstones across the grip.
-        float distance = Math.abs((x - 2.0F) / 1.2F) + Math.abs((y - 70.0F) / 3.2F);
+        // Native tsuka UVs run from the guard (x=1) to the pommel (x=47).
+        float distance = Math.abs((x - 43.8F) / 3.0F) + Math.abs((y - 70.0F) / 6.3F);
         if (distance > 1.0F) return base;
-        if (distance > .82F) return Palette.scale(base, .48F);
-        float tone = clamp01(.3F + (73.2F - y) / 6.4F * .55F);
+        if (distance > .88F) return Palette.scale(base, .40F);
+        if (distance > .73F) return Palette.lerp(base, 0xD9DDE0, x < 43.8F ? .55F : .22F);
+        float tone = clamp01(.28F + (74.3F - y) / 8.6F * .55F);
         int color = gem.palette().sample(tone);
-        if (x < 2.0F && y < 69.4F) color = gem.palette().highlight();
+        if (x < 43.8F && y < 70) color = Palette.lerp(color, gem.palette().highlight(), .62F);
+        if (x > 43.8F && y > 70) color = Palette.lerp(color, gem.palette().shadow(), .42F);
+        if (Math.abs(x - 43.3F) < .45F && Math.abs(y - 68.5F) < .8F) {
+            color = Palette.lerp(gem.palette().highlight(), 0xFFFFFF, .55F);
+        }
         return color;
     }
 
     static int coating(int base, int coatingColor, float bladeX, float bladeY) {
         if (coatingColor < 0) return base;
         // A translucent sheen keeps planes/hamon visible and leaves the cutting edge bright.
-        float strength = bladeY > 27.5F ? .07F : .21F;
-        if (Math.abs(bladeY - (8.0F + bladeX * .07F)) < .65F) strength += .10F;
-        return Palette.lerp(base, coatingColor, strength);
+        if (bladeY > 27.5F) return Palette.lerp(base, coatingColor, .07F);
+        float strength = .13F;
+        float sheen = 8.5F + (float)Math.sin((bladeX-1)/62 * Math.PI) * 1.2F;
+        if (Math.abs(bladeY - sheen) < .65F) strength = .44F;
+        if (Math.abs(bladeY - sheen - 1.2F) < .35F) strength = .28F;
+        int color = Palette.lerp(base, coatingColor, strength);
+        return Math.abs(bladeY-sheen) < .30F
+                ? Palette.lerp(color, 0xFFFFFF, .12F) : color;
     }
 
     static int coatingColor(BladeAttachmentAppearance attachments) {

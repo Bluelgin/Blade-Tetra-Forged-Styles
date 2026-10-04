@@ -18,7 +18,8 @@ import java.util.Set;
 
 /** Owns generated texture LRUs and the decoded atlas template lifecycle. */
 final class MaterialTextureCache {
-    private static final int MAX_CACHE_SIZE = 48;
+    // A full inventory may use both GUI and world/effect layouts for each blade.
+    static final int MAX_CACHE_SIZE = 128;
     private static final int MAX_DURABILITY_CACHE_SIZE = 64;
     private static final int GENERATED_ATLAS_SIZE = 256;
     private static final ResourceLocation TEMPLATE =
@@ -36,6 +37,10 @@ final class MaterialTextureCache {
     private static NativeImage atlasTemplate;
     private static NativeImage portraitTemplate;
     private static NativeImage flowTemplate;
+    private static long materialBuilds, emissionAttempts;
+    record BuildStats(long materials,long emissions) {}
+    static BuildStats buildStats() {return new BuildStats(materialBuilds,emissionAttempts);}
+    static void recordEmissionAttempt() {emissionAttempts++;}
 
     static synchronized NativeImage copyBackplate(ResourceManager resources, boolean akatsuki) throws IOException {
         NativeImage template = akatsuki ? portraitTemplate : flowTemplate;
@@ -67,6 +72,7 @@ final class MaterialTextureCache {
     static void putMaterial(String key, ResourceLocation location,
             DynamicTexture texture, Minecraft minecraft) {
         MATERIALS.put(key, new RegisteredTexture(location, texture));
+        materialBuilds++;
         trim(MATERIALS, MAX_CACHE_SIZE, minecraft);
     }
 

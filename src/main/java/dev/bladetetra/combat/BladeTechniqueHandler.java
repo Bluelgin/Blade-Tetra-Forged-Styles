@@ -381,14 +381,21 @@ public final class BladeTechniqueHandler {
         return ComboStateRegistry.COMBO_A4.getId().equals(combo)
                 || ComboStateRegistry.COMBO_A5.getId().equals(combo)
                 || ComboStateRegistry.COMBO_B7.getId().equals(combo)
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.R_FINISH
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_FINISH
                 || ModComboStates.isIaidoFinish(combo)
-                || ModComboStates.isDangakuCleave(combo);
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_HEAVY;
     }
 
     private static boolean isAerialFinisher(ResourceLocation combo) {
         return ComboStateRegistry.AERIAL_RAVE_A3.getId().equals(combo)
                 || ComboStateRegistry.AERIAL_RAVE_B4.getId().equals(combo)
-                || ComboStateRegistry.AERIAL_CLEAVE_LANDING.getId().equals(combo);
+                || ComboStateRegistry.AERIAL_CLEAVE_LANDING.getId().equals(combo)
+                || BranchingStyleCombos.rengekiFinisher(combo) && BranchingStyleCombos.phase(combo).aerial()
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_AIR_FINISH
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_AIR_HEAVY
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.D_LAND
+                || BranchingStyleCombos.phase(combo) == StyleBranchRules.Phase.R_LAND;
     }
 
     private static double techniqueDamage(

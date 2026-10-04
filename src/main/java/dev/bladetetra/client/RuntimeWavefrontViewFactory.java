@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -41,9 +42,24 @@ final class RuntimeWavefrontViewFactory {
         Objects.requireNonNull(faces, "faces");
         StringBuilder out = new StringBuilder(Math.max(256, faces.size() * 192));
         out.append("# Blade Tetra immutable runtime part\n");
-        out.append("g ").append(safeGroupName(groupName)).append('\n');
+        int nextIndex = append(out, groupName, faces, 1);
+        if (nextIndex == 1) throw new IllegalArgumentException("runtime view has no faces");
+        return out.toString();
+    }
 
+    static WavefrontObject create(Map<String, List<Face>> groups) {
+        StringBuilder out = new StringBuilder("# Blade Tetra immutable runtime model\n");
         int nextIndex = 1;
+        for (var group : groups.entrySet()) {
+            nextIndex = append(out, group.getKey(), group.getValue(), nextIndex);
+        }
+        if (nextIndex == 1) throw new IllegalArgumentException("empty runtime model");
+        return new WavefrontObject(RUNTIME_FILENAME,
+                new ByteArrayInputStream(out.toString().getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static int append(StringBuilder out, String groupName, List<Face> faces, int nextIndex) {
+        out.append("g ").append(safeGroupName(groupName)).append('\n');
         for (Face face : faces) {
             if (face == null || face.vertices == null || face.vertices.length < 3) {
                 continue;
@@ -78,7 +94,7 @@ final class RuntimeWavefrontViewFactory {
         if (nextIndex == 1) {
             throw new IllegalArgumentException("runtime Wavefront view has no renderable faces");
         }
-        return out.toString();
+        return nextIndex;
     }
 
     private static TextureCoordinate texture(Face face, int index) {

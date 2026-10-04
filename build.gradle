@@ -21,9 +21,32 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('artPreview')) {
+                workingDirectory project.file('build/art-preview')
+                property 'blade_tetra.artPreview', 'true'
+                property 'blade_tetra.artPreviewOutput', project.file('art-previews/inventory-update').absolutePath
+                if (project.hasProperty('artInventoryBenchmark')) property 'blade_tetra.artInventoryBenchmark', 'true'
+            }
+            if (project.hasProperty('providerEffectSmoke')) {
+                workingDirectory project.file(project.hasProperty('largeCompatTest')
+                        ? 'build/provider-effect-smoke-revelation' : 'build/provider-effect-smoke-base')
+                property 'blade_tetra.providerEffectSmoke', 'true'
+            }
+            if (project.hasProperty('deadThoughtRemovalSmoke')) {
+                workingDirectory project.file('build/dead-thought-removal-smoke')
+                property 'blade_tetra.deadThoughtRemovalSmoke', 'true'
+            }
             if (project.hasProperty('combatBalanceSmoke')) {
                 workingDirectory project.file('build/combat-balance-smoke')
                 property 'blade_tetra.combatBalanceSmoke', 'true'
+            }
+            if (project.hasProperty('styleBranchSmoke')) {
+                workingDirectory project.file('build/style-branch-smoke')
+                property 'blade_tetra.styleBranchSmoke', 'true'
+            }
+            if (project.hasProperty('styleBranchReview')) {
+                workingDirectory project.file('build/style-branch-review')
+                property 'blade_tetra.styleBranchReview', 'true'
             }
             if (project.hasProperty('attachmentSmoke')) {
                 workingDirectory project.file("build/attachment-smoke-${tetra_file_id}")
@@ -58,6 +81,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('artPreview')) {
+                args '--width', '1600', '--height', '1000'
+            }
             def quickPlayWorld = System.getenv('BLADE_TETRA_QUICKPLAY_WORLD')
             if (quickPlayWorld) {
                 args '--quickPlaySingleplayer', quickPlayWorld
@@ -143,6 +169,10 @@ dependencies {
     // Optional local profile for verifying Forge configuration-menu integration.
     if (project.hasProperty('configuredTest')) {
         runtimeOnly fg.deobf("curse.maven:configured-457570:5096828")
+    }
+    // Optional client-only art inspection tool; never bundled in releases.
+    if (project.hasProperty('itemZoomTest')) {
+        runtimeOnly fg.deobf("curse.maven:itemzoom-261725:5043628")
     }
     // Optional local profile for verifying JEI integration in the userdev client.
     if (project.hasProperty('jeiTest')) {
@@ -231,6 +261,7 @@ dependencies {
         runtimeOnly fg.deobf("local:iceandfire:2.1.13-1.20.1-beta-5")
     }
     if (project.hasProperty('largeCompatTest')) {
+        runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
         runtimeOnly fg.deobf("local:goety:2.5.56.0")
         runtimeOnly fg.deobf("local:EndingLibrary:1.20.1-2.1.19fix-all")
         runtimeOnly fg.deobf("local:GoetyRevelation:2.3.3fix")
@@ -250,6 +281,9 @@ dependencies {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    if (project.hasProperty('providerEffectAuditJars')) {
+        systemProperty 'blade_tetra.providerEffectAuditJars', project.property('providerEffectAuditJars')
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {

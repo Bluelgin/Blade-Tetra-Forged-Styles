@@ -22,6 +22,18 @@ public final class DeadThoughtDivineLegacy {
         stack.getOrCreateTag().putBoolean(BOUND_TAG, true);
     }
 
+    /** Remove only the injected imprint; fitting inheritance and player progress stay intact. */
+    public static boolean unbind(ItemStack stack) {
+        if (!isBound(stack)) return false;
+        return unbindTag(stack.getTag());
+    }
+
+    static boolean unbindTag(net.minecraft.nbt.CompoundTag tag) {
+        if (tag == null || !tag.getBoolean(BOUND_TAG)) return false;
+        tag.remove(BOUND_TAG);
+        return true;
+    }
+
     /** Pure convergence seam kept registry-free for ordinary JUnit coverage. */
     static LegacyFusion identity(boolean bound) {
         return bound ? LegacyFusion.NIHILUL_SAYA_CRIMSON_CHERRY_HILT : null;

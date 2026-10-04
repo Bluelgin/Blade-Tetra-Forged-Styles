@@ -23,10 +23,14 @@ import java.util.WeakHashMap;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class StyleInputBuffer {
     private static final int BUFFER_LIFETIME_TICKS = 24;
-    private static final Map<LivingEntity, BufferedTransition> PENDING =
+    private static final Map<LivingEntity, BufferedClick> PENDING =
             Collections.synchronizedMap(new WeakHashMap<>());
 
     public static void queueIfLocked(ItemStack stack, LivingEntity entity) {
+        queueIfLocked(stack, entity, false);
+    }
+
+    public static void queueIfLocked(ItemStack stack, LivingEntity entity, boolean rightClick) {
         if (!(stack.getItem() instanceof ModularSlashBladeItem)) {
             return;
         }
@@ -38,22 +42,37 @@ public final class StyleInputBuffer {
                 StyleResolver.resolve(stack),
                 combo,
                 entity.level().getGameTime());
+        var phase = BranchingStyleCombos.phase(combo);
+        if (rightClick && phase != null && !phase.dive()) {
+            var intent = StyleBranchRuntime.intent(entity, true);
+            int minimum = BranchingStyleCombos.minimumInputTick(phase, intent, entity.onGround(), true);
+            var next = BranchingStyleCombos.nextFor(phase, minimum, intent, entity.onGround(), true);
+            if (ComboState.getElapsed(entity) < minimum && !next.equals(combo)
+                    && !next.equals(mods.flammpfeil.slashblade.registry.ComboStateRegistry.NONE.getId())) {
+                transition = new BufferedTransition(combo, next, minimum,
+                        entity.level().getGameTime() + BUFFER_LIFETIME_TICKS);
+            }
+        }
         if (transition != null) {
-            PENDING.put(entity, transition);
+            long startedAt = stack.getCapability(ModularSlashBladeItem.BLADESTATE)
+                    .map(state -> state.getLastActionTime()).orElse(-1L);
+            PENDING.putIfAbsent(entity, new BufferedClick(transition, stack, startedAt,
+                    phase == null ? StyleBranchRules.Intent.NONE : StyleBranchRuntime.intent(entity, true)));
         }
     }
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
-        BufferedTransition pending = PENDING.get(entity);
-        if (pending == null) {
+        BufferedClick click = PENDING.get(entity);
+        if (click == null) {
             return;
         }
+        BufferedTransition pending = click.transition();
 
         long now = entity.level().getGameTime();
         ItemStack stack = entity.getMainHandItem();
-        if (now > pending.expiresAt()
+        if (now > pending.expiresAt() || stack != click.blade() || !entity.isAlive()
                 || !(stack.getItem() instanceof ModularSlashBladeItem)) {
             PENDING.remove(entity);
             return;
@@ -61,11 +80,23 @@ public final class StyleInputBuffer {
 
         stack.getCapability(ModularSlashBladeItem.BLADESTATE).ifPresent(state -> {
             ResourceLocation combo = state.getComboSeq();
-            if (!pending.from().equals(combo)) {
+            if (!pending.from().equals(combo) || state.getLastActionTime() != click.startedAt()) {
                 PENDING.remove(entity);
                 return;
             }
             if (ComboState.getElapsed(entity) >= pending.minimumReleaseTick()) {
+                var phase = BranchingStyleCombos.phase(combo);
+                if (phase != null && !pending.to().equals(BranchingStyleCombos.nextFor(
+                        phase, pending.minimumReleaseTick(), click.intent(), entity.onGround(), true))) {
+                    PENDING.remove(entity); // Walking off a ledge cannot replay a queued ground attack.
+                    return;
+                }
+                if (phase != null && entity.isUsingItem()
+                        && entity.getTicksUsingItem() >= state.getFullChargeTicks(entity)) {
+                    PENDING.remove(entity);
+                    return;
+                }
+                CombatBalanceRuntime.ordinaryCombo(entity);
                 state.updateComboSeq(entity, pending.to());
                 PENDING.remove(entity);
             }
@@ -106,6 +137,8 @@ public final class StyleInputBuffer {
             int minimumReleaseTick,
             long expiresAt) {
     }
+    private record BufferedClick(BufferedTransition transition, ItemStack blade, long startedAt,
+                                 StyleBranchRules.Intent intent) {}
 
     private StyleInputBuffer() {
     }

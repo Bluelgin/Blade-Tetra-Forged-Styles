@@ -72,7 +72,7 @@ public final class MaterialTextureManager {
                     BladeTetra.MOD_ID, "model/util/durability_filled.obj");
     private static final int LOGICAL_ATLAS_SIZE = 128;
     private static final int GENERATED_ATLAS_SIZE = 256;
-    private static final String ART_REVISION = "blade-art-2.0-v6-native-item-icons";
+    private static final String ART_REVISION = "blade-art-2.1-v11-akatsuki-without-charm";
     private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
             ThreadLocal.withInitial(() -> false);
     static final Palette RAYSKIN_PALETTE =
@@ -146,8 +146,15 @@ public final class MaterialTextureManager {
         TextureLayout textureLayout = TextureLayout.fromTarget(
                 event.getOriginalTarget());
         if (textureLayout == TextureLayout.ITEM) {
-            event.setGetRenderType(MikageBackplateRenderType::get);
-            event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
+            // Preserve native SlashBlade item lighting, normals and glint.
+            // The unlit render type is reserved for the decorative backplate.
+            event.setModel(InventoryBladeModel.forTarget(event.getModel(), event.getOriginalTarget()));
+        }
+        event.setModel(ForgedGuardModel.forProfile(event.getModel(), appearance.tsubaProfile()));
+        if (glowState.soul()==SoulGlow.AKATSUKI) {
+            // This named finish uses localized red soul glow instead of a full-surface
+            // purple foil layer. Enchantments and ItemStack.hasFoil are untouched.
+            event.setEnableEffect(false);
         }
         ResourceLocation texture = ensureTexture(
                 appearance, glowState, textureLayout);
@@ -240,14 +247,18 @@ public final class MaterialTextureManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
+            MaterialTextureCache.recordEmissionAttempt();
             NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
+            prepareItemBladeTemplate(image, textureLayout);
+            ForgedGuardPainter.prepareTexture(image);
             MaterialTextureCompositor.recolor(
                     image,
                     appearance,
                     minecraft.getResourceManager(),
                     textureLayout);
             applyLegacyBaseArt(image, glowState, textureLayout);
+            if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
             boolean visible = applyEmissionMask(
                     image,
                     appearance,
@@ -381,16 +392,7 @@ public final class MaterialTextureManager {
         float progress = clamp01((atlasX - 1.0F) / 62.0F);
         return switch (soul) {
             case AKATSUKI -> {
-                double veinY = 12.7D
-                        + Math.sin(progress * Math.PI) * 1.12D
-                        + progress * 0.38D;
-                double branchY = veinY + 2.3D
-                        - Math.max(0.0D, progress - 0.48D) * 4.2D;
-                boolean mainVein = Math.abs(atlasY - veinY) < 0.33D;
-                boolean branch = progress > 0.48F
-                        && progress < 0.78F
-                        && Math.abs(atlasY - branchY) < 0.25D;
-                yield mainVein || branch ? 220 : 0;
+                yield AkatsukiArtPainter.bladeGlow(atlasX,atlasY);
             }
             case KYOUKA -> {
                 double mirrorY = 14.1D
@@ -567,12 +569,15 @@ public final class MaterialTextureManager {
             NativeImage image = MaterialTextureCache.copyAtlas(
                     minecraft.getResourceManager());
 
+            prepareItemBladeTemplate(image, textureLayout);
+            ForgedGuardPainter.prepareTexture(image);
             MaterialTextureCompositor.recolor(
                     image,
                     appearance,
                     minecraft.getResourceManager(),
                     textureLayout);
             applyLegacyBaseArt(image, glowState, textureLayout);
+            if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID,
@@ -674,6 +679,12 @@ public final class MaterialTextureManager {
                             result,
                             glowState.soul().colorAt(x, y),
                             accent);
+                }
+                // A small maker's soul seal separates awakened blades from
+                // plain material variants without recoloring the whole weapon.
+                float seal = Math.abs((bladeX-6.0F)/1.8F) + Math.abs((bladeY-15.0F)/3.0F);
+                if (seal > .68F && seal < 1.0F) {
+                    result = Palette.lerp(result, glowState.soul().colorAt(x, y), .65F*dormantScale);
                 }
                 image.setPixelRGBA(x, y, abgr(sourceAlpha, result));
             }
@@ -901,6 +912,22 @@ public final class MaterialTextureManager {
     private static synchronized void clearCache() {
         MaterialTextureCache.clear();
         LegacyModelPartRenderer.clear();
+        InventoryBladeModel.clear();
+        ForgedGuardModel.clear();
+    }
+
+    static void prepareItemBladeTemplate(NativeImage image, TextureLayout layout) {
+        if (layout != TextureLayout.ITEM) return;
+        // World art has curved UV islands and transparent gaps. The icon uses
+        // a straight axial projection; existing material painters supply its finish.
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                if (inside(logicalCoordinate(x, image.getWidth()),
+                        logicalCoordinate(y, image.getHeight()), 1, 1, 63, 31)) {
+                    image.setPixelRGBA(x, y, abgr(255, 0x969696));
+                }
+            }
+        }
     }
 
     static int alpha(int abgr) {

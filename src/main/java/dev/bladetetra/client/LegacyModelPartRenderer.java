@@ -122,7 +122,7 @@ public final class LegacyModelPartRenderer {
         boolean inherited = kind != null;
         WavefrontObject source = inherited
                 ? BladeModelManager.getInstance().getModel(kind.model())
-                : event.getOriginalModel();
+                : event.getModel();
         if (inherited) register(source, kind.model());
         LegacyCalibrationProfile profile = inherited
                 ? kind.visualProfile()

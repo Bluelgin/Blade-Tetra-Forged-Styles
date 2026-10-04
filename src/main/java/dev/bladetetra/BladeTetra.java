@@ -50,6 +50,7 @@ public final class BladeTetra {
         ModEnchantments.ENCHANTMENTS.register(modBus);
         ModRecipes.SERIALIZERS.register(modBus);
         ModSounds.SOUND_EVENTS.register(modBus);
+        ModComboStates.registerHeldDangaku();
         ModComboStates.COMBOS.register(modBus);
         ModSlashBladeAbilities.SLASH_ARTS.register(modBus);
         ModSlashBladeAbilities.SPECIAL_EFFECTS.register(modBus);

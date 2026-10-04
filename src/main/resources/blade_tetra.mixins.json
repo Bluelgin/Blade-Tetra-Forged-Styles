@@ -3,7 +3,9 @@
   "minVersion": "0.8",
   "package": "dev.bladetetra.mixin",
   "compatibilityLevel": "JAVA_17",
+  "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
+    "ProviderEffectCompatMixin",
     "CombatBalanceBladeStateMixin",
     "CombatBalanceSlashArtsMixin",
     "SwordAttachmentSchematicMixin",

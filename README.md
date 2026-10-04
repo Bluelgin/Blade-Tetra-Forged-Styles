@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
   <img alt="Minecraft 1.20.1" src="https://img.shields.io/badge/Minecraft-1.20.1-62b47a">
   <img alt="Forge 47" src="https://img.shields.io/badge/Forge-47-e06c3b">
-  <img alt="Current version 1.5.2" src="https://img.shields.io/badge/version-1.5.2-8b5cf6">
+  <img alt="Current version 1.5.9" src="https://img.shields.io/badge/version-1.5.9-8b5cf6">
 </p>
 
 Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。刀身、柄、镡、鞘、鎺与柄头会共同决定武器的模型、材质、属性和战斗方式；同一把刀可以从开局一路改造到整合包毕业，而不是每隔几小时就被下一把成品刀替换。
@@ -39,7 +39,9 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 - [名刀映锻说明](NAMED_BLADE_IMPRINTING.md)
 - [附属兼容说明](ADDON_COMPATIBILITY.md)
 - [配置说明](CONFIGURATION.md)
-- [1.5.8 更新日志](RELEASE_NOTES-1.5.8-ZH.md)
+- [1.5.9 更新日志](RELEASE_NOTES-1.5.9-ZH.md)
+- [镶嵌、裹柄与涂层](docs/SWORD_ATTACHMENTS.md)
+- [解除死念](docs/DEAD_THOUGHT_REMOVAL.md)
 
 ## 环境与安装
 

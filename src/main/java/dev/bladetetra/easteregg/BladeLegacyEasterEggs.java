@@ -263,7 +263,8 @@ public final class BladeLegacyEasterEggs {
         if (style == BladeStyle.IAIDO && ModComboStates.isIaidoDraw(combo)) {
             bit = MASTERY_IAIDO;
         } else if (style == BladeStyle.RENGEKI
-                && ComboStateRegistry.COMBO_B7.getId().equals(combo)) {
+                && (ComboStateRegistry.COMBO_B7.getId().equals(combo)
+                    || dev.bladetetra.combat.BranchingStyleCombos.rengekiFinisher(combo))) {
             bit = MASTERY_RENGEKI;
         } else if (style == BladeStyle.DANGAKU
                 && ModComboStates.isDangakuCleave(combo)) {
