@@ -85,7 +85,7 @@ final class MikageLegacySkillExecution implements SkillExecution {
                         MikageLegacySkillEffects.actionLength(technique));
                 withScope(() -> owner.legacyEffects().performTechnique(technique, player, server));
                 committed.run();
-                owner.advanceBoundaryFlashCharge(technique, server);
+                owner.legacyEffects().advanceBoundaryFlashCharge(technique, server);
             }
             return Status.RUNNING;
         }

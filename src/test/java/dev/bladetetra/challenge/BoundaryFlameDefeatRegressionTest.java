@@ -56,9 +56,9 @@ class BoundaryFlameDefeatRegressionTest {
 
     @Test
     void TrialDamageStopsBeforeAdaptiveStateUpdatesAfterEjection() throws IOException {
-        String source = read("MikageEntity");
+        String source = read("MikageDamageService");
         int hit = source.indexOf("boolean hurt = player.hurt(source, requested)");
-        int check = source.indexOf("player.level() != level()", hit);
+        int check = source.indexOf("player.level() != owner.level()", hit);
         int update = source.indexOf("float after = player.getHealth()", hit);
         assertTrue(check > hit && check < update);
     }

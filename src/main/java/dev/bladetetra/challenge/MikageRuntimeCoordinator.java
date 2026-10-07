@@ -1,7 +1,6 @@
 package dev.bladetetra.challenge;
 
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
 /** Central per-tick orchestration for Mikage's composed combat subsystems. */
@@ -12,7 +11,7 @@ final class MikageRuntimeCoordinator {
         MikageTechniqueRuntime techniques = owner.techniqueRuntime();
         MikageArenaController arena = owner.arenaController();
 
-        owner.sampleParticipantMovement(server);
+        owner.counters().sampleParticipantMovement(server);
         owner.attackTimeline().tick(server);
 
         if (arena.toriiSweepCooldown > 0) arena.toriiSweepCooldown--;
@@ -34,9 +33,9 @@ final class MikageRuntimeCoordinator {
                             && now - entry.getValue().lastHit > 160L);
         }
 
-        owner.tickJudgementCutAdaptation(server);
-        owner.tickBrokenLocks(server);
-        owner.tickSwordWheel(server);
+        owner.counters().tickJudgementCutAdaptation(server);
+        owner.counters().tickBrokenLocks(server);
+        owner.swordWheel().tickSwordWheel(server);
 
         if (combat.signatureRecoveryTicks > 0) {
             combat.signatureRecoveryTicks--;
@@ -51,7 +50,7 @@ final class MikageRuntimeCoordinator {
                         || techniques.pursuitRainCountered)
                     && defense.swordWheelBreakTicks <= 0) {
                 owner.setAction(MikageEntity.MikageAction.IDLE, 1);
-                owner.flashStepAwayFromNearestPlayer(server);
+                owner.legacyEffects().flashStepAwayFromNearestPlayer(server);
                 arena.cagePerfectCountered = false;
                 arena.toriiScissorCountered = false;
                 techniques.pursuitRainCountered = false;
@@ -65,7 +64,7 @@ final class MikageRuntimeCoordinator {
             if (techniques.interactionOpeningTicks == 0) {
                 techniques.interactionOpeningMultiplier = 1.0F;
                 owner.setAction(MikageEntity.MikageAction.IDLE, 1);
-                owner.flashStepAwayFromNearestPlayer(server);
+                owner.legacyEffects().flashStepAwayFromNearestPlayer(server);
             }
         }
 
@@ -73,19 +72,19 @@ final class MikageRuntimeCoordinator {
             owner.setAction(MikageEntity.MikageAction.IDLE, 1);
         }
 
-        if (arena.toriiSweepTicks > 0) owner.tickToriiSweep(server);
-        if (arena.toriiCageTicks > 0) owner.tickToriiCages(server);
-        if (techniques.pursuitRainTicks > 0) owner.tickPursuitRain(server);
-        if (techniques.pursuitRainFinalTicks > 0) owner.tickPursuitRainFinal(server);
-        if (techniques.mirrorDuelTicks > 0) owner.tickMirrorDuel(server);
-        if (techniques.boundarySealTicks > 0) owner.tickBoundarySeal(server);
-        if (techniques.moonEchoTicks > 0) owner.tickMoonEcho(server);
-        if (defense.zanshinCounterTicks > 0) owner.tickZanshinCounter(server);
-        if (techniques.aerialTicks > 0) owner.tickAerialTechnique();
-        if (arena.boundarySlashDelay > 0) owner.tickBoundaryFlash(server);
-        if (!arena.boundaryWalls.isEmpty()) owner.tickBoundaryWalls(server);
+        if (arena.toriiSweepTicks > 0) owner.legacyEffects().tickToriiSweep(server);
+        if (arena.toriiCageTicks > 0) owner.legacyEffects().tickToriiCages(server);
+        if (techniques.pursuitRainTicks > 0) owner.pursuitRain().tick(server);
+        if (techniques.pursuitRainFinalTicks > 0) owner.pursuitRain().tickFinal(server);
+        if (techniques.mirrorDuelTicks > 0) owner.legacyEffects().tickMirrorDuel(server);
+        if (techniques.boundarySealTicks > 0) owner.legacyEffects().tickBoundarySeal(server);
+        if (techniques.moonEchoTicks > 0) owner.legacyEffects().tickMoonEcho(server);
+        if (defense.zanshinCounterTicks > 0) owner.counters().tickZanshinCounter(server);
+        if (techniques.aerialTicks > 0) owner.legacyEffects().tickAerialTechnique();
+        if (arena.boundarySlashDelay > 0) owner.legacyEffects().tickBoundaryFlash(server);
+        if (!arena.boundaryWalls.isEmpty()) owner.legacyEffects().tickBoundaryWalls(server);
 
-        owner.enforceArenaBoundary();
+        owner.movement().enforceArenaBoundary();
     }
 
     private MikageRuntimeCoordinator() {}

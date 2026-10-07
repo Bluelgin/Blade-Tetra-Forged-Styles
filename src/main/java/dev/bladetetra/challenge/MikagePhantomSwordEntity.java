@@ -130,7 +130,7 @@ public final class MikagePhantomSwordEntity extends Monster {
         }
         ServerLevel server = (ServerLevel) level();
         if (isBoundarySeal()) {
-            owner.breakBoundarySeal(this, MikageEntity.resolveCombatAttacker(source));
+            owner.legacyEffects().breakBoundarySeal(this, MikageDamageService.resolveCombatAttacker(source));
             server.playSound(null, blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK,
                     SoundSource.HOSTILE, 1.25F, 0.82F);
             server.sendParticles(new DustParticleOptions(
@@ -138,7 +138,7 @@ public final class MikagePhantomSwordEntity extends Monster {
                     getX(), getY() + 0.7D, getZ(), 42,
                     0.55D, 0.75D, 0.55D, 0.08D);
         } else if (isSolidSword()) {
-            owner.breakSwordWheelLayer(this, source.getEntity());
+            owner.swordWheel().breakSwordWheelLayer(this, source.getEntity());
             server.playSound(null, blockPosition(), SoundEvents.GLASS_BREAK,
                     SoundSource.HOSTILE, 1.2F, 0.72F);
             server.sendParticles(new DustParticleOptions(

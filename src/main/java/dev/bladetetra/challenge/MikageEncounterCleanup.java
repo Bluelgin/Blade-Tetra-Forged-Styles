@@ -44,7 +44,7 @@ final class MikageEncounterCleanup {
         owner.attackTimeline().clear();
         if (owner.level() instanceof ServerLevel level) {
             owner.legacyEffects().clearBoundaryWalls(level, true);
-            owner.recallSwordWheel(level, 35);
+            owner.swordWheel().recallSwordWheel(level, 35);
         }
         var a = owner.arenaController();
         a.boundaryFlashPending = false;

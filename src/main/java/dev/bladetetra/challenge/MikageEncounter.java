@@ -69,10 +69,14 @@ final class MikageEncounter {
             MikageEncounterCleanup.encounter(owner);
             director.reset();
             owner.setPhase(lifecycle.phase());
-            owner.phaseTransition(lifecycle.phase());
+            owner.presentation().phaseName(lifecycle.phase());
+            owner.combatDirector().phaseProtectionTicks = GameplayConfig.MIKAGE_PHASE_PROTECTION_TICKS.get();
+            owner.counters().clearQueuedPlayerBladeAttacks(server);
+            story.phase(lifecycle.phase());
+            owner.presentation().phaseShift(server, lifecycle.phase());
         }
         owner.bossBar().setProgress(owner.getHealth() / owner.getMaxHealth());
-        MikageEncounterPresentation.syncHud(owner);
+        owner.presentation().syncHud();
         Runnable effectsTick = () -> MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
         if (active()) owner.attackTimeline().inScope(skills.scope(), effectsTick);
         else effectsTick.run();
@@ -93,14 +97,14 @@ final class MikageEncounter {
             ServerPlayer target = target(server);
             if (target != null) {
                 arena.boundaryFlashPending = false;
-                start(new MikageLegacySkillExecution(owner, target, () -> owner.beginBoundaryFlash(target, server)));
+                start(new MikageLegacySkillExecution(owner, target, () -> owner.legacyEffects().beginBoundaryFlash(target, server)));
                 return;
             }
         }
         if (owner.techniqueRuntime().pursuitRainCooldown <= 0) {
-            ServerPlayer target = owner.selectPursuitTarget(server);
+            ServerPlayer target = owner.pursuitRain().selectTarget(server);
             if (target != null && eligible(target)) {
-                start(new MikageLegacySkillExecution(owner, target, () -> owner.beginPursuitRain(target, server)));
+                start(new MikageLegacySkillExecution(owner, target, () -> owner.pursuitRain().begin(target, server)));
                 return;
             }
         }
@@ -143,7 +147,7 @@ final class MikageEncounter {
         MikageEncounterCleanup.encounter(owner);
         observer.clear();
         director.reset();
-        MikageEncounterPresentation.defeated(owner);
+        owner.presentation().defeated();
     }
 
     void defeated() {

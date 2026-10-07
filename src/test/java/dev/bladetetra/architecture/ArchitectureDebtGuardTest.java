@@ -40,7 +40,22 @@ class ArchitectureDebtGuardTest {
                 850L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                1_550L);
+                450L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageDamageService.java",
+                340L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageLegacyCounterRuntime.java",
+                420L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageSwordWheelRuntime.java",
+                230L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageEncounterSetup.java",
+                180L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageEncounterPresentation.java",
+                210L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java",
                 1_150L);
@@ -277,7 +292,9 @@ class ArchitectureDebtGuardTest {
                 "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java"));
         assertTrue(entity.contains("new MikagePursuitRainController(this)"));
         assertTrue(effects.contains("new MikageToriiController(owner)"));
-        assertTrue(entity.contains("pursuitRain.tickFinal(server)"));
+        String coordinator = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java"));
+        assertTrue(coordinator.contains("owner.pursuitRain().tickFinal(server)"));
         assertTrue(effects.contains("torii.tickSweep(server)"));
         assertFalse(entity.contains("private void castPursuitRainWave"),
                 "Pursuit Rain scripting belongs in its controller");
@@ -288,6 +305,21 @@ class ArchitectureDebtGuardTest {
                 "Windup state belongs to a release instance");
         assertFalse(entity.contains("void useTechnique("),
                 "Reactive selection belongs outside the entity");
+    }
+
+    @Test
+    void mikageEntityKeepsLifecycleAndSyncedDataOnly() throws IOException {
+        String entity = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/MikageEntity.java"));
+        assertFalse(entity.contains("GameplayConfig"),
+                "Combat tuning and calibration belong in focused subsystems");
+        assertFalse(entity.contains("playerDefenseProfiles"));
+        assertFalse(entity.contains("registerJudgementCutCast"));
+        assertFalse(entity.contains("deploySwordWheel"));
+        assertFalse(entity.contains("ModNetwork"),
+                "Packet distribution belongs in encounter presentation");
+        assertTrue(entity.contains("super::hurt"),
+                "Damage filtering must retain the vanilla damage hook without recursion");
     }
 
     private static void assertLinesAtMost(String path, long maximum) throws IOException {

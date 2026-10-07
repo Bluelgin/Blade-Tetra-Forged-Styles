@@ -33,7 +33,7 @@ public final class MikageCounterEvents {
             ((MikageEntity) target).encounter().observeSlashArt(player, slashArtKey);
         }
         if (isJudgementCut(slashArtKey) || isJudgementCut(comboKey)) {
-            ((MikageEntity) target).registerJudgementCutCast(user);
+            ((MikageEntity) target).counters().registerJudgementCutCast(user);
             return;
         }
         user.getPersistentData().putLong(SA_UNTIL, user.level().getGameTime() + 30L);
@@ -53,7 +53,7 @@ public final class MikageCounterEvents {
         owner.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
                 .ifPresent(state -> target[0] = state.getTargetEntity(owner.level()));
         if (target[0] instanceof MikageEntity mikage
-                && mikage.isJudgementCutBlocked(owner)) {
+                && mikage.counters().isJudgementCutBlocked(owner)) {
             event.setCanceled(true);
         }
     }

@@ -189,8 +189,14 @@ Current extracted domains:
 Mutable encounter data stays in the existing state holders
 (`MikageTechniqueRuntime`, `MikageArenaController`,
 `MikageDefenseController`). Controllers advance that state; they do not create
-parallel copies of it. `MikageEntity` keeps thin delegate methods where other
-runtime coordinators already depend on the stable method surface.
+parallel copies of it. Runtime coordinators call the responsible collaborator directly. `MikageEntity`
+keeps Minecraft overrides, synchronized accessors and the public configuration
+surface, rather than forwarding every old skill method. Damage filtering goes
+through `MikageDamageService` with an explicit `super::hurt` callback; never call
+`owner.hurt` from that filter. Calibration, counters, sword-wheel behavior,
+arena movement and presentation each have a focused collaborator and line budget.
+Existing combat values, counter windows and story hooks remain unchanged by this
+extraction.
 
 ## Mikage reactive rebuild
 

@@ -41,7 +41,7 @@ final class MikageToriiController {
         MikageCombatDirector combat = owner.combatDirector();
         owner.attackTimeline().clear();
         arena.toriiSweepCenter = ChallengeManager.arenaCenter(owner);
-        arena.toriiSweepTicks = MikageEntity.TORII_SWEEP_TOTAL_TICKS;
+        arena.toriiSweepTicks = MikageLegacyTiming.TORII_SWEEP_TOTAL_TICKS;
         arena.toriiSweepCooldown = combat.scaledCooldown(620);
         arena.toriiScissorStates.clear();
         arena.toriiSweepFocusTarget = null;
@@ -49,8 +49,8 @@ final class MikageToriiController {
         owner.getNavigation().stop();
         owner.setAction(
                 MikageEntity.MikageAction.RITUAL,
-                MikageEntity.TORII_SWEEP_TOTAL_TICKS);
-        owner.teleportWithinArena(
+                MikageLegacyTiming.TORII_SWEEP_TOTAL_TICKS);
+        owner.movement().teleportWithinArena(
                 arena.toriiSweepCenter.x,
                 arena.toriiSweepCenter.y,
                 arena.toriiSweepCenter.z);
@@ -67,14 +67,14 @@ final class MikageToriiController {
             arena.toriiScissorStates.put(
                     player.getUUID(), new ToriiScissorState(baseYaw));
             Vec3 target = player.position().add(0.0D, 1.0D, 0.0D);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.TORII_SWEEP,
                     arena.toriiSweepCenter.x,
                     arena.toriiSweepCenter.y + 1.0D,
                     arena.toriiSweepCenter.z,
                     target.x, target.y, target.z,
                     baseYaw, 1.0F, owner.getId(), player.getId(),
-                    MikageEntity.TORII_SWEEP_TOTAL_TICKS,
+                    MikageLegacyTiming.TORII_SWEEP_TOTAL_TICKS,
                     player.getId()), target);
             if (arena.toriiSweepFocusTarget == null) {
                 arena.toriiSweepFocusTarget = player.getUUID();
@@ -96,7 +96,7 @@ final class MikageToriiController {
         owner.getNavigation().stop();
         owner.setDeltaMovement(Vec3.ZERO);
         if (owner.position().distanceToSqr(arena.toriiSweepCenter) > 0.04D) {
-            owner.teleportWithinArena(
+            owner.movement().teleportWithinArena(
                     arena.toriiSweepCenter.x,
                     arena.toriiSweepCenter.y,
                     arena.toriiSweepCenter.z);
@@ -124,7 +124,7 @@ final class MikageToriiController {
             owner.lookAt(focus, 180.0F, 180.0F);
         }
 
-        int age = MikageEntity.TORII_SWEEP_TOTAL_TICKS - arena.toriiSweepTicks;
+        int age = MikageLegacyTiming.TORII_SWEEP_TOTAL_TICKS - arena.toriiSweepTicks;
         for (Map.Entry<UUID, ToriiScissorState> entry
                 : arena.toriiScissorStates.entrySet()) {
             ServerPlayer player = server.getServer().getPlayerList()
@@ -134,17 +134,17 @@ final class MikageToriiController {
                 continue;
             }
             ToriiScissorState state = entry.getValue();
-            if (owner.isBladeGuarding(player)) {
+            if (owner.legacyEffects().isBladeGuarding(player)) {
                 state.consecutiveGuardTicks++;
             } else {
                 state.consecutiveGuardTicks = 0;
             }
 
-            if (age == MikageEntity.TORII_SWEEP_FAKE_IMPACT_AGE
+            if (age == MikageLegacyTiming.TORII_SWEEP_FAKE_IMPACT_AGE
                     && !state.feintPlayed) {
                 state.feintPlayed = true;
                 Vec3 feint = player.position().add(0.0D, 1.0D, 0.0D);
-                owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                         BladeTechniqueVfxPacket.SCISSOR_FEINT,
                         feint.x, feint.y, feint.z,
                         feint.x, feint.y, feint.z,
@@ -154,12 +154,12 @@ final class MikageToriiController {
                         SoundEvents.IRON_TRAPDOOR_CLOSE,
                         SoundSource.HOSTILE, 0.75F, 1.65F);
             }
-            if (age == MikageEntity.TORII_SWEEP_FIRST_IMPACT_AGE
-                    || age == MikageEntity.TORII_SWEEP_SECOND_IMPACT_AGE
-                    || age == MikageEntity.TORII_SWEEP_FINAL_IMPACT_AGE) {
+            if (age == MikageLegacyTiming.TORII_SWEEP_FIRST_IMPACT_AGE
+                    || age == MikageLegacyTiming.TORII_SWEEP_SECOND_IMPACT_AGE
+                    || age == MikageLegacyTiming.TORII_SWEEP_FINAL_IMPACT_AGE) {
                 applyScissorImpact(
                         player, state, server,
-                        age == MikageEntity.TORII_SWEEP_FINAL_IMPACT_AGE);
+                        age == MikageLegacyTiming.TORII_SWEEP_FINAL_IMPACT_AGE);
             }
         }
 
@@ -178,13 +178,13 @@ final class MikageToriiController {
                     arena.toriiScissorCountered ? 0.72F : 1.4F);
             if (arena.toriiScissorCountered) {
                 Vec3 breakPoint = owner.position().add(0.0D, 1.0D, 0.0D);
-                owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                         BladeTechniqueVfxPacket.SCISSOR_BREAK,
                         breakPoint.x, breakPoint.y, breakPoint.z,
                         breakPoint.x, breakPoint.y, breakPoint.z,
                         owner.getYRot(), 1.25F, -1, -1, 22,
                         owner.getRandom().nextInt()), breakPoint);
-                owner.sendCombatVfx(
+                owner.presentation().sendCombatVfx(
                         server, BladeCombatVfxPacket.STAGGER,
                         breakPoint, owner.getYRot(), 1.16F, -1);
                 owner.setAction(
@@ -213,12 +213,12 @@ final class MikageToriiController {
         techniques.pursuitRainTarget = null;
         techniques.pursuitRainFinalSword = null;
         arena.cagePerfectCountered = false;
-        arena.toriiCageTicks = MikageEntity.TORII_CAGE_TOTAL_TICKS;
+        arena.toriiCageTicks = MikageLegacyTiming.TORII_CAGE_TOTAL_TICKS;
         arena.toriiCageCooldown = combat.scaledCooldown(500);
         owner.getNavigation().stop();
         owner.setAction(
                 MikageEntity.MikageAction.RITUAL,
-                MikageEntity.TORII_CAGE_TOTAL_TICKS);
+                MikageLegacyTiming.TORII_CAGE_TOTAL_TICKS);
         for (ServerPlayer player : server.players()) {
             if (!player.isAlive() || player.isCreative() || player.isSpectator()
                     || !ChallengeManager.isParticipant(owner, player)) {
@@ -227,12 +227,12 @@ final class MikageToriiController {
             arena.toriiCages.put(
                     player.getUUID(), new CageState(player.position()));
             Vec3 cageCenter = player.position();
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.TORII_CAGE,
                     cageCenter.x, cageCenter.y, cageCenter.z,
                     cageCenter.x, cageCenter.y + 1.0D, cageCenter.z,
                     player.getYRot(), 1.0F, -1, player.getId(),
-                    MikageEntity.TORII_CAGE_TOTAL_TICKS,
+                    MikageLegacyTiming.TORII_CAGE_TOTAL_TICKS,
                     owner.getRandom().nextInt()), cageCenter);
             server.playSound(
                     null, player.blockPosition(),
@@ -250,10 +250,10 @@ final class MikageToriiController {
         MikageCombatDirector combat = owner.combatDirector();
         owner.getNavigation().stop();
         owner.setDeltaMovement(Vec3.ZERO);
-        int warningStart = MikageEntity.TORII_CAGE_TOTAL_TICKS
-                - MikageEntity.TORII_CAGE_WARNING_TICKS;
+        int warningStart = MikageLegacyTiming.TORII_CAGE_TOTAL_TICKS
+                - MikageLegacyTiming.TORII_CAGE_WARNING_TICKS;
         boolean active = arena.toriiCageTicks <= warningStart
-                && arena.toriiCageTicks > MikageEntity.TORII_CAGE_RECOVERY_TICKS;
+                && arena.toriiCageTicks > MikageLegacyTiming.TORII_CAGE_RECOVERY_TICKS;
         for (Map.Entry<UUID, CageState> entry : arena.toriiCages.entrySet()) {
             ServerPlayer player = server.getServer().getPlayerList()
                     .getPlayer(entry.getKey());
@@ -263,11 +263,11 @@ final class MikageToriiController {
             }
             CageState cage = entry.getValue();
             ToriiParticles.renderCage(
-                    server, cage.center, MikageEntity.TORII_CAGE_RADIUS, active);
+                    server, cage.center, MikageLegacyTiming.TORII_CAGE_RADIUS, active);
             if (!active) {
                 continue;
             }
-            if (owner.isBladeGuarding(player)) {
+            if (owner.legacyEffects().isBladeGuarding(player)) {
                 cage.guardedTicks++;
                 cage.lastGuardTick = owner.tickCount;
                 if (owner.tickCount % 6 == 0) {
@@ -282,7 +282,7 @@ final class MikageToriiController {
                 applyCagePulse(
                         player, cage, server,
                         arena.toriiCageTicks
-                                <= MikageEntity.TORII_CAGE_RECOVERY_TICKS + 12);
+                                <= MikageLegacyTiming.TORII_CAGE_RECOVERY_TICKS + 12);
             }
         }
 
@@ -306,7 +306,7 @@ final class MikageToriiController {
                             : MikageEntity.MikageAction.IDLE,
                     Math.max(1, combat.signatureRecoveryTicks));
             if (arena.cagePerfectCountered) {
-                owner.sendCombatVfx(
+                owner.presentation().sendCombatVfx(
                         server, BladeCombatVfxPacket.STAGGER,
                         owner.position().add(0.0D, 1.0D, 0.0D),
                         owner.getYRot(), 1.18F, -1);
@@ -329,17 +329,17 @@ final class MikageToriiController {
             ServerLevel server,
             boolean finalImpact) {
         MikageArenaController arena = owner.arenaController();
-        boolean guarding = owner.isBladeGuarding(player);
+        boolean guarding = owner.legacyEffects().isBladeGuarding(player);
         boolean stable = guarding
                 && state.consecutiveGuardTicks
-                >= MikageEntity.TORII_SWEEP_STABLE_GUARD_TICKS;
+                >= MikageLegacyTiming.TORII_SWEEP_STABLE_GUARD_TICKS;
         Vec3 impact = player.position()
                 .add(player.getLookAngle().normalize().scale(0.65D))
                 .add(0.0D, 1.0D, 0.0D);
         if (stable) {
             state.stableGuards++;
             boolean completed = finalImpact && state.stableGuards >= 3;
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SCISSOR_GUARD,
                     impact.x, impact.y, impact.z,
                     impact.x, impact.y, impact.z,
@@ -348,7 +348,7 @@ final class MikageToriiController {
                     -1, player.getId(),
                     completed ? 20 : 12,
                     state.stableGuards), impact);
-            owner.sendCombatVfx(
+            owner.presentation().sendCombatVfx(
                     server,
                     completed
                             ? BladeCombatVfxPacket.PERFECT_GUARD
@@ -356,7 +356,7 @@ final class MikageToriiController {
                     impact, player.getYRot(),
                     completed ? 1.18F : 0.82F,
                     player.getId());
-            owner.playBladeParrySound(
+            owner.presentation().playBladeParrySound(
                     server, impact, SoundSource.PLAYERS, completed);
             if (completed) {
                 arena.toriiScissorCountered = true;
@@ -368,7 +368,7 @@ final class MikageToriiController {
             int result = guarding
                     ? BladeTechniqueVfxPacket.SCISSOR_GUARD
                     : BladeTechniqueVfxPacket.SCISSOR_FAILURE;
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     result,
                     impact.x, impact.y, impact.z,
                     impact.x, impact.y, impact.z,
@@ -376,7 +376,7 @@ final class MikageToriiController {
                     -1, player.getId(), 14,
                     owner.getRandom().nextInt()), impact);
             if (guarding) {
-                owner.playBladeParrySound(
+                owner.presentation().playBladeParrySound(
                         server, impact, SoundSource.PLAYERS, false);
             } else {
                 server.playSound(
@@ -399,15 +399,15 @@ final class MikageToriiController {
         Vec3 offset = player.position()
                 .subtract(center).multiply(1.0D, 0.0D, 1.0D);
         double distance = offset.length();
-        if (distance <= MikageEntity.TORII_CAGE_RADIUS - 0.25D
+        if (distance <= MikageLegacyTiming.TORII_CAGE_RADIUS - 0.25D
                 || distance < 0.001D) {
             return;
         }
         Vec3 inward = offset.normalize().reverse();
-        if (distance > MikageEntity.TORII_CAGE_RADIUS + 1.0D) {
+        if (distance > MikageLegacyTiming.TORII_CAGE_RADIUS + 1.0D) {
             Vec3 edge = center.add(
                     offset.normalize().scale(
-                            MikageEntity.TORII_CAGE_RADIUS - 0.55D));
+                            MikageLegacyTiming.TORII_CAGE_RADIUS - 0.55D));
             player.teleportTo(
                     server, edge.x, player.getY(), edge.z,
                     player.getYRot(), player.getXRot());
@@ -431,7 +431,7 @@ final class MikageToriiController {
         float amount = (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE)
                 * GameplayConfig.MIKAGE_CAGE_PULSE_DAMAGE.get().floatValue();
         Vec3 pulseTarget = player.position().add(0.0D, 1.0D, 0.0D);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.CAGE_PULSE,
                 cage.center.x, cage.center.y + 0.08D, cage.center.z,
                 pulseTarget.x, pulseTarget.y, pulseTarget.z,
@@ -445,12 +445,12 @@ final class MikageToriiController {
             Vec3 impact = player.position()
                     .add(player.getLookAngle().normalize().scale(0.72D))
                     .add(0.0D, 1.1D, 0.0D);
-            owner.sendCombatVfx(
+            owner.presentation().sendCombatVfx(
                     server, BladeCombatVfxPacket.PERFECT_GUARD,
                     impact, player.getYRot(), 1.15F, player.getId());
-            owner.playBladeParrySound(
+            owner.presentation().playBladeParrySound(
                     server, impact, SoundSource.PLAYERS, true);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.CAGE_SUCCESS,
                     impact.x, impact.y, impact.z,
                     impact.x, impact.y, impact.z,
@@ -466,16 +466,16 @@ final class MikageToriiController {
             Vec3 impact = player.position()
                     .add(player.getLookAngle().normalize().scale(0.68D))
                     .add(0.0D, 1.05D, 0.0D);
-            owner.sendCombatVfx(
+            owner.presentation().sendCombatVfx(
                     server, BladeCombatVfxPacket.PARRY,
                     impact, player.getYRot(), 0.78F, player.getId());
-            owner.playBladeParrySound(
+            owner.presentation().playBladeParrySound(
                     server, impact, SoundSource.PLAYERS, false);
         }
         if (finalPulse && !perfectGuard) {
             amount += (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE)
                     * GameplayConfig.MIKAGE_CAGE_FINAL_DAMAGE.get().floatValue();
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.CAGE_FAILURE,
                     pulseTarget.x, pulseTarget.y, pulseTarget.z,
                     pulseTarget.x, pulseTarget.y, pulseTarget.z,

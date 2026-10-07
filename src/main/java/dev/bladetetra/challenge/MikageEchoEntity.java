@@ -70,7 +70,7 @@ public final class MikageEchoEntity extends Monster {
         if (level().isClientSide()) return true;
         MikageEntity owner = owner();
         if (owner != null) {
-            owner.strikeMoonEcho(this, MikageEntity.resolveCombatAttacker(source));
+            owner.legacyEffects().strikeMoonEcho(this, MikageDamageService.resolveCombatAttacker(source));
         } else {
             discard();
         }

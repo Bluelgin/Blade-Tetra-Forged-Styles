@@ -5,6 +5,11 @@
 ## 当前实现
 
 - `MikageEntity` 保留注册身份、属性、同步动作和 Minecraft 生命周期入口。
+- `MikageEncounterSetup` 负责队伍装备评分、生命/伤害/速度校准与访客配置。
+- `MikageDamageService` 负责受击过滤、软上限、阶段血量门槛和对玩家的自适应伤害。实体传入 `super::hurt`，避免再次调用实体的 `hurt` 而递归。
+- `MikageLegacyCounterRuntime` 接管旧 SA/次元斩适应、锁定解除和残心反制；`MikageSwordWheelRuntime` 接管剑轮部署、破层与恢复。它们共享原有 state holders，不复制状态，也不作为新技能扩展点。
+- `MikageArenaMovement` 负责场地约束与参战者查找；`MikageEncounterPresentation` 负责 HUD、特效包、音效和新追踪玩家的场地快照。内部调用直接进入对应模块，实体不再转发旧脚本 tick。
+- `MikageLegacyTiming` 收容旧技能的时序、几何参数；新技能各自定义这些参数。
 - `MikageEncounter` 管理开场、阶段、前台技能、击败和取消；每只实体各自拥有运行时。
 - `MikagePlayerObserver` 只观察服务端参战者已经发生的操作，不读取下一次输入。
 - `PlayerBehaviorMemory` 分玩家记录接近/后退、格挡、滞空、攻击压力与重复释放的 SA；样本有窗口、次数上限和退出清理。

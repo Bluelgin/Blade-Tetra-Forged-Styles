@@ -67,7 +67,7 @@ final class MikageLegacySkillPool {
                 choices.add(Technique.TORII_CAGE);
             }
         }
-        if (owner.hasShadowCrossPressure(target)) {
+        if (owner.counters().hasShadowCrossPressure(target)) {
             choices.removeIf(choice -> choice == Technique.WAVE_EDGE
                     || choice == Technique.DRIVE_FAN);
             choices.add(Technique.STEP_IAIDO);

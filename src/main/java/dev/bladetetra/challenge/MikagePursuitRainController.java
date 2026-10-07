@@ -91,7 +91,7 @@ final class MikagePursuitRainController {
         techniques.pursuitRainActiveTicks =
                 GameplayConfig.MIKAGE_PURSUIT_RAIN_DURATION_TICKS.get();
         techniques.pursuitRainTicks = techniques.pursuitRainActiveTicks
-                + MikageEntity.PURSUIT_RAIN_WARNING_TICKS;
+                + MikageLegacyTiming.PURSUIT_RAIN_WARNING_TICKS;
         techniques.pursuitRainWave = 0;
         PursuitPressure pressure = defense.pursuitPressure.get(target.getUUID());
         if (pressure != null) {
@@ -99,7 +99,7 @@ final class MikagePursuitRainController {
         }
         owner.setAction(
                 MikageEntity.MikageAction.CAST_READY,
-                MikageEntity.PURSUIT_RAIN_WARNING_TICKS);
+                MikageLegacyTiming.PURSUIT_RAIN_WARNING_TICKS);
         server.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_RETURN,
                 SoundSource.HOSTILE, 1.1F, 0.65F);
         server.sendParticles(new DustParticleOptions(
@@ -107,7 +107,7 @@ final class MikagePursuitRainController {
                 target.getX(), target.getY() + 3.1D, target.getZ(),
                 28, 0.55D, 0.20D, 0.55D, 0.02D);
         Vec3 lock = target.position().add(0.0D, 2.8D, 0.0D);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.PURSUIT_LOCK,
                 lock.x, lock.y, lock.z, lock.x, lock.y, lock.z,
                 target.getYRot(), 1.0F, -1, target.getId(),
@@ -183,7 +183,7 @@ final class MikagePursuitRainController {
 
         if (!techniques.pursuitRainFinalLaunched
                 && techniques.pursuitRainFinalTicks
-                == MikageEntity.PURSUIT_RAIN_FINAL_LAUNCH_TICK) {
+                == MikageLegacyTiming.PURSUIT_RAIN_FINAL_LAUNCH_TICK) {
             if (isFinalGuarding(target)) {
                 reflectFinalSword(target, sword, server);
                 return;
@@ -256,7 +256,7 @@ final class MikagePursuitRainController {
                 * GameplayConfig.MIKAGE_PURSUIT_RAIN_DAMAGE_MULTIPLIER
                 .get().floatValue();
         int travelTicks = Math.max(3, Mth.ceil(distance / speed));
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.PURSUIT_SWORD,
                 origin.x, origin.y, origin.z,
                 lockedAim.x, lockedAim.y, lockedAim.z,
@@ -274,7 +274,7 @@ final class MikagePursuitRainController {
         MikageTechniqueRuntime techniques = owner.techniqueRuntime();
         techniques.pursuitRainTicks = 0;
         techniques.pursuitRainFinalTicks =
-                MikageEntity.PURSUIT_RAIN_FINAL_TICKS;
+                MikageLegacyTiming.PURSUIT_RAIN_FINAL_TICKS;
         techniques.pursuitRainFinalLaunched = false;
         Vec3 facing = target.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
         if (facing.lengthSqr() < 0.01D) {
@@ -309,7 +309,7 @@ final class MikagePursuitRainController {
         sword.getPersistentData().putBoolean("blade_tetra_pursuit_final", true);
         server.addFreshEntity(sword);
         techniques.pursuitRainFinalSword = sword.getUUID();
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.PURSUIT_RETURN,
                 techniques.pursuitRainFinalOrigin.x,
                 techniques.pursuitRainFinalOrigin.y,
@@ -318,7 +318,7 @@ final class MikagePursuitRainController {
                 techniques.pursuitRainFinalAim.y,
                 techniques.pursuitRainFinalAim.z,
                 owner.getYRot(), 1.0F, sword.getId(), -1,
-                MikageEntity.PURSUIT_RAIN_FINAL_TICKS,
+                MikageLegacyTiming.PURSUIT_RAIN_FINAL_TICKS,
                 owner.getRandom().nextInt()),
                 techniques.pursuitRainFinalAim);
         server.playSound(null, target.blockPosition(),
@@ -328,7 +328,7 @@ final class MikagePursuitRainController {
 
     private boolean isFinalGuarding(ServerPlayer player) {
         MikageTechniqueRuntime techniques = owner.techniqueRuntime();
-        if (!owner.isBladeGuarding(player)) {
+        if (!owner.legacyEffects().isBladeGuarding(player)) {
             return false;
         }
         Vec3 toSword = techniques.pursuitRainFinalOrigin
@@ -347,7 +347,7 @@ final class MikagePursuitRainController {
         owner.attackTimeline().clear();
         Vec3 clashStart = player.getEyePosition();
         Vec3 clashEnd = owner.getEyePosition();
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.COUNTER_CLASH,
                 clashStart.x, clashStart.y, clashStart.z,
                 clashEnd.x, clashEnd.y, clashEnd.z,
@@ -363,7 +363,7 @@ final class MikagePursuitRainController {
             sword.shoot(reflected.x, reflected.y, reflected.z, 2.2F, 0.0F);
         }
         if (owner.isSwordWheelDeployed()) {
-            owner.recallSwordWheel(server, 90);
+            owner.swordWheel().recallSwordWheel(server, 90);
         }
         techniques.pursuitRainTicks = 0;
         techniques.pursuitRainFinalTicks = 0;

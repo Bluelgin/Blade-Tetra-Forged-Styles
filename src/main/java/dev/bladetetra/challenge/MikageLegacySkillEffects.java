@@ -1,5 +1,7 @@
 package dev.bladetetra.challenge;
 
+import static dev.bladetetra.challenge.MikageLegacyTiming.*;
+
 import static dev.bladetetra.challenge.MikageEntity.*;
 import static dev.bladetetra.challenge.MikageArenaController.*;
 import static dev.bladetetra.challenge.MikageDefenseController.*;
@@ -78,7 +80,7 @@ final class MikageLegacySkillEffects {
             destination = owner.position().add(forward.scale(Math.max(0.0D,
                     toTarget.length() - 2.35D)));
         }
-        owner.teleportWithinArena(destination.x, target.getY(), destination.z);
+        owner.movement().teleportWithinArena(destination.x, target.getY(), destination.z);
         owner.lookAt(target, 180.0F, 180.0F);
         defense.stepIaidoCommitted = true;
         server.playSound(null, owner.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
@@ -246,7 +248,7 @@ final class MikageLegacySkillEffects {
         owner.setAction(MikageAction.IAIDO_READY, MIRROR_DUEL_TOTAL_TICKS);
         server.playSound(null, owner.blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE,
                 SoundSource.HOSTILE, 0.9F, 1.75F);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.MIRROR_DUEL,
                 techniques.mirrorDuelStart.x, techniques.mirrorDuelStart.y + 0.9D, techniques.mirrorDuelStart.z,
                 techniques.mirrorDuelEnd.x, techniques.mirrorDuelEnd.y + 0.9D, techniques.mirrorDuelEnd.z,
@@ -266,7 +268,7 @@ final class MikageLegacySkillEffects {
         } else if (techniques.mirrorDuelTicks >= 5) {
             double progress = (MIRROR_DUEL_DASH_START - techniques.mirrorDuelTicks + 1.0D) / 12.0D;
             Vec3 next = techniques.mirrorDuelStart.lerp(techniques.mirrorDuelEnd, Mth.clamp(progress, 0.0D, 1.0D));
-            owner.teleportWithinArena(next.x, next.y, next.z);
+            owner.movement().teleportWithinArena(next.x, next.y, next.z);
             owner.lookAt(target, 180.0F, 180.0F);
             if (techniques.mirrorDuelTicks % 2 == 0) {
                 server.sendParticles(ParticleTypes.SWEEP_ATTACK,
@@ -290,7 +292,7 @@ final class MikageLegacySkillEffects {
                     owner.dealTrialDamage(player, damage, guarded);
                     if (!guarded) {
                         Vec3 failure = player.position().add(0.0D, 1.0D, 0.0D);
-                        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                                 BladeTechniqueVfxPacket.MIRROR_DUEL_FAILURE,
                                 failure.x, failure.y, failure.z,
                                 failure.x, failure.y, failure.z,
@@ -312,7 +314,7 @@ final class MikageLegacySkillEffects {
         if (!(owner.level() instanceof ServerLevel server)) return;
         Vec3 clashStart = player.getEyePosition();
         Vec3 clashEnd = owner.getEyePosition();
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.COUNTER_CLASH,
                 clashStart.x, clashStart.y, clashStart.z,
                 clashEnd.x, clashEnd.y, clashEnd.z,
@@ -339,7 +341,7 @@ final class MikageLegacySkillEffects {
         techniques.boundarySealsBroken = 0;
         techniques.boundarySealEntities.clear();
         Vec3 center = ChallengeManager.arenaCenter(owner);
-        owner.teleportWithinArena(center.x, center.y, center.z);
+        owner.movement().teleportWithinArena(center.x, center.y, center.z);
         owner.setAction(MikageAction.RITUAL, BOUNDARY_SEAL_TOTAL_TICKS);
         List<MikagePhantomSwordEntity> spawnedSeals = new ArrayList<>();
         for (int slot = 0; slot < 3; slot++) {
@@ -358,7 +360,7 @@ final class MikageLegacySkillEffects {
             MikagePhantomSwordEntity second = spawnedSeals.get((i + 1) % spawnedSeals.size());
             Vec3 start = first.position().add(0.0D, 0.8D, 0.0D);
             Vec3 end = second.position().add(0.0D, 0.8D, 0.0D);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SEAL_LINK,
                     start.x, start.y, start.z, end.x, end.y, end.z,
                     0.0F, 1.0F, first.getId(), second.getId(),
@@ -373,7 +375,7 @@ final class MikageLegacySkillEffects {
         owner.setDeltaMovement(Vec3.ZERO);
         if (techniques.boundarySealsBroken >= 3) {
             Vec3 center = owner.position().add(0.0D, 1.0D, 0.0D);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SEAL_SUCCESS,
                     center.x, center.y, center.z, center.x, center.y, center.z,
                     owner.getYRot(), 1.18F, -1, -1, 18, owner.getRandom().nextInt()), center);
@@ -388,7 +390,7 @@ final class MikageLegacySkillEffects {
             float scale = 1.15F - techniques.boundarySealsBroken * 0.35F;
             float damage = (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE) * scale;
             Vec3 center = ChallengeManager.arenaCenter(owner);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SEAL_FAILURE,
                     center.x, center.y, center.z, center.x, center.y, center.z,
                     owner.getYRot(), Math.max(0.45F, scale), -1, -1, 18, owner.getRandom().nextInt()), center);
@@ -406,7 +408,7 @@ final class MikageLegacySkillEffects {
         if (techniques.boundarySealEntities.remove(seal.getUUID())) {
             techniques.boundarySealsBroken++;
             Vec3 position = seal.position().add(0.0D, 0.8D, 0.0D);
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SEAL_BREAK,
                     position.x, position.y, position.z,
                     position.x, position.y, position.z,
@@ -431,7 +433,7 @@ final class MikageLegacySkillEffects {
         techniques.moonEchoEntities.clear();
         for (ServerPlayer participant : server.players()) {
             if (ChallengeManager.isParticipant(owner, participant)) {
-                owner.clearPlayerLock(participant);
+                owner.counters().clearPlayerLock(participant);
             }
         }
         Vec3 center = target.position();
@@ -441,7 +443,7 @@ final class MikageLegacySkillEffects {
             Vec3 pos = center.add(Math.cos(angle) * 4.2D, 0.0D, Math.sin(angle) * 4.2D);
             pos = ChallengeManager.clampMikagePosition(owner, pos);
             if (slot == realSlot) {
-                owner.teleportWithinArena(pos.x, target.getY(), pos.z);
+                owner.movement().teleportWithinArena(pos.x, target.getY(), pos.z);
                 owner.lookAt(target, 180.0F, 180.0F);
                 continue;
             }
@@ -452,7 +454,7 @@ final class MikageLegacySkillEffects {
             server.addFreshEntity(echo);
             techniques.moonEchoEntities.add(echo.getUUID());
         }
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.MOON_ECHO_FIELD,
                 center.x, center.y, center.z,
                 owner.getX(), owner.getY() + 1.0D, owner.getZ(),
@@ -480,7 +482,7 @@ final class MikageLegacySkillEffects {
                 if (echo != null) {
                     attackTimeline.circle(1, echo.position(), 3.5D, 3.5D, damage, 0.55D);
                     Vec3 failure = echo.position().add(0.0D, 1.0D, 0.0D);
-                    owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                    owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                             BladeTechniqueVfxPacket.MOON_ECHO_FAILURE,
                             failure.x, failure.y, failure.z,
                             failure.x, failure.y, failure.z,
@@ -498,7 +500,7 @@ final class MikageLegacySkillEffects {
                 || !ChallengeManager.isParticipant(owner, player)) return;
         float damage = (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.45F;
         Vec3 falseEcho = echo.position().add(0.0D, 1.0D, 0.0D);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.MOON_ECHO_FALSE,
                 falseEcho.x, falseEcho.y, falseEcho.z,
                 player.getX(), player.getY() + 1.0D, player.getZ(),
@@ -515,7 +517,7 @@ final class MikageLegacySkillEffects {
     void solveMoonEcho(ServerPlayer player) {
         if (!(owner.level() instanceof ServerLevel server)) return;
         Vec3 truth = owner.position().add(0.0D, 1.0D, 0.0D);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.MOON_ECHO_TRUE,
                 truth.x, truth.y, truth.z,
                 player.getX(), player.getY() + 1.0D, player.getZ(),
@@ -540,7 +542,7 @@ final class MikageLegacySkillEffects {
 
     void startInteractionOpening(ServerLevel server, int ticks, float multiplier,
             String messageKey) {
-        if (owner.isSwordWheelDeployed()) owner.recallSwordWheel(server, ticks + 40);
+        if (owner.isSwordWheelDeployed()) owner.swordWheel().recallSwordWheel(server, ticks + 40);
         techniques.interactionOpeningTicks = Math.max(techniques.interactionOpeningTicks, ticks);
         techniques.interactionOpeningMultiplier = Math.max(techniques.interactionOpeningMultiplier, multiplier);
         combat.techniqueCooldown = Math.max(combat.techniqueCooldown, ticks + 18);
@@ -606,7 +608,7 @@ final class MikageLegacySkillEffects {
         }
         float sideAngle = owner.getRandom().nextBoolean() ? 0.48F : -0.48F;
         Vec3 destination = target.position().add(away.normalize().yRot(sideAngle).scale(distance));
-        owner.teleportWithinArena(destination.x, target.getY(), destination.z);
+        owner.movement().teleportWithinArena(destination.x, target.getY(), destination.z);
         owner.lookAt(target, 180.0F, 180.0F);
         server.playSound(null, owner.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
                 SoundSource.HOSTILE, 0.75F, 1.5F);
@@ -728,7 +730,7 @@ final class MikageLegacySkillEffects {
         owner.getNavigation().stop();
         owner.setNoGravity(true);
         owner.setAction(MikageAction.RITUAL, BOUNDARY_FLASH_TOTAL_TICKS);
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.BOUNDARY_FLASH,
                 arena.boundarySlashHover.x, arena.boundarySlashHover.y + 1.0D, arena.boundarySlashHover.z,
                 target.getX(), target.getY() + 1.0D, target.getZ(),
@@ -777,7 +779,7 @@ final class MikageLegacySkillEffects {
                     BOUNDARY_FLASH_TOTAL_TICKS - BOUNDARY_FLASH_DESCEND_AGE));
             position = arena.boundarySlashHover.lerp(arena.boundarySlashReturn, progress);
         }
-        owner.teleportWithinArena(position.x, position.y, position.z);
+        owner.movement().teleportWithinArena(position.x, position.y, position.z);
 
         for (ServerPlayer player : server.players()) {
             if (!player.isAlive() || player.isCreative() || player.isSpectator()
@@ -803,7 +805,7 @@ final class MikageLegacySkillEffects {
             }
             Vec3 edge = arena.boundarySlashCenter.add(
                     arena.boundarySlashDirection.scale(BOUNDARY_FLASH_LENGTH));
-            owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.BOUNDARY_FLASH_RELEASE,
                     arena.boundarySlashHover.x, arena.boundarySlashHover.y + 1.0D,
                     arena.boundarySlashHover.z,
@@ -832,7 +834,7 @@ final class MikageLegacySkillEffects {
         if (--arena.boundarySlashDelay <= 0) {
             arena.boundarySlashDelay = 0;
             owner.setNoGravity(false);
-            owner.teleportWithinArena(arena.boundarySlashReturn.x, arena.boundarySlashReturn.y,
+            owner.movement().teleportWithinArena(arena.boundarySlashReturn.x, arena.boundarySlashReturn.y,
                     arena.boundarySlashReturn.z);
             arena.boundarySlashTarget = null;
             arena.boundaryGuardHoldTicks.clear();
@@ -862,7 +864,7 @@ final class MikageLegacySkillEffects {
             if (isPlayerAboveBoundaryFlash(player)) continue;
             applyBoundaryHealthPressure(player);
         }
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.BOUNDARY_FLASH_IMPACT,
                 arena.boundarySlashCenter.x, arena.boundarySlashCenter.y + 0.08D,
                 arena.boundarySlashCenter.z,
@@ -896,11 +898,11 @@ final class MikageLegacySkillEffects {
         player.hurtMarked = true;
         Vec3 impact = player.position().add(0.0D, 1.0D, 0.0D);
         if (timedGuard) {
-            owner.sendCombatVfx((ServerLevel) owner.level(), BladeCombatVfxPacket.PERFECT_GUARD,
+            owner.presentation().sendCombatVfx((ServerLevel) owner.level(), BladeCombatVfxPacket.PERFECT_GUARD,
                     impact, player.getYRot(), 1.12F, player.getId());
-            owner.playBladeParrySound((ServerLevel) owner.level(), impact, SoundSource.PLAYERS, true);
+            owner.presentation().playBladeParrySound((ServerLevel) owner.level(), impact, SoundSource.PLAYERS, true);
         } else {
-            owner.sendTechniqueVfx((ServerLevel) owner.level(), new BladeTechniqueVfxPacket(
+            owner.presentation().sendTechniqueVfx((ServerLevel) owner.level(), new BladeTechniqueVfxPacket(
                     BladeTechniqueVfxPacket.SCISSOR_FAILURE,
                     impact.x, impact.y, impact.z, impact.x, impact.y, impact.z,
                     player.getYRot(), heldTooEarly ? 1.28F : 1.0F,
@@ -1000,7 +1002,7 @@ final class MikageLegacySkillEffects {
 
     void sendBoundaryWall(ServerLevel server, BoundaryWallState wall) {
         Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.BOUNDARY_WALL,
                 wall.center.x, wall.center.y + 0.05D, wall.center.z,
                 edge.x, wall.center.y + 0.05D, edge.z,
@@ -1010,7 +1012,7 @@ final class MikageLegacySkillEffects {
 
     void sendBoundaryGap(ServerLevel server, BoundaryWallState wall) {
         Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP,
                 wall.center.x, wall.center.y + 0.05D, wall.center.z,
                 edge.x, wall.center.y + 0.05D, edge.z,
@@ -1020,7 +1022,7 @@ final class MikageLegacySkillEffects {
 
     void sendBoundaryGapWarning(ServerLevel server, BoundaryWallState wall) {
         Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                 BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP_WARNING,
                 wall.center.x, wall.center.y + 0.05D, wall.center.z,
                 edge.x, wall.center.y + 0.05D, edge.z,
@@ -1032,7 +1034,7 @@ final class MikageLegacySkillEffects {
         if (playEffect) {
             for (BoundaryWallState wall : arena.boundaryWalls) {
                 Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-                owner.sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
                         BladeTechniqueVfxPacket.BOUNDARY_WALL_BREAK,
                         wall.center.x, wall.center.y + 0.05D, wall.center.z,
                         edge.x, wall.center.y + 0.05D, edge.z,
@@ -1086,6 +1088,27 @@ final class MikageLegacySkillEffects {
         LivingEntity target = owner.getTarget();
         if (target != null && target.isAlive()) {
             flashStepAway(target, server, 10.5D);
+        }
+    }
+
+    void advanceBoundaryFlashCharge(Technique technique, ServerLevel server) {
+        if (owner.getPhase() != 3 || technique == Technique.NONE
+                || technique == Technique.BOUNDARY_FLASH || arena.boundaryFlashPending) return;
+        arena.boundaryFlashCharge = Math.min(3, arena.boundaryFlashCharge + 1);
+        Vec3 arenaCenter = ChallengeManager.arenaCenter(owner);
+        Vec3 focus = owner.position().add(0.0D, 1.0D, 0.0D);
+        owner.presentation().sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
+                BladeTechniqueVfxPacket.BOUNDARY_CHARGE,
+                arenaCenter.x, arenaCenter.y + 0.08D, arenaCenter.z,
+                focus.x, focus.y, focus.z,
+                owner.getYRot(), arena.boundaryFlashCharge, -1, owner.getId(), 60,
+                owner.getRandom().nextInt()), arenaCenter);
+        server.playSound(null, owner.blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE,
+                SoundSource.HOSTILE, 0.58F + arena.boundaryFlashCharge * 0.14F,
+                0.72F + arena.boundaryFlashCharge * 0.16F);
+        if (arena.boundaryFlashCharge >= 3) {
+            arena.boundaryFlashPending = true;
+            arena.boundaryFlashReadyTicks = 56;
         }
     }
 }
