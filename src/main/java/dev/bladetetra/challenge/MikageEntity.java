@@ -919,7 +919,7 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void clearPlayerLock(LivingEntity attacker) {
+    void clearPlayerLock(LivingEntity attacker) {
         ItemStack blade = attacker.getMainHandItem();
         blade.getCapability(ItemSlashBlade.BLADESTATE)
                 .ifPresent(state -> state.setTargetEntityId(-1));

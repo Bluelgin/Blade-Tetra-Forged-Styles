@@ -695,7 +695,7 @@ final class MikageLegacySkillEffects {
         LivingEntity target = techniques.aerialTarget != null && techniques.aerialTarget.isAlive()
                 ? techniques.aerialTarget : owner.getTarget();
         owner.getNavigation().stop();
-        fallDistance = 0.0F;
+        owner.fallDistance = 0.0F;
         if (target != null) {
             lockBladeTarget(target);
             owner.lookAt(target, 180.0F, 180.0F);
@@ -720,7 +720,7 @@ final class MikageLegacySkillEffects {
             techniques.aerialTicks = 0;
             techniques.aerialTarget = null;
             owner.setNoGravity(false);
-            fallDistance = 0.0F;
+            owner.fallDistance = 0.0F;
         }
     }
 
@@ -803,7 +803,7 @@ final class MikageLegacySkillEffects {
                 -arena.boundarySlashDirection.x, arena.boundarySlashDirection.z));
         owner.setYRot(lockedYaw);
         owner.setYHeadRot(lockedYaw);
-        yBodyRot = lockedYaw;
+        owner.yBodyRot = lockedYaw;
 
         Vec3 position;
         if (age < BOUNDARY_FLASH_ASCEND_TICKS) {
@@ -839,7 +839,7 @@ final class MikageLegacySkillEffects {
                         -arena.boundarySlashDirection.x, arena.boundarySlashDirection.z));
                 owner.setYRot(lockedYaw);
                 owner.setYHeadRot(lockedYaw);
-                yBodyRot = lockedYaw;
+                owner.yBodyRot = lockedYaw;
             }
             Vec3 edge = arena.boundarySlashCenter.add(
                     arena.boundarySlashDirection.scale(BOUNDARY_FLASH_LENGTH));
