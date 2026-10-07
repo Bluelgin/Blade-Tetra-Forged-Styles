@@ -40,7 +40,10 @@ class ArchitectureDebtGuardTest {
                 850L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java",
-                2_850L);
+                1_550L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java",
+                1_150L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikagePursuitRainController.java",
                 460L);
@@ -270,14 +273,21 @@ class ArchitectureDebtGuardTest {
     void mikageSignatureDomainsStayDelegated() throws IOException {
         String entity = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java"));
+        String effects = Files.readString(Path.of(
+                "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java"));
         assertTrue(entity.contains("new MikagePursuitRainController(this)"));
-        assertTrue(entity.contains("new MikageToriiController(this)"));
+        assertTrue(effects.contains("new MikageToriiController(owner)"));
         assertTrue(entity.contains("pursuitRain.tickFinal(server)"));
-        assertTrue(entity.contains("torii.tickSweep(server)"));
+        assertTrue(effects.contains("torii.tickSweep(server)"));
         assertFalse(entity.contains("private void castPursuitRainWave"),
                 "Pursuit Rain scripting belongs in its controller");
         assertFalse(entity.contains("private void applyToriiScissorImpact"),
                 "Torii impact scripting belongs in its controller");
+        assertTrue(entity.contains("encounter.tick(server)"));
+        assertFalse(entity.contains("preparedTicks"),
+                "Windup state belongs to a release instance");
+        assertFalse(entity.contains("void useTechnique("),
+                "Reactive selection belongs outside the entity");
     }
 
     private static void assertLinesAtMost(String path, long maximum) throws IOException {

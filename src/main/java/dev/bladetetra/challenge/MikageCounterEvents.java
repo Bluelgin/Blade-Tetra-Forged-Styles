@@ -29,6 +29,9 @@ public final class MikageCounterEvents {
         }
         String slashArtKey = event.getSlashBladeState().getSlashArtsKey().toString();
         String comboKey = event.getComboState().toString();
+        if (user instanceof net.minecraft.server.level.ServerPlayer player) {
+            ((MikageEntity) target).encounter().observeSlashArt(player, slashArtKey);
+        }
         if (isJudgementCut(slashArtKey) || isJudgementCut(comboKey)) {
             ((MikageEntity) target).registerJudgementCutCast(user);
             return;

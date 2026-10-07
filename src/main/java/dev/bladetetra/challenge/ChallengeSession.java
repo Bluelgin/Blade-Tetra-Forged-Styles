@@ -391,8 +391,7 @@ final class ChallengeSession {
                 .filter(java.util.Objects::nonNull)
                 .toList();
         replacement.configureForParty(party, reminiscence, id);
-        replacement.setHealth(replacement.getMaxHealth()
-                * Mth.clamp(lastBossHealthFraction, 0.01F, 1.0F));
+        replacement.restoreCombatHealthFraction(lastBossHealthFraction);
         replacement.prepareOpening(20);
         replacement.restrictTo(new BlockPos(offsetX + 179, 64, offsetZ - 10), 64);
         if (mirror.addFreshEntity(replacement)) {

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import dev.bladetetra.challenge.mikage.CastScope;
 
 /**
  * Server-authoritative hit boxes for Mikage. SlashBlade entities remain the
@@ -19,6 +20,7 @@ import java.util.function.Consumer;
 final class MikageAttackTimeline {
     private final MikageEntity owner;
     private final List<Hit> pending = new ArrayList<>();
+    private CastScope currentScope;
 
     MikageAttackTimeline(MikageEntity owner) {
         this.owner = owner;
@@ -27,13 +29,13 @@ final class MikageAttackTimeline {
     void circle(int delay, Vec3 center, double radius, double height,
             float damage, double knockback) {
         pending.add(new Hit(owner.tickCount + delay, Shape.CIRCLE, center,
-                center, Vec3.ZERO, radius, height, -1.0D, damage, knockback, null));
+                center, Vec3.ZERO, radius, height, -1.0D, damage, knockback, null, currentScope));
     }
 
     void line(int delay, Vec3 start, Vec3 end, double width, double height,
             float damage, double knockback) {
         pending.add(new Hit(owner.tickCount + delay, Shape.LINE, start, end,
-                Vec3.ZERO, width, height, -1.0D, damage, knockback, null));
+                Vec3.ZERO, width, height, -1.0D, damage, knockback, null, currentScope));
     }
 
     void cone(int delay, Vec3 origin, Vec3 direction, double range,
@@ -50,22 +52,50 @@ final class MikageAttackTimeline {
         }
         pending.add(new Hit(owner.tickCount + delay, Shape.CONE, origin,
                 origin, flat.normalize(), range, height,
-                Math.cos(Math.toRadians(halfAngleDegrees)), damage, knockback, result));
+                Math.cos(Math.toRadians(halfAngleDegrees)), damage, knockback, result, currentScope));
     }
 
     void tick(ServerLevel level) {
+        // Drain before callbacks: a counter may cancel or enqueue another hit.
+        List<Hit> due = new ArrayList<>();
         Iterator<Hit> iterator = pending.iterator();
         while (iterator.hasNext()) {
             Hit hit = iterator.next();
             if (hit.executeTick > owner.tickCount) {
                 continue;
             }
+            due.add(hit);
+            iterator.remove();
+        }
+        for (Hit hit : due) {
+            if (hit.scope != null && hit.scope.closed()) continue;
             boolean landed = apply(level, hit);
             if (hit.result != null) {
                 hit.result.accept(landed);
             }
-            iterator.remove();
         }
+    }
+
+    void inScope(CastScope scope, Runnable task) {
+        CastScope previous = currentScope;
+        currentScope = scope;
+        try { task.run(); }
+        finally { currentScope = previous; }
+    }
+
+    boolean hasPending(CastScope scope) {
+        return pending.stream().anyMatch(hit -> hit.scope == scope);
+    }
+
+    void cancel(CastScope scope) {
+        pending.removeIf(hit -> hit.scope == scope);
+    }
+
+    void ownSpawn(net.minecraft.world.entity.Entity entity) {
+        if (currentScope == null) return;
+        entity.getPersistentData().putBoolean("blade_tetra_mikage_attack", true);
+        entity.getPersistentData().putLong("blade_tetra_mikage_cast", currentScope.id());
+        currentScope.own(entity::discard);
     }
 
     void clear() {
@@ -91,6 +121,7 @@ final class MikageAttackTimeline {
                 candidate -> candidate.isAlive() && !candidate.isCreative()
                         && !candidate.isSpectator()
                         && ChallengeManager.isParticipant(owner, candidate))) {
+            if (!owner.isAlive() || (hit.scope != null && hit.scope.closed())) break;
             if (!contains(hit, player.position().add(0.0D, 0.9D, 0.0D))) {
                 continue;
             }
@@ -141,6 +172,6 @@ final class MikageAttackTimeline {
 
     private record Hit(int executeTick, Shape shape, Vec3 start, Vec3 end,
             Vec3 direction, double radius, double height, double cosine,
-            float damage, double knockback, Consumer<Boolean> result) {
+            float damage, double knockback, Consumer<Boolean> result, CastScope scope) {
     }
 }

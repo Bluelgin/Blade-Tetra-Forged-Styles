@@ -51,12 +51,5 @@ final class MikageTechniqueRuntime {
                 || defense.zanshinCounterTicks > 0;
     }
 
-    boolean isAnyActive(MikageArenaController arena,
-            MikageDefenseController defense, MikageCombatDirector combat) {
-        return isSignatureActive(arena, defense)
-                || ((arena.cagePerfectCountered || arena.toriiScissorCountered
-                        || pursuitRainCountered)
-                    && combat.signatureRecoveryTicks > 0)
-                || combat.preparedTicks > 0;
-    }
+
 }

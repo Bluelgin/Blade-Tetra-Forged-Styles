@@ -1,6 +1,5 @@
 package dev.bladetetra.challenge;
 
-import dev.bladetetra.config.GameplayConfig;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -15,9 +14,6 @@ final class MikageRuntimeCoordinator {
 
         owner.sampleParticipantMovement(server);
         owner.attackTimeline().tick(server);
-        if (combat.preparedTicks > 0) {
-            owner.tickPreparedTechnique(server);
-        }
 
         if (arena.toriiSweepCooldown > 0) arena.toriiSweepCooldown--;
         if (arena.toriiCageCooldown > 0) arena.toriiCageCooldown--;
@@ -89,31 +85,8 @@ final class MikageRuntimeCoordinator {
         if (arena.boundarySlashDelay > 0) owner.tickBoundaryFlash(server);
         if (!arena.boundaryWalls.isEmpty()) owner.tickBoundaryWalls(server);
 
-        if (arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0
-                && phase == 3 && combat.phaseProtectionTicks <= 0
-                && !owner.isUsingTechnique()) {
-            ServerPlayer executionTarget = owner.nearestChallengeParticipant(server);
-            if (executionTarget != null) {
-                arena.boundaryFlashPending = false;
-                owner.beginBoundaryFlash(executionTarget, server);
-            }
-        }
-
-        if (!owner.isUsingTechnique() && techniques.pursuitRainCooldown <= 0) {
-            ServerPlayer pursuitTarget = owner.selectPursuitTarget(server);
-            if (pursuitTarget != null) {
-                owner.beginPursuitRain(pursuitTarget, server);
-            }
-        }
-
-        if (!owner.isUsingTechnique() && --combat.techniqueCooldown <= 0) {
-            owner.useTechnique(phase);
-            combat.techniqueCooldown = combat.scaledCooldown(
-                    phase == 1 ? 48 : phase == 2 ? 36 : 26);
-        }
         owner.enforceArenaBoundary();
     }
 
-    private MikageRuntimeCoordinator() {
-    }
+    private MikageRuntimeCoordinator() {}
 }

@@ -81,14 +81,14 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MikageEntity extends Monster {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    static final Logger LOGGER = LogUtils.getLogger();
     static final int TORII_SWEEP_TOTAL_TICKS = 154;
     static final int TORII_SWEEP_FIRST_IMPACT_AGE = 34;
     static final int TORII_SWEEP_SECOND_IMPACT_AGE = 72;
     static final int TORII_SWEEP_FAKE_IMPACT_AGE = 108;
     static final int TORII_SWEEP_FINAL_IMPACT_AGE = 136;
     static final int TORII_SWEEP_STABLE_GUARD_TICKS = 6;
-    private static final int TORII_SWEEP_RECOVERY_TICKS = 18;
+    static final int TORII_SWEEP_RECOVERY_TICKS = 18;
     static final int TORII_CAGE_TOTAL_TICKS = 110;
     static final int TORII_CAGE_WARNING_TICKS = 25;
     static final int TORII_CAGE_RECOVERY_TICKS = 10;
@@ -96,41 +96,41 @@ public final class MikageEntity extends Monster {
     static final int PURSUIT_RAIN_WARNING_TICKS = 20;
     static final int PURSUIT_RAIN_FINAL_TICKS = 22;
     static final int PURSUIT_RAIN_FINAL_LAUNCH_TICK = 8;
-    private static final int MIRROR_DUEL_TOTAL_TICKS = 30;
-    private static final int MIRROR_DUEL_DASH_START = 16;
-    private static final int BOUNDARY_SEAL_TOTAL_TICKS = 140;
-    private static final int MOON_ECHO_TOTAL_TICKS = 72;
-    private static final int BOUNDARY_FLASH_TOTAL_TICKS = 230;
-    private static final int BOUNDARY_FLASH_ASCEND_TICKS = 32;
-    private static final int BOUNDARY_FLASH_LOCK_AGE = 180;
-    private static final int BOUNDARY_FLASH_IMPACT_AGE = 206;
-    private static final int BOUNDARY_FLASH_DESCEND_AGE = 216;
-    private static final int BOUNDARY_WALL_VISUAL_TICKS = 1_000_000;
-    private static final int BOUNDARY_WALL_MAX_COUNT = 6;
-    private static final int BOUNDARY_GAP_OPEN_TICKS = 60;
-    private static final int BOUNDARY_GAP_WARNING_TICKS = 20;
-    private static final double BOUNDARY_GAP_HALF_WIDTH = 1.65D;
-    private static final int BOUNDARY_FLAME_DAMAGE_INTERVAL = 4;
-    private static final float BOUNDARY_FLAME_HEALTH_FRACTION = 0.085F;
-    private static final double BOUNDARY_FLAME_HALF_WIDTH = 1.05D;
-    private static final double BOUNDARY_FLAME_HEIGHT = 4.25D;
-    private static final double BOUNDARY_FLASH_LENGTH = 53.0D;
-    private static final ResourceKey<DamageType> BOUNDARY_FLAME_DAMAGE = ResourceKey.create(
+    static final int MIRROR_DUEL_TOTAL_TICKS = 30;
+    static final int MIRROR_DUEL_DASH_START = 16;
+    static final int BOUNDARY_SEAL_TOTAL_TICKS = 140;
+    static final int MOON_ECHO_TOTAL_TICKS = 72;
+    static final int BOUNDARY_FLASH_TOTAL_TICKS = 230;
+    static final int BOUNDARY_FLASH_ASCEND_TICKS = 32;
+    static final int BOUNDARY_FLASH_LOCK_AGE = 180;
+    static final int BOUNDARY_FLASH_IMPACT_AGE = 206;
+    static final int BOUNDARY_FLASH_DESCEND_AGE = 216;
+    static final int BOUNDARY_WALL_VISUAL_TICKS = 1_000_000;
+    static final int BOUNDARY_WALL_MAX_COUNT = 6;
+    static final int BOUNDARY_GAP_OPEN_TICKS = 60;
+    static final int BOUNDARY_GAP_WARNING_TICKS = 20;
+    static final double BOUNDARY_GAP_HALF_WIDTH = 1.65D;
+    static final int BOUNDARY_FLAME_DAMAGE_INTERVAL = 4;
+    static final float BOUNDARY_FLAME_HEALTH_FRACTION = 0.085F;
+    static final double BOUNDARY_FLAME_HALF_WIDTH = 1.05D;
+    static final double BOUNDARY_FLAME_HEIGHT = 4.25D;
+    static final double BOUNDARY_FLASH_LENGTH = 53.0D;
+    static final ResourceKey<DamageType> BOUNDARY_FLAME_DAMAGE = ResourceKey.create(
             Registries.DAMAGE_TYPE,
             new ResourceLocation(BladeTetra.MOD_ID, "boundary_flame"));
-    private static final EntityDataAccessor<Integer> PHASE =
+    static final EntityDataAccessor<Integer> PHASE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ACTION =
+    static final EntityDataAccessor<Integer> ACTION =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ACTION_START =
+    static final EntityDataAccessor<Integer> ACTION_START =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ACTION_LENGTH =
+    static final EntityDataAccessor<Integer> ACTION_LENGTH =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> SWORD_WHEEL_COUNT =
+    static final EntityDataAccessor<Integer> SWORD_WHEEL_COUNT =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Boolean> SWORD_WHEEL_DEPLOYED =
+    static final EntityDataAccessor<Boolean> SWORD_WHEEL_DEPLOYED =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
+    static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private final ServerBossEvent bossBar = new ServerBossEvent(
             Component.translatable("entity.blade_tetra.mikage"),
@@ -142,7 +142,8 @@ public final class MikageEntity extends Monster {
     private final MikageArenaController arena = new MikageArenaController();
     private final MikageAttackTimeline attackTimeline = new MikageAttackTimeline(this);
     private final MikagePursuitRainController pursuitRain = new MikagePursuitRainController(this);
-    private final MikageToriiController torii = new MikageToriiController(this);
+    private final MikageLegacySkillEffects legacyEffects = new MikageLegacySkillEffects(this);
+    private final MikageEncounter encounter = new MikageEncounter(this);
 
     public MikageEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -155,10 +156,27 @@ public final class MikageEntity extends Monster {
     MikageArenaController arenaController() { return arena; }
     MikageAttackTimeline attackTimeline() { return attackTimeline; }
 
+    MikageEncounter encounter() { return encounter; }
+    MikageLegacySkillEffects legacyEffects() { return legacyEffects; }
+    ServerBossEvent bossBar() { return bossBar; }
+    void setPhase(int phase) { entityData.set(PHASE, phase); }
+    int actionRemainingTicks() {
+        return getAction() == MikageAction.IDLE ? 0
+                : Math.max(0, entityData.get(ACTION_LENGTH) - (tickCount - entityData.get(ACTION_START)));
+    }
+    boolean legacySkillBusy() {
+        return techniques.isSignatureActive(arena, defense)
+                || combat.signatureRecoveryTicks > 0 || defense.swordWheelBreakTicks > 0;
+    }
+    public void restoreCombatHealthFraction(float fraction) {
+        setHealth(getMaxHealth() * Mth.clamp(fraction, 0.01F, 1.0F));
+        encounter.restorePhase(getHealth() / getMaxHealth());
+    }
+
     boolean shouldResetExpiredAction() {
         return getAction() != MikageAction.IDLE
                 && tickCount - entityData.get(ACTION_START) > entityData.get(ACTION_LENGTH)
-                && combat.preparedTicks <= 0
+                && !encounter.isWindingUp()
                 && !isUsingSignatureTechnique();
     }
 
@@ -449,6 +467,7 @@ public final class MikageEntity extends Monster {
             amount = GameplayConfig.MIKAGE_SINGLE_HIT_CAP.get().floatValue();
         }
         Entity attacker = resolveCombatAttacker(source);
+        if (attacker instanceof ServerPlayer observed) encounter.observeAttack(observed);
         if (attacker instanceof ServerPlayer player
                 && !ChallengeManager.isParticipant(this, player)) {
             return false;
@@ -594,71 +613,10 @@ public final class MikageEntity extends Monster {
     @Override
     public void aiStep() {
         super.aiStep();
-        if (level().isClientSide()) {
-            return;
+        if (level() instanceof ServerLevel server) {
+            noActionTime = 0;
+            encounter.tick(server);
         }
-        // Belt-and-suspenders protection against vanilla's inactivity despawn counter.
-        // Explicit challenge cleanup still uses discard() and is unaffected.
-        noActionTime = 0;
-        if (isVisitorGuide()) {
-            // Chunk inactivity may outlive the visitor session that owned this guide.
-            if (tickCount % 20 == 0 && !ChallengeManager.isCurrentVisitorGuide(this)) {
-                discard();
-                return;
-            }
-            setTarget(null);
-            setDeltaMovement(Vec3.ZERO);
-            bossBar.setVisible(false);
-            return;
-        }
-        // SlashBlade installs a stun goal on mobs. Mikage is a sword master and must
-        // keep acting through player combo hitstun, while still taking normal damage.
-        StunManager.removeStun(this);
-        getPersistentData().remove("knockback_factor");
-        if (techniques.aerialTicks == 0 && arena.boundarySlashDelay == 0 && isNoGravity()) {
-            setNoGravity(false);
-        }
-        int phase = getHealth() <= getMaxHealth() / 3.0F ? 3
-                : getHealth() <= getMaxHealth() * 2.0F / 3.0F ? 2 : 1;
-        if (phase != getPhase()) {
-            entityData.set(PHASE, phase);
-            phaseTransition(phase);
-            if (phase == 3) {
-                arena.boundaryFlashCharge = 0;
-                arena.boundaryFlashPending = false;
-                arena.boundaryFlashReadyTicks = 0;
-            }
-        }
-        bossBar.setProgress(getHealth() / getMaxHealth());
-        if (tickCount % 2 == 0) {
-            int technique = techniques.boundarySealTicks > 0 ? 6
-                    : techniques.moonEchoTicks > 0 ? 7
-                    : techniques.mirrorDuelTicks > 0 ? 8
-                    : arena.toriiSweepTicks > 0 ? 2
-                    : arena.toriiCageTicks > 0 ? 3
-                    : techniques.pursuitRainFinalTicks > 0 ? 5
-                    : techniques.pursuitRainTicks > 0 ? 4
-                    : arena.boundarySlashDelay > 0 ? 1 : 0;
-            int remaining = technique == 6 ? techniques.boundarySealTicks
-                    : technique == 7 ? techniques.moonEchoTicks
-                    : technique == 8 ? techniques.mirrorDuelTicks
-                    : technique == 2 ? arena.toriiSweepTicks
-                    : technique == 3 ? arena.toriiCageTicks
-                    : technique == 5 ? techniques.pursuitRainFinalTicks
-                    : technique == 4 ? techniques.pursuitRainTicks : arena.boundarySlashDelay;
-            int total = technique == 6 ? BOUNDARY_SEAL_TOTAL_TICKS
-                    : technique == 7 ? MOON_ECHO_TOTAL_TICKS
-                    : technique == 8 ? MIRROR_DUEL_TOTAL_TICKS
-                    : technique == 2 ? TORII_SWEEP_TOTAL_TICKS
-                    : technique == 3 ? TORII_CAGE_TOTAL_TICKS
-                    : technique == 5 ? PURSUIT_RAIN_FINAL_TICKS
-                    : technique == 4 ? techniques.pursuitRainActiveTicks + PURSUIT_RAIN_WARNING_TICKS
-                    : technique == 1 ? BOUNDARY_FLASH_TOTAL_TICKS : 0;
-            ChallengeManager.syncHud(this, technique, remaining, total);
-        }
-
-        ServerLevel server = (ServerLevel) level();
-        MikageRuntimeCoordinator.tick(this, server, phase);
     }
 
     void teleportWithinArena(double x, double y, double z) {
@@ -698,7 +656,7 @@ public final class MikageEntity extends Monster {
         return nearest;
     }
 
-    private void phaseTransition(int phase) {
+    void phaseTransition(int phase) {
         if (!(level() instanceof ServerLevel server)) {
             return;
         }
@@ -706,8 +664,7 @@ public final class MikageEntity extends Monster {
                 ? "entity.blade_tetra.mikage" : "entity.blade_tetra.mikage.phase" + phase));
         combat.phaseProtectionTicks = GameplayConfig.MIKAGE_PHASE_PROTECTION_TICKS.get();
         clearQueuedPlayerBladeAttacks(server);
-        ChallengeManager.queueDialogue(this,
-                phase == 2 ? MikageDialogue.PHASE_2 : MikageDialogue.PHASE_3);
+        encounter.story().phase(phase);
         Vec3 center = position().add(0.0D, 1.0D, 0.0D);
         sendCombatVfx(server, BladeCombatVfxPacket.PHASE_SHIFT, center,
                 getYRot(), phase == 3 ? 1.18F : 1.0F, phase);
@@ -752,7 +709,7 @@ public final class MikageEntity extends Monster {
                 perfect ? 0.42F : 0.24F, perfect ? 1.72F : 1.92F);
     }
 
-    private void clearQueuedPlayerBladeAttacks(ServerLevel server) {
+    void clearQueuedPlayerBladeAttacks(ServerLevel server) {
         AABB area = getBoundingBox().inflate(72.0D);
         server.getEntitiesOfClass(EntityJudgementCut.class, area,
                         cut -> cut.getOwner() instanceof Player)
@@ -796,19 +753,9 @@ public final class MikageEntity extends Monster {
         pursuitRain.tick(server);
     }
 
-
-
-
-
     void tickPursuitRainFinal(ServerLevel server) {
         pursuitRain.tickFinal(server);
     }
-
-
-
-
-
-
 
     private float handleSlashArtPressure(LivingEntity attacker) {
         long now = level().getGameTime();
@@ -1109,7 +1056,7 @@ public final class MikageEntity extends Monster {
         defense.swordWheelCooldown = Math.max(defense.swordWheelCooldown, cooldown);
     }
 
-    private void clearSwordWheelEntities(ServerLevel server) {
+    void clearSwordWheelEntities(ServerLevel server) {
         for (UUID id : defense.swordWheelEntities) {
             Entity entity = server.getEntity(id);
             if (entity != null) entity.discard();
@@ -1122,159 +1069,7 @@ public final class MikageEntity extends Monster {
                 .forEach(Entity::discard);
     }
 
-    void useTechnique(int phase) {
-        LivingEntity target = getTarget();
-        if (target == null || !(level() instanceof ServerLevel server)) {
-            return;
-        }
-        lockBladeTarget(target);
-        lookAt(target, 180.0F, 180.0F);
-        double distance = distanceTo(target);
-        double vertical = Math.abs(target.getY() - getY());
-        boolean lowHealth = target.getHealth() <= target.getMaxHealth() * 0.35F;
-        boolean charging = target instanceof ServerPlayer player && isBladeGuarding(player);
-        if (phase == 3) {
-            Technique selected = combat.selectPhaseThreeRotation(arena, techniques, lowHealth, charging);
-            prepareTechnique(selected, target, server);
-            combat.previousTechnique = combat.lastTechnique;
-            combat.lastTechnique = selected;
-            return;
-        }
-        List<Technique> choices = new ArrayList<>();
-        if (vertical > 3.5D) {
-            MikageCombatDirector.addWeighted(choices, Technique.DRIVE_FAN, 2);
-            MikageCombatDirector.addWeighted(choices, Technique.SUMMONED_VOLLEY, 2);
-            choices.add(Technique.JUDGEMENT_CUT);
-        } else if (distance <= 4.5D) {
-            choices.add(Technique.STEP_IAIDO);
-            choices.add(Technique.BLADE_COMBO);
-            choices.add(Technique.CIRCLE_SLASH);
-            if (phase >= 2 && !lowHealth) {
-                choices.add(Technique.DANGAKU_CLEAVE);
-                choices.add(Technique.FLASH_COUNTER);
-                choices.add(Technique.SAKURA_END);
-            }
-        } else if (distance <= 12.0D) {
-            MikageCombatDirector.addWeighted(choices, Technique.STEP_IAIDO, 2);
-            if (techniques.mirrorDuelCooldown <= 0) {
-                MikageCombatDirector.addWeighted(choices, Technique.MIRROR_DUEL, charging ? 3 : 2);
-            }
-            choices.add(Technique.WAVE_EDGE);
-            if (phase >= 2) {
-                choices.add(Technique.JUDGEMENT_CUT);
-                choices.add(Technique.SUMMONED_VOLLEY);
-                if (!lowHealth) {
-                    choices.add(Technique.AERIAL_RAIN);
-                    choices.add(Technique.DANGAKU_CLEAVE);
-                }
-            }
-        } else {
-            MikageCombatDirector.addWeighted(choices, Technique.WAVE_EDGE, 2);
-            MikageCombatDirector.addWeighted(choices, Technique.DRIVE_FAN, 2);
-            choices.add(Technique.SUMMONED_VOLLEY);
-            choices.add(Technique.STEP_IAIDO);
-            if (phase >= 2 && !lowHealth) {
-                choices.add(Technique.JUDGEMENT_CUT);
-                choices.add(Technique.AERIAL_RAIN);
-            }
-        }
-        if (phase >= 2) {
-            if (techniques.boundarySealCooldown <= 0) {
-                MikageCombatDirector.addWeighted(choices, Technique.BOUNDARY_SEAL, lowHealth ? 3 : 2);
-            }
-            if (techniques.moonEchoCooldown <= 0) {
-                MikageCombatDirector.addWeighted(choices, Technique.MOON_ECHO, lowHealth ? 3 : 2);
-            }
-            if (arena.toriiCageCooldown <= 0 && !lowHealth) {
-                choices.add(Technique.TORII_CAGE);
-            }
-        }
-        if (hasShadowCrossPressure(target)) {
-            choices.removeIf(choice -> choice == Technique.WAVE_EDGE
-                    || choice == Technique.DRIVE_FAN);
-            MikageCombatDirector.addWeighted(choices, Technique.STEP_IAIDO, 2);
-            if (distance <= 6.0D) {
-                MikageCombatDirector.addWeighted(choices, Technique.CIRCLE_SLASH, 2);
-                choices.add(Technique.FLASH_COUNTER);
-            }
-            if (phase >= 2 && techniques.moonEchoCooldown <= 0) {
-                MikageCombatDirector.addWeighted(choices, Technique.MOON_ECHO, 2);
-            }
-            defense.swordWheelCooldown = Math.min(defense.swordWheelCooldown, 12);
-        }
-        List<Technique> varied = choices.stream()
-                .filter(choice -> choice != combat.lastTechnique && choice != combat.previousTechnique)
-                .toList();
-        if (!varied.isEmpty()) {
-            choices = new ArrayList<>(varied);
-        }
-        List<Technique> differentStyle = choices.stream()
-                .filter(choice -> combat.lastTechnique == Technique.NONE
-                        || choice.style != combat.lastTechnique.style)
-                .toList();
-        if (differentStyle.size() >= 2) {
-            choices = new ArrayList<>(differentStyle);
-        }
-        Technique selected = choices.get(random.nextInt(choices.size()));
-        prepareTechnique(selected, target, server);
-        combat.previousTechnique = combat.lastTechnique;
-        combat.lastTechnique = selected;
-    }
-
-
-
-
-
-    private void prepareTechnique(Technique technique, LivingEntity target,
-            ServerLevel server) {
-        int windup = switch (technique.style) {
-            case IAIDO -> 16;
-            case RENGEKI -> 8;
-            case DANGAKU -> 14;
-            default -> 9;
-        };
-        combat.preparedTechnique = technique;
-        combat.preparedTarget = target;
-        combat.preparedTicks = windup;
-        navigation.stop();
-        setAction(switch (technique.style) {
-            case IAIDO -> MikageAction.IAIDO_READY;
-            case RENGEKI -> MikageAction.COMBO_READY;
-            case DANGAKU -> MikageAction.HEAVY_READY;
-            default -> MikageAction.CAST_READY;
-        }, windup);
-        server.playSound(null, blockPosition(), SoundEvents.ARMOR_EQUIP_LEATHER,
-                SoundSource.HOSTILE, 0.48F, technique.style == SwordDiscipline.IAIDO
-                        ? 1.45F : 1.1F);
-    }
-
-    void tickPreparedTechnique(ServerLevel server) {
-        LivingEntity target = combat.preparedTarget != null && combat.preparedTarget.isAlive()
-                ? combat.preparedTarget : getTarget();
-        navigation.stop();
-        if (target != null) {
-            lockBladeTarget(target);
-            lookAt(target, 180.0F, 180.0F);
-        }
-        if (combat.preparedTechnique == Technique.STEP_IAIDO && combat.preparedTicks == 4
-                && target != null) {
-            stepIaido(target, server);
-        }
-        if (--combat.preparedTicks <= 0) {
-            Technique technique = combat.preparedTechnique;
-            combat.preparedTechnique = Technique.NONE;
-            combat.preparedTarget = null;
-            if (target != null) {
-                setAction(actionForStrike(technique), actionLength(technique));
-                performTechnique(technique, target, server);
-                advanceBoundaryFlashCharge(technique, server);
-            } else {
-                setAction(MikageAction.IDLE, 1);
-            }
-        }
-    }
-
-    private void advanceBoundaryFlashCharge(Technique technique, ServerLevel server) {
+    void advanceBoundaryFlashCharge(Technique technique, ServerLevel server) {
         if (getPhase() != 3 || technique == Technique.NONE
                 || technique == Technique.BOUNDARY_FLASH || arena.boundaryFlashPending) return;
         arena.boundaryFlashCharge = Math.min(3, arena.boundaryFlashCharge + 1);
@@ -1295,176 +1090,6 @@ public final class MikageEntity extends Monster {
         }
     }
 
-    private void stepIaido(LivingEntity target, ServerLevel server) {
-        Vec3 toTarget = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
-        if (toTarget.lengthSqr() < 0.01D) return;
-        Vec3 forward = toTarget.normalize();
-        Vec3 side = new Vec3(-forward.z, 0.0D, forward.x)
-                .scale(random.nextBoolean() ? 0.95D : -0.95D);
-        double advance = Math.max(0.0D, toTarget.length() - 1.75D);
-        Vec3 destination = position().add(forward.scale(advance)).add(side);
-        Vec3 otherSide = destination.subtract(side.scale(2.0D));
-        if (!canStandAt(destination) && canStandAt(otherSide)) {
-            destination = otherSide;
-        } else if (!canStandAt(destination)) {
-            destination = position().add(forward.scale(Math.max(0.0D,
-                    toTarget.length() - 2.35D)));
-        }
-        teleportWithinArena(destination.x, target.getY(), destination.z);
-        lookAt(target, 180.0F, 180.0F);
-        defense.stepIaidoCommitted = true;
-        server.playSound(null, blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                SoundSource.HOSTILE, 0.75F, 1.72F);
-        server.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 0.15D, getZ(),
-                10, 0.22D, 0.08D, 0.22D, 0.025D);
-    }
-
-    private boolean canStandAt(Vec3 destination) {
-        Vec3 delta = destination.subtract(position());
-        return level().noCollision(this, getBoundingBox().move(delta));
-    }
-
-    private static MikageAction actionForStrike(Technique technique) {
-        return switch (technique.style) {
-            case IAIDO -> MikageAction.IAIDO_DRAW;
-            case RENGEKI -> MikageAction.COMBO_SLASH;
-            case DANGAKU -> MikageAction.HEAVY_CLEAVE;
-            default -> technique == Technique.AERIAL_RAIN
-                    ? MikageAction.AERIAL_CAST : MikageAction.CAST_SLASH;
-        };
-    }
-
-    private static int actionLength(Technique technique) {
-        return switch (technique.style) {
-            case IAIDO -> 18;
-            case RENGEKI -> 22;
-            case DANGAKU -> 24;
-            default -> 18;
-        };
-    }
-
-    private void performTechnique(Technique technique, LivingEntity target, ServerLevel server) {
-        double visualDamage = 0.0D;
-        float baseDamage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE);
-        Vec3 castOrigin = position().add(0.0D, 0.8D, 0.0D);
-        Vec3 forward = horizontalLook();
-        switch (technique) {
-            case CIRCLE_SLASH -> {
-                AttackManager.doSlash(this, 0.0F, true, false, visualDamage);
-                AttackManager.doSlash(this, 180.0F, false, false, visualDamage);
-                attackTimeline.circle(4, position(), 5.0D, 3.0D,
-                        baseDamage * 0.68F, 0.75D);
-            }
-            case BLADE_COMBO -> {
-                AttackManager.doSlash(this, 25.0F, true, false, visualDamage);
-                AttackManager.doSlash(this, -155.0F, false, false, visualDamage);
-                AttackManager.doSlash(this, 205.0F, false, false, visualDamage);
-                attackTimeline.cone(4, castOrigin, forward, 6.2D,
-                        58.0D, 3.0D, baseDamage * 0.52F, 0.45D);
-                attackTimeline.cone(15, castOrigin, forward, 6.8D,
-                        72.0D, 3.0D, baseDamage * 0.58F, 0.65D);
-            }
-            case STEP_IAIDO -> {
-                AttackManager.doSlash(this, -12.0F, true, false, visualDamage);
-                Vec3 origin = position().add(0.0D, 0.8D, 0.0D);
-                Vec3 direction = target.position().subtract(position())
-                        .multiply(1.0D, 0.0D, 1.0D);
-                if (direction.lengthSqr() < 0.01D) direction = horizontalLook();
-                lookAt(target, 180.0F, 180.0F);
-                attackTimeline.cone(1, origin, direction, 4.2D,
-                        48.0D, 3.2D, baseDamage * 0.92F, 0.45D,
-                        landed -> finishStepIaido(landed, target, server));
-                server.playSound(null, blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                        SoundSource.HOSTILE, 1.1F, 1.85F);
-            }
-            case DANGAKU_CLEAVE -> {
-                AttackManager.doSlash(this, 92.0F, true, false, visualDamage);
-                attackTimeline.cone(8, castOrigin, forward, 7.6D,
-                        68.0D, 4.0D, baseDamage * 1.08F, 1.15D);
-                server.playSound(null, blockPosition(), SoundEvents.PLAYER_ATTACK_KNOCKBACK,
-                        SoundSource.HOSTILE, 1.25F, 0.62F);
-            }
-            case FLASH_COUNTER -> {
-                AttackManager.doSlash(this, 0.0F, true, false, visualDamage);
-                attackTimeline.circle(3, position(), 4.3D, 3.0D,
-                        baseDamage * 0.46F, 0.65D);
-                flashStepAway(target, server, 8.2D);
-                Drive.doSlash(this, 0.0F, 28, Vec3.ZERO,
-                        true, visualDamage, 1.85F);
-                Vec3 start = position().add(0.0D, 0.8D, 0.0D);
-                attackTimeline.line(8, start, start.add(horizontalLook().scale(30.0D)),
-                        2.0D, 3.5D, baseDamage * 0.72F, 0.7D);
-            }
-            case SAKURA_END -> {
-                SakuraEnd.doSlash(this, 30.0F, Vec3.ZERO,
-                        false, true, visualDamage);
-                SakuraEnd.doSlash(this, -150.0F, Vec3.ZERO,
-                        true, false, visualDamage);
-                attackTimeline.circle(5, target.position(), 3.8D, 3.5D,
-                        baseDamage * 0.56F, 0.35D);
-                attackTimeline.circle(17, target.position(), 5.2D, 4.0D,
-                        baseDamage * 0.68F, 0.75D);
-            }
-            case DRIVE_FAN -> {
-                Drive.doSlash(this, -18.0F, 28, Vec3.ZERO,
-                        false, visualDamage, 1.65F);
-                Drive.doSlash(this, 0.0F, 30, Vec3.ZERO,
-                        true, visualDamage, 1.85F);
-                Drive.doSlash(this, 18.0F, 28, Vec3.ZERO,
-                        false, visualDamage, 1.65F);
-                queueLineFan(castOrigin, forward, baseDamage * 0.62F);
-            }
-            case WAVE_EDGE -> WaveEdge.doSlash(this, 0.0F, 32, Vec3.ZERO,
-                    true, visualDamage, 1.15F, 1.85F, 4);
-            case JUDGEMENT_CUT -> {
-                JudgementCut.doJudgementCut(this).setDamage(visualDamage);
-                Vec3 center = target.position();
-                attackTimeline.circle(9, center, 3.4D, 4.0D,
-                        baseDamage * 0.58F, 0.25D);
-                attackTimeline.circle(21, center, 4.6D, 4.5D,
-                        baseDamage * 0.66F, 0.55D);
-            }
-            case SUPER_JUDGEMENT -> {
-                JudgementCut.doJudgementCut(this).setDamage(visualDamage);
-                Vec3 center = target.position();
-                for (int delay = 8; delay <= 32; delay += 12) {
-                    attackTimeline.circle(delay, center, 5.2D, 5.0D,
-                            baseDamage * 0.62F, 0.5D);
-                }
-            }
-            case SUMMONED_VOLLEY -> fireSummonedVolley(target, server,
-                    getPhase() >= 3 ? 7 : 5, visualDamage);
-            case AERIAL_RAIN -> beginAerialTechnique(target, server);
-            case BOUNDARY_FLASH -> beginBoundaryFlash(target, server);
-            case TORII_SWEEP -> beginToriiSweep(server);
-            case TORII_CAGE -> beginToriiCages(server);
-            case MIRROR_DUEL -> beginMirrorDuel(target, server);
-            case BOUNDARY_SEAL -> beginBoundarySeal(server);
-            case MOON_ECHO -> beginMoonEcho(target, server);
-            case NONE -> {
-            }
-        }
-        if (technique == Technique.WAVE_EDGE) {
-            attackTimeline.line(8, castOrigin, castOrigin.add(forward.scale(34.0D)),
-                    2.0D, 4.0D, baseDamage * 0.64F, 0.65D);
-        } else if (technique == Technique.SUMMONED_VOLLEY) {
-            attackTimeline.circle(13, target.position(), 3.1D, 4.5D,
-                    baseDamage * 0.66F, 0.6D);
-        }
-    }
-
-    private void finishStepIaido(boolean landed, LivingEntity target, ServerLevel server) {
-        if (!defense.stepIaidoCommitted || !isAlive()) return;
-        defense.stepIaidoCommitted = false;
-        if (landed) {
-            flashStepAway(target, server, 5.6D);
-            return;
-        }
-        startInteractionOpening(server, GameplayConfig.MIKAGE_STEP_IAIDO_OPENING_TICKS.get(),
-                GameplayConfig.MIKAGE_STEP_IAIDO_OPENING_DAMAGE_MULTIPLIER.get().floatValue(),
-                "message.blade_tetra.mikage.iaido_evaded");
-    }
-
     void sampleParticipantMovement(ServerLevel server) {
         long now = server.getGameTime();
         for (ServerPlayer player : server.players()) {
@@ -1481,7 +1106,7 @@ public final class MikageEntity extends Monster {
     }
 
     private void registerShadowCrossIaido(ServerPlayer player, long now) {
-        if (!isIaidoAttack(player) || techniques.interactionOpeningTicks > 0 || combat.preparedTicks > 0
+        if (!isIaidoAttack(player) || techniques.interactionOpeningTicks > 0 || encounter.isWindingUp()
                 || isUsingSignatureTechnique()) return;
         Deque<MovementSample> samples = defense.movementSamples.get(player.getUUID());
         if (samples == null || samples.isEmpty()) return;
@@ -1583,881 +1208,91 @@ public final class MikageEntity extends Monster {
         setAction(MikageAction.IAIDO_DRAW, 10);
     }
 
-    private boolean hasShadowCrossPressure(LivingEntity target) {
+    boolean hasShadowCrossPressure(LivingEntity target) {
         ShadowCrossPattern pattern = defense.shadowCrossPatterns.get(target.getUUID());
         return pattern != null && pattern.crossings >= 2
                 && level().getGameTime() - pattern.lastCross
                 <= GameplayConfig.MIKAGE_SHADOW_CROSS_WINDOW_TICKS.get();
     }
 
-    private void beginMirrorDuel(LivingEntity target, ServerLevel server) {
-        techniques.mirrorDuelTicks = MIRROR_DUEL_TOTAL_TICKS;
-        techniques.mirrorDuelCooldown = combat.scaledCooldown(220);
-        techniques.mirrorDuelTarget = target.getUUID();
-        techniques.mirrorDuelStart = position();
-        Vec3 direction = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
-        if (direction.lengthSqr() < 0.01D) direction = horizontalLook();
-        techniques.mirrorDuelEnd = ChallengeManager.clampMikagePosition(this,
-                target.position().add(direction.normalize().scale(2.2D)));
-        navigation.stop();
-        setAction(MikageAction.IAIDO_READY, MIRROR_DUEL_TOTAL_TICKS);
-        server.playSound(null, blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE,
-                SoundSource.HOSTILE, 0.9F, 1.75F);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.MIRROR_DUEL,
-                techniques.mirrorDuelStart.x, techniques.mirrorDuelStart.y + 0.9D, techniques.mirrorDuelStart.z,
-                techniques.mirrorDuelEnd.x, techniques.mirrorDuelEnd.y + 0.9D, techniques.mirrorDuelEnd.z,
-                getYRot(), 1.0F, getId(), -1,
-                MIRROR_DUEL_TOTAL_TICKS, random.nextInt()), techniques.mirrorDuelStart);
-    }
-
     void tickMirrorDuel(ServerLevel server) {
-        Entity found = techniques.mirrorDuelTarget == null ? null : server.getEntity(techniques.mirrorDuelTarget);
-        LivingEntity target = found instanceof LivingEntity living ? living : null;
-        if (target == null || !target.isAlive()) {
-            finishMirrorDuel();
-            return;
-        }
-        navigation.stop();
-        if (techniques.mirrorDuelTicks > MIRROR_DUEL_DASH_START) {
-        } else if (techniques.mirrorDuelTicks >= 5) {
-            double progress = (MIRROR_DUEL_DASH_START - techniques.mirrorDuelTicks + 1.0D) / 12.0D;
-            Vec3 next = techniques.mirrorDuelStart.lerp(techniques.mirrorDuelEnd, Mth.clamp(progress, 0.0D, 1.0D));
-            teleportWithinArena(next.x, next.y, next.z);
-            lookAt(target, 180.0F, 180.0F);
-            if (techniques.mirrorDuelTicks % 2 == 0) {
-                server.sendParticles(ParticleTypes.SWEEP_ATTACK,
-                        getX(), getY() + 0.9D, getZ(), 2,
-                        0.18D, 0.28D, 0.18D, 0.0D);
-            }
-        }
-        if (techniques.mirrorDuelTicks == 4) {
-            boolean inPath = distanceToSegment(target.position(), techniques.mirrorDuelStart,
-                    techniques.mirrorDuelEnd) <= 1.45D;
-            if (inPath) {
-                float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.88F;
-                boolean guarded = target instanceof ServerPlayer player
-                        && isBladeGuarding(player);
-                if (guarded) {
-                    ServerPlayer player = (ServerPlayer) target;
-                    server.playSound(null, player.blockPosition(), SoundEvents.SHIELD_BLOCK,
-                            SoundSource.PLAYERS, 1.0F, 1.5F);
-                }
-                if (target instanceof ServerPlayer player) {
-                    dealTrialDamage(player, damage, guarded);
-                    if (!guarded) {
-                        Vec3 failure = player.position().add(0.0D, 1.0D, 0.0D);
-                        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                                BladeTechniqueVfxPacket.MIRROR_DUEL_FAILURE,
-                                failure.x, failure.y, failure.z,
-                                failure.x, failure.y, failure.z,
-                                player.getYRot(), 1.0F, -1, player.getId(), 18,
-                                random.nextInt()), failure);
-                    }
-                } else {
-                    target.hurt(server.damageSources().mobAttack(this), damage);
-                }
-            }
-            AttackManager.doSlash(this, 0.0F, true, false, 0.0D);
-            server.playSound(null, blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                    SoundSource.HOSTILE, 1.3F, 1.55F);
-        }
-        if (--techniques.mirrorDuelTicks <= 0) finishMirrorDuel();
+        legacyEffects.tickMirrorDuel(server);
     }
 
     private void counterMirrorDuel(ServerPlayer player) {
-        if (!(level() instanceof ServerLevel server)) return;
-        Vec3 clashStart = player.getEyePosition();
-        Vec3 clashEnd = getEyePosition();
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.COUNTER_CLASH,
-                clashStart.x, clashStart.y, clashStart.z,
-                clashEnd.x, clashEnd.y, clashEnd.z,
-                player.getYRot(), 1.25F, -1, -1, 16, random.nextInt()), clashStart);
-        techniques.mirrorDuelTicks = 0;
-        techniques.mirrorDuelTarget = null;
-        attackTimeline.clear();
-        startInteractionOpening(server, GameplayConfig.MIKAGE_DUEL_OPENING_TICKS.get(),
-                GameplayConfig.MIKAGE_DUEL_OPENING_DAMAGE_MULTIPLIER.get().floatValue(),
-                "message.blade_tetra.mikage.duel_countered");
-        server.playSound(null, player.blockPosition(), SoundEvents.ANVIL_LAND,
-                SoundSource.PLAYERS, 1.1F, 1.8F);
-    }
-
-    private void finishMirrorDuel() {
-        techniques.mirrorDuelTicks = 0;
-        techniques.mirrorDuelTarget = null;
-        setAction(MikageAction.IDLE, 1);
-    }
-
-    private void beginBoundarySeal(ServerLevel server) {
-        techniques.boundarySealTicks = BOUNDARY_SEAL_TOTAL_TICKS;
-        techniques.boundarySealCooldown = combat.scaledCooldown(560);
-        techniques.boundarySealsBroken = 0;
-        techniques.boundarySealEntities.clear();
-        Vec3 center = ChallengeManager.arenaCenter(this);
-        teleportWithinArena(center.x, center.y, center.z);
-        setAction(MikageAction.RITUAL, BOUNDARY_SEAL_TOTAL_TICKS);
-        List<MikagePhantomSwordEntity> spawnedSeals = new ArrayList<>();
-        for (int slot = 0; slot < 3; slot++) {
-            double angle = random.nextDouble() * 0.55D + slot * Math.PI * 2.0D / 3.0D;
-            Vec3 pos = center.add(Math.cos(angle) * 7.5D, 0.15D, Math.sin(angle) * 7.5D);
-            MikagePhantomSwordEntity seal = ModEntities.MIKAGE_PHANTOM_SWORD.get().create(server);
-            if (seal == null) continue;
-            seal.setPos(pos);
-            seal.configureSeal(this, slot);
-            server.addFreshEntity(seal);
-            techniques.boundarySealEntities.add(seal.getUUID());
-            spawnedSeals.add(seal);
-        }
-        for (int i = 0; i < spawnedSeals.size(); i++) {
-            MikagePhantomSwordEntity first = spawnedSeals.get(i);
-            MikagePhantomSwordEntity second = spawnedSeals.get((i + 1) % spawnedSeals.size());
-            Vec3 start = first.position().add(0.0D, 0.8D, 0.0D);
-            Vec3 end = second.position().add(0.0D, 0.8D, 0.0D);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SEAL_LINK,
-                    start.x, start.y, start.z, end.x, end.y, end.z,
-                    0.0F, 1.0F, first.getId(), second.getId(),
-                    BOUNDARY_SEAL_TOTAL_TICKS, random.nextInt()), center);
-        }
-        server.playSound(null, blockPosition(), SoundEvents.BEACON_ACTIVATE,
-                SoundSource.HOSTILE, 1.2F, 0.75F);
+        legacyEffects.counterMirrorDuel(player);
     }
 
     void tickBoundarySeal(ServerLevel server) {
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        if (techniques.boundarySealsBroken >= 3) {
-            Vec3 center = position().add(0.0D, 1.0D, 0.0D);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SEAL_SUCCESS,
-                    center.x, center.y, center.z, center.x, center.y, center.z,
-                    getYRot(), 1.18F, -1, -1, 18, random.nextInt()), center);
-            clearBoundarySeals(server);
-            techniques.boundarySealTicks = 0;
-            startInteractionOpening(server, GameplayConfig.MIKAGE_SEAL_OPENING_TICKS.get(),
-                    GameplayConfig.MIKAGE_SEAL_OPENING_DAMAGE_MULTIPLIER.get().floatValue(),
-                    "message.blade_tetra.mikage.seals_broken");
-            return;
-        }
-        if (--techniques.boundarySealTicks <= 0) {
-            float scale = 1.15F - techniques.boundarySealsBroken * 0.35F;
-            float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * scale;
-            Vec3 center = ChallengeManager.arenaCenter(this);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SEAL_FAILURE,
-                    center.x, center.y, center.z, center.x, center.y, center.z,
-                    getYRot(), Math.max(0.45F, scale), -1, -1, 18, random.nextInt()), center);
-            attackTimeline.circle(1, center, 32.0D, 8.0D, damage, 1.0D);
-            AttackManager.doSlash(this, 0.0F, true, false, 0.0D);
-            clearBoundarySeals(server);
-            setAction(MikageAction.IDLE, 1);
-        }
+        legacyEffects.tickBoundarySeal(server);
     }
 
     void breakBoundarySeal(MikagePhantomSwordEntity seal, Entity attacker) {
-        if (!(level() instanceof ServerLevel server) || techniques.boundarySealTicks <= 0
-                || !(attacker instanceof ServerPlayer player)
-                || !ChallengeManager.isParticipant(this, player)) return;
-        if (techniques.boundarySealEntities.remove(seal.getUUID())) {
-            techniques.boundarySealsBroken++;
-            Vec3 position = seal.position().add(0.0D, 0.8D, 0.0D);
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SEAL_BREAK,
-                    position.x, position.y, position.z,
-                    position.x, position.y, position.z,
-                    seal.getYRot(), 1.0F, -1, -1, 14, random.nextInt()), position);
-            seal.discard();
-            player.displayClientMessage(Component.translatable(
-                    "message.blade_tetra.mikage.seal_progress", techniques.boundarySealsBroken, 3), true);
-        }
-    }
-
-    private void clearBoundarySeals(ServerLevel server) {
-        for (UUID id : techniques.boundarySealEntities) {
-            Entity entity = server.getEntity(id);
-            if (entity != null) entity.discard();
-        }
-        techniques.boundarySealEntities.clear();
-    }
-
-    private void beginMoonEcho(LivingEntity target, ServerLevel server) {
-        techniques.moonEchoTicks = MOON_ECHO_TOTAL_TICKS;
-        techniques.moonEchoCooldown = combat.scaledCooldown(480);
-        techniques.moonEchoEntities.clear();
-        for (ServerPlayer participant : server.players()) {
-            if (ChallengeManager.isParticipant(this, participant)) {
-                clearPlayerLock(participant);
-            }
-        }
-        Vec3 center = target.position();
-        int realSlot = random.nextInt(4);
-        for (int slot = 0; slot < 4; slot++) {
-            double angle = slot * Math.PI * 0.5D + random.nextDouble() * 0.18D;
-            Vec3 pos = center.add(Math.cos(angle) * 4.2D, 0.0D, Math.sin(angle) * 4.2D);
-            pos = ChallengeManager.clampMikagePosition(this, pos);
-            if (slot == realSlot) {
-                teleportWithinArena(pos.x, target.getY(), pos.z);
-                lookAt(target, 180.0F, 180.0F);
-                continue;
-            }
-            MikageEchoEntity echo = ModEntities.MIKAGE_ECHO.get().create(server);
-            if (echo == null) continue;
-            echo.setPos(pos.x, target.getY(), pos.z);
-            echo.configure(this);
-            server.addFreshEntity(echo);
-            techniques.moonEchoEntities.add(echo.getUUID());
-        }
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.MOON_ECHO_FIELD,
-                center.x, center.y, center.z,
-                getX(), getY() + 1.0D, getZ(),
-                getYRot(), 1.0F, -1, target.getId(),
-                MOON_ECHO_TOTAL_TICKS, realSlot), center);
-        setAction(MikageAction.IAIDO_READY, MOON_ECHO_TOTAL_TICKS);
-        server.playSound(null, blockPosition(), SoundEvents.ILLUSIONER_MIRROR_MOVE,
-                SoundSource.HOSTILE, 1.1F, 1.15F);
+        legacyEffects.breakBoundarySeal(seal, attacker);
     }
 
     void tickMoonEcho(ServerLevel server) {
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        if (tickCount % 2 == 0) {
-            server.sendParticles(new DustParticleOptions(
-                            new Vector3f(0.72F, 0.015F, 0.07F), 1.0F),
-                    getX(), getY() + 1.0D, getZ(), 4,
-                    0.22D, 0.55D, 0.22D, 0.015D);
-        }
-        if (--techniques.moonEchoTicks <= 0) {
-            float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.58F;
-            attackTimeline.circle(1, position(), 3.5D, 3.5D, damage, 0.55D);
-            for (UUID id : techniques.moonEchoEntities) {
-                Entity echo = server.getEntity(id);
-                if (echo != null) {
-                    attackTimeline.circle(1, echo.position(), 3.5D, 3.5D, damage, 0.55D);
-                    Vec3 failure = echo.position().add(0.0D, 1.0D, 0.0D);
-                    sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                            BladeTechniqueVfxPacket.MOON_ECHO_FAILURE,
-                            failure.x, failure.y, failure.z,
-                            failure.x, failure.y, failure.z,
-                            0.0F, 0.8F, -1, -1, 18, random.nextInt()), failure);
-                }
-            }
-            clearMoonEchoes(server);
-            setAction(MikageAction.IDLE, 1);
-        }
+        legacyEffects.tickMoonEcho(server);
     }
 
     void strikeMoonEcho(MikageEchoEntity echo, Entity attacker) {
-        if (!(level() instanceof ServerLevel server) || techniques.moonEchoTicks <= 0
-                || !(attacker instanceof ServerPlayer player)
-                || !ChallengeManager.isParticipant(this, player)) return;
-        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.45F;
-        Vec3 falseEcho = echo.position().add(0.0D, 1.0D, 0.0D);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.MOON_ECHO_FALSE,
-                falseEcho.x, falseEcho.y, falseEcho.z,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                player.getYRot(), 1.0F, echo.getId(), player.getId(), 18,
-                random.nextInt()), falseEcho);
-        attackTimeline.circle(1, echo.position(), 3.2D, 3.0D, damage, 0.65D);
-        clearMoonEchoes(server);
-        techniques.moonEchoTicks = 0;
-        setAction(MikageAction.IAIDO_DRAW, 12);
-        player.displayClientMessage(Component.translatable(
-                "message.blade_tetra.mikage.echo_false"), true);
+        legacyEffects.strikeMoonEcho(echo, attacker);
     }
 
     private void solveMoonEcho(ServerPlayer player) {
-        if (!(level() instanceof ServerLevel server)) return;
-        Vec3 truth = position().add(0.0D, 1.0D, 0.0D);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.MOON_ECHO_TRUE,
-                truth.x, truth.y, truth.z,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                player.getYRot(), 1.2F, getId(), player.getId(), 20,
-                random.nextInt()), truth);
-        clearMoonEchoes(server);
-        techniques.moonEchoTicks = 0;
-        startInteractionOpening(server, GameplayConfig.MIKAGE_ECHO_OPENING_TICKS.get(),
-                GameplayConfig.MIKAGE_ECHO_OPENING_DAMAGE_MULTIPLIER.get().floatValue(),
-                "message.blade_tetra.mikage.echo_solved");
-        server.playSound(null, player.blockPosition(), SoundEvents.GLASS_BREAK,
-                SoundSource.PLAYERS, 1.0F, 1.35F);
-    }
-
-    private void clearMoonEchoes(ServerLevel server) {
-        for (UUID id : techniques.moonEchoEntities) {
-            Entity entity = server.getEntity(id);
-            if (entity != null) entity.discard();
-        }
-        techniques.moonEchoEntities.clear();
-    }
-
-    private void startInteractionOpening(ServerLevel server, int ticks, float multiplier,
-            String messageKey) {
-        if (isSwordWheelDeployed()) recallSwordWheel(server, ticks + 40);
-        techniques.interactionOpeningTicks = Math.max(techniques.interactionOpeningTicks, ticks);
-        techniques.interactionOpeningMultiplier = Math.max(techniques.interactionOpeningMultiplier, multiplier);
-        combat.techniqueCooldown = Math.max(combat.techniqueCooldown, ticks + 18);
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        setAction(MikageAction.STAGGERED, ticks);
-        server.sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
-                getX(), getY() + 1.0D, getZ(), 36,
-                0.72D, 0.9D, 0.72D, 0.10D);
-        for (ServerPlayer participant : server.players()) {
-            if (ChallengeManager.isParticipant(this, participant)) {
-                participant.displayClientMessage(Component.translatable(messageKey), true);
-            }
-        }
-    }
-
-    private void renderWarningLine(ServerLevel server, Vec3 start, Vec3 end,
-            float red, float green, float blue) {
-        for (int i = 0; i <= 12; i++) {
-            Vec3 point = start.lerp(end, i / 12.0D);
-            server.sendParticles(new DustParticleOptions(new Vector3f(red, green, blue), 0.8F),
-                    point.x, point.y, point.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
-        }
+        legacyEffects.solveMoonEcho(player);
     }
 
     private static double distanceToSegment(Vec3 point, Vec3 start, Vec3 end) {
-        Vec3 segment = end.subtract(start).multiply(1.0D, 0.0D, 1.0D);
-        Vec3 relative = point.subtract(start).multiply(1.0D, 0.0D, 1.0D);
-        double length = segment.lengthSqr();
-        double t = length < 0.001D ? 0.0D
-                : Mth.clamp(relative.dot(segment) / length, 0.0D, 1.0D);
-        return relative.subtract(segment.scale(t)).length();
+        return MikageLegacySkillEffects.distanceToSegment(point, start, end);
     }
 
     public boolean isMoonEchoActive() {
-        return techniques.moonEchoTicks > 0;
-    }
-
-    private void lockBladeTarget(LivingEntity target) {
-        getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
-                .ifPresent(state -> state.setTargetEntityId(target));
-    }
-
-    private Vec3 horizontalLook() {
-        Vec3 look = getLookAngle().multiply(1.0D, 0.0D, 1.0D);
-        return look.lengthSqr() < 0.001D
-                ? new Vec3(0.0D, 0.0D, 1.0D)
-                : look.normalize();
-    }
-
-    private void queueLineFan(Vec3 origin, Vec3 forward, float damage) {
-        for (double angle : new double[] {-18.0D, 0.0D, 18.0D}) {
-            Vec3 direction = forward.yRot((float) Math.toRadians(angle));
-            attackTimeline.line(8, origin, origin.add(direction.scale(31.0D)),
-                    1.75D, 4.0D, damage, 0.55D);
-        }
+        return legacyEffects.isMoonEchoActive();
     }
 
     private void flashStepAway(LivingEntity target, ServerLevel server, double distance) {
-        Vec3 away = position().subtract(target.position()).multiply(1.0D, 0.0D, 1.0D);
-        if (away.lengthSqr() < 0.01D) {
-            away = target.getLookAngle().reverse().multiply(1.0D, 0.0D, 1.0D);
-        }
-        float sideAngle = random.nextBoolean() ? 0.48F : -0.48F;
-        Vec3 destination = target.position().add(away.normalize().yRot(sideAngle).scale(distance));
-        teleportWithinArena(destination.x, target.getY(), destination.z);
-        lookAt(target, 180.0F, 180.0F);
-        server.playSound(null, blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
-                SoundSource.HOSTILE, 0.75F, 1.5F);
-        server.sendParticles(ParticleTypes.PORTAL, getX(), getY() + 0.9D, getZ(),
-                28, 0.3D, 0.65D, 0.3D, 0.12D);
-    }
-
-    private void fireSummonedVolley(LivingEntity target, ServerLevel server,
-            int count, double damage) {
-        Vec3 aim = target.getEyePosition();
-        for (int i = 0; i < count; i++) {
-            double angle = Math.PI * 2.0D * i / count;
-            Vec3 origin = getEyePosition().add(Math.cos(angle) * 1.25D,
-                    (i % 2) * 0.45D - 0.15D, Math.sin(angle) * 1.25D);
-            EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(
-                    SlashBlade.RegistryEvents.SummonedSword, server);
-            sword.setPos(origin);
-            sword.setOwner(this);
-            sword.setDamage(damage);
-            sword.setColor(0xD51F3F);
-            sword.setRoll((float) Math.toDegrees(angle));
-            Vec3 direction = aim.subtract(origin).normalize();
-            sword.shoot(direction.x, direction.y, direction.z, 2.6F, 1.5F);
-            sword.getPersistentData().putBoolean("blade_tetra_mikage_attack", true);
-            server.addFreshEntity(sword);
-        }
-        server.playSound(null, blockPosition(), SoundEvents.CHORUS_FRUIT_TELEPORT,
-                SoundSource.HOSTILE, 0.55F, 1.55F);
-    }
-
-    private void beginAerialTechnique(LivingEntity target, ServerLevel server) {
-        techniques.aerialTarget = target;
-        techniques.aerialTicks = 42;
-        setNoGravity(true);
-        navigation.stop();
-        setDeltaMovement(0.0D, 0.62D, 0.0D);
-        setAction(MikageAction.AERIAL_CAST, 42);
-        server.playSound(null, blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                SoundSource.HOSTILE, 0.9F, 1.7F);
-        server.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 0.1D, getZ(),
-                18, 0.5D, 0.15D, 0.5D, 0.05D);
+        legacyEffects.flashStepAway(target, server, distance);
     }
 
     void tickAerialTechnique() {
-        ServerLevel server = (ServerLevel) level();
-        LivingEntity target = techniques.aerialTarget != null && techniques.aerialTarget.isAlive()
-                ? techniques.aerialTarget : getTarget();
-        navigation.stop();
-        fallDistance = 0.0F;
-        if (target != null) {
-            lockBladeTarget(target);
-            lookAt(target, 180.0F, 180.0F);
-        }
-        if (techniques.aerialTicks > 25) {
-            setNoGravity(true);
-            double desiredY = target == null ? getY() + 0.15D
-                    : Math.min(target.getY() + 6.5D, 76.0D);
-            double rise = Mth.clamp((desiredY - getY()) * 0.22D, -0.05D, 0.48D);
-            setDeltaMovement(0.0D, rise, 0.0D);
-        } else if (techniques.aerialTicks == 25 && target != null) {
-            setDeltaMovement(Vec3.ZERO);
-            castAerialRain(target, server);
-        } else if (techniques.aerialTicks > 9) {
-            setNoGravity(true);
-            setDeltaMovement(Vec3.ZERO);
-        } else {
-            setNoGravity(false);
-            setDeltaMovement(getDeltaMovement().x, -0.58D, getDeltaMovement().z);
-        }
-        if (--techniques.aerialTicks <= 0) {
-            techniques.aerialTicks = 0;
-            techniques.aerialTarget = null;
-            setNoGravity(false);
-            fallDistance = 0.0F;
-        }
-    }
-
-    private void castAerialRain(LivingEntity target, ServerLevel server) {
-        int count = getPhase() >= 3 ? 10 : 7;
-        for (int i = 0; i < count; i++) {
-            EntityHeavyRainSwords sword = new EntityHeavyRainSwords(
-                    SlashBlade.RegistryEvents.HeavyRainSwords, server);
-            double angle = Math.PI * 2.0D * i / count;
-            Vec3 spread = new Vec3(Math.cos(angle) * (1.5D + i % 3),
-                    0.0D, Math.sin(angle) * (1.5D + i % 3));
-            Vec3 impact = target.position().add(spread);
-            sword.setOwner(this);
-            sword.setColor(0xD51F3F);
-            sword.setDamage(0.0D);
-            sword.setRoll(i * (360.0F / count));
-            sword.setPos(impact.add(0.0D, 7.5D, 0.0D));
-            sword.setXRot(-90.0F);
-            sword.shoot(0.0D, -1.0D, 0.0D, 2.75F, 1.0F);
-            sword.doFire();
-            sword.getPersistentData().putBoolean("blade_tetra_mikage_attack", true);
-            server.addFreshEntity(sword);
-            attackTimeline.circle(11 + i % 3, impact, 1.65D, 4.5D,
-                    (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.48F,
-                    0.35D);
-        }
-        WaveEdge.doSlash(this, 0.0F, 28, new Vec3(0.0D, -0.25D, 0.0D),
-                true, 0.0D, 1.05F, 1.55F, 3);
-        server.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_THUNDER,
-                SoundSource.HOSTILE, 0.7F, 1.65F);
+        legacyEffects.tickAerialTechnique();
     }
 
     void beginBoundaryFlash(LivingEntity target, ServerLevel server) {
-        arena.boundaryFlashPending = false;
-        arena.boundaryFlashReadyTicks = 0;
-        arena.boundarySlashCenter = ChallengeManager.arenaCenter(this);
-        arena.boundarySlashReturn = position();
-        arena.boundarySlashHover = arena.boundarySlashCenter.add(0.0D, 8.0D, 0.0D);
-        arena.boundarySlashDirection = horizontalDirection(arena.boundarySlashCenter, target.position());
-        arena.boundarySlashTarget = target.getUUID();
-        arena.boundarySlashLocked = false;
-        arena.boundarySlashExecuted = false;
-        arena.boundaryGuardHoldTicks.clear();
-        arena.boundarySlashDelay = BOUNDARY_FLASH_TOTAL_TICKS;
-        navigation.stop();
-        setNoGravity(true);
-        setAction(MikageAction.RITUAL, BOUNDARY_FLASH_TOTAL_TICKS);
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.BOUNDARY_FLASH,
-                arena.boundarySlashHover.x, arena.boundarySlashHover.y + 1.0D, arena.boundarySlashHover.z,
-                target.getX(), target.getY() + 1.0D, target.getZ(),
-                getYRot(), 1.0F, -1, target.getId(),
-                BOUNDARY_FLASH_LOCK_AGE,
-                random.nextInt()), arena.boundarySlashCenter);
-        server.playSound(null, blockPosition(), SoundEvents.BEACON_POWER_SELECT,
-                SoundSource.HOSTILE, 1.35F, 0.48F);
-        if (!arena.boundarySlashVoiced) {
-            arena.boundarySlashVoiced = true;
-            ChallengeManager.tryVoice(this, MikageDialogue.BOUNDARY_SLASH);
-        }
+        legacyEffects.beginBoundaryFlash(target, server);
     }
 
     void tickBoundaryFlash(ServerLevel server) {
-        navigation.stop();
-        setDeltaMovement(Vec3.ZERO);
-        setNoGravity(true);
-        int age = BOUNDARY_FLASH_TOTAL_TICKS - arena.boundarySlashDelay;
-
-        if (!arena.boundarySlashLocked && age < BOUNDARY_FLASH_LOCK_AGE) {
-            Entity tracked = arena.boundarySlashTarget == null ? null
-                    : server.getEntity(arena.boundarySlashTarget);
-            if (tracked instanceof LivingEntity living && living.isAlive()
-                    && (!(living instanceof ServerPlayer player)
-                    || ChallengeManager.isParticipant(this, player))) {
-                arena.boundarySlashDirection = horizontalDirection(
-                        arena.boundarySlashCenter, living.position());
-            }
-        }
-        float lockedYaw = (float) Math.toDegrees(Math.atan2(
-                -arena.boundarySlashDirection.x, arena.boundarySlashDirection.z));
-        setYRot(lockedYaw);
-        setYHeadRot(lockedYaw);
-        yBodyRot = lockedYaw;
-
-        Vec3 position;
-        if (age < BOUNDARY_FLASH_ASCEND_TICKS) {
-            double progress = smoothStep(age / (double) BOUNDARY_FLASH_ASCEND_TICKS);
-            position = arena.boundarySlashReturn.lerp(arena.boundarySlashHover, progress);
-        } else if (age < BOUNDARY_FLASH_DESCEND_AGE) {
-            position = arena.boundarySlashHover;
-        } else {
-            double progress = smoothStep((age - BOUNDARY_FLASH_DESCEND_AGE)
-                    / (double) Math.max(1,
-                    BOUNDARY_FLASH_TOTAL_TICKS - BOUNDARY_FLASH_DESCEND_AGE));
-            position = arena.boundarySlashHover.lerp(arena.boundarySlashReturn, progress);
-        }
-        teleportWithinArena(position.x, position.y, position.z);
-
-        for (ServerPlayer player : server.players()) {
-            if (!player.isAlive() || player.isCreative() || player.isSpectator()
-                    || !ChallengeManager.isParticipant(this, player)) continue;
-            arena.boundaryGuardHoldTicks.put(player.getUUID(), isBladeGuarding(player)
-                    ? arena.boundaryGuardHoldTicks.getOrDefault(player.getUUID(), 0) + 1 : 0);
-        }
-
-        if (age == 24 || age == 50 || age == 76 || age == 102
-                || age == 128 || age == 154) {
-            server.playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME,
-                    SoundSource.HOSTILE, 0.88F, 0.54F + age * 0.004F);
-        }
-        if (!arena.boundarySlashLocked && age >= BOUNDARY_FLASH_LOCK_AGE) {
-            arena.boundarySlashLocked = true;
-            if (arena.boundaryWalls.size() < BOUNDARY_WALL_MAX_COUNT) {
-                arena.boundarySlashDirection = separatedBoundaryDirection(arena.boundarySlashDirection);
-                lockedYaw = (float) Math.toDegrees(Math.atan2(
-                        -arena.boundarySlashDirection.x, arena.boundarySlashDirection.z));
-                setYRot(lockedYaw);
-                setYHeadRot(lockedYaw);
-                yBodyRot = lockedYaw;
-            }
-            Vec3 edge = arena.boundarySlashCenter.add(
-                    arena.boundarySlashDirection.scale(BOUNDARY_FLASH_LENGTH));
-            sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.BOUNDARY_FLASH_RELEASE,
-                    arena.boundarySlashHover.x, arena.boundarySlashHover.y + 1.0D,
-                    arena.boundarySlashHover.z,
-                    edge.x, arena.boundarySlashCenter.y + 0.1D, edge.z,
-                    lockedYaw, 1.2F, getId(), -1,
-                    BOUNDARY_FLASH_TOTAL_TICKS - BOUNDARY_FLASH_LOCK_AGE,
-                    random.nextInt()), arena.boundarySlashCenter);
-            server.playSound(null, blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE,
-                    SoundSource.HOSTILE, 1.2F, 0.62F);
-        }
-        if (age == BOUNDARY_FLASH_IMPACT_AGE - 12) {
-            server.playSound(null, blockPosition(), SoundEvents.TRIDENT_RETURN,
-                    SoundSource.HOSTILE, 1.45F, 1.75F);
-            for (ServerPlayer player : server.players()) {
-                if (ChallengeManager.isParticipant(this, player)) {
-                    player.displayClientMessage(Component.translatable(
-                            "message.blade_tetra.mikage.boundary_guard_now"), true);
-                }
-            }
-        }
-        if (!arena.boundarySlashExecuted && age >= BOUNDARY_FLASH_IMPACT_AGE) {
-            arena.boundarySlashExecuted = true;
-            executeBoundarySlash();
-        }
-
-        if (--arena.boundarySlashDelay <= 0) {
-            arena.boundarySlashDelay = 0;
-            setNoGravity(false);
-            teleportWithinArena(arena.boundarySlashReturn.x, arena.boundarySlashReturn.y,
-                    arena.boundarySlashReturn.z);
-            arena.boundarySlashTarget = null;
-            arena.boundaryGuardHoldTicks.clear();
-            arena.boundaryFlashCharge = 0;
-            arena.boundaryFlashCycle++;
-            arena.boundaryFlashReadyTicks = 0;
-            combat.techniqueCooldown = Math.max(combat.techniqueCooldown, combat.scaledCooldown(50));
-            setAction(MikageAction.IDLE, 1);
-        }
+        legacyEffects.tickBoundaryFlash(server);
     }
 
     boolean isUsingTechnique() {
-        return techniques.isAnyActive(arena, defense, combat);
+        return encounter.active() || legacySkillBusy();
     }
 
     private boolean isUsingSignatureTechnique() {
         return techniques.isSignatureActive(arena, defense);
     }
 
-    private void executeBoundarySlash() {
-        if (!(level() instanceof ServerLevel server)) {
-            return;
-        }
-        Vec3 edge = arena.boundarySlashCenter.add(
-                arena.boundarySlashDirection.scale(BOUNDARY_FLASH_LENGTH));
-        server.playSound(null, BlockPos.containing(arena.boundarySlashCenter),
-                SoundEvents.TRIDENT_THUNDER, SoundSource.HOSTILE, 1.55F, 0.58F);
-        server.playSound(null, BlockPos.containing(arena.boundarySlashCenter),
-                SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.8F, 0.42F);
-        server.playSound(null, BlockPos.containing(arena.boundarySlashCenter),
-                SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.85F, 0.64F);
-        for (ServerPlayer player : server.players()) {
-            if (!player.isAlive() || player.isCreative() || player.isSpectator()
-                    || !ChallengeManager.isParticipant(this, player)) continue;
-            if (isPlayerAboveBoundaryFlash(player)) continue;
-            applyBoundaryHealthPressure(player);
-        }
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.BOUNDARY_FLASH_IMPACT,
-                arena.boundarySlashCenter.x, arena.boundarySlashCenter.y + 0.08D,
-                arena.boundarySlashCenter.z,
-                edge.x, arena.boundarySlashCenter.y + 0.08D, edge.z,
-                getYRot(), 1.25F, -1, -1, 18,
-                random.nextInt()), arena.boundarySlashCenter);
-        server.sendParticles(ParticleTypes.SWEEP_ATTACK,
-                arena.boundarySlashCenter.x + arena.boundarySlashDirection.x * 6.0D,
-                arena.boundarySlashCenter.y + 1.0D,
-                arena.boundarySlashCenter.z + arena.boundarySlashDirection.z * 6.0D,
-                32, 8.0D, 2.0D, 8.0D, 0.0D);
-        createBoundaryWall(server);
-    }
-
-    private boolean isPlayerAboveBoundaryFlash(ServerPlayer player) {
-        Vec3 horizontal = player.position().subtract(position())
-                .multiply(1.0D, 0.0D, 1.0D);
-        return horizontal.lengthSqr() <= 3.2D * 3.2D
-                && player.getY() >= getY() + getBbHeight() + 0.45D;
-    }
-
-    private void applyBoundaryHealthPressure(ServerPlayer player) {
-        int heldTicks = arena.boundaryGuardHoldTicks.getOrDefault(player.getUUID(), 0);
-        boolean timedGuard = isBladeGuarding(player) && heldTicks > 0 && heldTicks <= 12;
-        boolean heldTooEarly = isBladeGuarding(player) && heldTicks >= 40;
-        float fraction = timedGuard ? 0.25F : heldTooEarly ? 0.75F : 0.50F;
-        float healthAfter = Math.max(1.0F, player.getHealth() * (1.0F - fraction));
-        player.setHealth(healthAfter);
-        player.setAbsorptionAmount(player.getAbsorptionAmount() * (1.0F - fraction));
-        player.invulnerableTime = 10;
-        player.hurtMarked = true;
-        Vec3 impact = player.position().add(0.0D, 1.0D, 0.0D);
-        if (timedGuard) {
-            sendCombatVfx((ServerLevel) level(), BladeCombatVfxPacket.PERFECT_GUARD,
-                    impact, player.getYRot(), 1.12F, player.getId());
-            playBladeParrySound((ServerLevel) level(), impact, SoundSource.PLAYERS, true);
-        } else {
-            sendTechniqueVfx((ServerLevel) level(), new BladeTechniqueVfxPacket(
-                    BladeTechniqueVfxPacket.SCISSOR_FAILURE,
-                    impact.x, impact.y, impact.z, impact.x, impact.y, impact.z,
-                    player.getYRot(), heldTooEarly ? 1.28F : 1.0F,
-                    -1, player.getId(), 18, random.nextInt()), impact);
-        }
-    }
-
-    private void createBoundaryWall(ServerLevel server) {
-        if (arena.boundaryWalls.size() >= BOUNDARY_WALL_MAX_COUNT) {
-            server.playSound(null, BlockPos.containing(arena.boundarySlashCenter),
-                    SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.HOSTILE, 1.0F, 0.42F);
-            return;
-        }
-        BoundaryWallState wall = new BoundaryWallState(++arena.boundaryWallSequence,
-                arena.boundarySlashCenter, arena.boundarySlashDirection);
-        arena.boundaryWalls.add(wall);
-        sendBoundaryWall(server, wall);
-        if (arena.boundaryWalls.size() == 3) arena.boundaryGapCycleTicks = 20;
-        server.playSound(null, BlockPos.containing(wall.center),
-                SoundEvents.FIRECHARGE_USE, SoundSource.HOSTILE, 1.25F, 0.58F);
-    }
-
     void tickBoundaryWalls(ServerLevel server) {
-        if (arena.boundaryWalls.size() >= 3 && --arena.boundaryGapCycleTicks <= 0) {
-            for (BoundaryWallState wall : arena.boundaryWalls) {
-                wall.pendingGapAlong = 14.0D + random.nextDouble() * 28.0D;
-                wall.gapWarningTicks = BOUNDARY_GAP_WARNING_TICKS;
-                sendBoundaryGapWarning(server, wall);
-            }
-            arena.boundaryGapCycleTicks = BOUNDARY_GAP_WARNING_TICKS
-                    + BOUNDARY_GAP_OPEN_TICKS + 90 + random.nextInt(51);
-            server.playSound(null, BlockPos.containing(ChallengeManager.arenaCenter(this)),
-                    SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.HOSTILE, 1.1F, 0.72F);
-        }
-        for (BoundaryWallState wall : arena.boundaryWalls) {
-            if (wall.gapWarningTicks > 0 && --wall.gapWarningTicks == 0) {
-                wall.gapAlong = wall.pendingGapAlong;
-                wall.gapTicks = BOUNDARY_GAP_OPEN_TICKS;
-                sendBoundaryGap(server, wall);
-                Vec3 gap = wall.center.add(wall.direction.scale(wall.gapAlong));
-                server.playSound(null, BlockPos.containing(gap),
-                        SoundEvents.FIRE_EXTINGUISH, SoundSource.HOSTILE, 0.85F, 1.25F);
-            }
-            if (wall.gapTicks > 0) wall.gapTicks--;
-        }
-        if (tickCount % BOUNDARY_FLAME_DAMAGE_INTERVAL != 0) return;
-        // Defeat teleports remove players from server.players() inside hurt().
-        for (ServerPlayer player : List.copyOf(server.players())) {
-            if (!player.isAlive() || player.isCreative() || player.isSpectator()
-                    || !ChallengeManager.isParticipant(this, player)) continue;
-            for (BoundaryWallState wall : arena.boundaryWalls) {
-                if (touchesBoundaryFlame(player, wall)) {
-                    applyBoundaryFlameDamage(server, player);
-                    break;
-                }
-            }
-        }
-    }
-
-    private boolean touchesBoundaryFlame(ServerPlayer player, BoundaryWallState wall) {
-        if (player.getBoundingBox().maxY < wall.center.y
-                || player.getBoundingBox().minY > wall.center.y + BOUNDARY_FLAME_HEIGHT) {
-            return false;
-        }
-        Vec3 relative = player.position().subtract(wall.center)
-                .multiply(1.0D, 0.0D, 1.0D);
-        double along = relative.dot(wall.direction);
-        if (along < -0.45D || along > BOUNDARY_FLASH_LENGTH + 0.45D) return false;
-        if (wall.gapTicks > 0
-                && Math.abs(along - wall.gapAlong) <= BOUNDARY_GAP_HALF_WIDTH) {
-            return false;
-        }
-        return Math.abs(relative.dot(wall.left())) <= BOUNDARY_FLAME_HALF_WIDTH;
-    }
-
-    private void applyBoundaryFlameDamage(ServerLevel server, ServerPlayer player) {
-        float armorReduction = Mth.clamp(player.getArmorValue() / 80.0F, 0.0F, 0.25F);
-        float damage = Math.max(1.0F, player.getMaxHealth()
-                * BOUNDARY_FLAME_HEALTH_FRACTION * (1.0F - armorReduction));
-        DamageSource source = new DamageSource(server.registryAccess()
-                .registryOrThrow(Registries.DAMAGE_TYPE)
-                .getHolderOrThrow(BOUNDARY_FLAME_DAMAGE), this);
-        if (!player.hurt(source, damage) || player.level() != server
-                || !player.isAlive() || !ChallengeManager.isParticipant(this, player)) return;
-        Vec3 contact = player.position().add(0.0D, 0.65D, 0.0D);
-        server.sendParticles(new DustParticleOptions(new Vector3f(1.0F, 0.015F, 0.025F), 1.35F),
-                contact.x, contact.y, contact.z, 12,
-                0.38D, 0.62D, 0.38D, 0.025D);
-        server.sendParticles(ParticleTypes.LARGE_SMOKE,
-                contact.x, contact.y + 0.25D, contact.z, 3,
-                0.24D, 0.35D, 0.24D, 0.015D);
-        if (tickCount % 8 == 0) {
-            server.playSound(null, player.blockPosition(), SoundEvents.GENERIC_BURN,
-                    SoundSource.HOSTILE, 0.72F, 0.62F + random.nextFloat() * 0.16F);
-        }
-    }
-
-    private void sendBoundaryWall(ServerLevel server, BoundaryWallState wall) {
-        Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.BOUNDARY_WALL,
-                wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                edge.x, wall.center.y + 0.05D, edge.z,
-                getYRot(), 1.0F, -1, -1, BOUNDARY_WALL_VISUAL_TICKS,
-                wall.id), wall.center);
-    }
-
-    private void sendBoundaryGap(ServerLevel server, BoundaryWallState wall) {
-        Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP,
-                wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                edge.x, wall.center.y + 0.05D, edge.z,
-                getYRot(), (float) wall.gapAlong, -1, -1,
-                BOUNDARY_GAP_OPEN_TICKS, wall.id), wall.center);
-    }
-
-    private void sendBoundaryGapWarning(ServerLevel server, BoundaryWallState wall) {
-        Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-        sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP_WARNING,
-                wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                edge.x, wall.center.y + 0.05D, edge.z,
-                getYRot(), (float) wall.pendingGapAlong, -1, -1,
-                BOUNDARY_GAP_WARNING_TICKS, wall.id), wall.center);
-    }
-
-    private void clearBoundaryWalls(ServerLevel server, boolean playEffect) {
-        if (playEffect) {
-            for (BoundaryWallState wall : arena.boundaryWalls) {
-                Vec3 edge = wall.center.add(wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-                sendTechniqueVfx(server, new BladeTechniqueVfxPacket(
-                        BladeTechniqueVfxPacket.BOUNDARY_WALL_BREAK,
-                        wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                        edge.x, wall.center.y + 0.05D, edge.z,
-                        getYRot(), 1.0F, -1, -1, 24,
-                        wall.id), wall.center);
-            }
-            server.playSound(null, blockPosition(), SoundEvents.FIRE_EXTINGUISH,
-                    SoundSource.HOSTILE, 1.25F, 0.58F);
-        }
-        arena.boundaryWalls.clear();
-        arena.boundaryGapCycleTicks = 0;
-    }
-
-    private Vec3 separatedBoundaryDirection(Vec3 candidate) {
-        return arena.separatedBoundaryDirection(candidate);
-    }
-
-    private Vec3 horizontalDirection(Vec3 from, Vec3 to) {
-        return arena.horizontalDirection(from, to, getLookAngle());
-    }
-
-    private static double smoothStep(double value) {
-        return MikageArenaController.smoothStep(value);
-    }
-
-    private void beginToriiSweep(ServerLevel server) {
-        torii.beginSweep(server);
+        legacyEffects.tickBoundaryWalls(server);
     }
 
     void tickToriiSweep(ServerLevel server) {
-        torii.tickSweep(server);
-    }
-
-
-
-    private void beginToriiCages(ServerLevel server) {
-        torii.beginCages(server);
+        legacyEffects.tickToriiSweep(server);
     }
 
     void tickToriiCages(ServerLevel server) {
-        torii.tickCages(server);
+        legacyEffects.tickToriiCages(server);
     }
 
     boolean isBladeGuarding(ServerPlayer player) {
-        ItemStack blade = player.getMainHandItem();
-        return blade.getItem() instanceof ItemSlashBlade
-                && player.getCapability(CapabilityInputState.INPUT_STATE)
-                        .map(state -> state.getCommands(player).contains(InputCommand.R_DOWN))
-                        .orElse(false);
+        return legacyEffects.isBladeGuarding(player);
     }
 
-
-
-
-
     void flashStepAwayFromNearestPlayer(ServerLevel server) {
-        LivingEntity target = getTarget();
-        if (target != null && target.isAlive()) {
-            flashStepAway(target, server, 10.5D);
-        }
+        legacyEffects.flashStepAwayFromNearestPlayer(server);
     }
 
     @Override
@@ -2518,28 +1353,9 @@ public final class MikageEntity extends Monster {
 
     @Override
     public void die(DamageSource source) {
-        setNoGravity(false);
-        attackTimeline.clear();
-        arena.toriiCages.clear();
-        if (level() instanceof ServerLevel server) {
-            clearBoundaryWalls(server, true);
-            Vec3 defeatCenter = position().add(0.0D, 1.0D, 0.0D);
-            boolean reminiscence = getPersistentData().getBoolean("blade_tetra_reminiscence");
-            sendCombatVfx(server, BladeCombatVfxPacket.MIKAGE_DEFEAT,
-                    defeatCenter, getYRot(), reminiscence ? 1.15F : 1.0F,
-                    reminiscence ? 1 : 0);
-            if (techniques.pursuitRainFinalSword != null) {
-                Entity finalSword = server.getEntity(techniques.pursuitRainFinalSword);
-                if (finalSword != null) finalSword.discard();
-            }
-            clearSwordWheelEntities(server);
-            clearBoundarySeals(server);
-            clearMoonEchoes(server);
-        }
+        encounter.beforeDeath();
         super.die(source);
-        if (!level().isClientSide()) {
-            ChallengeManager.onMikageDefeated(this);
-        }
+        encounter.defeated();
     }
 
     @Override
@@ -2567,6 +1383,7 @@ public final class MikageEntity extends Monster {
                     getPersistentData().getLong("blade_tetra_challenge"),
                     getPhase(), getHealth(), getMaxHealth(), position());
         }
+        encounter.cancel();
         super.remove(reason);
     }
 
@@ -2590,7 +1407,7 @@ public final class MikageEntity extends Monster {
         STAGGERED
     }
 
-    private enum SwordDiscipline {
+    enum SwordDiscipline {
         STANDARD,
         IAIDO,
         RENGEKI,
@@ -2625,24 +1442,6 @@ public final class MikageEntity extends Monster {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     private enum TrialImpact {
         LIGHT(0.06D, 0.14D),
         NORMAL(0.11D, 0.24D),
@@ -2667,6 +1466,6 @@ public final class MikageEntity extends Monster {
 
     private record PowerCalibration(double healthScale, double damageScale,
             double skillSpeedScale) {
-        private static final PowerCalibration BASE = new PowerCalibration(1.0D, 1.0D, 1.0D);
+        static final PowerCalibration BASE = new PowerCalibration(1.0D, 1.0D, 1.0D);
     }
 }
