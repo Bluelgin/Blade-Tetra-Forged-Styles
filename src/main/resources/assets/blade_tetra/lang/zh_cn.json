@@ -1040,5 +1040,6 @@
   "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "血樱终景「无生」",
   "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.description": "狱刀「似蛭」之鞘主释，妖刀「红樱」镡柄相应。直接斩击会无上限侵蚀有效生命上限；终景将夺去更大比例，并绕过通常的数值减伤与伤害上限。",
   "tetra/schematic/slashblade/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "调律异传·炼狱刀死念",
-  "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "血樱终景「无生」 · SA + 命蚀 · SE"
+  "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "血樱终景「无生」 · SA + 命蚀 · SE",
+  "message.blade_tetra.mikage.duel_parry": "振刀成功（%s/%s）"
 }

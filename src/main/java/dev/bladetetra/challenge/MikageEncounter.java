@@ -43,6 +43,29 @@ final class MikageEncounter {
         if (!lifecycle.terminal()) observer.slashArt(player, id);
     }
 
+    boolean canGuardCounter() {
+        return lifecycle.state() == EncounterLifecycle.State.COMBAT && !active()
+                && !owner.legacySkillBusy() && !owner.duel().staggered()
+                && owner.getAction() == MikageEntity.MikageAction.IDLE;
+    }
+
+    boolean answerGuard(ServerPlayer player) {
+        if (!canGuardCounter()) return false;
+        owner.setTarget(player);
+        return start(new MikageGuardCounterExecution(owner, player));
+    }
+
+    void breakDuelBalance() {
+        stop(SkillExecution.StopReason.COUNTERED);
+        MikageEncounterCleanup.foreground(owner);
+        owner.attackTimeline().clear();
+        owner.defenseController().saPatterns.clear();
+        owner.defenseController().judgementPatterns.clear();
+        owner.defenseController().hurtCooldownUntil.clear();
+        if (owner.level() instanceof ServerLevel level) owner.swordWheel().recallSwordWheel(level, 35);
+        director.reset();
+    }
+
     void restorePhase(float fraction) {
         lifecycle.restore(fraction);
         owner.setPhase(lifecycle.phase());
@@ -77,6 +100,7 @@ final class MikageEncounter {
             story.phase(lifecycle.phase());
             owner.presentation().phaseShift(server, lifecycle.phase());
         }
+        owner.duel().tick(server);
         owner.bossBar().setProgress(owner.getHealth() / owner.getMaxHealth());
         owner.presentation().syncHud();
         Runnable effectsTick = () -> MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
@@ -92,7 +116,7 @@ final class MikageEncounter {
             if (combat.techniqueCooldown > 0) return;
             lifecycle.ready();
         }
-        if (active() || owner.legacySkillBusy()) return;
+        if (active() || owner.legacySkillBusy() || owner.duel().staggered()) return;
 
         var arena = owner.arenaController();
         if (arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0 && lifecycle.phase() == 3) {

@@ -87,6 +87,7 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
                 case HEAVY_CLEAVE -> p < .55F ? MikageSingleSwordPose.blend(high, strike, p / .55F)
                         : MikageSingleSwordPose.blend(strike, idle, (p - .55F) / .45F);
                 case CAST_READY, AERIAL_CAST -> MikageSingleSwordPose.blend(idle, ready, p);
+                case GUARD -> MikageSingleSwordPose.GUARD;
                 case STAGGERED -> new MikageSingleSwordPose.Pose(.30F, 0, -.25F, -.12F, -.10F,
                         -.2F, 0, -.25F, .1F, .2F);
                 default -> idle;

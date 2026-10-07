@@ -66,6 +66,7 @@ public final class MikageEntity extends Monster {
     private final MikageDamageService damageService = new MikageDamageService(this);
     private final MikageArenaMovement movement = new MikageArenaMovement(this);
     private final MikageEncounterPresentation presentation = new MikageEncounterPresentation(this);
+    private final MikageDuelDefense duel = new MikageDuelDefense(this);
     private final MikageEncounter encounter = new MikageEncounter(this);
 
     public MikageEntity(EntityType<? extends Monster> type, Level level) {
@@ -79,6 +80,7 @@ public final class MikageEntity extends Monster {
     MikageArenaController arenaController() { return arena; }
     MikageAttackTimeline attackTimeline() { return attackTimeline; }
 
+    MikageDuelDefense duel() { return duel; }
     MikageEncounter encounter() { return encounter; }
     MikageLegacySkillEffects legacyEffects() { return legacyEffects; }
     MikageLegacyCounterRuntime counters() { return counters; }
@@ -108,6 +110,7 @@ public final class MikageEntity extends Monster {
         return getAction() != MikageAction.IDLE
                 && tickCount - entityData.get(ACTION_START) > entityData.get(ACTION_LENGTH)
                 && !encounter.isWindingUp()
+                && !duel.staggered()
                 && !isUsingSignatureTechnique();
     }
 
@@ -232,7 +235,7 @@ public final class MikageEntity extends Monster {
     }
 
     boolean isUsingTechnique() {
-        return encounter.active() || legacySkillBusy();
+        return encounter.active() || legacySkillBusy() || duel.staggered();
     }
 
     private boolean isUsingSignatureTechnique() {
@@ -315,7 +318,8 @@ public final class MikageEntity extends Monster {
         CAST_SLASH,
         AERIAL_CAST,
         RITUAL,
-        STAGGERED
+        STAGGERED,
+        GUARD
     }
 
     enum SwordDiscipline {

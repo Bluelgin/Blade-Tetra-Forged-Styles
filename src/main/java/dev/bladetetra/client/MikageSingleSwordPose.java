@@ -8,6 +8,8 @@ public final class MikageSingleSwordPose {
     public static final Pose READY = new Pose(.14F, -.38F, -.65F, -.70F, -.24F, -.32F, -.18F, -.16F, .08F, .16F);
     public static final Pose STRIKE = new Pose(.07F, .48F, -1.10F, .72F, -.35F, -.10F, .12F, -.12F, -.08F, .22F);
     public static final Pose HIGH = new Pose(-.08F, -.12F, -2.2F, -.20F, -.12F, -.30F, 0, -.25F, .10F, .20F);
+    public static final Pose GUARD = new Pose(.06F, -.22F, -1.15F, -.75F, -.38F,
+            -.45F, -.1F, -.65F, .25F, .3F);
     private MikageSingleSwordPose() {}
 
     public static Pose blend(Pose a, Pose b, float progress) {

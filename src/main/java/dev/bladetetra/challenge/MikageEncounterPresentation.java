@@ -141,6 +141,21 @@ final class MikageEncounterPresentation {
                 reminiscence ? 1.15F : 1, reminiscence ? 1 : 0);
     }
 
+    void swordContact(ServerPlayer player, boolean parry) {
+        if (!(owner.level() instanceof ServerLevel level)) return;
+        Vec3 contact = owner.position().lerp(player.position(), .5).add(0, 1.1, 0);
+        sendCombatVfx(level, parry ? BladeCombatVfxPacket.PERFECT_GUARD : BladeCombatVfxPacket.PARRY,
+                contact, player.getYRot(), parry ? 1.12F : .9F, player.getId());
+        playBladeParrySound(level, contact, SoundSource.HOSTILE, parry);
+    }
+
+    void balanceBroken() {
+        if (!(owner.level() instanceof ServerLevel level)) return;
+        sendCombatVfx(level, BladeCombatVfxPacket.STAGGER, owner.position().add(0, 1, 0),
+                owner.getYRot(), 1.25F, owner.getId());
+        level.playSound(null, owner.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.HOSTILE, 1, .7F);
+    }
+
     void phaseName(int phase) {
         owner.bossBar().setName(Component.translatable(phase == 1
                 ? "entity.blade_tetra.mikage" : "entity.blade_tetra.mikage.phase" + phase));

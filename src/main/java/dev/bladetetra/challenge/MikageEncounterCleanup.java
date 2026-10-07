@@ -40,6 +40,7 @@ final class MikageEncounterCleanup {
     }
 
     static void encounter(MikageEntity owner) {
+        owner.duel().clear();
         foreground(owner);
         owner.attackTimeline().clear();
         if (owner.level() instanceof ServerLevel level) {

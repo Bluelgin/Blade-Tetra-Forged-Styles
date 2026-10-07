@@ -21,6 +21,35 @@
 - `MikageLegacySkillEffects` 收容已有技能演出与多 tick 脚本。它不是新的技能扩展点，之后随新技能替换而缩减。
 - `MikageAttackTimeline` 将延迟命中归属到释放；回调前移出待执行队列，支持取消/回调追加。`MikageCastEntityEvents` 将释放期间生成的原生视觉实体归属到同一个 scope，无需全维度扫描。
 
+## 格挡与振刀
+
+这部分移植自作者的 `Bluelgin/Contract-Blade`，参考提交
+`ccb41e84d4afbe088bfcc13f37613b5dd5f77e5e` 的 `BlackFoxDefense`、
+`BlackFoxCounterCut`、`BlackFoxEncounters`、`BlackFoxBalance` 与
+`BlackFoxAttackTrace`。代码的 MIT 版权声明随包保留在
+`META-INF/licenses/contract-blade-duel-MIT.txt`。使用御影已有的特效与模型，
+没有复制黑狐模型、动画、音乐或纹理。
+
+- 一阶段御影空闲时，可以接住正面六格内的直接剑击或原生近战刀光。
+  格挡保护为 8 tick，反击冷却为 60 tick；破绽、阶段保护、开场与正在释放的
+  技能不触发格挡反击。移除了原先按 `tickCount % 70` 无预警减伤的逻辑。
+- 反击由独立 `MikageGuardCounterExecution` 执行，目标 UUID、方向与原点在
+  格挡时锁定。第 2 tick 提示，第 9 tick 起刀并排队，第 10 tick 命中，
+  第 26 tick 完成；离场、阶段切换或取消会释放 scope 内的命中和视觉实体。
+- 玩家在近战命中前 0–3 tick 挥刀、保持同一把剑并面向来刀，可以振刀。
+  普通剑需至少 80% 攻击冷却；拔刀剑监听实际近战动作，覆盖原生及百构流派。
+  一次挥刀只消费一次，同 tick 的两种事件不会重复装填。长期举刀不装填此窗口。
+- 已标记的环斩、剑刃连击、踏步居合、断岳重斩、闪身反击近身段与新格挡
+  反击可振刀。远程斩击、次元斩、幻影剑、结界和界焰保留原有应对机制，
+  不累计这个振刀计数；新技能需显式标记近战命中。
+- 成功时显示火花、音效和振刀计数，并给该玩家 24 tick 的御影攻击保护。
+  五次独立接触打出 100 tick 大硬直；每次成功伤害会加快恢复 10 tick，
+  最后一 tick 保留。大硬直期间关闭格挡、旧攻击适应和自动剑轮反制。
+- 多人共享御影的失衡计数，但挥刀、持剑校验及保护按玩家隔离；4 tick 内
+  的多次接触不会刷满计数。转阶段/结束清空，离场参战者的输入与保护及时回收。
+- 原生刀光/次元斩会把伤害源改成玩家，`MikageBladeAttackTrace` 与 mixin
+  保留正在执行的实体和出生持剑，避免把远程次元斩当作正面剑击。
+
 ## 必须保留的剧情接口
 
 `MikageStoryBridge` 继续调用原有 `ChallengeManager.queueDialogue` 和 `ChallengeManager.onMikageDefeated`。开场、胜利、失败、访客与神域对话的文本、语音、节点、奖励和首通 NBT 没有重写。
@@ -44,6 +73,8 @@
 讨论技能时需确定：基础动作、前摇预警、判定范围、反制方式、后摇窗口、可衔接条件、持续场地物件和对应语音。随后由这些定义创建新的独立执行类，替换 legacy pool，而不是继续扩展旧效果 switch。
 
 ## 验证
+
+`MikageDuelScenarios` 覆盖挥刀窗口边界、单次消费、换刀、多人保护隔离、格挡冷却、多次接触去重、五次失衡、受击加速恢复和清理。
 
 `MikageReactiveScenarios` 覆盖玩家证据隔离/衰减、重复攻击去重、合法技能过滤、反应式选择、条件衔接重新判断、目标切换、单释放所有权、取消与资源清理、异常清理、阶段单向推进和恢复。它也由 JUnit 测试调用。
 

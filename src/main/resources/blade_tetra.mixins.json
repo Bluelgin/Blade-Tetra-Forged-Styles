@@ -13,6 +13,7 @@
     "SpeedEfficiencySummonedSwordMixin",
     "SpeedEfficiencySuperSaMixin",
     "HeavyRainSwordSafetyMixin",
+    "MikageSlashProvenanceMixin",
     "MirrorIceMixin",
     "SwordTypeMixin"
   ],

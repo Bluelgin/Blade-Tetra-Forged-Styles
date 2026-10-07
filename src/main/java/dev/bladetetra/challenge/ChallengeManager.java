@@ -387,6 +387,16 @@ public final class ChallengeManager {
                         == mikage.getPersistentData().getLong("blade_tetra_challenge");
     }
 
+    /** Direct session lookup for server sword-input events; no realm scan. */
+    static MikageEntity combatBoss(ServerPlayer player) {
+        if (!isParticipant(player)) return null;
+        ChallengeSession session = CHALLENGES.get(player.getPersistentData().getLong(PLAYER_CHALLENGE));
+        if (session == null || session.won || session.closed || session.bossEntityId == null) return null;
+        Entity entity = player.serverLevel().getEntity(session.bossEntityId);
+        return entity instanceof MikageEntity boss && boss.isAlive() && !boss.isVisitorGuide()
+                && isParticipant(boss, player) ? boss : null;
+    }
+
     static Vec3 arenaCenter(MikageEntity mikage) {
         ChallengeSession challenge = CHALLENGES.get(
                 mikage.getPersistentData().getLong("blade_tetra_challenge"));

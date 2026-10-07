@@ -28,14 +28,24 @@ final class MikageAttackTimeline {
 
     void circle(int delay, Vec3 center, double radius, double height,
             float damage, double knockback) {
+        circle(delay, center, radius, height, damage, knockback, false);
+    }
+
+    void meleeCircle(int delay, Vec3 center, double radius, double height,
+            float damage, double knockback) {
+        circle(delay, center, radius, height, damage, knockback, true);
+    }
+
+    private void circle(int delay, Vec3 center, double radius, double height,
+            float damage, double knockback, boolean melee) {
         pending.add(new Hit(owner.tickCount + delay, Shape.CIRCLE, center,
-                center, Vec3.ZERO, radius, height, -1.0D, damage, knockback, null, currentScope));
+                center, Vec3.ZERO, radius, height, -1.0D, damage, knockback, null, currentScope, melee));
     }
 
     void line(int delay, Vec3 start, Vec3 end, double width, double height,
             float damage, double knockback) {
         pending.add(new Hit(owner.tickCount + delay, Shape.LINE, start, end,
-                Vec3.ZERO, width, height, -1.0D, damage, knockback, null, currentScope));
+                Vec3.ZERO, width, height, -1.0D, damage, knockback, null, currentScope, false));
     }
 
     void cone(int delay, Vec3 origin, Vec3 direction, double range,
@@ -46,13 +56,29 @@ final class MikageAttackTimeline {
     void cone(int delay, Vec3 origin, Vec3 direction, double range,
             double halfAngleDegrees, double height, float damage, double knockback,
             Consumer<Boolean> result) {
+        cone(delay, origin, direction, range, halfAngleDegrees, height, damage, knockback, result, false);
+    }
+
+    void meleeCone(int delay, Vec3 origin, Vec3 direction, double range,
+            double halfAngleDegrees, double height, float damage, double knockback) {
+        meleeCone(delay, origin, direction, range, halfAngleDegrees, height, damage, knockback, null);
+    }
+
+    void meleeCone(int delay, Vec3 origin, Vec3 direction, double range,
+            double halfAngleDegrees, double height, float damage, double knockback, Consumer<Boolean> result) {
+        cone(delay, origin, direction, range, halfAngleDegrees, height, damage, knockback, result, true);
+    }
+
+    private void cone(int delay, Vec3 origin, Vec3 direction, double range,
+            double halfAngleDegrees, double height, float damage, double knockback,
+            Consumer<Boolean> result, boolean melee) {
         Vec3 flat = new Vec3(direction.x, 0.0D, direction.z);
         if (flat.lengthSqr() < 0.001D) {
             flat = new Vec3(0.0D, 0.0D, 1.0D);
         }
         pending.add(new Hit(owner.tickCount + delay, Shape.CONE, origin,
                 origin, flat.normalize(), range, height,
-                Math.cos(Math.toRadians(halfAngleDegrees)), damage, knockback, result, currentScope));
+                Math.cos(Math.toRadians(halfAngleDegrees)), damage, knockback, result, currentScope, melee));
     }
 
     void tick(ServerLevel level) {
@@ -70,7 +96,7 @@ final class MikageAttackTimeline {
         for (Hit hit : due) {
             if (hit.scope != null && hit.scope.closed()) continue;
             boolean landed = apply(level, hit);
-            if (hit.result != null) {
+            if (hit.result != null && (hit.scope == null || !hit.scope.closed())) {
                 hit.result.accept(landed);
             }
         }
@@ -125,6 +151,8 @@ final class MikageAttackTimeline {
             if (!contains(hit, player.position().add(0.0D, 0.9D, 0.0D))) {
                 continue;
             }
+            if (owner.duel().protects(player)) continue;
+            if (hit.melee && owner.duel().parry(player, hit.start)) continue;
             landed = true;
             if (owner.dealTrialDamage(player, hit.damage, false)) {
                 Vec3 away = player.position().subtract(hit.start)
@@ -172,6 +200,6 @@ final class MikageAttackTimeline {
 
     private record Hit(int executeTick, Shape shape, Vec3 start, Vec3 end,
             Vec3 direction, double radius, double height, double cosine,
-            float damage, double knockback, Consumer<Boolean> result, CastScope scope) {
+            float damage, double knockback, Consumer<Boolean> result, CastScope scope, boolean melee) {
     }
 }

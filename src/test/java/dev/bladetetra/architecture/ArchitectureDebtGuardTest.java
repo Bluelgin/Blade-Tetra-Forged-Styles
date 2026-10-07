@@ -60,6 +60,12 @@ class ArchitectureDebtGuardTest {
                 "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java",
                 1_150L);
         assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageDuelDefense.java",
+                150L);
+        assertLinesAtMost(
+                "src/main/java/dev/bladetetra/challenge/MikageGuardCounterExecution.java",
+                110L);
+        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikagePursuitRainController.java",
                 460L);
         assertLinesAtMost(

@@ -5,19 +5,15 @@ import static dev.bladetetra.challenge.MikageLegacyTiming.*;
 import static dev.bladetetra.challenge.MikageDefenseController.*;
 
 import dev.bladetetra.config.GameplayConfig;
-import dev.bladetetra.network.BladeCombatVfxPacket;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
 import mods.flammpfeil.slashblade.entity.EntityJudgementCut;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.phys.Vec3;
 
 /** Incoming hit gates and outgoing adaptive trial damage. Calls vanilla hurt exactly once after filtering. */
 final class MikageDamageService {
@@ -42,7 +38,7 @@ final class MikageDamageService {
 
     private boolean dealTrialDamage(ServerPlayer player, float rawDamage,
             float mechanicMultiplier, boolean protectedResponse, boolean forceBoundarySource) {
-        if (rawDamage <= 0.0F || !player.isAlive() || player.isCreative()
+        if (owner.duel().protects(player) || rawDamage <= 0.0F || !player.isAlive() || player.isCreative()
                 || player.isSpectator() || !ChallengeManager.isParticipant(owner, player)) {
             return false;
         }
@@ -141,6 +137,7 @@ final class MikageDamageService {
                 && defense.hurtCooldownUntil.getOrDefault(attacker.getUUID(), Long.MIN_VALUE) > now) {
             return false;
         }
+        if (owner.duel().intercept(source)) return false;
         Entity direct = source.getDirectEntity();
         if (direct instanceof EntityJudgementCut cut && cut.getOwner() instanceof LivingEntity cutOwner) {
             attacker = cutOwner;
@@ -153,7 +150,7 @@ final class MikageDamageService {
         }
         if (attacker instanceof LivingEntity living && owner.distanceToSqr(living) <= 25.0D
                 && defense.swordWheelBreakTicks <= 0 && combat.signatureRecoveryTicks <= 0
-                && techniques.interactionOpeningTicks <= 0) {
+                && techniques.interactionOpeningTicks <= 0 && !owner.duel().staggered()) {
             owner.swordWheel().registerClosePressure(living);
             if (owner.isSwordWheelDeployed() && defense.swordWheelCounterCooldown <= 0) {
                 defense.swordWheelCounterCooldown = 14;
@@ -167,32 +164,12 @@ final class MikageDamageService {
                     threshold + (amount - threshold)
                             * GameplayConfig.MIKAGE_SOFT_CAP_OVERFLOW_RATIO.get().floatValue());
         }
-        if (combat.signatureRecoveryTicks <= 0 && owner.getPhase() == 1
-                && owner.tickCount % 70 < 16 && source.getEntity() != null) {
-            amount *= 0.25F;
-            if (owner.level() instanceof ServerLevel server) {
-                long effectNow = server.getGameTime();
-                if (effectNow - defense.lastParryVfxTick >= 3L) {
-                    defense.lastParryVfxTick = effectNow;
-                    Vec3 direction = attacker == null ? owner.getLookAngle()
-                            : attacker.position().subtract(owner.position());
-                    direction = direction.multiply(1.0D, 0.0D, 1.0D);
-                    if (direction.lengthSqr() < 0.001D) {
-                        direction = owner.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
-                    }
-                    Vec3 impact = owner.position().add(direction.normalize().scale(0.72D))
-                            .add(0.0D, 1.15D, 0.0D);
-                    owner.presentation().sendCombatVfx(server, BladeCombatVfxPacket.PARRY, impact,
-                            owner.getYRot(), 1.0F,
-                            attacker instanceof ServerPlayer player ? player.getId() : -1);
-                    owner.presentation().playBladeParrySound(server, impact, SoundSource.HOSTILE, false);
-                }
-            }
-        }
         if (techniques.boundarySealTicks > 0 || techniques.moonEchoTicks > 0
                 || arena.toriiSweepTicks > TORII_SWEEP_RECOVERY_TICKS
                 || arena.toriiCageTicks > TORII_CAGE_RECOVERY_TICKS) {
             amount *= 0.25F;
+        } else if (owner.duel().staggered()) {
+            amount *= 1.25F;
         } else if (techniques.interactionOpeningTicks > 0) {
             amount *= techniques.interactionOpeningMultiplier;
         } else if (combat.signatureRecoveryTicks > 0) {
@@ -217,6 +194,7 @@ final class MikageDamageService {
             }
         }
         boolean hurt = vanillaHurt.apply(source, amount);
+        if (hurt) owner.duel().hitAccepted();
         if (hurt && reachesPhaseGate && owner.isAlive()) {
             owner.setHealth(phaseFloor);
         }
@@ -224,7 +202,7 @@ final class MikageDamageService {
             // Replace vanilla's one-global-timer immunity with Mikage's per-attacker
             // ledger so one participant never consumes another participant's hit.
             owner.invulnerableTime = 0;
-            boolean rewardedOpening = defense.swordWheelBreakTicks > 0
+            boolean rewardedOpening = owner.duel().staggered() || defense.swordWheelBreakTicks > 0
                     || techniques.interactionOpeningTicks > 0
                     || ((arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
                     && combat.signatureRecoveryTicks > 0);

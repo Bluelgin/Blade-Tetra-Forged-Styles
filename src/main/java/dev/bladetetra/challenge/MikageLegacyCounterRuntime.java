@@ -65,6 +65,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     float handleSlashArtPressure(LivingEntity attacker) {
+        if (owner.duel().staggered()) return 1.0F;
         long now = owner.level().getGameTime();
         if (attacker.getPersistentData().getLong(MikageCounterEvents.SA_UNTIL) < now) {
             return 1.0F;
@@ -85,7 +86,7 @@ final class MikageLegacyCounterRuntime {
 
         // Intentional stagger windows are the reward for solving mechanics; never adapt
         // to or counter a player's burst during them.
-        if (techniques.interactionOpeningTicks > 0 || defense.swordWheelBreakTicks > 0
+        if (owner.duel().staggered() || techniques.interactionOpeningTicks > 0 || defense.swordWheelBreakTicks > 0
                 || ((arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
                 && combat.signatureRecoveryTicks > 0)) {
             pattern.hits = 0;
@@ -128,7 +129,7 @@ final class MikageLegacyCounterRuntime {
         pattern.lastCast = now;
 
         // Solving a mechanic deliberately creates an unrestricted burst window.
-        if (techniques.interactionOpeningTicks > 0 || defense.swordWheelBreakTicks > 0
+        if (owner.duel().staggered() || techniques.interactionOpeningTicks > 0 || defense.swordWheelBreakTicks > 0
                 || ((arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
                 && combat.signatureRecoveryTicks > 0)) {
             pattern.casts = 0;
@@ -162,6 +163,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     float judgementCutDamageMultiplier(LivingEntity attacker) {
+        if (owner.duel().staggered()) return 1.0F;
         JudgementPattern pattern = defense.judgementPatterns.get(attacker.getUUID());
         if (pattern == null) {
             return 1.0F;
@@ -261,7 +263,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     void registerShadowCrossIaido(ServerPlayer player, long now) {
-        if (!isIaidoAttack(player) || techniques.interactionOpeningTicks > 0 || owner.encounter().isWindingUp()
+        if (owner.duel().staggered() || !isIaidoAttack(player) || techniques.interactionOpeningTicks > 0 || owner.encounter().isWindingUp()
                 || techniques.isSignatureActive(arena, defense)) return;
         Deque<MovementSample> samples = defense.movementSamples.get(player.getUUID());
         if (samples == null || samples.isEmpty()) return;

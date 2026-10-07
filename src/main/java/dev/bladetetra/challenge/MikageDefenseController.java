@@ -30,7 +30,6 @@ final class MikageDefenseController {
     Vec3 zanshinCounterCenter = Vec3.ZERO;
     final Map<UUID, PlayerDefenseProfile> playerDefenseProfiles = new HashMap<>();
     int mirrorCounterCooldown;
-    long lastParryVfxTick = Long.MIN_VALUE;
 
     static final class SaPattern {
         String kind = "";

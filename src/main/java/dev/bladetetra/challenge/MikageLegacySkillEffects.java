@@ -122,16 +122,16 @@ final class MikageLegacySkillEffects {
             case CIRCLE_SLASH -> {
                 AttackManager.doSlash(owner, 0.0F, true, false, visualDamage);
                 AttackManager.doSlash(owner, 180.0F, false, false, visualDamage);
-                attackTimeline.circle(4, owner.position(), 5.0D, 3.0D,
+                attackTimeline.meleeCircle(4, owner.position(), 5.0D, 3.0D,
                         baseDamage * 0.68F, 0.75D);
             }
             case BLADE_COMBO -> {
                 AttackManager.doSlash(owner, 25.0F, true, false, visualDamage);
                 AttackManager.doSlash(owner, -155.0F, false, false, visualDamage);
                 AttackManager.doSlash(owner, 205.0F, false, false, visualDamage);
-                attackTimeline.cone(4, castOrigin, forward, 6.2D,
+                attackTimeline.meleeCone(4, castOrigin, forward, 6.2D,
                         58.0D, 3.0D, baseDamage * 0.52F, 0.45D);
-                attackTimeline.cone(15, castOrigin, forward, 6.8D,
+                attackTimeline.meleeCone(15, castOrigin, forward, 6.8D,
                         72.0D, 3.0D, baseDamage * 0.58F, 0.65D);
             }
             case STEP_IAIDO -> {
@@ -141,7 +141,7 @@ final class MikageLegacySkillEffects {
                         .multiply(1.0D, 0.0D, 1.0D);
                 if (direction.lengthSqr() < 0.01D) direction = horizontalLook();
                 owner.lookAt(target, 180.0F, 180.0F);
-                attackTimeline.cone(1, origin, direction, 4.2D,
+                attackTimeline.meleeCone(1, origin, direction, 4.2D,
                         48.0D, 3.2D, baseDamage * 0.92F, 0.45D,
                         landed -> finishStepIaido(landed, target, server));
                 server.playSound(null, owner.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
@@ -149,14 +149,14 @@ final class MikageLegacySkillEffects {
             }
             case DANGAKU_CLEAVE -> {
                 AttackManager.doSlash(owner, 92.0F, true, false, visualDamage);
-                attackTimeline.cone(8, castOrigin, forward, 7.6D,
+                attackTimeline.meleeCone(8, castOrigin, forward, 7.6D,
                         68.0D, 4.0D, baseDamage * 1.08F, 1.15D);
                 server.playSound(null, owner.blockPosition(), SoundEvents.PLAYER_ATTACK_KNOCKBACK,
                         SoundSource.HOSTILE, 1.25F, 0.62F);
             }
             case FLASH_COUNTER -> {
                 AttackManager.doSlash(owner, 0.0F, true, false, visualDamage);
-                attackTimeline.circle(3, owner.position(), 4.3D, 3.0D,
+                attackTimeline.meleeCircle(3, owner.position(), 4.3D, 3.0D,
                         baseDamage * 0.46F, 0.65D);
                 flashStepAway(target, server, 8.2D);
                 Drive.doSlash(owner, 0.0F, 28, Vec3.ZERO,
