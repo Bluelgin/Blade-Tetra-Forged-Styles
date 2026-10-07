@@ -41,7 +41,7 @@ final class MikagePlayerObserver {
                     ? 0 : movement.dot(direction.normalize());
             memory.sample(id, new PlayerBehaviorMemory.Sample(tick,
                     owner.distanceTo(player), player.getY() - owner.getY(), radial,
-                    owner.isBladeGuarding(player), !player.onGround()));
+                    owner.legacyEffects().isBladeGuarding(player), !player.onGround()));
         }
         previousPositions.keySet().retainAll(present);
         memory.retain(present, tick);

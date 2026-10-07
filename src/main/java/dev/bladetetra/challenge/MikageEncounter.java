@@ -1,5 +1,7 @@
 package dev.bladetetra.challenge;
 
+import dev.bladetetra.config.GameplayConfig;
+
 import dev.bladetetra.challenge.mikage.EncounterLifecycle;
 import dev.bladetetra.challenge.mikage.ReactiveCombatDirector;
 import dev.bladetetra.challenge.mikage.SkillExecution;
