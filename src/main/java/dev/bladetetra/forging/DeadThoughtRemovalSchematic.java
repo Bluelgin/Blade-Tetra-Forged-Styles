@@ -58,7 +58,8 @@ public final class DeadThoughtRemovalSchematic extends BaseSchematic {
                 && material != null && material.is(Items.AMETHYST_SHARD);
     }
     @Override public boolean isMaterialsValid(ItemStack stack, String slot, ItemStack[] materials) {
-        return materials != null && materials.length == 1
+        // WorkbenchTile supplies all material slots, including unused/hidden ones.
+        return materials != null && materials.length >= getNumMaterialSlots()
                 && acceptsMaterial(stack, slot, 0, materials[0]) && materials[0].getCount() >= 1;
     }
     @Override public boolean isIntegrityViolation(Player player, ItemStack stack, ItemStack[] materials, String slot) {
