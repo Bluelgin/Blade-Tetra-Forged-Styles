@@ -45,6 +45,8 @@ final class MikageEncounter {
     void restorePhase(float fraction) {
         lifecycle.restore(fraction);
         owner.setPhase(lifecycle.phase());
+        if (lifecycle.phase() > 1) owner.bossBar().setName(net.minecraft.network.chat.Component.translatable(
+                "entity.blade_tetra.mikage.phase" + lifecycle.phase()));
     }
 
     void tick(ServerLevel server) {

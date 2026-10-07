@@ -12,7 +12,7 @@ public final class EncounterLifecycle {
 
     public boolean observeHealth(double fraction) {
         if (terminal()) return false;
-        int desired = fraction <= 1.0 / 3.0 ? 3 : fraction <= 2.0 / 3.0 ? 2 : 1;
+        int desired = phaseFor(fraction);
         if (desired <= phase) return false;
         // Enter one narrative phase at a time, including after entity restoration.
         phase++;
@@ -25,8 +25,14 @@ public final class EncounterLifecycle {
     /** Recovery is state restoration, not a new narrative phase transition. */
     public void restore(double healthFraction) {
         if (terminal()) return;
-        phase = healthFraction <= 1.0 / 3.0 ? 3 : healthFraction <= 2.0 / 3.0 ? 2 : 1;
+        phase = phaseFor(healthFraction);
         state = State.OPENING;
+    }
+
+    private static int phaseFor(double fraction) {
+        // Minecraft stores health as float; a gated 2/3 health ratio can round upward.
+        // Without tolerance, the damage gate could prevent the next phase forever.
+        return fraction <= 1.0 / 3.0 + 1.0e-6 ? 3 : fraction <= 2.0 / 3.0 + 1.0e-6 ? 2 : 1;
     }
 
     public boolean defeat() {

@@ -161,6 +161,10 @@ public final class MikageReactiveScenarios {
         recovered.restore(0.2);
         check(recovered.phase() == 3 && !recovered.observeHealth(0.2), "restored boss does not replay phase dialogue");
         check(recovered.cancel() && !recovered.defeat(), "discard is not victory");
+        var gated = new EncounterLifecycle();
+        check(gated.observeHealth(2.0F / 3.0F) && gated.phase() == 2, "float health gate reaches phase two");
+        gated.ready();
+        check(gated.observeHealth(1.0F / 3.0F) && gated.phase() == 3, "float health gate reaches phase three");
     }
 
     private static void check(boolean condition, String message) {
