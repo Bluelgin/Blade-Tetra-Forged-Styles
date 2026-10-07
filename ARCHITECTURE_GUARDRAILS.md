@@ -192,6 +192,33 @@ Mutable encounter data stays in the existing state holders
 parallel copies of it. `MikageEntity` keeps thin delegate methods where other
 runtime coordinators already depend on the stable method surface.
 
+## Mikage reactive rebuild
+
+The dedicated Mikage rebuild supersedes the incremental-extraction advice above
+for **new skills**. `MikageEncounter` owns encounter flow;
+`challenge/mikage/ReactiveCombatDirector` owns evidence-based selection;
+`SkillRunner` owns a single foreground cast. Each release implements
+`SkillExecution` and owns its own target/timing state and `CastScope` resources.
+
+`MikageLegacySkillPool`, `MikageLegacySkillExecution` and
+`MikageLegacySkillEffects` are transitional compatibility adapters for the
+existing moveset. Do not add the replacement moveset to their switches or grow
+`MikageTechniqueRuntime` with more global skill timers. Remaining legacy state
+holders retain one copy of old runtime state until those effects are replaced.
+
+`MikagePlayerObserver` only observes server-visible participant behavior;
+selection must respect cooldowns, phase protection and counter openings.
+Authored `SkillTransition` rules are re-evaluated at legal decision boundaries,
+not a promise to execute an entire preselected combo against a changed target.
+New skill content and authored links require the author's moveset discussion.
+
+Keep dialogue/reward/visitor behavior behind `MikageStoryBridge` and the
+existing `ChallengeSession`. Cancellation is not victory. Recovery restores
+the phase without replaying phase dialogue. Persistent arena hazards have
+separate lifetime ownership from their originating cast.
+
+See `docs/MIKAGE_REACTIVE_ENCOUNTER.md` for the current migration boundary.
+
 ## Combat balance configuration
 
 `CombatBalanceConfig` belongs to the existing SERVER spec. Defaults must stay

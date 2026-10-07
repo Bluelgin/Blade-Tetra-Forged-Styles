@@ -14,20 +14,11 @@ import dev.bladetetra.network.BladeCombatVfxPacket;
 import dev.bladetetra.network.BladeTechniqueVfxPacket;
 import dev.bladetetra.network.ModNetwork;
 import com.mojang.logging.LogUtils;
-import mods.flammpfeil.slashblade.SlashBlade;
-import mods.flammpfeil.slashblade.ability.StunManager;
-import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
-import mods.flammpfeil.slashblade.entity.EntityHeavyRainSwords;
 import mods.flammpfeil.slashblade.entity.EntityJudgementCut;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
-import mods.flammpfeil.slashblade.slasharts.Drive;
-import mods.flammpfeil.slashblade.slasharts.JudgementCut;
-import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
-import mods.flammpfeil.slashblade.slasharts.WaveEdge;
 import mods.flammpfeil.slashblade.util.AttackManager;
-import mods.flammpfeil.slashblade.util.InputCommand;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -73,15 +64,13 @@ import net.minecraftforge.network.PacketDistributor;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.List;
 import java.util.UUID;
 
 public final class MikageEntity extends Monster {
-    static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getLogger();
     static final int TORII_SWEEP_TOTAL_TICKS = 154;
     static final int TORII_SWEEP_FIRST_IMPACT_AGE = 34;
     static final int TORII_SWEEP_SECOND_IMPACT_AGE = 72;
@@ -118,19 +107,19 @@ public final class MikageEntity extends Monster {
     static final ResourceKey<DamageType> BOUNDARY_FLAME_DAMAGE = ResourceKey.create(
             Registries.DAMAGE_TYPE,
             new ResourceLocation(BladeTetra.MOD_ID, "boundary_flame"));
-    static final EntityDataAccessor<Integer> PHASE =
+    private static final EntityDataAccessor<Integer> PHASE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    static final EntityDataAccessor<Integer> ACTION =
+    private static final EntityDataAccessor<Integer> ACTION =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    static final EntityDataAccessor<Integer> ACTION_START =
+    private static final EntityDataAccessor<Integer> ACTION_START =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    static final EntityDataAccessor<Integer> ACTION_LENGTH =
+    private static final EntityDataAccessor<Integer> ACTION_LENGTH =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    static final EntityDataAccessor<Integer> SWORD_WHEEL_COUNT =
+    private static final EntityDataAccessor<Integer> SWORD_WHEEL_COUNT =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
-    static final EntityDataAccessor<Boolean> SWORD_WHEEL_DEPLOYED =
+    private static final EntityDataAccessor<Boolean> SWORD_WHEEL_DEPLOYED =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
-    static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
+    private static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private final ServerBossEvent bossBar = new ServerBossEvent(
             Component.translatable("entity.blade_tetra.mikage"),
