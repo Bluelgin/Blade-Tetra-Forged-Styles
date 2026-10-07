@@ -29,14 +29,14 @@ class BoundaryFlameDefeatRegressionTest {
 
     @Test
     void FlameLoopUsesSnapshotAndStopsAfterDimensionChange() throws IOException {
-        String source = read("MikageEntity");
+        String source = read("MikageLegacySkillEffects");
         String loop = source.substring(source.indexOf("void tickBoundaryWalls("),
-                source.indexOf("private boolean touchesBoundaryFlame("));
+                source.indexOf("boolean touchesBoundaryFlame("));
         assertTrue(loop.contains("List.copyOf(server.players())"));
-        String damage = source.substring(source.indexOf("private void applyBoundaryFlameDamage("),
-                source.indexOf("private void sendBoundaryWall("));
+        String damage = source.substring(source.indexOf("void applyBoundaryFlameDamage("),
+                source.indexOf("void sendBoundaryWall("));
         assertTrue(damage.contains("player.level() != server"));
-        assertTrue(damage.contains("!ChallengeManager.isParticipant(this, player)"));
+        assertTrue(damage.contains("!ChallengeManager.isParticipant(owner, player)"));
         assertTrue(damage.indexOf("player.level() != server") < damage.indexOf("server.sendParticles"));
     }
 

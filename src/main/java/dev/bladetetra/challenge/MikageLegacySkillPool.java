@@ -18,11 +18,10 @@ final class MikageLegacySkillPool {
         double distance = owner.distanceTo(target);
         double vertical = Math.abs(target.getY() - owner.getY());
         boolean lowHealth = target.getHealth() <= target.getMaxHealth() * 0.35F;
-        boolean charging = owner.isBladeGuarding(target);
         List<Technique> choices = new ArrayList<>();
         if (vertical > 3.5D) {
-            addWeighted(choices, Technique.DRIVE_FAN, 2);
-            addWeighted(choices, Technique.SUMMONED_VOLLEY, 2);
+            choices.add(Technique.DRIVE_FAN);
+            choices.add(Technique.SUMMONED_VOLLEY);
             choices.add(Technique.JUDGEMENT_CUT);
         } else if (distance <= 4.5D) {
             choices.add(Technique.STEP_IAIDO);
@@ -34,9 +33,9 @@ final class MikageLegacySkillPool {
                 choices.add(Technique.SAKURA_END);
             }
         } else if (distance <= 12.0D) {
-            addWeighted(choices, Technique.STEP_IAIDO, 2);
+            choices.add(Technique.STEP_IAIDO);
             if (techniques.mirrorDuelCooldown <= 0) {
-                addWeighted(choices, Technique.MIRROR_DUEL, charging ? 3 : 2);
+                choices.add(Technique.MIRROR_DUEL);
             }
             choices.add(Technique.WAVE_EDGE);
             if (phase >= 2) {
@@ -48,8 +47,8 @@ final class MikageLegacySkillPool {
                 }
             }
         } else {
-            addWeighted(choices, Technique.WAVE_EDGE, 2);
-            addWeighted(choices, Technique.DRIVE_FAN, 2);
+            choices.add(Technique.WAVE_EDGE);
+            choices.add(Technique.DRIVE_FAN);
             choices.add(Technique.SUMMONED_VOLLEY);
             choices.add(Technique.STEP_IAIDO);
             if (phase >= 2 && !lowHealth) {
@@ -59,10 +58,10 @@ final class MikageLegacySkillPool {
         }
         if (phase >= 2) {
             if (techniques.boundarySealCooldown <= 0) {
-                addWeighted(choices, Technique.BOUNDARY_SEAL, lowHealth ? 3 : 2);
+                choices.add(Technique.BOUNDARY_SEAL);
             }
             if (techniques.moonEchoCooldown <= 0) {
-                addWeighted(choices, Technique.MOON_ECHO, lowHealth ? 3 : 2);
+                choices.add(Technique.MOON_ECHO);
             }
             if (arena.toriiCageCooldown <= 0 && !lowHealth) {
                 choices.add(Technique.TORII_CAGE);
@@ -71,24 +70,19 @@ final class MikageLegacySkillPool {
         if (owner.hasShadowCrossPressure(target)) {
             choices.removeIf(choice -> choice == Technique.WAVE_EDGE
                     || choice == Technique.DRIVE_FAN);
-            addWeighted(choices, Technique.STEP_IAIDO, 2);
+            choices.add(Technique.STEP_IAIDO);
             if (distance <= 6.0D) {
-                addWeighted(choices, Technique.CIRCLE_SLASH, 2);
+                choices.add(Technique.CIRCLE_SLASH);
                 choices.add(Technique.FLASH_COUNTER);
             }
             if (phase >= 2 && techniques.moonEchoCooldown <= 0) {
-                addWeighted(choices, Technique.MOON_ECHO, 2);
+                choices.add(Technique.MOON_ECHO);
             }
             defense.swordWheelCooldown = Math.min(defense.swordWheelCooldown, 12);
         }
         if (phase == 3 && arena.toriiSweepCooldown <= 0) choices.add(Technique.TORII_SWEEP);
         if (phase == 3) choices.add(Technique.SUPER_JUDGEMENT);
         return choices.stream().distinct().map(MikageLegacySkillPool::spec).toList();
-    }
-
-    private static void addWeighted(List<Technique> choices, Technique skill, int weight) {
-        // The director scores distinct legal skills; legacy weights only express eligibility here.
-        choices.add(skill);
     }
 
     static Technique technique(String id) {

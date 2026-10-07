@@ -8,6 +8,8 @@ public final class SkillRunner {
     private boolean releasing;
 
     public boolean active() { return active != null; }
+    public boolean windingUp() { return active != null && active.windingUp(); }
+    public CastScope scope() { return scope; }
 
     public boolean start(SkillExecution execution) {
         if (active() || releasing) return false;

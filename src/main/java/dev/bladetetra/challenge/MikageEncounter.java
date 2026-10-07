@@ -24,7 +24,6 @@ final class MikageEncounter {
     private final MikageStoryBridge story;
     // New authored follow-up links are deliberately deferred to the skill-pool discussion.
     private final ReactiveCombatDirector director = new ReactiveCombatDirector(List.of());
-    private MikageLegacySkillExecution execution;
     private boolean victoryPending;
 
     MikageEncounter(MikageEntity owner) {
@@ -35,7 +34,7 @@ final class MikageEncounter {
 
     MikageStoryBridge story() { return story; }
     boolean active() { return skills.active(); }
-    boolean isWindingUp() { return active() && execution != null && execution.windingUp(); }
+    boolean isWindingUp() { return skills.windingUp(); }
     boolean eligible(ServerPlayer player) { return observer.eligible(player); }
     void observeAttack(ServerPlayer player) { if (!lifecycle.terminal()) observer.attack(player); }
     void observeSlashArt(ServerPlayer player, String id) {
@@ -75,10 +74,9 @@ final class MikageEncounter {
         owner.bossBar().setProgress(owner.getHealth() / owner.getMaxHealth());
         MikageEncounterPresentation.syncHud(owner);
         Runnable effectsTick = () -> MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
-        if (active() && execution != null) execution.withScope(effectsTick);
+        if (active()) owner.attackTimeline().inScope(skills.scope(), effectsTick);
         else effectsTick.run();
         skills.tick();
-        if (!active()) execution = null;
 
         var combat = owner.combatDirector();
         if (!isWindingUp() && !owner.legacySkillBusy() && combat.techniqueCooldown > 0) combat.techniqueCooldown--;
@@ -132,15 +130,10 @@ final class MikageEncounter {
                 .min(Comparator.comparingDouble(player -> owner.distanceToSqr(player))).orElse(null);
     }
 
-    private boolean start(MikageLegacySkillExecution next) {
-        if (!skills.start(next)) return false;
-        execution = next;
-        return true;
-    }
+    private boolean start(SkillExecution next) { return skills.start(next); }
 
     private void stop(SkillExecution.StopReason reason) {
         skills.stop(reason);
-        execution = null;
     }
 
     void beforeDeath() {

@@ -2,7 +2,6 @@ package dev.bladetetra.challenge;
 
 import dev.bladetetra.challenge.mikage.CastScope;
 import dev.bladetetra.challenge.mikage.SkillExecution;
-import dev.bladetetra.challenge.mikage.SkillSpec;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -44,7 +43,7 @@ final class MikageLegacySkillExecution implements SkillExecution {
         this.technique = MikageEntity.Technique.NONE;
     }
 
-    boolean windingUp() { return !released; }
+    @Override public boolean windingUp() { return !released; }
     void withScope(Runnable task) { owner.attackTimeline().inScope(scope, task); }
 
     @Override public void start(CastScope scope) {
