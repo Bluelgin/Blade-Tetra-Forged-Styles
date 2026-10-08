@@ -83,7 +83,7 @@
 
 ## 技能池讨论前不做的内容
 
-除作者已经确认的千门追斩之外，暂不新增招式、改写剧情或定义御影最终连招表。现在只在前台技能结束、冷却和阶段保护允许时决定下一招；玩家的反制窗口继续存在。
+仅加入作者已经确认的千门追斩、千门回廊与千门剑潮，不擅自扩展技能池、改写剧情或定义御影最终连招表。现在只在前台技能结束、冷却和阶段保护允许时决定下一招；玩家的反制窗口继续存在。
 
 讨论技能时需确定：基础动作、前摇预警、判定范围、反制方式、后摇窗口、可衔接条件、持续场地物件和对应语音。随后由这些定义创建新的独立执行类，替换 legacy pool，而不是继续扩展旧效果 switch。
 
@@ -103,10 +103,14 @@ java -m jdk.compiler/com.sun.tools.javac.Main -d build/reactive-scenarios \
   src/main/java/dev/bladetetra/challenge/mikage/*.java \
   src/test/java/dev/bladetetra/challenge/mikage/MikageReactiveScenarios.java \
   src/test/java/dev/bladetetra/challenge/mikage/MikageDuelScenarios.java \
-  src/test/java/dev/bladetetra/challenge/mikage/MikageThousandGatesScenarios.java
+  src/test/java/dev/bladetetra/challenge/mikage/MikageThousandGatesScenarios.java \
+  src/test/java/dev/bladetetra/challenge/mikage/MikageCorridorScenarios.java \
+  src/test/java/dev/bladetetra/challenge/mikage/MikageGateBarrageScenarios.java
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageReactiveScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageDuelScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageThousandGatesScenarios
+java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageCorridorScenarios
+java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageGateBarrageScenarios
 ```
 
 完整验证使用 `./gradlew build`，并在游戏中检查单人/多人、转阶段、反制、离场、缺失实体恢复、回忆战和战后访客对话。
@@ -129,3 +133,20 @@ Client Combo B rotations are retargeted from Contract-Blade's native VMD samples
 Validation: `MikageCorridorScenarios` adds 44 assertions covering all three passes, native completion authority, the two-contact cap/interval/reset, parry after the damage cap, irreversible cancellation, shared short/full stagger and exactly-once cleanup. Focused modules have architecture budgets without increasing existing budgets.
 
 Manual game checks still required: ground and airborne targets; movement during approach versus committed B flight; torii cue/exit alignment and sampled hand/sword poses; parry at each B stage; normal and fifth-contact knockdowns; block edits across the route; two participants with the bystander swinging; target disconnect/dimension change and phase transition mid-flight; low VFX settings/resource reload; latency and native slash attachment. Automated builds do not establish visual quality or in-game timing.
+
+
+## 千门剑潮 / Gate Barrage
+
+御影在目标前方约 18 格选择可步行到达的门心位置；门宽约 14 格、高约 11 格。先显示 4 tick 竖线，再用 6 tick 拉开，复用千门追斩的鸟居几何形状。30 tick 蓄剑后开始连续扫射。技能进入反应式技能池，范围 0–48 格、仅地面目标可选，有独立 720 tick 冷却，不与其他前台技能同时释放。
+
+每 4 tick 发射五把原生幻影剑，分布在门内五条剑道，逐渐调整瞄准点；射出后沿直线飞行，无追踪。玩家用拔刀剑原生挥刀反弹流程抵挡，保留 `ArrowReflector.doReflect` 的原有速度和方向。反弹剑变为金色，并不再命中参战者、Boss 或核心：推进与破门仍需玩家近身完成。原生 TargetSelector 的 PvP 开关不应禁用 Boss 攻击，因此投射物使用独立 caster/cast 所有权、不设置 native shooter；命中只授权当前参战者，试炼伤害保留无敌帧和每人 10 tick 接触间隔，禁用原生 forceHit、眩晕与销毁范围药水效果。
+
+门心是脚下约 1.5 格高的可攻击独立目标。黑洞调用本体 `JudgementCutRenderer`，直接读取依赖里的 `slashblade:model/util/slashdim.obj` 和 `slashdim.png`，不复制或重画本体资源。客户端代理只用于渲染，从不加入世界或 tick；没有次元斩伤害、拉扯或额外碰撞。动画按本体 15/28 tick 周期的公倍数循环，持续战斗不会因 native lifetime 耗尽而变透明。核心与鸟居使用实体同步数据，支持后来加入和重新进入视距，无需累计演出包；关闭装饰 VFX 仍显示破门目标与门框。
+
+破核需要三次独立持剑输入，且玩家距门心水平不超过 2.75 格、垂直不超过 2 格、视线通畅。仅接收直接近战或玩家原生近战斩击；远程次元斩、幻影剑、换刀、过期输入、自动连击阶段推进和同次挥刀的多段伤害不会额外计数。输入最长有效 20 tick，同 tick 事件去重，两次核心伤害至少间隔 12 tick。每次命中核心变色、播放破裂音和进度提示，并暂停新剑发射 12 tick；已射出的剑继续飞行。第三次立即清除本次全部幻影剑，鸟居在 16 tick 内收成竖线消失，御影进入共用恢复时钟的 60 tick 硬直；普通失衡计数保留，受击仍可加速恢复。
+
+多人共用门心和三次破坏进度，各玩家输入/伤害保护独立。主目标离场会将扫射转向另一位合法参战者，剩余参战者仍可破门；无合法参战者则取消。没有普通时限、闪避次数或波次耗尽结束条件。无有效门位则放弃该次释放；完整门框和通往中心的步行路径检查场地范围、区块、世界边界、障碍、液体、脚下支撑，持续每 20 tick 复检地形。转阶段、战斗结束、异常、实体丢失、地形失效或取消均回收核心与所有剑。每次最多 64 把活剑，寿命 80 tick；清理保存有界活集合，不为无限剑潮积累清理回调。存档重载后不存在的 cast 不会恢复攻击，孤儿实体首 tick 自行消失。
+
+`MikageGateBarrageScenarios` 新增 53 个断言，覆盖预警、长期不断流、实体预算、三次多人独立输入、重复事件、多段伤害、暂停边界、换刀/过期/未来输入、接触间隔与离场隔离、破门演出结束、阶段/目标丢失/取消的一次性清理。加上此前四组，纯 Java 战斗场景共 219 个断言。独立模块设有架构预算；MikageEntity 保持 385 行。剧情、对话、语音、奖励与访客接口保持原样。
+
+仍需游戏内验证：本体不同普攻连击的反弹体验、PvP 关闭时伤害与反弹、输入冷却及多段斩击、门心可达性、门框/黑洞/金色反弹剑演出、迟加入与延迟、多人转移目标及共同破门、地形改动、转阶段/退出/重载和低特效设置。自动化场景与完整构建不替代游戏内视觉和手感测试。

@@ -1055,5 +1055,9 @@
   "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "Blood Sakura Final Scene \"Lifeless\" · SA + Life Erosion · SE",
   "message.blade_tetra.mikage.duel_parry": "Parry (%s/%s)",
   "message.blade_tetra.mikage.thousand_gates": "Thousand Gates · Consecutive parries %s/%s",
-  "message.blade_tetra.mikage.gate_corridor": "Gate Corridor — watch the entrance; parry to knock Mikage off her sword!"
+  "message.blade_tetra.mikage.gate_corridor": "Gate Corridor — watch the entrance; parry to knock Mikage off her sword!",
+  "entity.blade_tetra.mikage_gate_core": "Thousand Gates · Dimension Core",
+  "entity.blade_tetra.mikage_gate_sword": "Gate Phantom Sword",
+  "message.blade_tetra.mikage.gate_barrage": "Gate Barrage — reflect with sword attacks and approach the core to break it!",
+  "message.blade_tetra.mikage.gate_core": "Core fractures %s/%s"
 }

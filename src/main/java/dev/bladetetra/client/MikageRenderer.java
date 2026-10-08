@@ -116,6 +116,9 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
             event.registerEntityRenderer(ModEntities.MIKAGE_PHANTOM_SWORD.get(),
                     MikagePhantomSwordRenderer::new);
             event.registerEntityRenderer(ModEntities.MIKAGE_ECHO.get(), MikageEchoRenderer::new);
+            event.registerEntityRenderer(ModEntities.MIKAGE_GATE_CORE.get(), MikageGateCoreRenderer::new);
+            event.registerEntityRenderer(ModEntities.MIKAGE_GATE_SWORD.get(),
+                    context -> new mods.flammpfeil.slashblade.client.renderer.entity.SummonedSwordRenderer<>(context));
         }
     }
 }

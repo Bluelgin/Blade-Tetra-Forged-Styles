@@ -34,23 +34,8 @@ final class MikageThousandGatesVfxRenderer {
                     color(1,.65F,.18F,fade),32);
             return;
         }
-        // Same proportions as BladeTechniqueVfxGeometry.drawTorii, scaled to a character doorway.
-        for (int side : new int[]{-1,1}) {
-            Vec3 base = at.add(right.scale(side * .81 * spread));
-            bandFacing(b,m,base,base.add(0,1.89,0),camera,.065,red);
-            bandFacing(b,m,base,base.add(0,1.89,0),camera,.018,white);
-        }
-        bar(b,m,at.add(0,1.59,0),right,1.05*spread,camera,red,white);
-        bar(b,m,at.add(0,1.95,0),right,1.23*spread,camera,red,white);
-        Vec3 left = at.add(right.scale(-.76*spread)), r = at.add(right.scale(.76*spread));
-        quad(b,m,left.add(0,.02,0),r.add(0,.02,0),r.add(0,1.8,0),left.add(0,1.8,0),
-                color(.42F,.65F,1,fade*.13F));
-        bandFacing(b,m,at.add(0,.03,0),at.add(0,1.8,0),camera,.018,white);
-    }
-    private static void bar(BufferBuilder b, Matrix4f m, Vec3 at, Vec3 right,
-            double half, Vec3 camera, int red, int white) {
-        Vec3 l=at.subtract(right.scale(half)),r=at.add(right.scale(half));
-        bandFacing(b,m,l,r,camera,.065,red); bandFacing(b,m,l,r,camera,.018,white);
+        dev.bladetetra.client.vfx.render.MikageToriiMesh.draw(b, m, at, right, camera, 1, spread,
+                red, white, color(.42F, .65F, 1, fade * .13F));
     }
     static void texture(BufferBuilder b, Matrix4f m, MikageThousandGatesVfxClient.Scene s,
             float partial, Vec3 camera) {

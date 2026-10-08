@@ -120,6 +120,13 @@ final class MikageDuelDefense {
         if (broken) owner.presentation().balanceBroken();
     }
 
+    void gateCoreBroken() {
+        state.openStagger(now(), 60);
+        owner.encounter().breakDuelBalance(); showingStagger = true;
+        owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
+        owner.presentation().balanceBroken();
+    }
+
     void hitAccepted() {
         boolean recovering = staggered();
         state.hitAccepted(now());

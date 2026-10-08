@@ -31,7 +31,10 @@ public final class MikageDuelEvents {
     public static void motion(BladeMotionEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !meleeMotion(event.getCombo())) return;
         MikageEntity boss = ChallengeManager.combatBoss(player);
-        if (boss != null) boss.duel().swing(player, true);
+        if (boss != null) {
+            boss.duel().swing(player, true);
+            var barrage = boss.encounter().barrage(); if (barrage != null) barrage.swing(player, true);
+        }
     }
 
     private static boolean meleeMotion(ResourceLocation combo) {

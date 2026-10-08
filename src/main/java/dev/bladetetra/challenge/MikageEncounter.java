@@ -41,7 +41,8 @@ final class MikageEncounter {
     boolean isWindingUp() { return skills.windingUp(); }
     MikageThousandGatesExecution gates() { return skills.execution(MikageThousandGatesExecution.class); }
     MikageGateCorridorExecution corridor() { return skills.execution(MikageGateCorridorExecution.class); }
-    boolean portalSkill() { return gates() != null || corridor() != null; }
+    MikageGateBarrageExecution barrage() { return skills.execution(MikageGateBarrageExecution.class); }
+    boolean portalSkill() { return gates() != null || corridor() != null || barrage() != null; }
     boolean eligible(ServerPlayer player) { return observer.eligible(player); }
     void observeAttack(ServerPlayer player) { if (!lifecycle.terminal()) observer.attack(player); }
     void observeSlashArt(ServerPlayer player, String id) {

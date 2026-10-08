@@ -1043,5 +1043,9 @@
   "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "血樱终景「无生」 · SA + 命蚀 · SE",
   "message.blade_tetra.mikage.duel_parry": "振刀成功（%s/%s）",
   "message.blade_tetra.mikage.thousand_gates": "千门追斩 · 连续振刀 %s/%s",
-  "message.blade_tetra.mikage.gate_corridor": "千门回廊——看清入口，振刀击落御影！"
+  "message.blade_tetra.mikage.gate_corridor": "千门回廊——看清入口，振刀击落御影！",
+  "entity.blade_tetra.mikage_gate_core": "千门·次元核心",
+  "entity.blade_tetra.mikage_gate_sword": "千门幻影剑",
+  "message.blade_tetra.mikage.gate_barrage": "千门剑潮——挥刀反弹，靠近门心破坏核心！",
+  "message.blade_tetra.mikage.gate_core": "门心破坏 %s/%s"
 }
