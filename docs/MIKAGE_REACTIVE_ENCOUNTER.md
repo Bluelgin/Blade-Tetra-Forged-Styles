@@ -1,6 +1,6 @@
 # 御影重做：反应式战斗运行时
 
-本 PR 是整只 Boss 重做的第一阶段：把战斗流程、玩家行为观察、选招、释放生命周期和清理边界接入实际御影实体。新的技能内容和具体连招图留待作者讨论；当前通过显式 legacy adapter 运行已有技能，保持一个可运行的过渡版本。
+本 PR 是整只 Boss 重做的第一阶段：把战斗流程、玩家行为观察、选招、释放生命周期和清理边界接入实际御影实体。当前已加入格挡振刀与作者确认的第一个新技能“千门追斩”；其余技能通过显式 legacy adapter 运行，之后逐步替换。
 
 ## 当前实现
 
@@ -50,6 +50,21 @@
 - 原生刀光/次元斩会把伤害源改成玩家，`MikageBladeAttackTrace` 与 mixin
   保留正在执行的实体和出生持剑，避免把远程次元斩当作正面剑击。
 
+## 新技能：千门追斩
+
+`MikageSkillSelection` 将新技能与旧池合并后交给同一个反应式导演。千门追斩在各阶段开放，距离不超过 32 格，有独立的 400 tick 起手冷却；后退、持续攻击和滞空的已观察证据提高其选择分数。执行状态全部属于本次 `MikageThousandGatesExecution`，不往旧 technique holder 添加时钟。
+
+1. 御影用 12 tick 进入千门。随后门、本体、持刀层与被动剑轮显示全部消失；藏身期间关闭实体碰撞与受击，保留 Boss 血条。
+2. 从锁定玩家周围采样 3.6 格的出现位置。检查场地边界、世界边界、已加载区块、实体空间、液体、站立支撑（地面目标）和至目标的无遮挡刀路；空中目标允许悬空交锋。不在其他玩家身上出现。找不到有效位置就继续藏身重试，不能攻击。
+3. 位置确定后，向目标玩家发送该坐标的空间音效；没有声源箭头或提前亮门。经过提示时间，再验证该位置，显形并响起拔刀声。此时锁定方向，之后不追踪玩家转向。位置失效则重新寻找，不从另一处突然攻击。
+4. 提示与显形准备分别从 16/8 tick，依连续成功次数缩短到 8/4 tick；最快三轮以后的提示仍可听辨。出刀使用服务器单目标近战锥与遮挡校验，复用现有红白斩弧贴图，视觉不生成有伤害或附带眩晕的原生实体。
+5. 新输入、同一把剑、面向来刀且位于刀路内才能振刀。每轮只消费一次输入；专用确认不会增加普通失衡计数，旧保护不会自动挡住新的追斩。保护继续挡住御影的其他重复伤害。
+6. 振刀成功后，御影退入千门再追；闪避或伤害未被接受会清零连续成功次数并恢复首轮节奏，追斩继续，没有次数或总时长耗尽的自动结束。仅本招实际命中目标，或连续成功五次，结束攻击循环。命中保留 6 tick 收刀演出；第五次成功直接给予 100 tick 大硬直并碎门，不受此前普通失衡次数影响。
+
+一次技能只锁定一名参战者：旁人不参与此刀的伤害或振刀判定，也不能替目标累加连续次数。空间提示私发目标；门、斩弧和碎裂演出供参战者观看。本次未引入多人分身，其技能调度仍需后续讨论。
+
+转阶段、死亡、离场、取消或异常恢复原先的隐身、静音、重力和碰撞标记，关闭本次 scope 并清除客户端演出。旧剑轮反击、SA 与次元斩适应不会在这段交锋中插入技能。客户端通过 `ModularTechniqueVfxPacket` 的资源 ID 注册独立演出，场景有容量上限，关闭特效、换世界和资源重载会回收；不增加旧整数包或旧渲染 switch。
+
 ## 必须保留的剧情接口
 
 `MikageStoryBridge` 继续调用原有 `ChallengeManager.queueDialogue` 和 `ChallengeManager.onMikageDefeated`。开场、胜利、失败、访客与神域对话的文本、语音、节点、奖励和首通 NBT 没有重写。
@@ -68,13 +83,15 @@
 
 ## 技能池讨论前不做的内容
 
-不新增招式、改写剧情、定义御影最终连招表，或取消后摇来追求瞬间反应。现在只在前台技能结束、冷却和阶段保护允许时决定下一招；玩家的反制窗口继续存在。
+除作者已经确认的千门追斩之外，暂不新增招式、改写剧情或定义御影最终连招表。现在只在前台技能结束、冷却和阶段保护允许时决定下一招；玩家的反制窗口继续存在。
 
 讨论技能时需确定：基础动作、前摇预警、判定范围、反制方式、后摇窗口、可衔接条件、持续场地物件和对应语音。随后由这些定义创建新的独立执行类，替换 legacy pool，而不是继续扩展旧效果 switch。
 
 ## 验证
 
 `MikageDuelScenarios` 覆盖挥刀窗口边界、单次消费、换刀、多人保护隔离、格挡冷却、多次接触去重、五次失衡、受击加速恢复和清理。
+
+`MikageThousandGatesScenarios` 覆盖五次连续成功、逐轮加速、闪避重置与上千轮仍继续追击、每轮命中结束、失效位置重试、普通失衡计数隔离、保护内仍需新输入，以及释放类型查找和取消清理。游戏内还需实测立体声定位、瞬移插值、空战、两名玩家互相穿过刀路、地形变化和关闭 VFX。
 
 `MikageReactiveScenarios` 覆盖玩家证据隔离/衰减、重复攻击去重、合法技能过滤、反应式选择、条件衔接重新判断、目标切换、单释放所有权、取消与资源清理、异常清理、阶段单向推进和恢复。它也由 JUnit 测试调用。
 
@@ -84,8 +101,12 @@
 mkdir -p build/reactive-scenarios
 java -m jdk.compiler/com.sun.tools.javac.Main -d build/reactive-scenarios \
   src/main/java/dev/bladetetra/challenge/mikage/*.java \
-  src/test/java/dev/bladetetra/challenge/mikage/MikageReactiveScenarios.java
+  src/test/java/dev/bladetetra/challenge/mikage/MikageReactiveScenarios.java \
+  src/test/java/dev/bladetetra/challenge/mikage/MikageDuelScenarios.java \
+  src/test/java/dev/bladetetra/challenge/mikage/MikageThousandGatesScenarios.java
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageReactiveScenarios
+java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageDuelScenarios
+java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageThousandGatesScenarios
 ```
 
 完整验证使用 `./gradlew build`，并在游戏中检查单人/多人、转阶段、反制、离场、缺失实体恢复、回忆战和战后访客对话。

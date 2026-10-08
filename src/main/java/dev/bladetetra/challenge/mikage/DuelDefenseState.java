@@ -43,14 +43,20 @@ public final class DuelDefenseState<T> {
 
     /** One confirmed sword contact; simultaneous multi-hit contacts cannot fill the meter. */
     public boolean parried(UUID player, long now) {
-        protection.put(player, now + PROTECTION_TICKS);
+        protect(player, now);
         if (staggered(now) || lastParry != Long.MIN_VALUE && now - lastParry < 4) return false;
         lastParry = now;
         if (++progress < REQUIRED_PARRIES) return false;
+        breakBalance(now);
+        return true;
+    }
+
+    public void protect(UUID player, long now) { protection.put(player, now + PROTECTION_TICKS); }
+    public void breakBalance(long now) {
         progress = 0;
+        lastParry = now;
         staggerUntil = now + STAGGER_TICKS;
         cancelGuard();
-        return true;
     }
 
     public boolean staggered(long now) { return now < staggerUntil; }

@@ -10,6 +10,9 @@ public final class SkillRunner {
     public boolean active() { return active != null; }
     public boolean windingUp() { return active != null && active.windingUp(); }
     public CastScope scope() { return scope; }
+    public <T extends SkillExecution> T execution(Class<T> type) {
+        return type.isInstance(active) ? type.cast(active) : null;
+    }
 
     public boolean start(SkillExecution execution) {
         if (active() || releasing) return false;

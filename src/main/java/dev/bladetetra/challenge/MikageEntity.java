@@ -50,6 +50,8 @@ public final class MikageEntity extends Monster {
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> WITHIN_THOUSAND_GATES =
+            SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private final ServerBossEvent bossBar = new ServerBossEvent(
             Component.translatable("entity.blade_tetra.mikage"),
             BossEvent.BossBarColor.RED,
@@ -135,6 +137,7 @@ public final class MikageEntity extends Monster {
         entityData.define(SWORD_WHEEL_COUNT, 6);
         entityData.define(SWORD_WHEEL_DEPLOYED, false);
         entityData.define(VISITOR_GUIDE, false);
+        entityData.define(WITHIN_THOUSAND_GATES, false);
     }
 
     public MikageAction getAction() {
@@ -202,6 +205,9 @@ public final class MikageEntity extends Monster {
     public boolean isVisitorGuide() {
         return entityData.get(VISITOR_GUIDE);
     }
+
+    public boolean isWithinThousandGates() { return entityData.get(WITHIN_THOUSAND_GATES); }
+    void setWithinThousandGates(boolean hidden) { entityData.set(WITHIN_THOUSAND_GATES, hidden); }
 
     boolean dealTrialDamage(ServerPlayer player, float rawDamage, boolean guarded) {
         return damageService.dealTrialDamage(player, rawDamage, guarded);

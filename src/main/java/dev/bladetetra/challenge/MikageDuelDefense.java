@@ -26,7 +26,11 @@ final class MikageDuelDefense {
     MikageDuelDefense(MikageEntity owner) { this.owner = owner; }
     private long now() { return owner.level().getGameTime(); }
     boolean staggered() { return state.staggered(now()); }
-    boolean protects(ServerPlayer player) { return eligible(player) && state.protects(player.getUUID(), now()); }
+    boolean protects(ServerPlayer player) {
+        var pursuit = owner.encounter().gates();
+        return eligible(player) && (pursuit == null || !pursuit.striking(player))
+                && state.protects(player.getUUID(), now());
+    }
     private boolean eligible(ServerPlayer player) {
         return owner.isAlive() && !owner.isVisitorGuide() && owner.encounter().eligible(player);
     }
@@ -86,6 +90,24 @@ final class MikageDuelDefense {
             owner.setAction(MikageEntity.MikageAction.IDLE, 1);
             owner.combatDirector().techniqueCooldown = Math.max(20, owner.combatDirector().techniqueCooldown);
         }
+    }
+
+    /** New pursuit rounds consume fresh input even inside the previous contact's protection. */
+    boolean parryPursuit(ServerPlayer player, Vec3 origin) {
+        if (!eligible(player) || !front(player.position())
+                || !facing(player.getLookAngle(), origin.subtract(player.position()))
+                || !state.consumeSwing(player.getUUID(), now(), player.getMainHandItem())) return false;
+        state.protect(player.getUUID(), now());
+        owner.presentation().swordContact(player, true);
+        return true;
+    }
+
+    void breakPursuitBalance() {
+        state.breakBalance(now());
+        owner.encounter().breakDuelBalance();
+        showingStagger = true;
+        owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
+        owner.presentation().balanceBroken();
     }
 
     void hitAccepted() {

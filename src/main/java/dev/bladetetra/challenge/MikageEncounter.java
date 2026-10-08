@@ -24,6 +24,7 @@ final class MikageEncounter {
     private final SkillRunner skills = new SkillRunner();
     private final MikagePlayerObserver observer;
     private final MikageStoryBridge story;
+    private final MikageSkillSelection selection;
     // New authored follow-up links are deliberately deferred to the skill-pool discussion.
     private final ReactiveCombatDirector director = new ReactiveCombatDirector(List.of());
     private boolean victoryPending;
@@ -32,11 +33,13 @@ final class MikageEncounter {
         this.owner = owner;
         observer = new MikagePlayerObserver(owner);
         story = new MikageStoryBridge(owner);
+        selection = new MikageSkillSelection(owner);
     }
 
     MikageStoryBridge story() { return story; }
     boolean active() { return skills.active(); }
     boolean isWindingUp() { return skills.windingUp(); }
+    MikageThousandGatesExecution gates() { return skills.execution(MikageThousandGatesExecution.class); }
     boolean eligible(ServerPlayer player) { return observer.eligible(player); }
     void observeAttack(ServerPlayer player) { if (!lifecycle.terminal()) observer.attack(player); }
     void observeSlashArt(ServerPlayer player, String id) {
@@ -86,7 +89,8 @@ final class MikageEncounter {
         StunManager.removeStun(owner);
         owner.getPersistentData().remove("knockback_factor");
         if (owner.techniqueRuntime().aerialTicks == 0
-                && owner.arenaController().boundarySlashDelay == 0 && owner.isNoGravity()) owner.setNoGravity(false);
+                && owner.arenaController().boundarySlashDelay == 0 && gates() == null
+                && owner.isNoGravity()) owner.setNoGravity(false);
 
         if (lifecycle.state() != EncounterLifecycle.State.TRANSITION
                 && lifecycle.observeHealth(owner.getHealth() / owner.getMaxHealth())) {
@@ -138,14 +142,12 @@ final class MikageEncounter {
         ServerPlayer target = target(server);
         if (target == null) return;
         var decision = director.choose(observer.observation(target),
-                MikageLegacySkillPool.available(owner, target, lifecycle.phase()), () -> owner.getRandom().nextDouble());
+                selection.available(target, lifecycle.phase()), () -> owner.getRandom().nextDouble());
         if (decision == null) return;
-        var technique = MikageLegacySkillPool.technique(decision.skill());
-        var spec = MikageLegacySkillPool.spec(technique);
+        var spec = selection.spec(decision.skill());
         owner.setTarget(target);
-        owner.legacyEffects().lockBladeTarget(target);
         owner.lookAt(target, 180, 180);
-        if (start(new MikageLegacySkillExecution(owner, technique, target,
+        if (start(selection.create(decision.skill(), target,
                 () -> director.committed(spec, target.getUUID())))) {
             LOGGER.debug("Mikage decision: challenge={}, target={}, skill={}, score={}, reasons={}",
                     owner.getPersistentData().getLong("blade_tetra_challenge"), target.getUUID(),

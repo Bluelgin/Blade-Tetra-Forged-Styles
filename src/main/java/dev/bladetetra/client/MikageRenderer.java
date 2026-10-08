@@ -32,6 +32,7 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
     @Override
     public void render(MikageEntity entity, float yaw, float partialTick, PoseStack pose,
             MultiBufferSource buffers, int light) {
+        if (entity.isWithinThousandGates()) return;
         if (entity.isMoonEchoActive()) {
             pose.pushPose();
             pose.translate(0.0D, 1.1D, 0.0D);

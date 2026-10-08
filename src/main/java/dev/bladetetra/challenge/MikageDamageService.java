@@ -103,7 +103,7 @@ final class MikageDamageService {
     }
 
     boolean hurt(DamageSource source, float amount, HurtOperation vanillaHurt) {
-        if (owner.isVisitorGuide()) {
+        if (owner.isVisitorGuide() || owner.isWithinThousandGates()) {
             return false;
         }
         if (Float.isNaN(amount) || amount <= 0.0F) {
@@ -150,7 +150,8 @@ final class MikageDamageService {
         }
         if (attacker instanceof LivingEntity living && owner.distanceToSqr(living) <= 25.0D
                 && defense.swordWheelBreakTicks <= 0 && combat.signatureRecoveryTicks <= 0
-                && techniques.interactionOpeningTicks <= 0 && !owner.duel().staggered()) {
+                && techniques.interactionOpeningTicks <= 0 && !owner.duel().staggered()
+                && owner.encounter().gates() == null) {
             owner.swordWheel().registerClosePressure(living);
             if (owner.isSwordWheelDeployed() && defense.swordWheelCounterCooldown <= 0) {
                 defense.swordWheelCounterCooldown = 14;
