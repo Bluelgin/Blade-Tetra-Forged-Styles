@@ -28,7 +28,8 @@ final class MikageDuelDefense {
     boolean staggered() { return state.staggered(now()); }
     boolean protects(ServerPlayer player) {
         var pursuit = owner.encounter().gates();
-        return eligible(player) && (pursuit == null || !pursuit.striking(player))
+        var corridor = owner.encounter().corridor();
+        return eligible(player) && (corridor == null || !corridor.striking(player)) && (pursuit == null || !pursuit.striking(player))
                 && state.protects(player.getUUID(), now());
     }
     private boolean eligible(ServerPlayer player) {
@@ -108,6 +109,15 @@ final class MikageDuelDefense {
         showingStagger = true;
         owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
         owner.presentation().balanceBroken();
+    }
+
+    void corridorLanded(ServerPlayer player) {
+        boolean broken = state.parried(player.getUUID(), now());
+        if (!broken) state.openStagger(now(), 40);
+        owner.encounter().breakDuelBalance();
+        showingStagger = true;
+        owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
+        if (broken) owner.presentation().balanceBroken();
     }
 
     void hitAccepted() {

@@ -59,6 +59,8 @@ public final class DuelDefenseState<T> {
         cancelGuard();
     }
 
+    /** A knockdown retains earned progress and uses the same recovery clock as full balance break. */
+    public void openStagger(long now, int duration) { staggerUntil = now + duration; cancelGuard(); }
     public boolean staggered(long now) { return now < staggerUntil; }
     public int staggerRemaining(long now) { return (int) Math.max(0, staggerUntil - now); }
     public int progress(long now) { return staggered(now) ? REQUIRED_PARRIES : progress; }

@@ -1042,5 +1042,6 @@
   "tetra/schematic/slashblade/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "调律异传·炼狱刀死念",
   "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "血樱终景「无生」 · SA + 命蚀 · SE",
   "message.blade_tetra.mikage.duel_parry": "振刀成功（%s/%s）",
-  "message.blade_tetra.mikage.thousand_gates": "千门追斩 · 连续振刀 %s/%s"
+  "message.blade_tetra.mikage.thousand_gates": "千门追斩 · 连续振刀 %s/%s",
+  "message.blade_tetra.mikage.gate_corridor": "千门回廊——看清入口，振刀击落御影！"
 }

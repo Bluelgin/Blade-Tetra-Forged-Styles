@@ -65,7 +65,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     float handleSlashArtPressure(LivingEntity attacker) {
-        if (owner.duel().staggered() || owner.encounter().gates() != null) return 1.0F;
+        if (owner.duel().staggered() || owner.encounter().portalSkill()) return 1.0F;
         long now = owner.level().getGameTime();
         if (attacker.getPersistentData().getLong(MikageCounterEvents.SA_UNTIL) < now) {
             return 1.0F;
@@ -117,7 +117,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     void registerJudgementCutCast(LivingEntity attacker) {
-        if (owner.encounter().gates() != null) return;
+        if (owner.encounter().portalSkill()) return;
         long now = owner.level().getGameTime();
         JudgementPattern pattern = defense.judgementPatterns.computeIfAbsent(
                 attacker.getUUID(), id -> new JudgementPattern());
@@ -164,7 +164,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     float judgementCutDamageMultiplier(LivingEntity attacker) {
-        if (owner.duel().staggered() || owner.encounter().gates() != null) return 1.0F;
+        if (owner.duel().staggered() || owner.encounter().portalSkill()) return 1.0F;
         JudgementPattern pattern = defense.judgementPatterns.get(attacker.getUUID());
         if (pattern == null) {
             return 1.0F;
@@ -179,7 +179,7 @@ final class MikageLegacyCounterRuntime {
     }
 
     boolean isJudgementCutBlocked(LivingEntity attacker) {
-        if (owner.encounter().gates() != null) return false;
+        if (owner.encounter().portalSkill()) return false;
         JudgementPattern pattern = defense.judgementPatterns.get(attacker.getUUID());
         return pattern != null && owner.level().getGameTime() < pattern.blockedUntil;
     }

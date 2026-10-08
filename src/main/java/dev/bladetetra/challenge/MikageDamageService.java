@@ -151,7 +151,7 @@ final class MikageDamageService {
         if (attacker instanceof LivingEntity living && owner.distanceToSqr(living) <= 25.0D
                 && defense.swordWheelBreakTicks <= 0 && combat.signatureRecoveryTicks <= 0
                 && techniques.interactionOpeningTicks <= 0 && !owner.duel().staggered()
-                && owner.encounter().gates() == null) {
+                && !owner.encounter().portalSkill()) {
             owner.swordWheel().registerClosePressure(living);
             if (owner.isSwordWheelDeployed() && defense.swordWheelCounterCooldown <= 0) {
                 defense.swordWheelCounterCooldown = 14;

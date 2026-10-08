@@ -19,7 +19,10 @@ public final class MikageCastEntityEvents {
         Entity owner = entity instanceof EntityAbstractSummonedSword sword ? sword.getShooter()
                 : entity instanceof EntityJudgementCut cut ? cut.getOwner()
                 : entity instanceof EntitySlashEffect slash ? slash.getShooter() : null;
-        if (owner instanceof MikageEntity mikage) mikage.attackTimeline().ownSpawn(entity);
+        if (owner instanceof MikageEntity mikage) {
+            var corridor = mikage.encounter().corridor();
+            if (corridor == null || !corridor.combo.capture(entity)) mikage.attackTimeline().ownSpawn(entity);
+        }
     }
 
     private MikageCastEntityEvents() {}

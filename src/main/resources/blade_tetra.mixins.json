@@ -14,6 +14,8 @@
     "SpeedEfficiencySuperSaMixin",
     "HeavyRainSwordSafetyMixin",
     "MikageSlashProvenanceMixin",
+    "MikageNativeTimelineMixin",
+    "MikageNativeTargetsMixin",
     "MirrorIceMixin",
     "SwordTypeMixin"
   ],

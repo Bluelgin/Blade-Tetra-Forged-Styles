@@ -110,3 +110,22 @@ java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageThousand
 ```
 
 完整验证使用 `./gradlew build`，并在游戏中检查单人/多人、转阶段、反制、离场、缺失实体恢复、回忆战和战后访客对话。
+
+
+## 千门回廊 / Gate Corridor
+
+`MikageGateCorridorExecution` is a complete foreground release: six cueable torii, three sword-riding passes, registered SlashBlade B1–B7 on every pass, exit traversal, landing and recovery. The target UUID stays fixed for the release. The director can select it within 48 blocks, with its own 480-tick cooldown. It cannot overlap Thousand Gates Pursuit.
+
+Deployment lasts 24 ticks. Entrance cues last 16/14/12 ticks, with a 10-tick interval between passes. Each approach may adjust toward the target while the complete replacement route remains clear. Upon entering the attack segment, its direction and height are committed. B ends through the native registry's next-input gate, including the complete B7 finisher; no authored timer truncates the combo. Uninterrupted releases typically last roughly 12–15 seconds, depending on approach and landing height.
+
+Native slash entities supply original timing, shapes and ratios. A scoped native TargetSelector adapter resolves only the locked participant, checks native bounds and line of sight, and applies trial damage before returning an empty native target list. This prevents native forceHit/stun/knockback and duplicate damage from overriding encounter rules. Two confirmed damage contacts per pass, at least ten ticks apart. Native slash visuals follow the rider; the enlarged summoned sword beneath her feet is decorative and has no separate hit box. Other participants may damage Mikage but cannot receive or parry this release's slashes.
+
+A fresh sword parry during any native contact cancels all remaining passes and native slashes. The sword flies forward then breaks; Mikage descends. Landing awards one shared parry-meter contact and a 40-tick stagger, or the existing 100-tick full balance break when the meter reaches five. These use one recovery clock, retaining the existing hit-accelerated recovery. Ordinary dodges and damage contacts do not cancel the release.
+
+`MikageCorridorRoute` checks arena bounds, loaded chunks, world border, blocks and fluids along the entire swept body before cue/arrival and before every movement. Entrances cannot overlap a player. Invalid terrain aborts safely; no silent relocation to a different cued entrance. Target loss, phase changes, defeat, normal completion and cancellation restore gravity/visibility/silence, remove owned native slashes and fade the cast's client scenes. A 600-tick watchdog prevents indefinitely chasing a continually moving target. Persistent six-gate scenes are bounded and cleared on world change or resource reload, and honor the combat VFX settings.
+
+Client Combo B rotations are retargeted from Contract-Blade's native VMD samples onto Mikage's arm rig; legs retain the sword-riding stance. Code adaptation is covered by the existing Contract-Blade MIT notice. Animation attribution is bundled separately in `META-INF/licenses/SlashBlade-animation-MIT.txt` (Mysterious Mountain Forging-shop Group, 2024). Story/dialogue/voice/reward and visitor flows are unchanged.
+
+Validation: `MikageCorridorScenarios` adds 43 assertions covering all three passes, native completion authority, the two-contact cap/interval/reset, parry after the damage cap, irreversible cancellation, shared short/full stagger and exactly-once cleanup. Focused modules have architecture budgets without increasing existing budgets.
+
+Manual game checks still required: ground and airborne targets; movement during approach versus committed B flight; torii cue/exit alignment and sampled hand/sword poses; parry at each B stage; normal and fifth-contact knockdowns; block edits across the route; two participants with the bystander swinging; target disconnect/dimension change and phase transition mid-flight; low VFX settings/resource reload; latency and native slash attachment. Automated builds do not establish visual quality or in-game timing.

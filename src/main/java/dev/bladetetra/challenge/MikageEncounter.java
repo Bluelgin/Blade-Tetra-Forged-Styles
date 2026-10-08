@@ -40,6 +40,8 @@ final class MikageEncounter {
     boolean active() { return skills.active(); }
     boolean isWindingUp() { return skills.windingUp(); }
     MikageThousandGatesExecution gates() { return skills.execution(MikageThousandGatesExecution.class); }
+    MikageGateCorridorExecution corridor() { return skills.execution(MikageGateCorridorExecution.class); }
+    boolean portalSkill() { return gates() != null || corridor() != null; }
     boolean eligible(ServerPlayer player) { return observer.eligible(player); }
     void observeAttack(ServerPlayer player) { if (!lifecycle.terminal()) observer.attack(player); }
     void observeSlashArt(ServerPlayer player, String id) {
@@ -89,7 +91,7 @@ final class MikageEncounter {
         StunManager.removeStun(owner);
         owner.getPersistentData().remove("knockback_factor");
         if (owner.techniqueRuntime().aerialTicks == 0
-                && owner.arenaController().boundarySlashDelay == 0 && gates() == null
+                && owner.arenaController().boundarySlashDelay == 0 && !portalSkill()
                 && owner.isNoGravity()) owner.setNoGravity(false);
 
         if (lifecycle.state() != EncounterLifecycle.State.TRANSITION

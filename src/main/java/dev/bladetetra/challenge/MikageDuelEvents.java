@@ -52,8 +52,11 @@ public final class MikageDuelEvents {
     public static void protect(LivingAttackEvent event) {
         var direct = event.getSource().getDirectEntity();
         var traced = MikageBladeAttackTrace.projectile();
-        if ((direct != null && direct.getPersistentData().getBoolean(VISUAL_ONLY))
-                || (traced != null && traced.getPersistentData().getBoolean(VISUAL_ONLY))) {
+        boolean corridorHit = event.getEntity() instanceof ServerPlayer player
+                && event.getSource().getEntity() instanceof MikageEntity boss
+                && boss.encounter().corridor() != null && boss.encounter().corridor().striking(player);
+        if (!corridorHit && ((direct != null && direct.getPersistentData().getBoolean(VISUAL_ONLY))
+                || (traced != null && traced.getPersistentData().getBoolean(VISUAL_ONLY)))) {
             event.setCanceled(true);
             return;
         }

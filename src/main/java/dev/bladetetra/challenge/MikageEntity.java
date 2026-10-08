@@ -52,6 +52,12 @@ public final class MikageEntity extends Monster {
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> WITHIN_THOUSAND_GATES =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> RIDING_PHANTOM_SWORD =
+            SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> NATIVE_COMBO_STAGE =
+            SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Long> NATIVE_COMBO_START =
+            SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.LONG);
     private final ServerBossEvent bossBar = new ServerBossEvent(
             Component.translatable("entity.blade_tetra.mikage"),
             BossEvent.BossBarColor.RED,
@@ -138,6 +144,9 @@ public final class MikageEntity extends Monster {
         entityData.define(SWORD_WHEEL_DEPLOYED, false);
         entityData.define(VISITOR_GUIDE, false);
         entityData.define(WITHIN_THOUSAND_GATES, false);
+        entityData.define(RIDING_PHANTOM_SWORD, false);
+        entityData.define(NATIVE_COMBO_STAGE, 0);
+        entityData.define(NATIVE_COMBO_START, 0L);
     }
 
     public MikageAction getAction() {
@@ -206,6 +215,13 @@ public final class MikageEntity extends Monster {
         return entityData.get(VISITOR_GUIDE);
     }
 
+    public boolean isRidingPhantomSword() { return entityData.get(RIDING_PHANTOM_SWORD); }
+    void setRidingPhantomSword(boolean riding) { entityData.set(RIDING_PHANTOM_SWORD, riding); }
+    public int getNativeComboStage() { return entityData.get(NATIVE_COMBO_STAGE); }
+    public long getNativeComboStart() { return entityData.get(NATIVE_COMBO_START); }
+    void setNativeCombo(int stage, long start) {
+        entityData.set(NATIVE_COMBO_STAGE, stage); entityData.set(NATIVE_COMBO_START, start);
+    }
     public boolean isWithinThousandGates() { return entityData.get(WITHIN_THOUSAND_GATES); }
     void setWithinThousandGates(boolean hidden) { entityData.set(WITHIN_THOUSAND_GATES, hidden); }
 

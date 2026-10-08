@@ -1054,5 +1054,6 @@
   "tetra/schematic/slashblade/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "Attune Legacy · Dead Thought",
   "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "Blood Sakura Final Scene \"Lifeless\" · SA + Life Erosion · SE",
   "message.blade_tetra.mikage.duel_parry": "Parry (%s/%s)",
-  "message.blade_tetra.mikage.thousand_gates": "Thousand Gates · Consecutive parries %s/%s"
+  "message.blade_tetra.mikage.thousand_gates": "Thousand Gates · Consecutive parries %s/%s",
+  "message.blade_tetra.mikage.gate_corridor": "Gate Corridor — watch the entrance; parry to knock Mikage off her sword!"
 }
