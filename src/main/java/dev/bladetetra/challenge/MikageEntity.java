@@ -209,6 +209,10 @@ public final class MikageEntity extends Monster {
     public boolean isWithinThousandGates() { return entityData.get(WITHIN_THOUSAND_GATES); }
     void setWithinThousandGates(boolean hidden) { entityData.set(WITHIN_THOUSAND_GATES, hidden); }
 
+    @Override public boolean displayFireAnimation() {
+        return !isWithinThousandGates() && super.displayFireAnimation();
+    }
+
     boolean dealTrialDamage(ServerPlayer player, float rawDamage, boolean guarded) {
         return damageService.dealTrialDamage(player, rawDamage, guarded);
     }

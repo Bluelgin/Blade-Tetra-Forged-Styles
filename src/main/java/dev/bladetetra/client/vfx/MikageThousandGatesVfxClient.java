@@ -45,8 +45,17 @@ public final class MikageThousandGatesVfxClient {
             SCENES.removeIf(s -> s.data.sourceEntityId() == data.sourceEntityId() && s.data.seed() == data.seed());
             return;
         }
-        if (!enabled() || mc.level == null || mc.player == null
-                || !Double.isFinite(data.endX()) || !Double.isFinite(data.endY()) || !Double.isFinite(data.endZ())) return;
+        if (mc.level == null || !Double.isFinite(data.endX()) || !Double.isFinite(data.endY())
+                || !Double.isFinite(data.endZ())) return;
+        // Arrival belongs to the server even with VFX disabled. Remove ordinary mob lerp across the arena.
+        if (kind.equals("exit")
+                && mc.level.getEntity(data.sourceEntityId()) instanceof dev.bladetetra.challenge.MikageEntity boss) {
+            boss.lerpTo(data.endX(), data.endY(), data.endZ(), data.yaw(), boss.getXRot(), 0, true);
+            boss.moveTo(data.endX(), data.endY(), data.endZ(), data.yaw(), boss.getXRot());
+            boss.setYHeadRot(data.yaw()); boss.yHeadRotO = data.yaw();
+            boss.setYBodyRot(data.yaw()); boss.yBodyRotO = data.yaw();
+        }
+        if (!enabled() || mc.player == null) return;
         SCENES.removeIf(s -> s.data.sourceEntityId() == data.sourceEntityId() && s.data.seed() == data.seed()
                 && (s.kind.equals(kind) || isPortal(s.kind) && isPortal(kind)));
         if (SCENES.size() >= 32) SCENES.remove(0);
