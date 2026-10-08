@@ -64,6 +64,7 @@ public final class MikageCorridorScenarios {
         var state = new DuelDefenseState<Object>(); var player = new UUID(0, 1);
         check(!state.parried(player, 100), "knockdown earns one ordinary contact");
         state.openStagger(100, 40);
+        check(state.progress(100) == 1, "short knockdown does not show a full broken meter");
         check(state.staggerRemaining(100) == 40, "ordinary knockdown is forty ticks");
         check(!state.staggered(140) && state.progress(140) == 1, "short recovery retains progress");
         for (int t : new int[]{150, 160, 170}) check(!state.parried(player, t), "meter accumulates");

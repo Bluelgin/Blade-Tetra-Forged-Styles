@@ -27,8 +27,9 @@ record MikageCorridorRoute(Vec3 entry, Vec3 attack, Vec3 exit, Vec3 heading) {
             if (!Double.isFinite(at.x) || !Double.isFinite(at.y) || !Double.isFinite(at.z)
                     || ChallengeManager.clampMikagePosition(owner, at).distanceToSqr(at) > .01) return false;
             var box = owner.getBoundingBox().move(at.subtract(owner.position()));
-            if (!level.hasChunkAt(BlockPos.containing(box.minX, box.minY, box.minZ))
-                    || !level.hasChunkAt(BlockPos.containing(box.maxX, box.maxY, box.maxZ))
+            if (!level.hasChunksAt(BlockPos.containing(box.minX, box.minY, box.minZ),
+                    BlockPos.containing(box.maxX, box.maxY, box.maxZ))
+                    || box.minY < level.getMinBuildHeight() || box.maxY > level.getMaxBuildHeight()
                     || !level.getWorldBorder().isWithinBounds(box) || level.getBlockCollisions(owner, box).iterator().hasNext()
                     || level.containsAnyLiquid(box)) return false;
         }

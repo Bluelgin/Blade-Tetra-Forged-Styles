@@ -27,7 +27,19 @@ public class MikageTailoredModel<T extends LivingEntity> extends PlayerModel<T> 
     private float scale, age, walk;
     private float swordElbow, swordWrist;
     private Map<String, Vector3f> nativePose = Map.of();
-    public void applyNativeCombo(Map<String, Vector3f> pose) { nativePose = pose; }
+    public void applyNativeCombo(Map<String, Vector3f> pose) {
+        nativePose = pose;
+        if (!hasTailoredRig()) {
+            vanillaRotation(body, pose.get("UpperBody"));
+            vanillaRotation(rightArm, pose.get("RightArm")); vanillaRotation(leftArm, pose.get("LeftArm"));
+            jacket.copyFrom(body); leftSleeve.copyFrom(leftArm); rightSleeve.copyFrom(rightArm);
+        }
+    }
+    private static void vanillaRotation(ModelPart part, Vector3f rotation) {
+        if (rotation == null) return;
+        part.xRot = -rotation.x * Mth.DEG_TO_RAD; part.yRot = -rotation.y * Mth.DEG_TO_RAD;
+        part.zRot = rotation.z * Mth.DEG_TO_RAD;
+    }
     public void applySwordRide() {
         leftLeg.xRot = -.28F; leftLeg.zRot = -.12F;
         rightLeg.xRot = .22F; rightLeg.zRot = .14F;

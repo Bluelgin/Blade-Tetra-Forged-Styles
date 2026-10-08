@@ -15,6 +15,7 @@ public final class DuelDefenseState<T> {
     private long counterAt = Long.MIN_VALUE, guardingUntil = Long.MIN_VALUE;
     private long staggerUntil = Long.MIN_VALUE, lastParry = Long.MIN_VALUE;
     private int progress;
+    private boolean fullBreak;
 
     public void swing(UUID player, long now, T weapon) {
         if (weapon == null) return;
@@ -53,17 +54,17 @@ public final class DuelDefenseState<T> {
 
     public void protect(UUID player, long now) { protection.put(player, now + PROTECTION_TICKS); }
     public void breakBalance(long now) {
-        progress = 0;
+        progress = 0; fullBreak = true;
         lastParry = now;
         staggerUntil = now + STAGGER_TICKS;
         cancelGuard();
     }
 
     /** A knockdown retains earned progress and uses the same recovery clock as full balance break. */
-    public void openStagger(long now, int duration) { staggerUntil = now + duration; cancelGuard(); }
+    public void openStagger(long now, int duration) { staggerUntil = now + duration; fullBreak = false; cancelGuard(); }
     public boolean staggered(long now) { return now < staggerUntil; }
     public int staggerRemaining(long now) { return (int) Math.max(0, staggerUntil - now); }
-    public int progress(long now) { return staggered(now) ? REQUIRED_PARRIES : progress; }
+    public int progress(long now) { return staggered(now) && fullBreak ? REQUIRED_PARRIES : progress; }
     public void hitAccepted(long now) {
         if (staggered(now)) staggerUntil = Math.max(now + 1, staggerUntil - HIT_RECOVERY);
     }
@@ -75,7 +76,7 @@ public final class DuelDefenseState<T> {
     }
 
     public void clear() {
-        swings.clear(); protection.clear(); progress = 0;
+        swings.clear(); protection.clear(); progress = 0; fullBreak = false;
         counterAt = guardingUntil = staggerUntil = lastParry = Long.MIN_VALUE;
     }
 

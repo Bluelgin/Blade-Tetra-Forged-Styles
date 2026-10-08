@@ -123,7 +123,7 @@ public final class MikageCorridorVfxClient {
         }
         float pulse = s.kind.equals("cue") ? .22F + .12F*(float)Math.sin((s.age+partial)*.7) : .055F;
         quad(b,m,at.subtract(right),at.add(right),at.add(right).add(0,2.5,0),at.subtract(right).add(0,2.5,0),color(.45F,.65F,1,fade*pulse));
-        if (world.getEntity(s.data.sourceEntityId()) instanceof MikageEntity boss && boss.isRidingPhantomSword()) {
+        if (s.data.targetEntityId() == 0 && world.getEntity(s.data.sourceEntityId()) instanceof MikageEntity boss && boss.isRidingPhantomSword()) {
             Vec3 point = boss.getPosition(partial).add(0,-.12,0);
             Vec3 forward = boss.getLookAngle().multiply(1,0,1).normalize();
             bandFacing(b,m,point,point.subtract(forward.scale(2.2)),camera,.035,color(1,.25F,.35F,fade*.35F));

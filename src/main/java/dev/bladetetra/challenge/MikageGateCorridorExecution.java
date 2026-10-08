@@ -137,7 +137,15 @@ final class MikageGateCorridorExecution implements SkillExecution {
     private boolean descend() {
         hide(false); owner.setRidingPhantomSword(false);
         Vec3 next = owner.position().add(0, -Math.min(1, .15 + ++descentTicks * .045), 0);
-        if (!MikageCorridorRoute.safe(owner, owner.position(), next) || descentTicks >= 80) return true;
+        if (!MikageCorridorRoute.safe(owner, owner.position(), next)) {
+            Vec3 from = owner.position(); double low = 0, high = 1;
+            for (int i = 0; i < 8; i++) {
+                double mid = (low + high) / 2;
+                if (MikageCorridorRoute.safe(owner, from, from.lerp(next, mid))) low = mid; else high = mid;
+            }
+            Vec3 landing = from.lerp(next, low); owner.setPos(landing.x, landing.y, landing.z);
+            owner.fallDistance = 0; return true;
+        }
         owner.setPos(next.x, next.y, next.z); owner.fallDistance = 0; return false;
     }
     private void face(Vec3 heading) {
