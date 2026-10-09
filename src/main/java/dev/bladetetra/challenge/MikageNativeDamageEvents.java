@@ -13,7 +13,7 @@ public final class MikageNativeDamageEvents {
     public static void hurt(LivingHurtEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || event.isCanceled()) return;
         var source = event.getSource().getDirectEntity();
-        var traced = MikageBladeAttackTrace.projectile(); if (traced != null) source = traced;
+        var traced = MikageBladeAttackTrace.projectile(); if (traced != null && event.getSource().getEntity() == MikageNativeCombat.shooter(traced)) source = traced;
         if (!MikageNativeCombat.owns(source) || !(MikageNativeCombat.shooter(source) instanceof MikageEntity boss)) return;
         if (!boss.encounter().eligible(player)) { event.setCanceled(true); return; }
         event.setAmount(boss.damage().nativeDamage(player, event.getAmount()));
@@ -23,7 +23,7 @@ public final class MikageNativeDamageEvents {
     public static void damaged(LivingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || event.isCanceled()) return;
         var source = event.getSource().getDirectEntity(); var traced = MikageBladeAttackTrace.projectile();
-        if (traced != null) source = traced;
+        if (traced != null && event.getSource().getEntity() == MikageNativeCombat.shooter(traced)) source = traced;
         if (MikageNativeCombat.owns(source) && MikageNativeCombat.shooter(source) instanceof MikageEntity boss
                 && boss.encounter().eligible(player))
             boss.damage().nativeDamageAccepted(player, event.getAmount());

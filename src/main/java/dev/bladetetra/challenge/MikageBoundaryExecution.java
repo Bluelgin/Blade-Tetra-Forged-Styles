@@ -49,7 +49,7 @@ final class MikageBoundaryExecution implements SkillExecution {
                 countered = true; owner.duel().rewardOpening(40); return false;
             }, (p, source) -> { });
             MikageNativeCombat.run(owner, scope, cleave, () -> {
-                var slash = Drive.doSlash(owner, 90, 24, Vec3.ZERO, true, 1.08, 1.6F);
+                var slash = Drive.doSlash(owner, 90, 16, Vec3.ZERO, true, 1.08, 1.6F);
                 slash.setBaseSize(3.0F);
             });
             level.playSound(null, owner.blockPosition(), SoundEvents.TRIDENT_THUNDER, SoundSource.HOSTILE, 1.4F, .8F);
@@ -74,7 +74,9 @@ final class MikageBoundaryExecution implements SkillExecution {
         for (int i = 2; i <= 28; i++) {
             Vec3 at = origin.add(heading.scale(i));
             if (!MikageBoundaryRoute.clear(owner, origin, at)) break;
-            level.sendParticles(particle, at.x, at.y + .12, at.z, 1, .1, .05, .1, .005);
+            for (int side : new int[]{-1, 0, 1})
+                level.sendParticles(particle, at.x - heading.z * side, at.y + .12,
+                        at.z + heading.x * side, 1, .1, .05, .1, .005);
         }
     }
     @Override public void stop(StopReason reason) {

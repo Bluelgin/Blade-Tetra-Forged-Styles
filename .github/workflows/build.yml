@@ -30,4 +30,4 @@ jobs:
           mkdir -p build/mikage-native-smoke
           echo 'eula=true' > build/mikage-native-smoke/eula.txt
           ./gradlew runServer -PmikageNativeSmoke 2>&1 | tee build/mikage-native-smoke.log
-          rg 'MIKAGE_NATIVE_SMOKE_PASS' build/mikage-native-smoke.log
+          grep -F 'MIKAGE_NATIVE_SMOKE_PASS' build/mikage-native-smoke.log

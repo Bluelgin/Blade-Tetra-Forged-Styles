@@ -21,7 +21,9 @@ public final class MikageCastEntityEvents {
                 boss.encounter().corridor().combo.capture(entity);
             return;
         }
-        if (MikageNativeCombat.shooter(entity) instanceof MikageEntity) event.setCanceled(true);
+        if ((entity instanceof EntityAbstractSummonedSword || entity instanceof EntityJudgementCut
+                || entity instanceof EntitySlashEffect) && MikageNativeCombat.shooter(entity) instanceof MikageEntity)
+            event.setCanceled(true);
     }
 
     private MikageCastEntityEvents() {}

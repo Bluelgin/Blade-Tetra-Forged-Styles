@@ -49,9 +49,7 @@ final class MikageDamageService {
                 && defense.hurtCooldownUntil.getOrDefault(attacker.getUUID(), Long.MIN_VALUE) > now) {
             return false;
         }
-        boolean echoInterrupted = attacker instanceof ServerPlayer player && owner.encounter().echo() != null
-                && owner.encounter().echo().struck(player, source);
-        if (!echoInterrupted && owner.duel().intercept(source)) return false;
+        if (owner.duel().intercept(source)) return false;
         float threshold = GameplayConfig.MIKAGE_SOFT_CAP_THRESHOLD.get().floatValue();
         if (amount > threshold) {
             amount = Math.min(GameplayConfig.MIKAGE_SINGLE_HIT_CAP.get().floatValue(),
@@ -75,6 +73,8 @@ final class MikageDamageService {
         }
         boolean hurt = vanillaHurt.apply(source, amount);
         if (hurt) owner.duel().hitAccepted();
+        if (hurt && attacker instanceof ServerPlayer player && owner.encounter().echo() != null)
+            owner.encounter().echo().struck(player, source);
         if (hurt && reachesPhaseGate && owner.isAlive()) {
             owner.setHealth(phaseFloor);
         }
