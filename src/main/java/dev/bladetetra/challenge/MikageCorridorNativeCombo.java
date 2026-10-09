@@ -17,7 +17,7 @@ public final class MikageCorridorNativeCombo {
     private final MikageGateCorridorExecution release;
     private final Set<Entity> slashes = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    private static final Map<Entity, net.minecraft.world.phys.Vec3> OFFSETS = new WeakHashMap<>();
+    private static final Map<Entity, net.minecraft.world.phys.Vec3> OFFSETS = Collections.synchronizedMap(new WeakHashMap<>());
     private ResourceLocation stage;
     private boolean executing;
     private long lastTick = Long.MIN_VALUE;

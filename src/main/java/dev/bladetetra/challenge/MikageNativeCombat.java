@@ -51,8 +51,12 @@ public final class MikageNativeCombat {
         Binding b = ATTACKS.get(source), current = SPAWNING.get();
         return b != null ? b : current != null && source == current.boss ? current : null;
     }
-    static boolean owns(Entity entity) { Binding b = binding(entity); return b != null && !b.scope.closed(); }
+    static boolean owns(Entity entity) {
+        if (entity == null || entity.level().isClientSide()) return false;
+        Binding b = binding(entity); return b != null && !b.scope.closed();
+    }
     public static boolean mayCollide(Entity source, Entity target) {
+        if (source.level().isClientSide()) return !authored(source);
         Binding b = ATTACKS.get(source);
         if (!(shooter(source) instanceof MikageEntity)) return true;
         return b != null && !b.scope.closed() && !source.getPersistentData().getBoolean("blade_tetra_reflected")
@@ -64,7 +68,12 @@ public final class MikageNativeCombat {
         if (!(shooter(source) instanceof MikageEntity)) return true;
         return mayCollide(source, target) && swordContact(source, (ServerPlayer) target);
     }
+    public static boolean nativeImpact(Entity source, Entity target) {
+        return owns(source) && (source instanceof MikageGateSwordEntity sword
+                ? sword.nativeImpact(target) : mayCollide(source, target));
+    }
     public static boolean mayReflect(Entity source, Entity actor) {
+        if (source.level().isClientSide()) return true;
         if (!(shooter(source) instanceof MikageEntity boss)) return true;
         return owns(source) && actor instanceof ServerPlayer player && boss.encounter().eligible(player);
     }
@@ -88,6 +97,7 @@ public final class MikageNativeCombat {
     public static boolean driving(LivingEntity actor) { Binding b = SPAWNING.get(); return b != null && b.boss == actor; }
     /** Null delegates to other bosses/players; authorized entities are returned to native AttackManager. */
     public static List<Entity> targets(Entity source, AABB bounds, double reach) {
+        if (source.level().isClientSide()) return null;
         Entity actor = shooter(source), traced = MikageBladeAttackTrace.projectile();
         if (source == actor && traced != null && shooter(traced) == actor) source = traced;
         if (!(actor instanceof MikageEntity boss)) return null;

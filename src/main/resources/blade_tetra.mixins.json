@@ -18,6 +18,7 @@
     "MikageNativeTargetsMixin",
     "MikageNativeManagedAttackMixin",
     "MikageNativeDriveMixin",
+    "MikageNativeSwordImpactMixin",
     "MikageGateReflectionMixin",
     "MirrorIceMixin",
     "SwordTypeMixin"

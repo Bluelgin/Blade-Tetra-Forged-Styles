@@ -34,6 +34,9 @@ public final class MikageGateSwordEntity extends EntityAbstractSummonedSword {
         return level() instanceof ServerLevel server && caster != null && server.getEntity(caster) instanceof MikageEntity b ? b : null;
     }
     @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(REFLECTED, false); }
+    boolean nativeImpact(Entity target) {
+        return entityData.get(REFLECTED) ? returning && target == boss() : MikageNativeCombat.mayCollide(this, target);
+    }
     private MikageGateBarrageExecution release() {
         if (!(level() instanceof ServerLevel server) || caster == null
                 || !(server.getEntity(caster) instanceof MikageEntity boss)) return null;
