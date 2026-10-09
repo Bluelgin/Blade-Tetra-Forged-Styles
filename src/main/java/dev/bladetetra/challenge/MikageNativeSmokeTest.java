@@ -39,8 +39,8 @@ public final class MikageNativeSmokeTest {
             level.getChunk(11, -1);
             for (int x = 172; x <= 188; x++) for (int z = -20; z <= 0; z++)
                 level.setBlock(new BlockPos(x, 64, z), Blocks.STONE.defaultBlockState(), 3);
-            player = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("12800000-0000-0000-0000-000000000001"), "MikageSubject"));
-            outsider = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("12800000-0000-0000-0000-000000000002"), "MikageOutsider"));
+            player = testPlayer(level, new GameProfile(UUID.fromString("12800000-0000-0000-0000-000000000001"), "MikageSubject"));
+            outsider = testPlayer(level, new GameProfile(UUID.fromString("12800000-0000-0000-0000-000000000002"), "MikageOutsider"));
             level.addNewPlayer(player); level.addNewPlayer(outsider);
             session.participants.add(player.getUUID()); player.getPersistentData().putLong(ChallengeManager.PLAYER_CHALLENGE, SESSION);
             player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
@@ -130,6 +130,13 @@ public final class MikageNativeSmokeTest {
             if (player != null) player.discard(); if (outsider != null) outsider.discard();
             MikageNativeCombat.clear(); event.getServer().halt(false);
         }
+    }
+    private static ServerPlayer testPlayer(ServerLevel level, GameProfile profile) {
+        // Forge FakePlayer.hurt intentionally returns false. Reuse its no-op connection only.
+        ServerPlayer player = new ServerPlayer(level.getServer(), level, profile);
+        player.connection = FakePlayerFactory.get(level, profile).connection;
+        for (int i = 0; i < 61; i++) player.tick(); // expire normal login/spawn immunity
+        return player;
     }
     private static void reset(ServerPlayer player, ServerPlayer outsider) {
         player.setHealth(20); player.setAbsorptionAmount(0); player.invulnerableTime = 0;

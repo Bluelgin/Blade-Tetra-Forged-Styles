@@ -63,5 +63,5 @@
 - 六组无 Minecraft 依赖的运行时场景：261 条断言，覆盖观察、导演、清理、格挡、追斩、回廊、鸟居和常态间距。
 - 新增 JUnit：完整动作池时序、独立冷却/大技能间隔、原生回调中关闭当前技能、依赖字节码调用 `hurt` 的契约、禁止视觉补伤害和直接生命写入。
 - `./gradlew build`：完整 Forge 编译、资源校验、JUnit、reobfJar。
-- `./gradlew runServer -PmikageNativeSmoke`：隔离 Forge/Mixin 服务端，真实参战 FakePlayer 验证原生近战、Drive、幻影剑、次元斩、非参战隔离、无敌帧、原生反弹、三 tick 振刀和 scope 回收。诊断通过输出 `MIKAGE_NATIVE_SMOKE_PASS`。只在显式诊断属性开启时运行；普通游戏不会创建测试会话或改世界。
+- `./gradlew runServer -PmikageNativeSmoke`：隔离 Forge/Mixin 服务端，真实 ServerPlayer（仅复用 FakePlayer 的测试连接） 验证原生近战、Drive、幻影剑、次元斩、非参战隔离、无敌帧、原生反弹、三 tick 振刀和 scope 回收。诊断通过输出 `MIKAGE_NATIVE_SMOKE_PASS`。只在显式诊断属性开启时运行；普通游戏不会创建测试会话或改世界。
 - CI 在 PR 上运行完整构建和该真实服务端诊断。声音辨位、动画观感、地形实战与多人连打手感仍需要进游戏检查；服务端诊断不能替代这些体验测试。
