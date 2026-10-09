@@ -59,7 +59,8 @@ public final class MikageEchoEntity extends Monster {
         setDeltaMovement(Vec3.ZERO);
         if (!level().isClientSide()) {
             MikageEntity owner = owner();
-            if (owner == null || !owner.isAlive() || --lifeTicks <= 0) {
+            if (owner == null || !owner.isAlive() || owner.encounter().echo() == null
+                    || !owner.encounter().echo().owns(this) || --lifeTicks <= 0) {
                 discard();
             }
         }
@@ -69,8 +70,8 @@ public final class MikageEchoEntity extends Monster {
     public boolean hurt(DamageSource source, float amount) {
         if (level().isClientSide()) return true;
         MikageEntity owner = owner();
-        if (owner != null) {
-            owner.legacyEffects().strikeMoonEcho(this, MikageDamageService.resolveCombatAttacker(source));
+        if (owner != null && owner.encounter().echo() != null) {
+            owner.encounter().echo().falseStruck(this, MikageDamageService.resolveCombatAttacker(source));
         } else {
             discard();
         }

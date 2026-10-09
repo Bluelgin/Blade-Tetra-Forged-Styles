@@ -14,7 +14,7 @@ public abstract class MikageNativeTimelineMixin {
     @Shadow private Map<Integer, Consumer<LivingEntity>> timeLine;
     @Inject(method = "accept(Lnet/minecraft/world/entity/LivingEntity;)V", at = @At("HEAD"), cancellable = true)
     private void bladeTetra$ownClock(LivingEntity entity, CallbackInfo ci) {
-        if (!MikageCorridorNativeCombo.driving(entity)) return;
+        if (!dev.bladetetra.challenge.MikageNativeCombat.driving(entity)) return;
         var action = timeLine.get((int) MikageCorridorNativeCombo.elapsed(entity));
         if (action != null) action.accept(entity);
         ci.cancel();

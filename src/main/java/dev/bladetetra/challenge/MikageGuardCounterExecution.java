@@ -31,7 +31,6 @@ final class MikageGuardCounterExecution implements SkillExecution {
 
     @Override public void start(CastScope scope) {
         this.scope = scope;
-        scope.own(() -> owner.attackTimeline().cancel(scope));
         owner.getNavigation().stop();
         owner.setAction(MikageEntity.MikageAction.GUARD, 9);
         face();
@@ -49,16 +48,11 @@ final class MikageGuardCounterExecution implements SkillExecution {
         }
         if (age == 9) {
             owner.setAction(MikageEntity.MikageAction.IAIDO_DRAW, 17);
-            owner.attackTimeline().inScope(scope, () -> {
-                Entity visual = AttackManager.doSlash(owner, -65, true, false, 0);
-                if (visual != null) {
-                    visual.getPersistentData().putBoolean(MikageDuelEvents.VISUAL_ONLY, true);
-                    if (visual instanceof Projectile projectile) projectile.setOwner(null);
-                }
-                owner.attackTimeline().meleeCone(1, origin.add(0, .8, 0), direction, 6,
-                        Math.toDegrees(Math.acos(.8)), 3,
-                        (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE) * .4F, .35);
-            });
+            var rule = new MikageNativeCombat.Rule(target, true, false, (p, source) -> {
+                if (owner.duel().parry(p, origin.add(0, .8, 0))) { owner.duel().rewardOpening(20); return false; }
+                return true;
+            }, (p, source) -> { });
+            MikageNativeCombat.run(owner, scope, rule, () -> AttackManager.doSlash(owner, -65, false, false, .4));
             level.playSound(null, owner.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, .8F, .8F);
         }
         return age >= 26 ? Status.COMPLETE : Status.RUNNING;
@@ -71,7 +65,7 @@ final class MikageGuardCounterExecution implements SkillExecution {
         if (age >= 9 && (reason == StopReason.COMPLETE || reason == StopReason.COUNTERED))
             owner.movement().meleeExchangeCompleted(target);
         owner.duel().cancelGuard();
-        owner.setAction(MikageEntity.MikageAction.IDLE, 1);
+        if (!owner.duel().staggered()) owner.setAction(MikageEntity.MikageAction.IDLE, 1);
         if (reason != StopReason.COMPLETE) owner.combatDirector().techniqueCooldown = Math.max(20, owner.combatDirector().techniqueCooldown);
     }
 }

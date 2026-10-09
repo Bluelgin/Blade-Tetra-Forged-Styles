@@ -16,13 +16,12 @@ public final class MikageCastEntityEvents {
     public static void onSpawn(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
         Entity entity = event.getEntity();
-        Entity owner = entity instanceof EntityAbstractSummonedSword sword ? sword.getShooter()
-                : entity instanceof EntityJudgementCut cut ? cut.getOwner()
-                : entity instanceof EntitySlashEffect slash ? slash.getShooter() : null;
-        if (owner instanceof MikageEntity mikage) {
-            var corridor = mikage.encounter().corridor();
-            if (corridor == null || !corridor.combo.capture(entity)) mikage.attackTimeline().ownSpawn(entity);
+        if (MikageNativeCombat.capture(entity)) {
+            if (MikageNativeCombat.shooter(entity) instanceof MikageEntity boss && boss.encounter().corridor() != null)
+                boss.encounter().corridor().combo.capture(entity);
+            return;
         }
+        if (MikageNativeCombat.shooter(entity) instanceof MikageEntity) event.setCanceled(true);
     }
 
     private MikageCastEntityEvents() {}

@@ -1,9 +1,5 @@
 package dev.bladetetra.challenge;
 
-import static dev.bladetetra.challenge.MikageLegacyTiming.*;
-
-import static dev.bladetetra.challenge.MikageArenaController.*;
-
 import dev.bladetetra.network.BladeCombatVfxPacket;
 import dev.bladetetra.network.BladeTechniqueVfxPacket;
 import dev.bladetetra.network.ModNetwork;
@@ -19,11 +15,9 @@ import net.minecraftforge.network.PacketDistributor;
 /** Packets, sounds, HUD and tracking snapshots; never makes combat decisions. */
 final class MikageEncounterPresentation {
     private final MikageEntity owner;
-    private final MikageArenaController arena;
 
     MikageEncounterPresentation(MikageEntity owner) {
         this.owner = owner;
-        arena = owner.arenaController();
     }
 
     void sendCombatVfx(ServerLevel server, int type, Vec3 position,
@@ -64,37 +58,6 @@ final class MikageEncounterPresentation {
     void startSeenByPlayer(ServerPlayer player) {
         if (!owner.isVisitorGuide()) {
             owner.bossBar().addPlayer(player);
-            if (owner.level() instanceof ServerLevel
-                    && ChallengeManager.isParticipant(owner, player)) {
-                for (BoundaryWallState wall : arena.boundaryWalls) {
-                    Vec3 edge = wall.center.add(
-                            wall.direction.scale(BOUNDARY_FLASH_LENGTH));
-                    ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                            new BladeTechniqueVfxPacket(
-                                    BladeTechniqueVfxPacket.BOUNDARY_WALL,
-                                    wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                                    edge.x, wall.center.y + 0.05D, edge.z,
-                                    owner.getYRot(), 1.0F, -1, -1,
-                                    BOUNDARY_WALL_VISUAL_TICKS, wall.id));
-                    if (wall.gapTicks > 0) {
-                        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                                new BladeTechniqueVfxPacket(
-                                        BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP,
-                                        wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                                        edge.x, wall.center.y + 0.05D, edge.z,
-                                        owner.getYRot(), (float) wall.gapAlong, -1, -1,
-                                        wall.gapTicks, wall.id));
-                    } else if (wall.gapWarningTicks > 0) {
-                        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                                new BladeTechniqueVfxPacket(
-                                        BladeTechniqueVfxPacket.BOUNDARY_WALL_GAP_WARNING,
-                                        wall.center.x, wall.center.y + 0.05D, wall.center.z,
-                                        edge.x, wall.center.y + 0.05D, edge.z,
-                                        owner.getYRot(), (float) wall.pendingGapAlong, -1, -1,
-                                        wall.gapWarningTicks, wall.id));
-                    }
-                }
-            }
         }
     }
 
@@ -103,34 +66,11 @@ final class MikageEncounterPresentation {
     }
 
     void syncHud() {
-        var techniques = owner.techniqueRuntime();
-        var arena = owner.arenaController();
-        if (owner.tickCount % 2 == 0) {
-            int technique = techniques.boundarySealTicks > 0 ? 6
-                    : techniques.moonEchoTicks > 0 ? 7
-                    : techniques.mirrorDuelTicks > 0 ? 8
-                    : arena.toriiSweepTicks > 0 ? 2
-                    : arena.toriiCageTicks > 0 ? 3
-                    : techniques.pursuitRainFinalTicks > 0 ? 5
-                    : techniques.pursuitRainTicks > 0 ? 4
-                    : arena.boundarySlashDelay > 0 ? 1 : 0;
-            int remaining = technique == 6 ? techniques.boundarySealTicks
-                    : technique == 7 ? techniques.moonEchoTicks
-                    : technique == 8 ? techniques.mirrorDuelTicks
-                    : technique == 2 ? arena.toriiSweepTicks
-                    : technique == 3 ? arena.toriiCageTicks
-                    : technique == 5 ? techniques.pursuitRainFinalTicks
-                    : technique == 4 ? techniques.pursuitRainTicks : arena.boundarySlashDelay;
-            int total = technique == 6 ? BOUNDARY_SEAL_TOTAL_TICKS
-                    : technique == 7 ? MOON_ECHO_TOTAL_TICKS
-                    : technique == 8 ? MIRROR_DUEL_TOTAL_TICKS
-                    : technique == 2 ? TORII_SWEEP_TOTAL_TICKS
-                    : technique == 3 ? TORII_CAGE_TOTAL_TICKS
-                    : technique == 5 ? PURSUIT_RAIN_FINAL_TICKS
-                    : technique == 4 ? techniques.pursuitRainActiveTicks + PURSUIT_RAIN_WARNING_TICKS
-                    : technique == 1 ? BOUNDARY_FLASH_TOTAL_TICKS : 0;
-            ChallengeManager.syncHud(owner, technique, remaining, total);
-        }
+        if (owner.tickCount % 2 != 0) return;
+        var echo = owner.encounter().echo(); var boundary = owner.encounter().boundary();
+        ChallengeManager.syncHud(owner, echo != null ? 7 : boundary != null ? 1 : 0,
+                echo != null ? echo.remaining() : boundary != null ? boundary.remaining() : 0,
+                echo != null ? 66 : boundary != null ? MikageBoundaryExecution.TOTAL : 0);
     }
 
     void defeated() {

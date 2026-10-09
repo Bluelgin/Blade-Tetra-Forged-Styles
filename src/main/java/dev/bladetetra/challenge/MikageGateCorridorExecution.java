@@ -19,17 +19,16 @@ final class MikageGateCorridorExecution implements SkillExecution {
     final MikageCorridorNativeCombo combo;
     private final MikageCorridorRoute[] routes = new MikageCorridorRoute[3];
     private MikageCorridorPresentation visuals;
-    private boolean oldGravity, oldInvisible, oldSilent, restored, striking;
+    private CastScope scope;
+    private boolean oldGravity, oldInvisible, oldSilent, restored;
     private int age, descentTicks;
     MikageGateCorridorExecution(MikageEntity owner, ServerPlayer player, Runnable committed) {
         this.owner = owner; target = player.getUUID(); this.committed = committed;
         combo = new MikageCorridorNativeCombo(owner, this);
     }
     @Override public void start(CastScope scope) {
-        oldGravity = owner.isNoGravity(); oldInvisible = owner.isInvisible(); oldSilent = owner.isSilent();
+        this.scope = scope; oldGravity = owner.isNoGravity(); oldInvisible = owner.isInvisible(); oldSilent = owner.isSilent();
         visuals = new MikageCorridorPresentation(owner, scope.id()); scope.own(this::restore);
-        scope.own(() -> owner.attackTimeline().cancel(scope));
-        owner.swordWheel().recallSwordWheel((ServerLevel) owner.level(), 600);
         owner.setNoGravity(true); owner.setAction(MikageEntity.MikageAction.CAST_READY, 24);
         ServerPlayer player = player();
         if (player != null) {
@@ -45,7 +44,6 @@ final class MikageGateCorridorExecution implements SkillExecution {
         return ((ServerLevel) owner.level()).getEntity(target) instanceof ServerPlayer p ? p : null;
     }
     @Override public boolean windingUp() { return true; }
-    boolean striking(ServerPlayer player) { return striking && target.equals(player.getUUID()); }
     @Override public Status tick() {
         ServerPlayer player = player();
         if (player == null || !owner.encounter().eligible(player)) return Status.TARGET_LOST;
@@ -84,7 +82,7 @@ final class MikageGateCorridorExecution implements SkillExecution {
                 }
             }
             case COMBO -> {
-                face(route.heading()); combo.tick(); face(route.heading());
+                face(route.heading()); MikageNativeCombat.run(owner, scope, nativeRule(), combo::tick); face(route.heading());
                 if (!move(route.exit(), .39)) return Status.COMPLETE;
                 if (combo.finished()) { combo.stop(); sequence.comboComplete(); }
             }
@@ -108,26 +106,16 @@ final class MikageGateCorridorExecution implements SkillExecution {
         }
         return Status.RUNNING;
     }
-    boolean contact(EntitySlashEffect slash, AABB bounds, double reach) {
-        ServerPlayer player = player();
-        if (!sequence.attacking() || player == null || !owner.encounter().eligible(player)
-                || !bounds.intersects(player.getBoundingBox())
-                || reach > 0 && owner.distanceToSqr(player) > reach * reach
-                || owner.level().clip(new ClipContext(owner.getEyePosition(), player.getEyePosition(),
-                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, owner)).getType() != HitResult.Type.MISS) return false;
-        if (owner.duel().parryPursuit(player, owner.getEyePosition())) {
-            sequence.parry(); combo.stop(); owner.setRidingPhantomSword(false);
-            owner.setAction(MikageEntity.MikageAction.STAGGERED, 40); visuals.down(routes[sequence.pass()].heading());
-            return true;
-        }
-        if (sequence.mayHit(owner.level().getGameTime())) {
-            striking = true;
-            try {
-                if (owner.dealTrialDamage(player, (float) (owner.getAttributeValue(Attributes.ATTACK_DAMAGE)
-                        * slash.getDamage()), false)) sequence.hit(owner.level().getGameTime());
-            } finally { striking = false; }
-        }
-        return true;
+    private MikageNativeCombat.Rule nativeRule() {
+        return new MikageNativeCombat.Rule(target, true, true, (player, source) -> {
+            if (!sequence.attacking()) return false;
+            if (owner.duel().parryPursuit(player, owner.getEyePosition())) {
+                sequence.parry(); combo.stop(); owner.setRidingPhantomSword(false);
+                owner.setAction(MikageEntity.MikageAction.STAGGERED, 40);
+                visuals.down(routes[sequence.pass()].heading()); return false;
+            }
+            return sequence.mayHit(owner.level().getGameTime());
+        }, (player, source) -> { if (sequence.attacking()) sequence.hit(owner.level().getGameTime()); });
     }
     private boolean move(Vec3 at, double speed) {
         Vec3 next = owner.position().lerp(at, Math.min(1, speed / Math.max(.001, owner.position().distanceTo(at))));

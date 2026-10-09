@@ -1,6 +1,6 @@
 package dev.bladetetra.challenge;
 
-import static dev.bladetetra.challenge.MikageLegacyTiming.BOUNDARY_FLASH_TOTAL_TICKS;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
@@ -50,6 +50,8 @@ public final class MikageEntity extends Monster {
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> VISITOR_GUIDE =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> MOON_ECHO_ACTIVE =
+            SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> WITHIN_THOUSAND_GATES =
             SynchedEntityData.defineId(MikageEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> RIDING_PHANTOM_SWORD =
@@ -64,13 +66,6 @@ public final class MikageEntity extends Monster {
             BossEvent.BossBarOverlay.PROGRESS);
     private final MikageCombatDirector combat = new MikageCombatDirector();
     private final MikageDefenseController defense = new MikageDefenseController();
-    private final MikageTechniqueRuntime techniques = new MikageTechniqueRuntime();
-    private final MikageArenaController arena = new MikageArenaController();
-    private final MikageAttackTimeline attackTimeline = new MikageAttackTimeline(this);
-    private final MikagePursuitRainController pursuitRain = new MikagePursuitRainController(this);
-    private final MikageLegacySkillEffects legacyEffects = new MikageLegacySkillEffects(this);
-    private final MikageLegacyCounterRuntime counters = new MikageLegacyCounterRuntime(this);
-    private final MikageSwordWheelRuntime swordWheel = new MikageSwordWheelRuntime(this);
     private final MikageDamageService damageService = new MikageDamageService(this);
     private final MikageArenaMovement movement = new MikageArenaMovement(this);
     private final MikageEncounterPresentation presentation = new MikageEncounterPresentation(this);
@@ -84,18 +79,12 @@ public final class MikageEntity extends Monster {
 
     MikageCombatDirector combatDirector() { return combat; }
     MikageDefenseController defenseController() { return defense; }
-    MikageTechniqueRuntime techniqueRuntime() { return techniques; }
-    MikageArenaController arenaController() { return arena; }
-    MikageAttackTimeline attackTimeline() { return attackTimeline; }
 
     MikageDuelDefense duel() { return duel; }
+    MikageDamageService damage() { return damageService; }
     MikageEncounter encounter() { return encounter; }
-    MikageLegacySkillEffects legacyEffects() { return legacyEffects; }
-    MikageLegacyCounterRuntime counters() { return counters; }
-    MikageSwordWheelRuntime swordWheel() { return swordWheel; }
     MikageArenaMovement movement() { return movement; }
     MikageEncounterPresentation presentation() { return presentation; }
-    MikagePursuitRainController pursuitRain() { return pursuitRain; }
     void setSwordWheelCount(int count) { entityData.set(SWORD_WHEEL_COUNT, count); }
     void setSwordWheelDeployed(boolean deployed) { entityData.set(SWORD_WHEEL_DEPLOYED, deployed); }
     void markVisitorGuide() { entityData.set(VISITOR_GUIDE, true); }
@@ -104,10 +93,6 @@ public final class MikageEntity extends Monster {
     int actionRemainingTicks() {
         return getAction() == MikageAction.IDLE ? 0
                 : Math.max(0, entityData.get(ACTION_LENGTH) - (tickCount - entityData.get(ACTION_START)));
-    }
-    boolean legacySkillBusy() {
-        return techniques.isSignatureActive(arena, defense)
-                || combat.signatureRecoveryTicks > 0 || defense.swordWheelBreakTicks > 0;
     }
     public void restoreCombatHealthFraction(float fraction) {
         setHealth(getMaxHealth() * Mth.clamp(fraction, 0.01F, 1.0F));
@@ -140,10 +125,11 @@ public final class MikageEntity extends Monster {
         entityData.define(ACTION, MikageAction.IDLE.ordinal());
         entityData.define(ACTION_START, 0);
         entityData.define(ACTION_LENGTH, 1);
-        entityData.define(SWORD_WHEEL_COUNT, 6);
+        entityData.define(SWORD_WHEEL_COUNT, 0);
         entityData.define(SWORD_WHEEL_DEPLOYED, false);
         entityData.define(VISITOR_GUIDE, false);
         entityData.define(WITHIN_THOUSAND_GATES, false);
+        entityData.define(MOON_ECHO_ACTIVE, false);
         entityData.define(RIDING_PHANTOM_SWORD, false);
         entityData.define(NATIVE_COMBO_STAGE, 0);
         entityData.define(NATIVE_COMBO_START, 0L);
@@ -164,7 +150,7 @@ public final class MikageEntity extends Monster {
     /** Read-only client pose discriminator; damage and technique timing remain server-owned. */
     public boolean isBoundaryFlashPose() {
         return getAction() == MikageAction.RITUAL
-                && entityData.get(ACTION_LENGTH) == BOUNDARY_FLASH_TOTAL_TICKS;
+                && entityData.get(ACTION_LENGTH) == MikageBoundaryExecution.TOTAL;
     }
 
     void setAction(MikageAction action, int duration) {
@@ -229,15 +215,6 @@ public final class MikageEntity extends Monster {
         return !isWithinThousandGates() && super.displayFireAnimation();
     }
 
-    boolean dealTrialDamage(ServerPlayer player, float rawDamage, boolean guarded) {
-        return damageService.dealTrialDamage(player, rawDamage, guarded);
-    }
-
-    boolean dealAdjustedTrialDamage(ServerPlayer player, float adjustedDamage,
-            boolean protectedResponse) {
-        return damageService.dealAdjustedTrialDamage(player, adjustedDamage, protectedResponse);
-    }
-
     void prepareOpening(int ticks) {
         combat.techniqueCooldown = Math.max(combat.techniqueCooldown, ticks);
     }
@@ -256,16 +233,18 @@ public final class MikageEntity extends Monster {
         }
     }
 
+    void setMoonEchoActive(boolean active) { entityData.set(MOON_ECHO_ACTIVE, active); }
+
     public boolean isMoonEchoActive() {
-        return legacyEffects.isMoonEchoActive();
+        return entityData.get(MOON_ECHO_ACTIVE);
     }
 
     boolean isUsingTechnique() {
-        return encounter.active() || legacySkillBusy() || duel.staggered();
+        return encounter.active() || duel.staggered();
     }
 
     private boolean isUsingSignatureTechnique() {
-        return techniques.isSignatureActive(arena, defense);
+        return encounter.active();
     }
 
     @Override
@@ -348,38 +327,4 @@ public final class MikageEntity extends Monster {
         GUARD
     }
 
-    enum SwordDiscipline {
-        STANDARD,
-        IAIDO,
-        RENGEKI,
-        DANGAKU
-    }
-
-    enum Technique {
-        NONE(SwordDiscipline.STANDARD),
-        CIRCLE_SLASH(SwordDiscipline.DANGAKU),
-        BLADE_COMBO(SwordDiscipline.RENGEKI),
-        STEP_IAIDO(SwordDiscipline.IAIDO),
-        DANGAKU_CLEAVE(SwordDiscipline.DANGAKU),
-        FLASH_COUNTER(SwordDiscipline.IAIDO),
-        SAKURA_END(SwordDiscipline.IAIDO),
-        DRIVE_FAN(SwordDiscipline.STANDARD),
-        WAVE_EDGE(SwordDiscipline.STANDARD),
-        JUDGEMENT_CUT(SwordDiscipline.STANDARD),
-        SUPER_JUDGEMENT(SwordDiscipline.STANDARD),
-        SUMMONED_VOLLEY(SwordDiscipline.RENGEKI),
-        AERIAL_RAIN(SwordDiscipline.RENGEKI),
-        BOUNDARY_FLASH(SwordDiscipline.IAIDO),
-        MIRROR_DUEL(SwordDiscipline.IAIDO),
-        BOUNDARY_SEAL(SwordDiscipline.DANGAKU),
-        MOON_ECHO(SwordDiscipline.IAIDO),
-        TORII_SWEEP(SwordDiscipline.DANGAKU),
-        TORII_CAGE(SwordDiscipline.DANGAKU);
-
-        final SwordDiscipline style;
-
-        Technique(SwordDiscipline style) {
-            this.style = style;
-        }
-    }
 }

@@ -10,11 +10,11 @@ import java.util.*;
 /** A bounded live set, not thousands of cleanup callbacks accumulated by a continuous release. */
 final class MikageGateBarrageShots {
     private final MikageEntity owner;
-    private final long cast;
+    private final dev.bladetetra.challenge.mikage.CastScope scope;
     private final Set<MikageGateSwordEntity> live = new HashSet<>();
     private Vec3 aim;
     private int volley;
-    MikageGateBarrageShots(MikageEntity owner, long cast, Vec3 aim) { this.owner = owner; this.cast = cast; this.aim = aim; }
+    MikageGateBarrageShots(MikageEntity owner, dev.bladetetra.challenge.mikage.CastScope scope, Vec3 aim) { this.owner = owner; this.scope = scope; this.aim = aim; }
     void tick(ServerPlayer player) {
         live.removeIf(net.minecraft.world.entity.Entity::isRemoved);
         aim = aim.lerp(player.position().add(0, 1, 0), .12);
@@ -30,7 +30,7 @@ final class MikageGateBarrageShots {
                     .add(0, 1 + ((volley + i) % 3) * .25, 0);
             Vec3 destination = aim.add(gate.right().scale((i - 2) * .3));
             var sword = new MikageGateSwordEntity(ModEntities.MIKAGE_GATE_SWORD.get(), level);
-            sword.configure(owner, cast); sword.setPos(origin);
+            sword.configure(owner, scope); sword.setPos(origin);
             Vec3 direction = destination.subtract(origin).normalize();
             float speed = (float) Math.min(1.65, .85 + Math.max(0, destination.distanceTo(origin) - 24) / 90);
             sword.shoot(direction.x, direction.y, direction.z, speed, 0); sword.setRoll(i * 25 + volley * 7);

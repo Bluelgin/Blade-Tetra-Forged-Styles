@@ -27,10 +27,7 @@ final class MikageDuelDefense {
     private long now() { return owner.level().getGameTime(); }
     boolean staggered() { return state.staggered(now()); }
     boolean protects(ServerPlayer player) {
-        var pursuit = owner.encounter().gates();
-        var corridor = owner.encounter().corridor();
-        return eligible(player) && (corridor == null || !corridor.striking(player)) && (pursuit == null || !pursuit.striking(player))
-                && state.protects(player.getUUID(), now());
+        return eligible(player) && !MikageNativeCombat.fresh(player) && state.protects(player.getUUID(), now());
     }
     private boolean eligible(ServerPlayer player) {
         return owner.isAlive() && !owner.isVisitorGuide() && owner.encounter().eligible(player);
@@ -46,7 +43,7 @@ final class MikageDuelDefense {
     boolean intercept(DamageSource source) {
         if (state.guarding(now())) return true;
         if (!state.counterReady(now()) || !owner.encounter().canGuardCounter()
-                || owner.getPhase() != 1 || source.is(DamageTypeTags.IS_PROJECTILE)
+                || source.is(DamageTypeTags.IS_PROJECTILE)
                 || !(MikageDamageService.resolveCombatAttacker(source) instanceof ServerPlayer player)
                 || !eligible(player) || owner.distanceToSqr(player) > 36 || !front(player.position())) return false;
         Entity traced = MikageBladeAttackTrace.projectile();
@@ -125,6 +122,12 @@ final class MikageDuelDefense {
         owner.encounter().breakDuelBalance(); showingStagger = true;
         owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
         owner.presentation().balanceBroken();
+    }
+
+    void rewardOpening(int ticks) {
+        if (!state.staggered(now())) state.openStagger(now(), ticks);
+        owner.encounter().breakDuelBalance(); showingStagger = true;
+        owner.setAction(MikageEntity.MikageAction.STAGGERED, state.staggerRemaining(now()));
     }
 
     void hitAccepted() {

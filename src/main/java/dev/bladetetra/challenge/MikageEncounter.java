@@ -16,7 +16,7 @@ import com.mojang.logging.LogUtils;
 import java.util.Comparator;
 import java.util.List;
 
-/** Owns encounter flow. Legacy effects are temporary until the new skill pool is authored. */
+/** Owns encounter flow, observation, scoped executions and the preserved story bridge. */
 final class MikageEncounter {
     private static final Logger LOGGER = LogUtils.getLogger();
     private final MikageEntity owner;
@@ -25,8 +25,8 @@ final class MikageEncounter {
     private final MikagePlayerObserver observer;
     private final MikageStoryBridge story;
     private final MikageSkillSelection selection;
-    // New authored follow-up links are deliberately deferred to the skill-pool discussion.
-    private final ReactiveCombatDirector director = new ReactiveCombatDirector(List.of());
+    // Follow-up links add preference, never cancel or shorten the current execution.
+    private final ReactiveCombatDirector director = new ReactiveCombatDirector(MikageFollowups.links());
     private boolean victoryPending;
 
     MikageEncounter(MikageEntity owner) {
@@ -42,7 +42,10 @@ final class MikageEncounter {
     MikageThousandGatesExecution gates() { return skills.execution(MikageThousandGatesExecution.class); }
     MikageGateCorridorExecution corridor() { return skills.execution(MikageGateCorridorExecution.class); }
     MikageGateBarrageExecution barrage() { return skills.execution(MikageGateBarrageExecution.class); }
+    MikageMoonEchoExecution echo() { return skills.execution(MikageMoonEchoExecution.class); }
+    MikageBoundaryExecution boundary() { return skills.execution(MikageBoundaryExecution.class); }
     boolean portalSkill() { return gates() != null || corridor() != null || barrage() != null; }
+    Vec3 observedRoute(ServerPlayer player) { return observer.route(player); }
     boolean eligible(ServerPlayer player) { return observer.eligible(player); }
     void observeAttack(ServerPlayer player) { if (!lifecycle.terminal()) observer.attack(player); }
     void observeSlashArt(ServerPlayer player, String id) {
@@ -51,13 +54,12 @@ final class MikageEncounter {
 
     boolean canGuardCounter() {
         return lifecycle.state() == EncounterLifecycle.State.COMBAT && !active()
-                && !owner.legacySkillBusy() && !owner.duel().staggered()
+                && !owner.duel().staggered()
                 && owner.getAction() == MikageEntity.MikageAction.IDLE;
     }
 
     boolean footworkAllowed() {
-        return canGuardCounter() && owner.combatDirector().phaseProtectionTicks <= 0
-                && owner.techniqueRuntime().interactionOpeningTicks <= 0;
+        return canGuardCounter() && owner.combatDirector().phaseProtectionTicks <= 0;
     }
 
     boolean answerGuard(ServerPlayer player) {
@@ -69,11 +71,7 @@ final class MikageEncounter {
     void breakDuelBalance() {
         stop(SkillExecution.StopReason.COUNTERED);
         MikageEncounterCleanup.foreground(owner);
-        owner.attackTimeline().clear();
-        owner.defenseController().saPatterns.clear();
-        owner.defenseController().judgementPatterns.clear();
         owner.defenseController().hurtCooldownUntil.clear();
-        if (owner.level() instanceof ServerLevel level) owner.swordWheel().recallSwordWheel(level, 35);
         director.reset();
     }
 
@@ -96,9 +94,6 @@ final class MikageEncounter {
         observer.tick(server);
         StunManager.removeStun(owner);
         owner.getPersistentData().remove("knockback_factor");
-        if (owner.techniqueRuntime().aerialTicks == 0
-                && owner.arenaController().boundarySlashDelay == 0 && !portalSkill()
-                && owner.isNoGravity()) owner.setNoGravity(false);
 
         if (lifecycle.state() != EncounterLifecycle.State.TRANSITION
                 && lifecycle.observeHealth(owner.getHealth() / owner.getMaxHealth())) {
@@ -108,46 +103,25 @@ final class MikageEncounter {
             owner.setPhase(lifecycle.phase());
             owner.presentation().phaseName(lifecycle.phase());
             owner.combatDirector().phaseProtectionTicks = GameplayConfig.MIKAGE_PHASE_PROTECTION_TICKS.get();
-            owner.counters().clearQueuedPlayerBladeAttacks(server);
             story.phase(lifecycle.phase());
             owner.presentation().phaseShift(server, lifecycle.phase());
         }
         owner.duel().tick(server);
         owner.bossBar().setProgress(owner.getHealth() / owner.getMaxHealth());
         owner.presentation().syncHud();
-        Runnable effectsTick = () -> MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
-        if (active()) owner.attackTimeline().inScope(skills.scope(), effectsTick);
-        else effectsTick.run();
+        MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
         skills.tick();
 
         var combat = owner.combatDirector();
-        if (!isWindingUp() && !owner.legacySkillBusy() && combat.techniqueCooldown > 0) combat.techniqueCooldown--;
+        if (!isWindingUp() && combat.techniqueCooldown > 0) combat.techniqueCooldown--;
         if (combat.phaseProtectionTicks > 0) return;
         if (lifecycle.state() == EncounterLifecycle.State.TRANSITION) lifecycle.ready();
         if (lifecycle.state() == EncounterLifecycle.State.OPENING) {
             if (combat.techniqueCooldown > 0) return;
             lifecycle.ready();
         }
-        if (active() || owner.legacySkillBusy() || owner.duel().staggered()) return;
+        if (active() || owner.duel().staggered()) return;
 
-        ServerPlayer exchangeTarget = target(server);
-        boolean exchange = exchangeTarget != null && owner.movement().needsMeleeExchange(exchangeTarget);
-        var arena = owner.arenaController();
-        if (!exchange && arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0 && lifecycle.phase() == 3) {
-            ServerPlayer target = target(server);
-            if (target != null) {
-                arena.boundaryFlashPending = false;
-                start(new MikageLegacySkillExecution(owner, target, () -> owner.legacyEffects().beginBoundaryFlash(target, server)));
-                return;
-            }
-        }
-        if (!exchange && owner.techniqueRuntime().pursuitRainCooldown <= 0) {
-            ServerPlayer target = owner.pursuitRain().selectTarget(server);
-            if (target != null && eligible(target)) {
-                start(new MikageLegacySkillExecution(owner, target, () -> owner.pursuitRain().begin(target, server)));
-                return;
-            }
-        }
         if (combat.techniqueCooldown > 0) return;
         ServerPlayer target = target(server);
         if (target == null) return;

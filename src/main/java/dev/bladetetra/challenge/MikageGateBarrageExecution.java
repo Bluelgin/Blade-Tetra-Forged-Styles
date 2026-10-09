@@ -37,12 +37,11 @@ final class MikageGateBarrageExecution implements SkillExecution {
         gate = player == null ? null : MikageGateBarragePlacement.choose(owner, player);
         if (gate != null) {
             ServerLevel level = (ServerLevel) owner.level();
-            owner.swordWheel().recallSwordWheel(level, 600);
             owner.setAction(MikageEntity.MikageAction.CAST_READY, 40);
             core = new MikageGateCoreEntity(ModEntities.MIKAGE_GATE_CORE.get(), level);
             float yaw = (float) Math.toDegrees(Math.atan2(-gate.forward().x, gate.forward().z));
             core.configure(owner, scope.id(), gate.base().add(0, .8, 0), yaw);
-            shots = new MikageGateBarrageShots(owner, scope.id(), player.position().add(0, 1, 0));
+            shots = new MikageGateBarrageShots(owner, scope, player.position().add(0, 1, 0));
             if (!level.addFreshEntity(core)) gate = null;
             if (gate != null) {
                 sound(SoundEvents.ENDERMAN_TELEPORT, 1, .65F);
@@ -115,11 +114,10 @@ final class MikageGateBarrageExecution implements SkillExecution {
         else sound(SoundEvents.AMETHYST_BLOCK_BREAK, 1, 1 + (3 - sequence.remainingHits()) * .12F);
         return true;
     }
-    void hitPlayer(ServerPlayer player) {
-        long now = owner.level().getGameTime();
-        if (eligible(player) && sequence.mayDamage(player.getUUID(), now)
-                && owner.dealTrialDamage(player, (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE) * .22F, false))
-            sequence.damaged(player.getUUID(), now);
+    MikageNativeCombat.Rule nativeRule() {
+        return new MikageNativeCombat.Rule(null, false, false,
+                (player, source) -> eligible(player) && sequence.mayDamage(player.getUUID(), owner.level().getGameTime()),
+                (player, source) -> sequence.damaged(player.getUUID(), owner.level().getGameTime()));
     }
     private static boolean sword(ItemStack stack) { return stack.getItem() instanceof ItemSlashBlade || stack.canPerformAction(ToolActions.SWORD_SWEEP); }
     private void sound(SoundEvent event, float volume, float pitch) {

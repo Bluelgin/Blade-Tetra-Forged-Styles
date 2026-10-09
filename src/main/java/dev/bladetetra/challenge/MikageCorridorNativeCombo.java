@@ -16,7 +16,7 @@ public final class MikageCorridorNativeCombo {
     private final MikageEntity owner;
     private final MikageGateCorridorExecution release;
     private final Set<Entity> slashes = Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<Entity> contacts = Collections.newSetFromMap(new IdentityHashMap<>());
+
     private static final Map<Entity, net.minecraft.world.phys.Vec3> OFFSETS = new WeakHashMap<>();
     private ResourceLocation stage;
     private boolean executing;
@@ -28,7 +28,7 @@ public final class MikageCorridorNativeCombo {
         long now = owner.level().getGameTime();
         if (lastTick == now) return;
         lastTick = now;
-        slashes.removeIf(Entity::isRemoved); contacts.removeIf(Entity::isRemoved);
+        slashes.removeIf(Entity::isRemoved);
         if (stage == null) change(new ResourceLocation("slashblade", "combo_b1"));
         ComboState combo = Objects.requireNonNull(ComboStateRegistry.REGISTRY.get().getValue(stage));
         var next = combo.getNext(owner);
@@ -55,15 +55,14 @@ public final class MikageCorridorNativeCombo {
                 owner.level().getGameTime());
     }
     boolean capture(Entity entity) {
-        if (!executing || !(entity instanceof EntitySlashEffect slash)) return false;
+        if (!(entity instanceof EntitySlashEffect slash)) return false;
         slash.setColor(0xFF1838);
-        entity.getPersistentData().putBoolean(MikageDuelEvents.VISUAL_ONLY, true);
         OFFSETS.put(entity, entity.position().subtract(owner.position()));
         slashes.add(entity); return true;
     }
     boolean finished() { return stage != null && stage.getPath().equals("none"); }
     void stop() {
-        slashes.forEach(entity -> { OFFSETS.remove(entity); entity.discard(); }); slashes.clear(); contacts.clear();
+        slashes.forEach(entity -> { OFFSETS.remove(entity); entity.discard(); }); slashes.clear();
         if (stage != null) change(new ResourceLocation("slashblade", "none"));
         stage = null; lastTick = Long.MIN_VALUE;
         owner.setNativeCombo(0, 0);
@@ -84,20 +83,5 @@ public final class MikageCorridorNativeCombo {
     public static boolean driving(LivingEntity entity) {
         return entity instanceof MikageEntity boss && boss.encounter().corridor() != null
                 && boss.encounter().corridor().combo.executing;
-    }
-    /** Null delegates to native/player combat. Empty suppresses native forceHit/stun/double damage. */
-    public static List<Entity> targets(Entity source, AABB bounds, double reach) {
-        Entity shooter = source instanceof EntitySlashEffect slash ? slash.getShooter() : source;
-        if (!(shooter instanceof MikageEntity boss)) return null;
-        var cast = boss.encounter().corridor();
-        if (cast == null) return null;
-        Entity traced = MikageBladeAttackTrace.projectile();
-        if (source == boss && traced instanceof EntitySlashEffect slash && slash.getShooter() == boss) source = traced;
-        var combo = cast.combo;
-        if (source instanceof EntitySlashEffect slash && combo.slashes.contains(source)
-                && !source.isRemoved() && !combo.contacts.contains(source)) {
-            if (cast.contact(slash, bounds, reach)) combo.contacts.add(source);
-        }
-        return new ArrayList<>();
     }
 }

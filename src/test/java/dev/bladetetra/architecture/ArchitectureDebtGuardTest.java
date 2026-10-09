@@ -45,20 +45,11 @@ class ArchitectureDebtGuardTest {
                 "src/main/java/dev/bladetetra/challenge/MikageDamageService.java",
                 340L);
         assertLinesAtMost(
-                "src/main/java/dev/bladetetra/challenge/MikageLegacyCounterRuntime.java",
-                420L);
-        assertLinesAtMost(
-                "src/main/java/dev/bladetetra/challenge/MikageSwordWheelRuntime.java",
-                230L);
-        assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEncounterSetup.java",
                 180L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageEncounterPresentation.java",
                 210L);
-        assertLinesAtMost(
-                "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java",
-                1_150L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageDuelDefense.java",
                 150L);
@@ -91,12 +82,6 @@ class ArchitectureDebtGuardTest {
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageThousandGatesPresentation.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/client/vfx/MikageThousandGatesVfxClient.java", 150L);
         assertLinesAtMost("src/main/java/dev/bladetetra/client/vfx/MikageThousandGatesVfxRenderer.java", 120L);
-        assertLinesAtMost(
-                "src/main/java/dev/bladetetra/challenge/MikagePursuitRainController.java",
-                460L);
-        assertLinesAtMost(
-                "src/main/java/dev/bladetetra/challenge/MikageToriiController.java",
-                540L);
         assertLinesAtMost(
                 "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java",
                 180L);
@@ -320,18 +305,15 @@ class ArchitectureDebtGuardTest {
     void mikageSignatureDomainsStayDelegated() throws IOException {
         String entity = Files.readString(Path.of(
                 "src/main/java/dev/bladetetra/challenge/MikageEntity.java"));
-        String effects = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/challenge/MikageLegacySkillEffects.java"));
-        assertTrue(entity.contains("new MikagePursuitRainController(this)"));
-        assertTrue(effects.contains("new MikageToriiController(owner)"));
-        String coordinator = Files.readString(Path.of(
-                "src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java"));
-        assertTrue(coordinator.contains("owner.pursuitRain().tickFinal(server)"));
-        assertTrue(effects.contains("torii.tickSweep(server)"));
-        assertFalse(entity.contains("private void castPursuitRainWave"),
-                "Pursuit Rain scripting belongs in its controller");
-        assertFalse(entity.contains("private void applyToriiScissorImpact"),
-                "Torii impact scripting belongs in its controller");
+        String selection = Files.readString(Path.of("src/main/java/dev/bladetetra/challenge/MikageSkillSelection.java"));
+        String coordinator = Files.readString(Path.of("src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java"));
+        assertTrue(selection.contains("new MikageSwordplayExecution("));
+        assertTrue(selection.contains("new MikageMoonEchoExecution("));
+        assertTrue(selection.contains("new MikageBoundaryExecution("));
+        assertFalse(selection.contains("MikageLegacySkill"));
+        assertFalse(coordinator.contains("legacyEffects"));
+        assertFalse(coordinator.contains("flashStepAway"));
+        assertFalse(entity.contains("MikageLegacySkill"));
         assertTrue(entity.contains("encounter.tick(server)"));
         assertFalse(entity.contains("preparedTicks"),
                 "Windup state belongs to a release instance");

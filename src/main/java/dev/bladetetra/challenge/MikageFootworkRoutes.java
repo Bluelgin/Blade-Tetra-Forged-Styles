@@ -5,7 +5,7 @@ import net.minecraft.core.*;
 import net.minecraft.server.level.*;
 import net.minecraft.world.phys.*;
 
-import static dev.bladetetra.challenge.MikageLegacyTiming.*;
+
 
 /** Short, grounded steps never teleport, cross flame walls, or step into unloaded space. */
 final class MikageFootworkRoutes {
@@ -47,26 +47,10 @@ final class MikageFootworkRoutes {
                     || !level.getWorldBorder().isWithinBounds(body)
                     || level.getBlockCollisions(owner, body).iterator().hasNext() || level.containsAnyLiquid(body)
                     || !level.getBlockState(bottom).isFaceSturdy(level, bottom, Direction.UP)
-                    || touchesFlame(owner, body)
                     || !level.getEntitiesOfClass(ServerPlayer.class, body, p -> p.isAlive() && !p.isSpectator()).isEmpty())
                 return false;
         }
         return true;
-    }
-    private static boolean touchesFlame(MikageEntity owner, AABB body) {
-        for (var wall : owner.arenaController().boundaryWalls) {
-            if (body.maxY < wall.center.y || body.minY > wall.center.y + BOUNDARY_FLAME_HEIGHT) continue;
-            Vec3 relative = body.getCenter().subtract(wall.center);
-            double along = relative.dot(wall.direction), across = relative.dot(wall.left());
-            double alongRadius = (Math.abs(wall.direction.x) * body.getXsize()
-                    + Math.abs(wall.direction.z) * body.getZsize()) * .5;
-            double acrossRadius = (Math.abs(wall.direction.z) * body.getXsize()
-                    + Math.abs(wall.direction.x) * body.getZsize()) * .5;
-            if (along + alongRadius < -.45 || along - alongRadius > BOUNDARY_FLASH_LENGTH + .45) continue;
-            if (wall.gapTicks > 0 && Math.abs(along - wall.gapAlong) + alongRadius <= BOUNDARY_GAP_HALF_WIDTH) continue;
-            if (Math.abs(across) <= BOUNDARY_FLAME_HALF_WIDTH + acrossRadius) return true;
-        }
-        return false;
     }
     private MikageFootworkRoutes() { }
 }

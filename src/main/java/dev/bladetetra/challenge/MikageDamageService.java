@@ -1,7 +1,5 @@
 package dev.bladetetra.challenge;
 
-import static dev.bladetetra.challenge.MikageLegacyTiming.*;
-
 import static dev.bladetetra.challenge.MikageDefenseController.*;
 
 import dev.bladetetra.config.GameplayConfig;
@@ -20,86 +18,11 @@ final class MikageDamageService {
     private final MikageEntity owner;
     private final MikageCombatDirector combat;
     private final MikageDefenseController defense;
-    private final MikageTechniqueRuntime techniques;
-    private final MikageArenaController arena;
 
     MikageDamageService(MikageEntity owner) {
         this.owner = owner;
         combat = owner.combatDirector();
         defense = owner.defenseController();
-        techniques = owner.techniqueRuntime();
-        arena = owner.arenaController();
-    }
-
-    boolean dealTrialDamage(ServerPlayer player, float rawDamage, boolean guarded) {
-        return dealTrialDamage(player, rawDamage, guarded ? 0.25F : 1.0F,
-                guarded, false);
-    }
-
-    private boolean dealTrialDamage(ServerPlayer player, float rawDamage,
-            float mechanicMultiplier, boolean protectedResponse, boolean forceBoundarySource) {
-        if (owner.duel().protects(player) || rawDamage <= 0.0F || !player.isAlive() || player.isCreative()
-                || player.isSpectator() || !ChallengeManager.isParticipant(owner, player)) {
-            return false;
-        }
-        double baseAttack = Math.max(1.0D, owner.getAttributeValue(Attributes.ATTACK_DAMAGE));
-        TrialImpact impact = TrialImpact.from(rawDamage / baseAttack);
-        PlayerDefenseProfile profile = defense.playerDefenseProfiles.computeIfAbsent(player.getUUID(),
-                id -> new PlayerDefenseProfile());
-        boolean adaptive = GameplayConfig.MIKAGE_ADAPTIVE_PLAYER_DAMAGE.get()
-                && !protectedResponse;
-        double responseFactor = Mth.clamp(mechanicMultiplier, 0.0F, 1.0F);
-        double scale = adaptive ? profile.rawMultiplier : 1.0D;
-        double maxFraction = Math.min(impact.maximumFraction,
-                GameplayConfig.MIKAGE_MAX_PLAYER_HEALTH_FRACTION_PER_HIT.get());
-        float requested = (float) Math.min(rawDamage * scale * responseFactor,
-                player.getMaxHealth() * maxFraction * responseFactor);
-        if (requested <= 0.0F) return false;
-
-        boolean boundaryAssist = adaptive && profile.boundaryAssistHits > 0;
-        DamageSource source = boundaryAssist || forceBoundarySource
-                ? owner.level().damageSources().indirectMagic(owner, owner)
-                : owner.level().damageSources().mobAttack(owner);
-        float before = player.getHealth() + player.getAbsorptionAmount();
-        int immunityBefore = player.invulnerableTime;
-        boolean hurt = player.hurt(source, requested);
-        // A fatal hit can synchronously eject the player to another dimension.
-        if (player.level() != owner.level() || !ChallengeManager.isParticipant(owner, player)) {
-            return false;
-        }
-        float after = player.getHealth() + player.getAbsorptionAmount();
-        float actual = Math.max(0.0F, before - after);
-
-        if (adaptive && immunityBefore <= 0) {
-            double desired = player.getMaxHealth() * impact.targetFraction;
-            if (boundaryAssist) profile.boundaryAssistHits--;
-            if (actual < desired * 0.50D) {
-                profile.lowDamageHits++;
-                profile.rawMultiplier = Math.min(
-                        GameplayConfig.MIKAGE_ADAPTIVE_DAMAGE_MAX_MULTIPLIER.get(),
-                        profile.rawMultiplier * 1.22D);
-                if (profile.lowDamageHits
-                        >= GameplayConfig.MIKAGE_BOUNDARY_ASSIST_LOW_HITS.get()) {
-                    profile.lowDamageHits = 0;
-                    profile.boundaryAssistHits = Math.max(profile.boundaryAssistHits, 3);
-                }
-            } else {
-                profile.lowDamageHits = 0;
-                if (actual > desired * 1.60D) {
-                    profile.rawMultiplier = Math.max(0.65D,
-                            profile.rawMultiplier * 0.86D);
-                } else if (profile.rawMultiplier > 1.0D) {
-                    profile.rawMultiplier = Math.max(1.0D,
-                            profile.rawMultiplier * 0.985D);
-                }
-            }
-        }
-        return hurt;
-    }
-
-    boolean dealAdjustedTrialDamage(ServerPlayer player, float adjustedDamage,
-            boolean protectedResponse) {
-        return dealTrialDamage(player, adjustedDamage, 1.0F, protectedResponse, true);
     }
 
     boolean hurt(DamageSource source, float amount, HurtOperation vanillaHurt) {
@@ -121,65 +44,21 @@ final class MikageDamageService {
         if (combat.phaseProtectionTicks > 0) {
             return false;
         }
-        if (attacker instanceof ServerPlayer player) {
-            if (techniques.moonEchoTicks > 0 && ChallengeManager.isParticipant(owner, player)) {
-                owner.legacyEffects().solveMoonEcho(player);
-                return false;
-            }
-            if (techniques.mirrorDuelTicks <= MIRROR_DUEL_DASH_START && techniques.mirrorDuelTicks >= 5
-                    && player.getUUID().equals(techniques.mirrorDuelTarget)) {
-                owner.legacyEffects().counterMirrorDuel(player);
-                return false;
-            }
-        }
         long now = owner.level().getGameTime();
         if (attacker != null
                 && defense.hurtCooldownUntil.getOrDefault(attacker.getUUID(), Long.MIN_VALUE) > now) {
             return false;
         }
-        if (owner.duel().intercept(source)) return false;
-        Entity direct = source.getDirectEntity();
-        if (direct instanceof EntityJudgementCut cut && cut.getOwner() instanceof LivingEntity cutOwner) {
-            attacker = cutOwner;
-            amount *= owner.counters().judgementCutDamageMultiplier(cutOwner);
-            if (amount <= 0.0F) {
-                return false;
-            }
-        } else if (attacker instanceof LivingEntity living) {
-            amount *= owner.counters().handleSlashArtPressure(living);
-        }
-        if (attacker instanceof LivingEntity living && owner.distanceToSqr(living) <= 25.0D
-                && defense.swordWheelBreakTicks <= 0 && combat.signatureRecoveryTicks <= 0
-                && techniques.interactionOpeningTicks <= 0 && !owner.duel().staggered()
-                && !owner.encounter().portalSkill()) {
-            owner.swordWheel().registerClosePressure(living);
-            if (owner.isSwordWheelDeployed() && defense.swordWheelCounterCooldown <= 0) {
-                defense.swordWheelCounterCooldown = 14;
-                owner.swordWheel().counterWithSwordWheel(living);
-                amount *= 0.70F;
-            }
-        }
+        boolean echoInterrupted = attacker instanceof ServerPlayer player && owner.encounter().echo() != null
+                && owner.encounter().echo().struck(player, source);
+        if (!echoInterrupted && owner.duel().intercept(source)) return false;
         float threshold = GameplayConfig.MIKAGE_SOFT_CAP_THRESHOLD.get().floatValue();
         if (amount > threshold) {
             amount = Math.min(GameplayConfig.MIKAGE_SINGLE_HIT_CAP.get().floatValue(),
                     threshold + (amount - threshold)
                             * GameplayConfig.MIKAGE_SOFT_CAP_OVERFLOW_RATIO.get().floatValue());
         }
-        if (techniques.boundarySealTicks > 0 || techniques.moonEchoTicks > 0
-                || arena.toriiSweepTicks > TORII_SWEEP_RECOVERY_TICKS
-                || arena.toriiCageTicks > TORII_CAGE_RECOVERY_TICKS) {
-            amount *= 0.25F;
-        } else if (owner.duel().staggered()) {
-            amount *= 1.25F;
-        } else if (techniques.interactionOpeningTicks > 0) {
-            amount *= techniques.interactionOpeningMultiplier;
-        } else if (combat.signatureRecoveryTicks > 0) {
-            amount *= techniques.pursuitRainCountered
-                    ? GameplayConfig.MIKAGE_PURSUIT_RAIN_STAGGER_DAMAGE_MULTIPLIER.get().floatValue()
-                    : (arena.cagePerfectCountered || arena.toriiScissorCountered || defense.swordWheelBreakTicks > 0)
-                    ? GameplayConfig.MIKAGE_CAGE_STAGGER_DAMAGE_MULTIPLIER.get().floatValue()
-                    : 1.25F;
-        }
+        if (owner.duel().staggered()) amount *= 1.25F;
         float phaseFloor = 0.0F;
         boolean reachesPhaseGate = false;
         if (GameplayConfig.MIKAGE_ENABLE_PHASE_HEALTH_GATES.get()) {
@@ -203,25 +82,33 @@ final class MikageDamageService {
             // Replace vanilla's one-global-timer immunity with Mikage's per-attacker
             // ledger so one participant never consumes another participant's hit.
             owner.invulnerableTime = 0;
-            boolean rewardedOpening = owner.duel().staggered() || defense.swordWheelBreakTicks > 0
-                    || techniques.interactionOpeningTicks > 0
-                    || ((arena.cagePerfectCountered || arena.toriiScissorCountered || techniques.pursuitRainCountered)
-                    && combat.signatureRecoveryTicks > 0);
+            boolean rewardedOpening = owner.duel().staggered();
             int cooldown = rewardedOpening
                     ? GameplayConfig.MIKAGE_OPENING_HURT_COOLDOWN_TICKS.get()
                     : GameplayConfig.MIKAGE_HURT_COOLDOWN_TICKS.get();
             if (cooldown > 0) {
                 defense.hurtCooldownUntil.put(attacker.getUUID(), now + cooldown);
             }
-            if (attacker instanceof ServerPlayer player && !rewardedOpening
-                    && combat.signatureRecoveryTicks <= 0) {
-                owner.pursuitRain().registerPressure(player, now);
-            }
-            if (attacker instanceof ServerPlayer player) {
-                owner.counters().registerShadowCrossIaido(player, now);
-            }
         }
         return hurt;
+    }
+
+    float nativeDamage(ServerPlayer player, float raw) {
+        if (!Float.isFinite(raw) || raw <= 0 || !owner.encounter().eligible(player)) return 0;
+        var impact = TrialImpact.from(raw / Math.max(1, owner.getAttributeValue(Attributes.ATTACK_DAMAGE)));
+        var profile = defense.playerDefenseProfiles.computeIfAbsent(player.getUUID(), id -> new PlayerDefenseProfile());
+        double scale = GameplayConfig.MIKAGE_ADAPTIVE_PLAYER_DAMAGE.get() ? profile.rawMultiplier : 1;
+        return (float) Math.min(raw * scale, player.getMaxHealth() * Math.min(impact.maximumFraction,
+                GameplayConfig.MIKAGE_MAX_PLAYER_HEALTH_FRACTION_PER_HIT.get()));
+    }
+    void nativeDamageAccepted(ServerPlayer player, float actual) {
+        if (!GameplayConfig.MIKAGE_ADAPTIVE_PLAYER_DAMAGE.get()) return;
+        var profile = defense.playerDefenseProfiles.computeIfAbsent(player.getUUID(), id -> new PlayerDefenseProfile());
+        double desired = player.getMaxHealth() * .11;
+        if (actual < desired * .5) profile.rawMultiplier = Math.min(
+                GameplayConfig.MIKAGE_ADAPTIVE_DAMAGE_MAX_MULTIPLIER.get(), profile.rawMultiplier * 1.22);
+        else if (actual > desired * 1.6) profile.rawMultiplier = Math.max(.65, profile.rawMultiplier * .86);
+        else if (profile.rawMultiplier > 1) profile.rawMultiplier = Math.max(1, profile.rawMultiplier * .985);
     }
 
     static Entity resolveCombatAttacker(DamageSource source) {

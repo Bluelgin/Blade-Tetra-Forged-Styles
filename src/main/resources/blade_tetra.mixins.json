@@ -16,6 +16,8 @@
     "MikageSlashProvenanceMixin",
     "MikageNativeTimelineMixin",
     "MikageNativeTargetsMixin",
+    "MikageNativeManagedAttackMixin",
+    "MikageNativeDriveMixin",
     "MikageGateReflectionMixin",
     "MirrorIceMixin",
     "SwordTypeMixin"

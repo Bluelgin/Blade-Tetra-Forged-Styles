@@ -16,6 +16,7 @@ final class MikagePlayerObserver {
     private final MikageEntity owner;
     private final PlayerBehaviorMemory memory = new PlayerBehaviorMemory();
     private final Map<UUID, Vec3> previousPositions = new HashMap<>();
+    private final Map<UUID, Vec3> routes = new HashMap<>();
 
     MikagePlayerObserver(MikageEntity owner) { this.owner = owner; }
 
@@ -36,14 +37,17 @@ final class MikagePlayerObserver {
             Vec3 previous = previousPositions.put(id, position);
             Vec3 direction = position.subtract(owner.position()).multiply(1, 0, 1);
             Vec3 movement = previous == null ? Vec3.ZERO : position.subtract(previous).multiply(1, 0, 1);
+            routes.put(id, movement.lengthSqr() > 9 ? Vec3.ZERO : movement);
             // Teleports, including arena correction, are not dodge/retreat evidence.
             double radial = movement.lengthSqr() > 9 || direction.lengthSqr() < 0.001
                     ? 0 : movement.dot(direction.normalize());
             memory.sample(id, new PlayerBehaviorMemory.Sample(tick,
                     owner.distanceTo(player), player.getY() - owner.getY(), radial,
-                    owner.legacyEffects().isBladeGuarding(player), !player.onGround()));
+                    player.getMainHandItem().getItem() instanceof mods.flammpfeil.slashblade.item.ItemSlashBlade
+                            && player.getCapability(mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState.INPUT_STATE)
+                            .map(input -> input.getCommands(player).contains(mods.flammpfeil.slashblade.util.InputCommand.R_DOWN)).orElse(false), !player.onGround()));
         }
-        previousPositions.keySet().retainAll(present);
+        previousPositions.keySet().retainAll(present); routes.keySet().retainAll(present);
         memory.retain(present, tick);
     }
 
@@ -59,5 +63,6 @@ final class MikagePlayerObserver {
         if (eligible(player)) memory.slashArt(player.getUUID(), owner.level().getGameTime(), id);
     }
 
-    void clear() { memory.clear(); previousPositions.clear(); }
+    Vec3 route(ServerPlayer player) { return routes.getOrDefault(player.getUUID(), Vec3.ZERO); }
+    void clear() { memory.clear(); previousPositions.clear(); routes.clear(); }
 }

@@ -22,8 +22,8 @@ final class MikageThousandGatesExecution implements SkillExecution {
     private final Runnable committed;
     private CastScope scope;
     private Vec3 arrival, direction;
-    private boolean oldGravity, oldPhysics, oldSilent, oldInvisible, restored, striking;
-    private int hitRecovery;
+    private boolean oldGravity, oldPhysics, oldSilent, oldInvisible, restored;
+    private int hitRecovery, strikeWindow;
 
     MikageThousandGatesExecution(MikageEntity owner, ServerPlayer player, Runnable committed) {
         this.owner = owner; target = player.getUUID();
@@ -35,8 +35,6 @@ final class MikageThousandGatesExecution implements SkillExecution {
         oldGravity = owner.isNoGravity(); oldPhysics = owner.noPhysics;
         oldSilent = owner.isSilent(); oldInvisible = owner.isInvisible();
         scope.own(this::restore);
-        scope.own(() -> owner.attackTimeline().cancel(scope));
-        owner.swordWheel().recallSwordWheel((ServerLevel) owner.level(), 45);
         owner.setNoGravity(true);
         owner.setAction(MikageEntity.MikageAction.CAST_READY, 12);
         visuals.portal("enter", scope.id(), 12);
@@ -46,13 +44,22 @@ final class MikageThousandGatesExecution implements SkillExecution {
         committed.run();
     }
     @Override public boolean windingUp() { return !sequence.terminal(); }
-    boolean striking(ServerPlayer player) { return striking && target.equals(player.getUUID()); }
 
     @Override public Status tick() {
         if (!(owner.level() instanceof ServerLevel level)
                 || !(level.getEntity(target) instanceof ServerPlayer player)
                 || !owner.encounter().eligible(player)) return Status.TARGET_LOST;
         owner.setTarget(player); owner.getNavigation().stop(); owner.setDeltaMovement(Vec3.ZERO);
+        if (sequence.stage() == ThousandGatesSequence.Stage.BROKEN) {
+            owner.duel().breakPursuitBalance(); visuals.portal("break", scope.id(), 24); return Status.COUNTERED;
+        }
+        if (strikeWindow > 0) {
+            if (--strikeWindow == 0 && sequence.stage() == ThousandGatesSequence.Stage.REVEAL) {
+                MikageNativeCombat.clearAttacks(scope); sequence.contact(ThousandGatesSequence.Contact.MISS);
+                progress(player); visuals.portal("enter", scope.id(), 6);
+            }
+            return Status.RUNNING;
+        }
         if (sequence.stage() == ThousandGatesSequence.Stage.HIT)
             return --hitRecovery <= 0 ? Status.COMPLETE : Status.RUNNING;
         if (sequence.stage() == ThousandGatesSequence.Stage.REVEAL) face();
@@ -68,18 +75,6 @@ final class MikageThousandGatesExecution implements SkillExecution {
             case REVEAL -> {
                 if (sequence.remaining() == 0) {
                     strike(level, player);
-                    if (sequence.stage() == ThousandGatesSequence.Stage.BROKEN) {
-                        owner.duel().breakPursuitBalance();
-                        visuals.portal("break", scope.id(), 24);
-                        return Status.COUNTERED;
-                    }
-                    if (sequence.stage() == ThousandGatesSequence.Stage.HIT) {
-                        hitRecovery = 6;
-                        return Status.RUNNING;
-                    }
-                    owner.setAction(sequence.streak() > 0 ? MikageEntity.MikageAction.GUARD
-                            : MikageEntity.MikageAction.IAIDO_DRAW, 6);
-                    visuals.portal("enter", scope.id(), 6);
                 } else {
                     // Terrain may change after the cue. Never announce one place and attack from another.
                     if (!MikageGateArrival.safe(owner, player, level, arrival)) {
@@ -101,26 +96,25 @@ final class MikageThousandGatesExecution implements SkillExecution {
     }
 
     private void strike(ServerLevel level, ServerPlayer player) {
-        owner.setAction(MikageEntity.MikageAction.IAIDO_DRAW, 6);
-        visuals.slash(scope.id());
-        Vec3 point = player.position().add(0, .9, 0), origin = arrival.add(0, .9, 0);
-        Vec3 flat = point.subtract(origin).multiply(1, 0, 1);
-        boolean contains = Math.abs(point.y - origin.y) <= 1.8 && flat.lengthSqr() <= 6.0 * 6.0
-                && flat.lengthSqr() > .001 && flat.normalize().dot(direction) >= .8
-                && level.clip(new ClipContext(origin, point, ClipContext.Block.COLLIDER,
-                        ClipContext.Fluid.NONE, owner)).getType() == HitResult.Type.MISS;
-        var contact = ThousandGatesSequence.Contact.MISS;
-        if (contains && owner.duel().parryPursuit(player, origin)) {
-            contact = ThousandGatesSequence.Contact.PARRY;
-        } else if (contains) {
-            striking = true;
-            try {
-                if (owner.dealTrialDamage(player,
-                        (float) owner.getAttributeValue(Attributes.ATTACK_DAMAGE) * .65F, false))
-                    contact = ThousandGatesSequence.Contact.HIT;
-            } finally { striking = false; }
-        }
-        sequence.contact(contact);
+        owner.setAction(MikageEntity.MikageAction.IAIDO_DRAW, 6); visuals.slash(scope.id()); strikeWindow = 6;
+        var rule = new MikageNativeCombat.Rule(target, true, true, (p, source) -> {
+            if (sequence.stage() != ThousandGatesSequence.Stage.REVEAL || sequence.remaining() != 0) return false;
+            if (owner.duel().parryPursuit(p, arrival.add(0, .9, 0))) {
+                sequence.contact(ThousandGatesSequence.Contact.PARRY); progress(p);
+                MikageNativeCombat.clearAttacks(scope); strikeWindow = 0;
+                if (!sequence.terminal()) visuals.portal("enter", scope.id(), 6);
+                return false;
+            }
+            return true;
+        }, (p, source) -> {
+            if (sequence.stage() == ThousandGatesSequence.Stage.REVEAL && sequence.remaining() == 0) {
+                sequence.contact(ThousandGatesSequence.Contact.HIT); hitRecovery = 6; strikeWindow = 0; progress(p);
+            }
+        });
+        MikageNativeCombat.run(owner, scope, rule,
+                () -> mods.flammpfeil.slashblade.util.AttackManager.doSlash(owner, -12, false, false, .65));
+    }
+    private void progress(ServerPlayer player) {
         player.displayClientMessage(Component.translatable("message.blade_tetra.mikage.thousand_gates",
                 sequence.streak(), ThousandGatesSequence.REQUIRED_PARRIES), true);
     }
@@ -144,7 +138,7 @@ final class MikageThousandGatesExecution implements SkillExecution {
     }
     @Override public void stop(StopReason reason) {
         restore();
-        owner.setAction(MikageEntity.MikageAction.IDLE, 1);
+        if (!owner.duel().staggered()) owner.setAction(MikageEntity.MikageAction.IDLE, 1);
         owner.combatDirector().techniqueCooldown = Math.max(30, owner.combatDirector().techniqueCooldown);
     }
 }

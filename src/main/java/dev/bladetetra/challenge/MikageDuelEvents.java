@@ -19,8 +19,6 @@ import net.minecraftforge.fml.common.Mod;
 /** Only actual server swings arm the copied three-tick parry window. No client damage authority. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class MikageDuelEvents {
-    static final String VISUAL_ONLY = "blade_tetra_mikage_duel_visual";
-
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void attack(AttackEntityEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && event.getTarget() instanceof MikageEntity boss
@@ -53,16 +51,6 @@ public final class MikageDuelEvents {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void protect(LivingAttackEvent event) {
-        var direct = event.getSource().getDirectEntity();
-        var traced = MikageBladeAttackTrace.projectile();
-        boolean corridorHit = event.getEntity() instanceof ServerPlayer player
-                && event.getSource().getEntity() instanceof MikageEntity boss
-                && boss.encounter().corridor() != null && boss.encounter().corridor().striking(player);
-        if (!corridorHit && ((direct != null && direct.getPersistentData().getBoolean(VISUAL_ONLY))
-                || (traced != null && traced.getPersistentData().getBoolean(VISUAL_ONLY)))) {
-            event.setCanceled(true);
-            return;
-        }
         if (event.getEntity() instanceof ServerPlayer player
                 && MikageDamageService.resolveCombatAttacker(event.getSource()) instanceof MikageEntity boss
                 && boss.duel().protects(player)) event.setCanceled(true);
@@ -77,6 +65,6 @@ public final class MikageDuelEvents {
         if (shooter instanceof ServerPlayer player && ChallengeManager.isParticipant(player))
             MikageBladeAttackTrace.capture(entity, player.getMainHandItem());
     }
-    @SubscribeEvent public static void stopped(ServerStoppedEvent event) { MikageBladeAttackTrace.clear(); }
+    @SubscribeEvent public static void stopped(ServerStoppedEvent event) { MikageNativeCombat.clear(); MikageBladeAttackTrace.clear(); }
     private MikageDuelEvents() {}
 }

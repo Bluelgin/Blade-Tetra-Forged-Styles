@@ -1,6 +1,6 @@
 package dev.bladetetra.mixin;
 
-import dev.bladetetra.challenge.MikageCorridorNativeCombo;
+import dev.bladetetra.challenge.MikageNativeCombat;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -15,13 +15,13 @@ public abstract class MikageNativeTargetsMixin {
     @Inject(method = "getTargettableEntitiesWithinAABB(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/phys/AABB;D)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
     private static void bladeTetra$melee(Level level, LivingEntity actor, AABB bounds, double reach,
             CallbackInfoReturnable<List<Entity>> ci) {
-        var result = MikageCorridorNativeCombo.targets(actor, bounds, reach);
+        var result = MikageNativeCombat.targets(actor, bounds, reach);
         if (result != null) ci.setReturnValue(result);
     }
     @Inject(method = "getTargettableEntitiesWithinAABB(Lnet/minecraft/world/level/Level;DLnet/minecraft/world/entity/Entity;)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
     private static void bladeTetra$projectile(Level level, double reach, Entity source,
             CallbackInfoReturnable<List<Entity>> ci) {
-        var result = MikageCorridorNativeCombo.targets(source, source.getBoundingBox().inflate(reach), 0);
+        var result = MikageNativeCombat.targets(source, source.getBoundingBox().inflate(reach), 0);
         if (result != null) ci.setReturnValue(result);
     }
 }

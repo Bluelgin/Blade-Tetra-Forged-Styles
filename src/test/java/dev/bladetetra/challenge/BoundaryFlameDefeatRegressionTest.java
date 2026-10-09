@@ -28,16 +28,13 @@ class BoundaryFlameDefeatRegressionTest {
     }
 
     @Test
-    void FlameLoopUsesSnapshotAndStopsAfterDimensionChange() throws IOException {
-        String source = read("MikageLegacySkillEffects");
-        String loop = source.substring(source.indexOf("void tickBoundaryWalls("),
-                source.indexOf("boolean touchesBoundaryFlame("));
-        assertTrue(loop.contains("List.copyOf(server.players())"));
-        String damage = source.substring(source.indexOf("void applyBoundaryFlameDamage("),
-                source.indexOf("void sendBoundaryWall("));
-        assertTrue(damage.contains("player.level() != server"));
-        assertTrue(damage.contains("!ChallengeManager.isParticipant(owner, player)"));
-        assertTrue(damage.indexOf("player.level() != server") < damage.indexOf("server.sendParticles"));
+    void BoundaryUsesOwnedNativeContactInsteadOfPartyHealthWrites() throws IOException {
+        String source = read("MikageBoundaryExecution");
+        assertTrue(source.contains("MikageNativeCombat.run"));
+        assertTrue(source.contains("TRAIL = 80"));
+        assertTrue(source.contains("MikageNativeCombat.clearAttacks(scope)"));
+        assertFalse(source.contains("setHealth"));
+        assertFalse(source.contains("server.players()"));
     }
 
     @Test
@@ -55,12 +52,9 @@ class BoundaryFlameDefeatRegressionTest {
     }
 
     @Test
-    void TrialDamageStopsBeforeAdaptiveStateUpdatesAfterEjection() throws IOException {
-        String source = read("MikageDamageService");
-        int hit = source.indexOf("boolean hurt = player.hurt(source, requested)");
-        int check = source.indexOf("player.level() != owner.level()", hit);
-        int update = source.indexOf("float after = player.getHealth()", hit);
-        assertTrue(check > hit && check < update);
+    void NativeAdaptiveUpdatesRequireCurrentParticipantAfterEjection() throws IOException {
+        String source = read("MikageNativeDamageEvents");
+        assertTrue(source.contains("boss.encounter().eligible(player)"));
     }
 
     private static String read(String name) throws IOException {

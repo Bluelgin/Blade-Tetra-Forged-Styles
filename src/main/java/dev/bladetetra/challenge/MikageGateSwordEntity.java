@@ -17,12 +17,21 @@ public final class MikageGateSwordEntity extends EntityAbstractSummonedSword {
             MikageGateSwordEntity.class, EntityDataSerializers.BOOLEAN);
     private UUID caster;
     private long cast;
+    private boolean returning;
     public MikageGateSwordEntity(EntityType<? extends MikageGateSwordEntity> type, Level level) { super(type, level); }
-    void configure(MikageEntity boss, long cast) {
-        caster = boss.getUUID(); this.cast = cast;
-        // Native PVP selection must not govern a boss attack. Authorization lives in getRayTrace below.
-        // Ownerless native projectiles still use ArrowReflector unchanged; caster/cast are separate.
-        setOwner(null); setNoGravity(true); setColor(0xD51F3F); setDamage(.22);
+    void configure(MikageEntity boss, dev.bladetetra.challenge.mikage.CastScope scope) {
+        caster = boss.getUUID(); this.cast = scope.id();
+        setOwner(boss); setNoGravity(true); setColor(0xD51F3F);
+        setDamage(boss.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) * .22);
+        var release = boss.encounter().barrage();
+        MikageNativeCombat.track(this, boss, scope, release.nativeRule());
+    }
+    void configureAttack(MikageEntity boss, dev.bladetetra.challenge.mikage.CastScope scope, boolean returning) {
+        caster = boss.getUUID(); cast = scope.id(); this.returning = returning;
+        setOwner(boss); setNoGravity(true); setColor(returning ? 0xFFDF90 : 0xD51F3F);
+    }
+    private MikageEntity boss() {
+        return level() instanceof ServerLevel server && caster != null && server.getEntity(caster) instanceof MikageEntity b ? b : null;
     }
     @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(REFLECTED, false); }
     private MikageGateBarrageExecution release() {
@@ -34,7 +43,8 @@ public final class MikageGateSwordEntity extends EntityAbstractSummonedSword {
     public boolean mayReflect(Entity actor) {
         if (level().isClientSide()) return actor instanceof net.minecraft.world.entity.player.Player;
         var release = release();
-        return release != null && actor instanceof ServerPlayer player && release.eligible(player);
+        return actor instanceof ServerPlayer player && boss() != null && boss().encounter().eligible(player)
+                && (release != null || MikageNativeCombat.owns(this));
     }
     /** Called only AFTER ArrowReflector.doReflect has performed its original velocity update. */
     public void nativeReflected(Entity actor) {
@@ -43,24 +53,33 @@ public final class MikageGateSwordEntity extends EntityAbstractSummonedSword {
         }
     }
     @Override public void tick() {
-        if (!level().isClientSide() && (release() == null || tickCount >= GateBarrageSequence.SWORD_LIFETIME)) {
+        if (!level().isClientSide() && (!MikageNativeCombat.owns(this) || tickCount >= GateBarrageSequence.SWORD_LIFETIME)) {
             discard(); return;
         }
         super.tick();
     }
     @Override protected EntityHitResult getRayTrace(Vec3 from, Vec3 to) {
-        var release = release();
-        if (release == null || entityData.get(REFLECTED)) return null;
+        MikageEntity boss = boss();
+        if (boss == null || !MikageNativeCombat.owns(this)) return null;
         return ProjectileUtil.getEntityHitResult(level(), this, from, to,
-                getBoundingBox().expandTowards(getDeltaMovement()).inflate(1),
-                entity -> entity instanceof ServerPlayer player && release.eligible(player));
+                getBoundingBox().expandTowards(getDeltaMovement()).inflate(1), entity ->
+                entityData.get(REFLECTED) ? returning && entity == boss
+                : MikageNativeCombat.mayCollide(this, entity));
     }
     @Override protected void onHitEntity(EntityHitResult hit) {
-        var release = release();
-        if (release != null && !entityData.get(REFLECTED) && hit.getEntity() instanceof ServerPlayer player)
-            release.hitPlayer(player);
-        if (!level().isClientSide()) discard();
+        if (level().isClientSide()) return;
+        MikageEntity boss = boss();
+        if (boss == null) { discard(); return; }
+        if (entityData.get(REFLECTED)) {
+            if (returning && hit.getEntity() == boss) boss.duel().rewardOpening(35);
+        } else if (hit.getEntity() instanceof ServerPlayer player && MikageNativeCombat.swordContact(this, player)) {
+            MikageBladeAttackTrace.enter(this);
+            try { super.onHitEntity(hit); }
+            finally { MikageBladeAttackTrace.exit(); mods.flammpfeil.slashblade.ability.StunManager.removeStun(player); }
+        }
+        discard();
     }
+    @Override public java.util.List<net.minecraft.world.effect.MobEffectInstance> getPotionEffects() { return java.util.List.of(); }
     @Override protected void onHitBlock(BlockHitResult hit) { if (!level().isClientSide()) discard(); }
     /** Native burst adds area potion effects; trial swords always disappear without those effects. */
     @Override public void burst() { discard(); }
