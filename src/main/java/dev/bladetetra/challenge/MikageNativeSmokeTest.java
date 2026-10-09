@@ -111,7 +111,17 @@ public final class MikageNativeSmokeTest {
                         (p, source) -> !actor.duel().parryPursuit(p, actor.getEyePosition()), (p, source) -> { });
                 MikageNativeCombat.run(boss, owned.scope, parry, () -> AttackManager.doSlash(actor, 25, false, false, .52));
                 tick(owned.scope, 4);
-                check(player.getHealth() == 20 && boss.duel().protects(player), "fresh sword input parries before native melee damage");
+                check(boss.duel().protects(player), "fresh sword input grants parry protection");
+                check(player.getHealth() == 20, "parried native melee cannot hurt again on a later entity tick");
+            }
+            reset(player, outsider);
+            try (Owned owned = new Owned()) {
+                var actor = boss;
+                var parry = new MikageNativeCombat.Rule(target, true, true,
+                        (p, source) -> !actor.duel().parryPursuit(p, actor.getEyePosition()), (p, source) -> { });
+                MikageNativeCombat.run(boss, owned.scope, parry, () -> AttackManager.doSlash(actor, 25, false, false, .52));
+                tick(owned.scope, 4);
+                check(player.getHealth() < 20, "next fresh native strike cannot reuse consumed input or previous protection");
             }
             boss.duel().clear(); reset(player, outsider); session.participants.remove(player.getUUID());
             try (Owned owned = new Owned()) {

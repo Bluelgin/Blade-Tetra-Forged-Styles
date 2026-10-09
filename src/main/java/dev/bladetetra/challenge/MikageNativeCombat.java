@@ -118,7 +118,9 @@ public final class MikageNativeCombat {
         if (!b.boss.encounter().eligible(player) || b.rule.target != null && !b.rule.target.equals(player.getUUID())
                 || b.contacts.contains(player.getUUID())) return false;
         if (!b.rule.fresh && b.boss.duel().protects(player)) return false;
-        if (!b.rule.contact.test(player, source) || b.scope.closed()) return false;
+        // A parried/rejected contact is terminal for this native entity, including its later ticks.
+        if (!b.rule.contact.test(player, source)) { b.contacts.add(player.getUUID()); return false; }
+        if (b.scope.closed()) return false;
         if (player.invulnerableTime > 0) return false;
         b.contacts.add(player.getUUID()); return true;
     }
