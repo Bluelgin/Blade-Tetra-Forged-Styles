@@ -40,6 +40,7 @@ final class MikageEncounterCleanup {
     }
 
     static void encounter(MikageEntity owner) {
+        owner.movement().clearCombatFootwork();
         owner.duel().clear();
         foreground(owner);
         owner.attackTimeline().clear();

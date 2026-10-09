@@ -55,6 +55,11 @@ final class MikageEncounter {
                 && owner.getAction() == MikageEntity.MikageAction.IDLE;
     }
 
+    boolean footworkAllowed() {
+        return canGuardCounter() && owner.combatDirector().phaseProtectionTicks <= 0
+                && owner.techniqueRuntime().interactionOpeningTicks <= 0;
+    }
+
     boolean answerGuard(ServerPlayer player) {
         if (!canGuardCounter()) return false;
         owner.setTarget(player);
@@ -125,8 +130,10 @@ final class MikageEncounter {
         }
         if (active() || owner.legacySkillBusy() || owner.duel().staggered()) return;
 
+        ServerPlayer exchangeTarget = target(server);
+        boolean exchange = exchangeTarget != null && owner.movement().needsMeleeExchange(exchangeTarget);
         var arena = owner.arenaController();
-        if (arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0 && lifecycle.phase() == 3) {
+        if (!exchange && arena.boundaryFlashPending && arena.boundaryFlashReadyTicks <= 0 && lifecycle.phase() == 3) {
             ServerPlayer target = target(server);
             if (target != null) {
                 arena.boundaryFlashPending = false;
@@ -134,7 +141,7 @@ final class MikageEncounter {
                 return;
             }
         }
-        if (owner.techniqueRuntime().pursuitRainCooldown <= 0) {
+        if (!exchange && owner.techniqueRuntime().pursuitRainCooldown <= 0) {
             ServerPlayer target = owner.pursuitRain().selectTarget(server);
             if (target != null && eligible(target)) {
                 start(new MikageLegacySkillExecution(owner, target, () -> owner.pursuitRain().begin(target, server)));
@@ -165,7 +172,11 @@ final class MikageEncounter {
                 .min(Comparator.comparingDouble(player -> owner.distanceToSqr(player))).orElse(null);
     }
 
-    private boolean start(SkillExecution next) { return skills.start(next); }
+    private boolean start(SkillExecution next) {
+        if (active()) return false;
+        owner.movement().pauseCombatFootwork();
+        return skills.start(next);
+    }
 
     private void stop(SkillExecution.StopReason reason) {
         skills.stop(reason);

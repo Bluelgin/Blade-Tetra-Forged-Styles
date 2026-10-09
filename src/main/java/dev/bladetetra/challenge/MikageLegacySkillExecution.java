@@ -94,6 +94,10 @@ final class MikageLegacySkillExecution implements SkillExecution {
     }
 
     @Override public void stop(StopReason reason) {
+        if ((reason == StopReason.COMPLETE || reason == StopReason.COUNTERED) && released
+                && (technique == MikageEntity.Technique.BLADE_COMBO || technique == MikageEntity.Technique.CIRCLE_SLASH
+                || technique == MikageEntity.Technique.STEP_IAIDO || technique == MikageEntity.Technique.DANGAKU_CLEAVE))
+            owner.movement().meleeExchangeCompleted(target);
         if (reason != StopReason.COMPLETE) {
             MikageEncounterCleanup.foreground(owner);
             owner.setAction(MikageEntity.MikageAction.IDLE, 1);

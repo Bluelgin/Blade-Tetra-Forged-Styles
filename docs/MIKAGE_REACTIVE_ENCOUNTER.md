@@ -105,12 +105,14 @@ java -m jdk.compiler/com.sun.tools.javac.Main -d build/reactive-scenarios \
   src/test/java/dev/bladetetra/challenge/mikage/MikageDuelScenarios.java \
   src/test/java/dev/bladetetra/challenge/mikage/MikageThousandGatesScenarios.java \
   src/test/java/dev/bladetetra/challenge/mikage/MikageCorridorScenarios.java \
-  src/test/java/dev/bladetetra/challenge/mikage/MikageGateBarrageScenarios.java
+  src/test/java/dev/bladetetra/challenge/mikage/MikageGateBarrageScenarios.java \
+  src/test/java/dev/bladetetra/challenge/mikage/MikageSpacingScenarios.java
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageReactiveScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageDuelScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageThousandGatesScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageCorridorScenarios
 java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageGateBarrageScenarios
+java -cp build/reactive-scenarios dev.bladetetra.challenge.mikage.MikageSpacingScenarios
 ```
 
 完整验证使用 `./gradlew build`，并在游戏中检查单人/多人、转阶段、反制、离场、缺失实体恢复、回忆战和战后访客对话。
@@ -148,5 +150,19 @@ Manual game checks still required: ground and airborne targets; movement during 
 多人共用门心和三次破坏进度，各玩家输入/伤害保护独立。主目标离场会将扫射转向另一位合法参战者，剩余参战者仍可破门；无合法参战者则取消。没有普通时限、闪避次数或波次耗尽结束条件。无有效门位则放弃该次释放；完整门框和通往中心的步行路径检查场地范围、区块、世界边界、障碍、液体、脚下支撑，持续每 20 tick 复检地形。转阶段、战斗结束、异常、实体丢失、地形失效或取消均回收核心与所有剑。每次最多 64 把活剑，寿命 80 tick；清理保存有界活集合，不为无限剑潮积累清理回调。存档重载后不存在的 cast 不会恢复攻击，孤儿实体首 tick 自行消失。
 
 `MikageGateBarrageScenarios` 新增 53 个断言，覆盖预警、长期不断流、实体预算、三次多人独立输入、重复事件、多段伤害、暂停边界、换刀/过期/未来输入、接触间隔与离场隔离、破门演出结束、阶段/目标丢失/取消的一次性清理。加上此前四组，纯 Java 战斗场景共 219 个断言。独立模块设有架构预算；MikageEntity 保持 385 行。剧情、对话、语音、奖励与访客接口保持原样。
+
+## 常态间合
+
+间合属于普通战斗移动，不占技能池。正常围绕玩家保持约 6–8 格；玩家接近到 5.5 格以内时，以面向玩家的斜后退短步拉开；远到 8.5 格外时追近到 7.2 格。距离阈值带滞回，避免在边缘逐 tick 来回切换。
+
+每个目标最多连续退让两次。每次最多 12 tick，拉开至 6.5 格可以提前结束；第一次结束后停顿 8 tick。第二次退让结束后，继续靠近至近战范围，下一次选招优先使用已有 BLADE_COMBO；原有技能冷却、前摇、刀路和振刀规则保留。已释放的近战或格挡反击结束（包括被振刀打断）后才恢复退让额度；取消前摇、施放远程技能、路线受阻都不能刷新额度。路线受阻时停步，把接触机会留给追近的玩家。
+
+常态移动只在战斗空闲、脚踩地面时执行。开场、阶段保护、技能前摇/释放/收刀、失衡、互动破绽与剑轮破层期间暂停，不刷新退让额度。技能开始前释放常态拥有的导航与侧移；释放导航时核对 Path 身份，避免下一 tick 清掉技能刚接管的路径。Goal 在战斗期间保留 MOVE/LOOK 标志，阻止低优先级闲逛和看人 Goal 干扰已锁定的技能方向。普通移动没有瞬移或额外伤害。
+
+路线是短距离地面步行/侧移，沿完整实体体积检查场地、区块、世界边界、障碍、液体、地面支撑、玩家与界斩火墙；一侧受阻尝试另一侧，两侧都不安全就停步。开放的火墙缺口必须容纳整个实体。空中和水中暂停这套地面脚步，继续使用现有反应式选招。目标切换、离场以及阶段/死亡/取消清理会移除旧状态。
+
+`CombatSpacingState` 只管理决定与额度，`MikageCombatFootwork` 管理移动命令，`MikageFootworkRoutes` 管理安全路线，`MikageSpacingGoal` 只负责 AI 调度；MikageEntity 仍为 385 行，独立模块增加行数预算而不提高旧预算。
+
+`MikageSpacingScenarios` 新增 42 个断言，覆盖距离滞回、短步/停顿边界、两次额度、2000 tick 持续追击、技能暂停、阻路、多人回调隔离、接刀恢复、目标切换、离场、阶段清理和无效距离。六组纯 Java 场景共 261 个断言，JUnit 调用同一套场景。游戏内仍需检查实际步幅和追击速度、玩家绕圈、贴身追击是否能接刀、墙角/台阶/火墙缺口、空战、技能锁向和多人延迟；这些手感不能由状态测试或编译结果确认。
 
 仍需游戏内验证：本体不同普攻连击的反弹体验、PvP 关闭时伤害与反弹、输入冷却及多段斩击、门心可达性、门框/黑洞/金色反弹剑演出、迟加入与延迟、多人转移目标及共同破门、地形改动、转阶段/退出/重载和低特效设置。自动化场景与完整构建不替代游戏内视觉和手感测试。

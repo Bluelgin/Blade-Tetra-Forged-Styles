@@ -75,6 +75,11 @@ class ArchitectureDebtGuardTest {
         assertLinesAtMost("src/main/java/dev/bladetetra/client/MikageComboBAnimation.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/client/MikageComboBTracks.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageSkillSelection.java", 90L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageSpacingGoal.java", 50L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageArenaMovement.java", 120L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageCombatFootwork.java", 140L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageFootworkRoutes.java", 120L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/mikage/CombatSpacingState.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageGateBarrageExecution.java", 180L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageGateBarragePlacement.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageGateBarrageShots.java", 100L);

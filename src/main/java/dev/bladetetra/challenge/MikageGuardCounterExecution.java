@@ -68,6 +68,8 @@ final class MikageGuardCounterExecution implements SkillExecution {
         owner.setYRot(yaw); owner.setYHeadRot(yaw); owner.setYBodyRot(yaw);
     }
     @Override public void stop(StopReason reason) {
+        if (age >= 9 && (reason == StopReason.COMPLETE || reason == StopReason.COUNTERED))
+            owner.movement().meleeExchangeCompleted(target);
         owner.duel().cancelGuard();
         owner.setAction(MikageEntity.MikageAction.IDLE, 1);
         if (reason != StopReason.COMPLETE) owner.combatDirector().techniqueCooldown = Math.max(20, owner.combatDirector().techniqueCooldown);

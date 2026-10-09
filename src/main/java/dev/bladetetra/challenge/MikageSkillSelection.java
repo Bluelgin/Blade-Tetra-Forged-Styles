@@ -23,6 +23,8 @@ final class MikageSkillSelection {
 
     MikageSkillSelection(MikageEntity owner) { this.owner = owner; }
     List<SkillSpec> available(ServerPlayer target, int phase) {
+        if (owner.movement().needsMeleeExchange(target))
+            return List.of(MikageLegacySkillPool.spec(MikageEntity.Technique.BLADE_COMBO));
         var choices = new ArrayList<>(MikageLegacySkillPool.available(owner, target, phase));
         if (owner.tickCount >= gatesReadyAt && owner.distanceToSqr(target) <= 32 * 32)
             choices.add(GATES);

@@ -7,10 +7,18 @@ import net.minecraft.world.phys.Vec3;
 /** Arena-constrained movement and participant lookup. */
 final class MikageArenaMovement {
     private final MikageEntity owner;
+    private final MikageCombatFootwork footwork;
 
     MikageArenaMovement(MikageEntity owner) {
         this.owner = owner;
+        footwork = new MikageCombatFootwork(owner);
     }
+
+    void tickCombatFootwork() { footwork.tick(); }
+    void pauseCombatFootwork() { footwork.pause(); }
+    void clearCombatFootwork() { footwork.clear(); }
+    boolean needsMeleeExchange(ServerPlayer target) { return footwork.needsExchange(target); }
+    void meleeExchangeCompleted(java.util.UUID target) { footwork.exchangeCompleted(target); }
 
     void teleportWithinArena(double x, double y, double z) {
         Vec3 clamped = ChallengeManager.clampMikagePosition(owner, new Vec3(x, y, z));
