@@ -13,6 +13,13 @@
     "SpeedEfficiencySummonedSwordMixin",
     "SpeedEfficiencySuperSaMixin",
     "HeavyRainSwordSafetyMixin",
+    "MikageSlashProvenanceMixin",
+    "MikageNativeTimelineMixin",
+    "MikageNativeTargetsMixin",
+    "MikageNativeManagedAttackMixin",
+    "MikageNativeDriveMixin",
+    "MikageNativeSwordImpactMixin",
+    "MikageGateReflectionMixin",
     "MirrorIceMixin",
     "SwordTypeMixin"
   ],

@@ -99,60 +99,12 @@ public final class MikagePhantomSwordEntity extends Monster {
             }
             return;
         }
-        MikageEntity owner = owner();
-        if (owner == null || !owner.isAlive() || --lifeTicks <= 0) {
-            discard();
-            return;
-        }
-        if (isBoundarySeal()) {
-            setDeltaMovement(Vec3.ZERO);
-            setYRot(tickCount * 2.4F);
-            return;
-        }
-        int count = Math.max(1, owner.getSwordWheelCount());
-        double angle = owner.tickCount * 0.065D + getSlot() * (Math.PI * 2.0D / count);
-        double radius = 3.8D + 0.35D * Math.sin(owner.tickCount * 0.11D + getSlot());
-        setPos(owner.getX() + Math.cos(angle) * radius,
-                owner.getY() + 1.25D + Math.sin(angle * 2.0D) * 0.55D,
-                owner.getZ() + Math.sin(angle) * radius);
-        setYRot((float) Math.toDegrees(-angle) + 90.0F);
+        // Retired sword-wheel/seal actors are registered only for old client/world compatibility.
+        discard();
     }
 
-    @Override
-    public boolean hurt(DamageSource source, float amount) {
-        if (level().isClientSide()) {
-            return true;
-        }
-        MikageEntity owner = owner();
-        if (owner == null) {
-            discard();
-            return false;
-        }
-        ServerLevel server = (ServerLevel) level();
-        if (isBoundarySeal()) {
-            owner.breakBoundarySeal(this, MikageEntity.resolveCombatAttacker(source));
-            server.playSound(null, blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK,
-                    SoundSource.HOSTILE, 1.25F, 0.82F);
-            server.sendParticles(new DustParticleOptions(
-                            new Vector3f(1.0F, 0.04F, 0.08F), 1.35F),
-                    getX(), getY() + 0.7D, getZ(), 42,
-                    0.55D, 0.75D, 0.55D, 0.08D);
-        } else if (isSolidSword()) {
-            owner.breakSwordWheelLayer(this, source.getEntity());
-            server.playSound(null, blockPosition(), SoundEvents.GLASS_BREAK,
-                    SoundSource.HOSTILE, 1.2F, 0.72F);
-            server.sendParticles(new DustParticleOptions(
-                            new Vector3f(0.95F, 0.03F, 0.12F), 1.25F),
-                    getX(), getY() + 0.7D, getZ(), 34,
-                    0.38D, 0.65D, 0.38D, 0.06D);
-        } else {
-            server.playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME,
-                    SoundSource.HOSTILE, 0.55F, 1.75F);
-            server.sendParticles(new DustParticleOptions(
-                            new Vector3f(0.55F, 0.05F, 0.13F), 0.75F),
-                    getX(), getY() + 0.7D, getZ(), 10,
-                    0.22D, 0.42D, 0.22D, 0.03D);
-        }
+    @Override public boolean hurt(DamageSource source, float amount) {
+        if (!level().isClientSide()) discard();
         return true;
     }
 

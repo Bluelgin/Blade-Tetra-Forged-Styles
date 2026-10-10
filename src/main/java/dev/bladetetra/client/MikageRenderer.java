@@ -32,6 +32,12 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
     @Override
     public void render(MikageEntity entity, float yaw, float partialTick, PoseStack pose,
             MultiBufferSource buffers, int light) {
+        if (entity.isWithinThousandGates()) return;
+        if (entity.isRidingPhantomSword()) {
+            pose.pushPose(); pose.translate(0, -.16, 0);
+            MikagePhantomSwordRenderer.renderRideSword(pose, buffers, light, yaw, 0xFF1838, 1.05F);
+            pose.popPose();
+        }
         if (entity.isMoonEchoActive()) {
             pose.pushPose();
             pose.translate(0.0D, 1.1D, 0.0D);
@@ -39,7 +45,7 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
                     yaw, -18.0F, 0xFF1028, 1.08F);
             pose.popPose();
         }
-        if (!entity.isMoonEchoActive() && !entity.isSwordWheelDeployed()
+        if (!entity.isRidingPhantomSword() && !entity.isMoonEchoActive() && !entity.isSwordWheelDeployed()
                 && entity.getSwordWheelCount() > 0) {
             int count = entity.getSwordWheelCount();
             for (int slot = 0; slot < count; slot++) {
@@ -87,12 +93,17 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
                 case HEAVY_CLEAVE -> p < .55F ? MikageSingleSwordPose.blend(high, strike, p / .55F)
                         : MikageSingleSwordPose.blend(strike, idle, (p - .55F) / .45F);
                 case CAST_READY, AERIAL_CAST -> MikageSingleSwordPose.blend(idle, ready, p);
+                case GUARD -> MikageSingleSwordPose.GUARD;
                 case STAGGERED -> new MikageSingleSwordPose.Pose(.30F, 0, -.25F, -.12F, -.10F,
                         -.2F, 0, -.25F, .1F, .2F);
                 default -> idle;
             };
             if (entity.isBoundaryFlashPose()) pose = MikageSingleSwordPose.boundary(p * 230);
             applySwordPose(pose);
+            if (entity.isRidingPhantomSword()) applySwordRide();
+            if (entity.getNativeComboStage() > 0) applyNativeCombo(MikageComboBAnimation.sample(
+                    entity.getNativeComboStage(), (entity.level().getGameTime() - entity.getNativeComboStart()
+                    + ageInTicks - entity.tickCount) / 20F));
         }
     }
 
@@ -105,6 +116,9 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
             event.registerEntityRenderer(ModEntities.MIKAGE_PHANTOM_SWORD.get(),
                     MikagePhantomSwordRenderer::new);
             event.registerEntityRenderer(ModEntities.MIKAGE_ECHO.get(), MikageEchoRenderer::new);
+            event.registerEntityRenderer(ModEntities.MIKAGE_GATE_CORE.get(), MikageGateCoreRenderer::new);
+            event.registerEntityRenderer(ModEntities.MIKAGE_GATE_SWORD.get(),
+                    context -> new mods.flammpfeil.slashblade.client.renderer.entity.SummonedSwordRenderer<>(context));
         }
     }
 }

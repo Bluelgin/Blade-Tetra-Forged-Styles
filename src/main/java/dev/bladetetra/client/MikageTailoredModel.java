@@ -26,6 +26,25 @@ public class MikageTailoredModel<T extends LivingEntity> extends PlayerModel<T> 
     private final List<Bone> bones = new ArrayList<>();
     private float scale, age, walk;
     private float swordElbow, swordWrist;
+    private Map<String, Vector3f> nativePose = Map.of();
+    public void applyNativeCombo(Map<String, Vector3f> pose) {
+        nativePose = pose;
+        if (!hasTailoredRig()) {
+            vanillaRotation(body, pose.get("UpperBody"));
+            vanillaRotation(rightArm, pose.get("RightArm")); vanillaRotation(leftArm, pose.get("LeftArm"));
+            jacket.copyFrom(body); leftSleeve.copyFrom(leftArm); rightSleeve.copyFrom(rightArm);
+        }
+    }
+    private static void vanillaRotation(ModelPart part, Vector3f rotation) {
+        if (rotation == null) return;
+        part.xRot = -rotation.x * Mth.DEG_TO_RAD; part.yRot = -rotation.y * Mth.DEG_TO_RAD;
+        part.zRot = rotation.z * Mth.DEG_TO_RAD;
+    }
+    public void applySwordRide() {
+        leftLeg.xRot = -.28F; leftLeg.zRot = -.12F;
+        rightLeg.xRot = .22F; rightLeg.zRot = .14F;
+        leftPants.copyFrom(leftLeg); rightPants.copyFrom(rightLeg);
+    }
 
     public void setSwordJoints(float elbow, float wrist) {
         swordElbow = elbow;
@@ -69,7 +88,7 @@ public class MikageTailoredModel<T extends LivingEntity> extends PlayerModel<T> 
     @Override
     public void setupAnim(T entity, float swing, float amount, float ticks, float yaw, float pitch) {
         super.setupAnim(entity, swing, amount, ticks, yaw, pitch);
-        age = ticks; walk = amount;
+        age = ticks; walk = amount; nativePose = Map.of();
     }
 
     private void animate() {
@@ -78,6 +97,9 @@ public class MikageTailoredModel<T extends LivingEntity> extends PlayerModel<T> 
             bone.part.yRot = -bone.rotation[1] * Mth.DEG_TO_RAD;
             bone.part.zRot = bone.rotation[2] * Mth.DEG_TO_RAD;
         }
+        if (!nativePose.isEmpty()) nativePose.forEach((name, v) ->
+                rotate(name, -v.x * Mth.DEG_TO_RAD, -v.y * Mth.DEG_TO_RAD, v.z * Mth.DEG_TO_RAD));
+        else {
         rotate("AllBody", 0, body.yRot, 0);
         rotate("UpperBody", body.xRot + Mth.sin(age * .08F) * .012F, 0, body.zRot);
         rotate("AllHead", head.xRot, head.yRot, head.zRot);
@@ -85,6 +107,7 @@ public class MikageTailoredModel<T extends LivingEntity> extends PlayerModel<T> 
         rotate("LeftArm", leftArm.xRot, leftArm.yRot, leftArm.zRot);
         rotate("RightForeArm", swordElbow, 0, 0);
         rotate("RightHand", 0, swordWrist, 0);
+        }
         rotate("RightLeg", rightLeg.xRot, rightLeg.yRot, rightLeg.zRot);
         rotate("LeftLeg", leftLeg.xRot, leftLeg.yRot, leftLeg.zRot);
         float sway = Mth.sin(age * .09F) * (.025F + walk * .06F);

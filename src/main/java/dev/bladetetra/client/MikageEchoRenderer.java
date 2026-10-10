@@ -46,7 +46,7 @@ public final class MikageEchoRenderer extends LivingEntityRenderer<MikageEchoEnt
         public void setupAnim(MikageEchoEntity entity, float swing, float amount, float age,
                 float yaw, float pitch) {
             super.setupAnim(entity, swing, amount, age, yaw, pitch);
-            applySwordPose(MikageSingleSwordPose.IDLE);
+            applySwordPose(MikageSingleSwordPose.READY);
         }
     }
 }
