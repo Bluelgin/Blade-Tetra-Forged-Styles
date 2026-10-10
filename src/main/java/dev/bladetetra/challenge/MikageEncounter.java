@@ -136,7 +136,7 @@ final class MikageEncounter {
             LOGGER.debug("Mikage decision: challenge={}, target={}, skill={}, score={}, reasons={}",
                     owner.getPersistentData().getLong("blade_tetra_challenge"), target.getUUID(),
                     decision.skill(), decision.score(), decision.reasons());
-            combat.techniqueCooldown = combat.scaledCooldown(lifecycle.phase() == 1 ? 48 : lifecycle.phase() == 2 ? 36 : 26);
+            combat.techniqueCooldown = combat.scaledCooldown(lifecycle.phase() == 1 ? 42 : lifecycle.phase() == 2 ? 30 : 22);
         }
     }
 

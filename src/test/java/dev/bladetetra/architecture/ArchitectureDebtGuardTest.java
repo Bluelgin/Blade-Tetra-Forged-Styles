@@ -68,6 +68,9 @@ class ArchitectureDebtGuardTest {
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageNativeCombat.java", 180L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageNativeAttacks.java", 130L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageSwordplayExecution.java", 140L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageMeleeExecution.java", 130L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageMeleeFootwork.java", 100L);
+        assertLinesAtMost("src/main/java/dev/bladetetra/challenge/mikage/MeleeRhythm.java", 100L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageMoonEchoExecution.java", 130L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageBoundaryExecution.java", 130L);
         assertLinesAtMost("src/main/java/dev/bladetetra/challenge/MikageSkillSelection.java", 90L);
@@ -313,6 +316,7 @@ class ArchitectureDebtGuardTest {
         String selection = Files.readString(Path.of("src/main/java/dev/bladetetra/challenge/MikageSkillSelection.java"));
         String coordinator = Files.readString(Path.of("src/main/java/dev/bladetetra/challenge/MikageRuntimeCoordinator.java"));
         assertTrue(selection.contains("new MikageSwordplayExecution("));
+        assertTrue(selection.contains("new MikageMeleeExecution("));
         assertTrue(selection.contains("new MikageMoonEchoExecution("));
         assertTrue(selection.contains("new MikageBoundaryExecution("));
         assertFalse(selection.contains("MikageLegacySkill"));

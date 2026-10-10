@@ -29,7 +29,7 @@ class MikageNativeAttackContractTest {
         assertTrue(calls("mods/flammpfeil/slashblade/entity/EntityAbstractSummonedSword").contains("hurt"));
     }
     @Test void everyExecutionUsesOwnedNativeAttacksAndCannotWritePlayerHealth() throws Exception {
-        for (String name : List.of("MikageSwordplayExecution", "MikageMoonEchoExecution", "MikageBoundaryExecution",
+        for (String name : List.of("MikageSwordplayExecution", "MikageMeleeExecution", "MikageMoonEchoExecution", "MikageBoundaryExecution",
                 "MikageThousandGatesExecution", "MikageGateCorridorExecution", "MikageGuardCounterExecution")) {
             String source = read(name);
             assertTrue(source.contains("MikageNativeCombat.run"), name);

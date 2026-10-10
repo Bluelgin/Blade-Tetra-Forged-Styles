@@ -123,6 +123,8 @@ public final class MikageNativeSmokeTest {
                 tick(owned.scope, 4);
                 check(player.getHealth() < 20, "next fresh native strike cannot reuse consumed input or previous protection");
             }
+            MikageRhythmSmokeTest.run(boss, player, outsider);
+            MikageMeleeFootworkSmokeTest.run(boss, player);
             boss.duel().clear(); reset(player, outsider); session.participants.remove(player.getUUID());
             try (Owned owned = new Owned()) {
                 var actor = boss;
@@ -130,7 +132,7 @@ public final class MikageNativeSmokeTest {
                 tick(owned.scope, 4); check(player.getHealth() == 20, "participant removal cancels delayed native targeting");
             }
             check(ownedMap().isEmpty(), "every closed cast released all native bindings");
-            LogUtils.getLogger().info("MIKAGE_NATIVE_SMOKE_PASS: {} checks; real melee, Drive, sword, cut, immunity, outsider, reflection, parry, cleanup", checks);
+            LogUtils.getLogger().info("MIKAGE_NATIVE_SMOKE_PASS: {} checks; real melee, Drive, sword, cut, immunity, outsider, reflection, rhythmic parries, hit ending, cleanup", checks);
         } catch (Throwable failure) {
             LogUtils.getLogger().error("MIKAGE_NATIVE_SMOKE_FAIL", failure);
             throw new IllegalStateException("Mikage native diagnostic failed", failure);
@@ -148,20 +150,20 @@ public final class MikageNativeSmokeTest {
         for (int i = 0; i < 61; i++) player.tick(); // expire normal login/spawn immunity
         return player;
     }
-    private static void reset(ServerPlayer player, ServerPlayer outsider) {
+    static void reset(ServerPlayer player, ServerPlayer outsider) {
         player.setHealth(20); player.setAbsorptionAmount(0); player.invulnerableTime = 0;
         player.setPos(180, 65, -7); player.setYRot(180); player.setXRot(0); player.setDeltaMovement(Vec3.ZERO);
         outsider.setHealth(20); outsider.invulnerableTime = 0; outsider.setPos(180.7, 65, -7);
     }
-    @SuppressWarnings("unchecked") private static Map<CastScope, Set<Entity>> ownedMap() throws Exception {
+    @SuppressWarnings("unchecked") static Map<CastScope, Set<Entity>> ownedMap() throws Exception {
         var field = MikageNativeCombat.class.getDeclaredField("SCOPES"); field.setAccessible(true);
         return (Map<CastScope, Set<Entity>>) field.get(null);
     }
-    private static void tick(CastScope scope, int count) throws Exception {
+    static void tick(CastScope scope, int count) throws Exception {
         for (int i = 0; i < count; i++) for (Entity entity : List.copyOf(ownedMap().getOrDefault(scope, Set.of())))
             if (!entity.isRemoved()) entity.tick();
     }
-    private static void check(boolean condition, String description) {
+    static void check(boolean condition, String description) {
         checks++; if (!condition) throw new IllegalStateException(description);
     }
     private static final class Owned implements AutoCloseable {

@@ -15,13 +15,13 @@ import org.joml.Vector3f;
 final class MikageNativeAttacks {
     static void release(MikageEntity owner, CastScope scope, MikageMove move, Vec3 aim, Vec3 heading, int age) {
         switch (move) {
-            case COMBO -> AttackManager.doSlash(owner, age == 0 ? 25 : age == 10 ? -155 : 205, false, false, .52);
-            case IAIDO, DUEL -> AttackManager.doSlash(owner, -12, false, false, .88);
+            case COMBO -> AttackManager.doSlash(owner, age == 0 ? 25 : age == 14 ? -155 : 205, false, false, .52);
+            case IAIDO, DUEL -> AttackManager.doSlash(owner, age == 0 ? -12 : 35, false, false, age == 0 ? .88 : .60);
             case CIRCLE -> { var slash = AttackManager.doSlash(owner, 180, false, false, .68); slash.setIndirect(true); }
             case ZANSHIN -> AttackManager.doSlash(owner, 180, false, false, .68);
-            case CLEAVE -> AttackManager.doSlash(owner, 92, false, true, 1.08);
+            case CLEAVE -> AttackManager.doSlash(owner, age == 0 ? 25 : age == 12 ? -155 : 92, false, age == 30, age == 30 ? 1.08 : .45);
             case SAKURA -> {
-                if (age < 28) AttackManager.doSlash(owner, age == 0 ? 30 : -150, false, false, .56);
+                if (age < 30) AttackManager.doSlash(owner, age == 0 ? 30 : -150, false, false, .56);
                 else SakuraEnd.doSlash(owner, 30, Vec3.ZERO, false, true, .68);
             }
             case FAN -> { for (float yaw : new float[]{-18, 0, 18}) Drive.doSlash(owner, 0, (float) Math.toRadians(yaw), 30, 0xFF1838, Vec3.ZERO, false, .62, KnockBacks.cancel, 1.65F); }

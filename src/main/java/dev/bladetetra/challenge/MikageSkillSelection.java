@@ -57,7 +57,8 @@ final class MikageSkillSelection {
         if (id.equals(BARRAGE.id())) return new MikageGateBarrageExecution(owner, target, release);
         if (id.equals(ECHO.id())) return new MikageMoonEchoExecution(owner, target, release);
         if (id.equals(BOUNDARY.id())) return new MikageBoundaryExecution(owner, target, release);
-        return new MikageSwordplayExecution(owner, target, Arrays.stream(MikageMove.values())
-                .filter(m -> m.id().equals(id)).findFirst().orElseThrow(), release);
+        MikageMove move = Arrays.stream(MikageMove.values()).filter(m -> m.id().equals(id)).findFirst().orElseThrow();
+        return move.melee() ? new MikageMeleeExecution(owner, target, move, release)
+                : new MikageSwordplayExecution(owner, target, move, release);
     }
 }
