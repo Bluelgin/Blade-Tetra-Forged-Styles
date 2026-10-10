@@ -161,7 +161,8 @@ public final class MikageNativeSmokeTest {
     }
     static void tick(CastScope scope, int count) throws Exception {
         for (int i = 0; i < count; i++) for (Entity entity : List.copyOf(ownedMap().getOrDefault(scope, Set.of())))
-            if (!entity.isRemoved()) entity.tick();
+            // ServerLevel advances tickCount before Entity.tick; calling tick directly freezes native ages.
+            if (!entity.isRemoved()) ((ServerLevel) entity.level()).tickNonPassenger(entity);
     }
     static void check(boolean condition, String description) {
         checks++; if (!condition) throw new IllegalStateException(description);

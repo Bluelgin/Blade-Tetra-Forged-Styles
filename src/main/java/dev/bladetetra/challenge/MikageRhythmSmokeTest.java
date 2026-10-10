@@ -18,7 +18,10 @@ final class MikageRhythmSmokeTest {
         boss.setPos(180, 65, -10); boss.setYRot(0); boss.setOnGround(true);
         var phrase = new Phrase(boss, player, runner, clock);
         phrase.play(3);
-        check(phrase.inputs == 3 && phrase.blades.size() == 3, "all three native beats actually release and require fresh input");
+        check(phrase.inputs == 3 && phrase.blades.size() == 3, "all three native beats actually release and require fresh input: inputs="
+                + phrase.inputs + ", blades=" + phrase.blades.size() + ", health=" + player.getHealth()
+                + ", early=" + phrase.earlyClash + ", protected=" + phrase.protectedSecond
+                + ", clock=" + clock.getGameTime() + ", realm=" + boss.level().getGameTime());
         check(phrase.earlyClash && phrase.protectedSecond, "early clash continues; second fresh input works inside old protection");
         check(player.getHealth() == 20 && outsider.getHealth() == 20, "three real native parries prevent participant damage and isolate outsider");
         check(!runner.active() && boss.duel().staggered(), "finisher parry closes actual encounter execution and opens recovery");
@@ -49,6 +52,7 @@ final class MikageRhythmSmokeTest {
             try {
                 for (int frame = 0; frame < 100 && runner.active(); frame++) {
                     clock.setGameTime(clock.getGameTime() + 1);
+                    if (frame == 0) check(clock.getGameTime() == boss.level().getGameTime(), "diagnostic advances the real encounter clock");
                     Set<Entity> attacks = ownedMap().getOrDefault(runner.scope(), Set.of());
                     if (inputs < parryLimit && attacks.stream().anyMatch(e -> e instanceof EntitySlashEffect && e.tickCount == 1)) {
                         if (inputs == 1) protectedSecond = boss.duel().protects(player);
