@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["PHP", "MDM", "SCS"],
+  "key": {
+    "P": { "item": "minecraft:paper" },
+    "H": { "item": "minecraft:shulker_shell" },
+    "M": { "item": "minecraft:phantom_membrane" },
+    "D": { "item": "minecraft:dragon_breath" },
+    "S": { "item": "slashblade:proudsoul" },
+    "C": { "item": "minecraft:chorus_flower" }
+  },
+  "result": { "item": "blade_tetra:lifeng_scroll", "count": 1 }
+}

@@ -1052,5 +1052,10 @@
   "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "Blood Sakura Final Scene \"Lifeless\"",
   "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.description": "NihilUL's saya releases and Crimson Cherry's hilt answers. Direct blade hits erode effective maximum life without a cumulative cap; the Final Scene removes a larger share and bypasses ordinary numerical damage reduction and damage caps.",
   "tetra/schematic/slashblade/legacy_fusion/nihilul_saya_crimson_cherry_hilt.name": "Attune Legacy · Dead Thought",
-  "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "Blood Sakura Final Scene \"Lifeless\" · SA + Life Erosion · SE"
+  "tooltip.blade_tetra.legacy_fusion.nihilul_saya_crimson_cherry_hilt": "Blood Sakura Final Scene \"Lifeless\" · SA + Life Erosion · SE",
+  "item.blade_tetra.lifeng_scroll": "Lifeng Secret Scroll",
+  "tooltip.blade_tetra.lifeng_scroll": "Study after the Ender Dragon is defeated to learn Lifeng permanently. Ordinary slashes project sword aura at SSS.",
+  "message.blade_tetra.lifeng.already": "You have already mastered Lifeng.",
+  "message.blade_tetra.lifeng.locked": "Defeat the Ender Dragon before studying this secret.",
+  "message.blade_tetra.lifeng.learned": "Lifeng is now yours to command."
 }

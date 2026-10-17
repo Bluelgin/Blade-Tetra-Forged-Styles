@@ -2,6 +2,7 @@ package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ForgedSlashArtOrbItem;
+import dev.bladetetra.item.LifengScrollItem;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.LegacyDebugTalismanItem;
 import dev.bladetetra.item.LegacyImprintScrollItem;
@@ -36,6 +37,8 @@ public final class ModItems {
             ITEMS.register("modular_slashblade", ModularSlashBladeItem::new);
     public static final RegistryObject<ForgedSlashArtOrbItem> FORGED_SLASH_ART_ORB =
             ITEMS.register("forged_slash_art_orb", ForgedSlashArtOrbItem::new);
+    public static final RegistryObject<LifengScrollItem> LIFENG_SCROLL =
+            ITEMS.register("lifeng_scroll", LifengScrollItem::new);
     public static final RegistryObject<Item> BLOOD_CRYSTAL =
             ITEMS.register("blood_crystal", () -> new Item(
                     new Item.Properties().rarity(Rarity.RARE)));
@@ -98,6 +101,7 @@ public final class ModItems {
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
                         output.accept(LEGACY_IMPRINT_SCROLL.get());
+                        output.accept(LIFENG_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.ASSEMBLY));

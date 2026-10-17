@@ -2,6 +2,7 @@ package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.challenge.MikageEntity;
+import dev.bladetetra.aura.SwordAuraDriveEntity;
 import dev.bladetetra.challenge.MikageEchoEntity;
 import dev.bladetetra.challenge.MikagePhantomSwordEntity;
 import net.minecraft.world.entity.EntityType;
@@ -44,6 +45,12 @@ public final class ModEntities {
                             .clientTrackingRange(12)
                             .updateInterval(1)
                             .build(BladeTetra.MOD_ID + ":mikage_echo"));
+
+    public static final RegistryObject<EntityType<SwordAuraDriveEntity>> SWORD_AURA_DRIVE =
+            ENTITIES.register("sword_aura_drive", () -> EntityType.Builder.of(
+                    SwordAuraDriveEntity::new, MobCategory.MISC)
+                    .sized(0.75F, 0.75F).clientTrackingRange(10).updateInterval(1)
+                    .build(BladeTetra.MOD_ID + ":sword_aura_drive"));
 
     private ModEntities() {
     }
