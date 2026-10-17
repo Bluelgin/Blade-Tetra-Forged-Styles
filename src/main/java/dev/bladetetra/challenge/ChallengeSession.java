@@ -107,6 +107,7 @@ final class ChallengeSession {
     }
 
     void join(ServerPlayer player, MinecraftServer server) {
+        if (ChallengeSuspension.rejectEntry(player, mode)) return;
         savePersistentOrigin(player);
         origins.putIfAbsent(player.getUUID(), new Origin(
                 player.level().dimension(), player.position(), player.getYRot(), player.getXRot()));
@@ -127,6 +128,7 @@ final class ChallengeSession {
     }
 
     void tick(MinecraftServer server, ServerLevel mirror, ServerLevel easter) {
+        if (ChallengeSuspension.suspendIfNeeded(this, server, mirror)) return;
         tickDisconnected();
         if (participants.isEmpty()) {
             mirror.getEntitiesOfClass(MikageEntity.class,
@@ -391,8 +393,7 @@ final class ChallengeSession {
                 .filter(java.util.Objects::nonNull)
                 .toList();
         replacement.configureForParty(party, reminiscence, id);
-        replacement.setHealth(replacement.getMaxHealth()
-                * Mth.clamp(lastBossHealthFraction, 0.01F, 1.0F));
+        replacement.restoreCombatHealthFraction(lastBossHealthFraction);
         replacement.prepareOpening(20);
         replacement.restrictTo(new BlockPos(offsetX + 179, 64, offsetZ - 10), 64);
         if (mirror.addFreshEntity(replacement)) {

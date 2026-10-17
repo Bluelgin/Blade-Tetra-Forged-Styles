@@ -71,6 +71,17 @@ public final class MikagePhantomSwordRenderer extends EntityRenderer<MikagePhant
         pose.popPose();
     }
 
+    /** ss.obj is long along +Z; a flat sword points along the actor's forward vector. */
+    public static void renderRideSword(PoseStack pose, MultiBufferSource buffers, int light,
+            float yaw, int color, float size) {
+        pose.pushPose(); pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+        float scale = .0075F * size; pose.scale(scale, scale, scale);
+        BladeRenderState.setCol(color, false);
+        BladeRenderState.renderOverridedLuminous(ItemStack.EMPTY, BladeModelManager.getInstance().getModel(MODEL),
+                "ss", TEXTURE, pose, buffers, light);
+        pose.popPose();
+    }
+
     @Override
     public ResourceLocation getTextureLocation(MikagePhantomSwordEntity entity) {
         return TEXTURE;

@@ -45,6 +45,17 @@ public final class ModEntities {
                             .updateInterval(1)
                             .build(BladeTetra.MOD_ID + ":mikage_echo"));
 
+    public static final RegistryObject<EntityType<dev.bladetetra.challenge.MikageGateCoreEntity>> MIKAGE_GATE_CORE =
+            ENTITIES.register("mikage_gate_core", () -> EntityType.Builder.of(
+                    dev.bladetetra.challenge.MikageGateCoreEntity::new, MobCategory.MONSTER)
+                    .sized(1.5F, 1.4F).clientTrackingRange(12).updateInterval(1)
+                    .build(BladeTetra.MOD_ID + ":mikage_gate_core"));
+    public static final RegistryObject<EntityType<dev.bladetetra.challenge.MikageGateSwordEntity>> MIKAGE_GATE_SWORD =
+            ENTITIES.register("mikage_gate_sword", () -> EntityType.Builder.<dev.bladetetra.challenge.MikageGateSwordEntity>of(
+                    dev.bladetetra.challenge.MikageGateSwordEntity::new, MobCategory.MISC)
+                    .sized(.2F, .2F).clientTrackingRange(12).updateInterval(1)
+                    .build(BladeTetra.MOD_ID + ":mikage_gate_sword"));
+
     private ModEntities() {
     }
 }

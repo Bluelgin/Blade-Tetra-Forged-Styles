@@ -103,6 +103,7 @@ public final class ChallengeEvents {
     public static final class Attributes {
         @SubscribeEvent
         public static void register(net.minecraftforge.event.entity.EntityAttributeCreationEvent event) {
+            event.put(ModEntities.MIKAGE_GATE_CORE.get(), MikageGateCoreEntity.createAttributes().build());
             event.put(ModEntities.MIKAGE.get(), MikageEntity.createAttributes().build());
             event.put(ModEntities.MIKAGE_PHANTOM_SWORD.get(),
                     MikagePhantomSwordEntity.createAttributes().build());

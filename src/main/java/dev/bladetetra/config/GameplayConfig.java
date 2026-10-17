@@ -42,6 +42,9 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue MIKAGE_PARTY_HEALTH_PER_PLAYER;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_REMINISCENCE_HEALTH_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_BASE_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue MIKAGE_NATIVE_DAMAGE_MULTIPLIER;
+    public static final ForgeConfigSpec.IntValue MIKAGE_SIGNATURE_MAX_DURATION_TICKS;
+    public static final ForgeConfigSpec.IntValue MIKAGE_GATE_ARRIVAL_RETRY_LIMIT;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_PARTY_DAMAGE_PER_PLAYER;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_REMINISCENCE_DAMAGE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue MIKAGE_SOFT_CAP_THRESHOLD;
@@ -217,6 +220,15 @@ public final class GameplayConfig {
                 .defineInRange("reminiscenceHealthMultiplier", 1.25D, 1.0D, 10.0D);
         MIKAGE_BASE_DAMAGE = builder
                 .defineInRange("baseDamage", 15.0D, 1.0D, 1000.0D);
+        MIKAGE_NATIVE_DAMAGE_MULTIPLIER = builder
+                .comment("Multiplier for Mikage's native skill damage before normal armor/mod mitigation.")
+                .defineInRange("nativeSkillDamageMultiplier", 1.25D, 0.0D, 10.0D);
+        MIKAGE_SIGNATURE_MAX_DURATION_TICKS = builder
+                .comment("Safety timeout for a signature cast. Ending by timeout grants no parry/core-break reward.")
+                .defineInRange("signatureMaximumDurationTicks", 600, 100, 2400);
+        MIKAGE_GATE_ARRIVAL_RETRY_LIMIT = builder
+                .comment("Maximum consecutive failed safe-arrival searches before Thousand Gates ends safely.")
+                .defineInRange("gateArrivalRetryLimit", 8, 1, 40);
         MIKAGE_PARTY_DAMAGE_PER_PLAYER = builder
                 .comment("Small damage increase per extra player; health remains the main scaling axis.")
                 .defineInRange("partyDamagePerExtraPlayer", 0.06D, 0.0D, 1.0D);
@@ -313,7 +325,7 @@ public final class GameplayConfig {
                 .comment("Meaningfully connected low-damage hits before Mikage briefly tests boundary/magic damage.")
                 .defineInRange("boundaryAssistAfterLowHits", 3, 1, 20);
         MIKAGE_MAX_PLAYER_HEALTH_FRACTION_PER_HIT = builder
-                .comment("Absolute safety ceiling for one calibrated hit, before a successful guard reduction.")
+                .comment("Safety ceiling for final health damage of a native skill hit, after armor and absorption.")
                 .defineInRange("maximumPlayerHealthFractionPerHit", 0.55D, 0.10D, 1.0D);
         MIKAGE_REPEATED_SA_DAMAGE_MULTIPLIER = builder
                 .comment("Damage retained by the second consecutive use of the same locked Slash Art.")
