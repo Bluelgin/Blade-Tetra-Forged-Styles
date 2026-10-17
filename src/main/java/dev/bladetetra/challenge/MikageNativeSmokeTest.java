@@ -123,6 +123,7 @@ public final class MikageNativeSmokeTest {
                 tick(owned.scope, 4);
                 check(player.getHealth() < 20, "next fresh native strike cannot reuse consumed input or previous protection");
             }
+            MikageDamageSmokeTest.run(boss, player, outsider);
             MikageRhythmSmokeTest.run(boss, player, outsider);
             MikageMeleeFootworkSmokeTest.run(boss, player);
             boss.duel().clear(); reset(player, outsider); session.participants.remove(player.getUUID());
@@ -132,6 +133,7 @@ public final class MikageNativeSmokeTest {
                 tick(owned.scope, 4); check(player.getHealth() == 20, "participant removal cancels delayed native targeting");
             }
             check(ownedMap().isEmpty(), "every closed cast released all native bindings");
+            MikageChallengeAccessSmokeTest.run(player, outsider);
             LogUtils.getLogger().info("MIKAGE_NATIVE_SMOKE_PASS: {} checks; real melee, Drive, sword, cut, immunity, outsider, reflection, rhythmic parries, hit ending, cleanup", checks);
         } catch (Throwable failure) {
             LogUtils.getLogger().error("MIKAGE_NATIVE_SMOKE_FAIL", failure);

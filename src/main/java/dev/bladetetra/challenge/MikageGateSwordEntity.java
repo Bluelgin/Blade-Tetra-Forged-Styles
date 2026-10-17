@@ -76,9 +76,11 @@ public final class MikageGateSwordEntity extends EntityAbstractSummonedSword {
         if (entityData.get(REFLECTED)) {
             if (returning && hit.getEntity() == boss) boss.duel().rewardOpening(35);
         } else if (hit.getEntity() instanceof ServerPlayer player && MikageNativeCombat.swordContact(this, player)) {
+            float health = player.getHealth(), absorption = player.getAbsorptionAmount();
             MikageBladeAttackTrace.enter(this);
             try { super.onHitEntity(hit); }
             finally { MikageBladeAttackTrace.exit(); mods.flammpfeil.slashblade.ability.StunManager.removeStun(player); }
+            boss.damage().nativeHitCompleted(player, this, health, absorption);
         }
         discard();
     }

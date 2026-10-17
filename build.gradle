@@ -291,6 +291,11 @@ tasks.named('test', Test).configure {
 }
 
 tasks.named('processResources', ProcessResources).configure {
+    // Keep the original artwork recoverable in source control, but ship only the player skin.
+    exclude 'assets/blade_tetra/models/entity/mikage_tailored.json'
+    exclude 'assets/blade_tetra/textures/entity/mikage_tailored.png'
+    exclude 'META-INF/notices/mikage-winefox.txt'
+    exclude 'META-INF/licenses/winefox-CC-BY-NC-SA-4.0.txt'
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,

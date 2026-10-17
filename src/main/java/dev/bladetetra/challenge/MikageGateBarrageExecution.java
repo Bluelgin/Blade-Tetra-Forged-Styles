@@ -2,6 +2,7 @@ package dev.bladetetra.challenge;
 
 import dev.bladetetra.challenge.mikage.*;
 import dev.bladetetra.registry.ModEntities;
+import dev.bladetetra.config.GameplayConfig;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.network.chat.Component;
@@ -22,6 +23,7 @@ final class MikageGateBarrageExecution implements SkillExecution {
     private UUID target;
     private final Runnable committed;
     private final GateBarrageSequence<ItemStack> sequence = new GateBarrageSequence<>();
+    private final CastBudget budget = new CastBudget(GameplayConfig.MIKAGE_SIGNATURE_MAX_DURATION_TICKS.get(), 1);
     private CastScope scope;
     private MikageGateBarragePlacement gate;
     private MikageGateCoreEntity core;
@@ -65,8 +67,11 @@ final class MikageGateBarrageExecution implements SkillExecution {
         if (next != null) target = next.getUUID();
         return next;
     }
-    @Override public boolean windingUp() { return true; }
+    @Override public boolean windingUp() {
+        return sequence.stage() == GateBarrageSequence.Stage.OPEN || sequence.stage() == GateBarrageSequence.Stage.CHARGE;
+    }
     @Override public Status tick() {
+        if (!budget.tick()) return Status.COMPLETE;
         if (gate == null || core == null || core.isRemoved() || !core.isAlive()) return Status.COMPLETE;
         ServerLevel level = (ServerLevel) owner.level(); ServerPlayer player = target(level);
         if (player == null) return Status.TARGET_LOST;

@@ -3,7 +3,7 @@ package dev.bladetetra.challenge.mikage;
 import java.util.ArrayDeque;
 
 /** Resources owned by one cast; persistent arena resources have a separate owner. */
-public final class CastScope {
+public final class CastScope implements AutoCloseable {
     private final long id;
     private final ArrayDeque<Runnable> cleanup = new ArrayDeque<>();
     private boolean closed;
@@ -17,7 +17,7 @@ public final class CastScope {
         else cleanup.addFirst(release);
     }
 
-    public void close() {
+    @Override public void close() {
         if (closed) return;
         closed = true;
         RuntimeException failure = null;

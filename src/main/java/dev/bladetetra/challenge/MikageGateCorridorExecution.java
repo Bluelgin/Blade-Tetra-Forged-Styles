@@ -1,6 +1,7 @@
 package dev.bladetetra.challenge;
 
 import dev.bladetetra.challenge.mikage.*;
+import dev.bladetetra.config.GameplayConfig;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -21,13 +22,16 @@ final class MikageGateCorridorExecution implements SkillExecution {
     private MikageCorridorPresentation visuals;
     private CastScope scope;
     private boolean oldGravity, oldInvisible, oldSilent, restored;
-    private int age, descentTicks;
+    private Vec3 startPosition;
+    private int descentTicks;
+    private final CastBudget budget = new CastBudget(GameplayConfig.MIKAGE_SIGNATURE_MAX_DURATION_TICKS.get(), 1);
     MikageGateCorridorExecution(MikageEntity owner, ServerPlayer player, Runnable committed) {
         this.owner = owner; target = player.getUUID(); this.committed = committed;
         combo = new MikageCorridorNativeCombo(owner, this);
     }
     @Override public void start(CastScope scope) {
-        this.scope = scope; oldGravity = owner.isNoGravity(); oldInvisible = owner.isInvisible(); oldSilent = owner.isSilent();
+        this.scope = scope; startPosition = owner.position();
+        oldGravity = owner.isNoGravity(); oldInvisible = owner.isInvisible(); oldSilent = owner.isSilent();
         visuals = new MikageCorridorPresentation(owner, scope.id()); scope.own(this::restore);
         owner.setNoGravity(true); owner.setAction(MikageEntity.MikageAction.CAST_READY, 24);
         ServerPlayer player = player();
@@ -43,11 +47,13 @@ final class MikageGateCorridorExecution implements SkillExecution {
     private ServerPlayer player() {
         return ((ServerLevel) owner.level()).getEntity(target) instanceof ServerPlayer p ? p : null;
     }
-    @Override public boolean windingUp() { return true; }
+    @Override public boolean windingUp() {
+        return sequence.stage() == GateCorridorSequence.Stage.DEPLOY || sequence.stage() == GateCorridorSequence.Stage.CUE;
+    }
     @Override public Status tick() {
         ServerPlayer player = player();
         if (player == null || !owner.encounter().eligible(player)) return Status.TARGET_LOST;
-        if (++age > 600) return Status.COMPLETE;
+        if (!budget.tick()) return Status.COMPLETE;
         owner.setTarget(player); owner.getNavigation().stop(); owner.setDeltaMovement(Vec3.ZERO);
         var previous = sequence.stage(); sequence.tick();
         if (previous != sequence.stage() && sequence.stage() == GateCorridorSequence.Stage.CUE) {
@@ -83,6 +89,9 @@ final class MikageGateCorridorExecution implements SkillExecution {
             }
             case COMBO -> {
                 face(route.heading()); MikageNativeCombat.run(owner, scope, nativeRule(), combo::tick); face(route.heading());
+                // Native contact can synchronously parry or close this cast during combo.tick().
+                if (scope.closed()) return Status.COUNTERED;
+                if (!sequence.attacking()) break;
                 if (!move(route.exit(), .39)) return Status.COMPLETE;
                 if (combo.finished()) { combo.stop(); sequence.comboComplete(); }
             }
@@ -111,12 +120,14 @@ final class MikageGateCorridorExecution implements SkillExecution {
             if (!sequence.attacking()) return false;
             if (owner.duel().parryPursuit(player, owner.getEyePosition())) {
                 sequence.parry(); combo.stop(); owner.setRidingPhantomSword(false);
+                MikageNativeCombat.clearAttacks(scope);
                 owner.setAction(MikageEntity.MikageAction.STAGGERED, 40);
                 visuals.down(routes[sequence.pass()].heading()); return false;
             }
             return sequence.mayHit(owner.level().getGameTime());
         }, (player, source) -> { if (sequence.attacking()) sequence.hit(owner.level().getGameTime()); });
     }
+    boolean nativeComboAllowed() { return scope != null && !scope.closed() && sequence.attacking(); }
     private boolean move(Vec3 at, double speed) {
         Vec3 next = owner.position().lerp(at, Math.min(1, speed / Math.max(.001, owner.position().distanceTo(at))));
         if (!MikageCorridorRoute.safe(owner, owner.position(), next)) return false;
@@ -124,6 +135,7 @@ final class MikageGateCorridorExecution implements SkillExecution {
     }
     private boolean descend() {
         hide(false); owner.setRidingPhantomSword(false);
+        if (MikageLanding.supported(owner, owner.position())) return true;
         Vec3 next = owner.position().add(0, -Math.min(1, .15 + ++descentTicks * .045), 0);
         if (!MikageCorridorRoute.safe(owner, owner.position(), next)) {
             Vec3 from = owner.position(); double low = 0, high = 1;
@@ -132,7 +144,12 @@ final class MikageGateCorridorExecution implements SkillExecution {
                 if (MikageCorridorRoute.safe(owner, from, from.lerp(next, mid))) low = mid; else high = mid;
             }
             Vec3 landing = from.lerp(next, low); owner.setPos(landing.x, landing.y, landing.z);
-            owner.fallDistance = 0; return true;
+            owner.fallDistance = 0;
+            if (MikageLanding.supported(owner, landing)) return true;
+            if (descentTicks % 10 != 0) return false;
+            Vec3 fallback = MikageLanding.find(owner, startPosition);
+            if (fallback != null) { owner.setPos(fallback); return true; }
+            return false;
         }
         owner.setPos(next.x, next.y, next.z); owner.fallDistance = 0; return false;
     }
@@ -146,6 +163,11 @@ final class MikageGateCorridorExecution implements SkillExecution {
     private void restore() {
         if (restored) return; restored = true; combo.stop(); hide(false);
         owner.setRidingPhantomSword(false); owner.setNoGravity(oldGravity); owner.setDeltaMovement(Vec3.ZERO);
+        if (owner.isAlive() && !oldGravity && !MikageLanding.supported(owner, owner.position())) {
+            Vec3 landing = MikageLanding.find(owner, owner.position());
+            if (landing == null) landing = MikageLanding.find(owner, startPosition);
+            if (landing != null) owner.setPos(landing);
+        }
         owner.fallDistance = 0; visuals.end();
     }
     @Override public void stop(StopReason reason) {

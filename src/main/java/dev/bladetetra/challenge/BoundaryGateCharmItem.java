@@ -32,6 +32,10 @@ public final class BoundaryGateCharmItem extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (!MikageChallengeAccess.allowsGate(BrokenOniMaskItem.enablesVisitor(player))) {
+            if (player instanceof ServerPlayer serverPlayer) ChallengeManager.notifyChallengeSealed(serverPlayer);
+            return InteractionResultHolder.fail(player.getItemInHand(hand));
+        }
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
@@ -44,6 +48,7 @@ public final class BoundaryGateCharmItem extends Item {
                     : BrokenOniMaskItem.enablesReminiscence(player)
                             ? ChallengeManager.GateMode.REMINISCENCE
                             : ChallengeManager.GateMode.NORMAL;
+            if (ChallengeSuspension.rejectEntry(player, mode)) return stack;
             ChallengeManager.openGate(player, mode);
             player.getCooldowns().addCooldown(this, 100);
         }
@@ -53,6 +58,13 @@ public final class BoundaryGateCharmItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip,
             net.minecraft.world.item.TooltipFlag flag) {
+        if (!MikageChallengeAccess.combatOpen()) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.boundary_gate_charm.sealed")
+                    .withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.blade_tetra.boundary_gate_charm.visitor")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
         tooltip.add(Component.translatable("tooltip.blade_tetra.boundary_gate_charm")
                 .withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.blade_tetra.boundary_gate_charm.echo")

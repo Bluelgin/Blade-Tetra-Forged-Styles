@@ -19,6 +19,7 @@ public final class MikageNativeCombat {
     private static final ThreadLocal<Binding> SPAWNING = new ThreadLocal<>();
     private MikageNativeCombat() { }
     static void run(MikageEntity boss, CastScope scope, Rule rule, Runnable nativeAction) {
+        if (scope.closed()) return;
         Binding previous = SPAWNING.get();
         SPAWNING.set(new Binding(boss, scope, rule, new HashSet<>()));
         try { nativeAction.run(); }
@@ -140,7 +141,12 @@ public final class MikageNativeCombat {
         Binding b = ATTACKS.get(source); if (b == null) b = SPAWNING.get();
         if (b == null) return false;
         // Keep vanilla i-frames: native forceHit/resetHit must not erase another contact's protection.
-        if (!b.scope.closed() && target instanceof ServerPlayer player && player.invulnerableTime <= 0) attack.accept(target);
+        if (!b.scope.closed() && target instanceof ServerPlayer player && player.invulnerableTime <= 0) {
+            float health = player.getHealth(), absorption = player.getAbsorptionAmount();
+            Entity actualSource = source == null ? b.boss : source;
+            attack.accept(target);
+            b.boss.damage().nativeHitCompleted(player, actualSource, health, absorption);
+        }
         return true;
     }
     static void clear() { for (var scope : List.copyOf(SCOPES.keySet())) discard(scope); ATTACKS.clear(); SPAWNING.remove(); }

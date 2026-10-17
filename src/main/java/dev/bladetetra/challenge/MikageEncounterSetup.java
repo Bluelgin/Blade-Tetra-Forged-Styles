@@ -1,6 +1,5 @@
 package dev.bladetetra.challenge;
 
-import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.config.GameplayConfig;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.network.chat.Component;
@@ -44,7 +43,7 @@ final class MikageEncounterSetup {
         owner.combatDirector().skillSpeedMultiplier = calibration.skillSpeedScale;
         owner.setHealth(owner.getMaxHealth());
         owner.setItemSlot(EquipmentSlot.MAINHAND,
-                ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+                MikageEquipment.ironKatana(owner.level()));
         owner.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).ifPresent(state -> {
             state.setColorCode(0xD51F3F);
             state.setEffectColorInverse(false);
@@ -71,7 +70,7 @@ final class MikageEncounterSetup {
         owner.setInvulnerable(true);
         owner.setPersistenceRequired();
         owner.setItemSlot(EquipmentSlot.MAINHAND,
-                ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+                MikageEquipment.ironKatana(owner.level()));
         owner.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
         owner.bossBar().setVisible(false);
     }

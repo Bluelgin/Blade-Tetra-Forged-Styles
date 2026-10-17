@@ -11,6 +11,7 @@ final class MikageEncounterCleanup {
         owner.movement().clearCombatFootwork(); owner.duel().clear(); foreground(owner);
         owner.defenseController().hurtCooldownUntil.clear();
         owner.defenseController().playerDefenseProfiles.clear();
+        owner.damage().clearPending();
     }
     private MikageEncounterCleanup() { }
 }

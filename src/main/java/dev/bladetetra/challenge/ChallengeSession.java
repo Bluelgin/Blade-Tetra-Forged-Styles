@@ -107,6 +107,7 @@ final class ChallengeSession {
     }
 
     void join(ServerPlayer player, MinecraftServer server) {
+        if (ChallengeSuspension.rejectEntry(player, mode)) return;
         savePersistentOrigin(player);
         origins.putIfAbsent(player.getUUID(), new Origin(
                 player.level().dimension(), player.position(), player.getYRot(), player.getXRot()));
@@ -127,6 +128,7 @@ final class ChallengeSession {
     }
 
     void tick(MinecraftServer server, ServerLevel mirror, ServerLevel easter) {
+        if (ChallengeSuspension.suspendIfNeeded(this, server, mirror)) return;
         tickDisconnected();
         if (participants.isEmpty()) {
             mirror.getEntitiesOfClass(MikageEntity.class,

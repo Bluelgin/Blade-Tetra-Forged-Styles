@@ -110,10 +110,14 @@ final class MikageEncounter {
         owner.bossBar().setProgress(owner.getHealth() / owner.getMaxHealth());
         owner.presentation().syncHud();
         MikageRuntimeCoordinator.tick(owner, server, lifecycle.phase());
+        boolean wasActive = skills.active();
         skills.tick();
 
         var combat = owner.combatDirector();
-        if (!isWindingUp() && combat.techniqueCooldown > 0) combat.techniqueCooldown--;
+        if (wasActive && !active()) combat.techniqueCooldown = Math.max(combat.techniqueCooldown,
+                combat.scaledCooldown(lifecycle.phase() == 1 ? 42 : lifecycle.phase() == 2 ? 30 : 22));
+        // Cooldown is recovery between casts, not an accidental second timer inside a long windup.
+        if (!active() && combat.techniqueCooldown > 0) combat.techniqueCooldown--;
         if (combat.phaseProtectionTicks > 0) return;
         if (lifecycle.state() == EncounterLifecycle.State.TRANSITION) lifecycle.ready();
         if (lifecycle.state() == EncounterLifecycle.State.OPENING) {
@@ -136,7 +140,6 @@ final class MikageEncounter {
             LOGGER.debug("Mikage decision: challenge={}, target={}, skill={}, score={}, reasons={}",
                     owner.getPersistentData().getLong("blade_tetra_challenge"), target.getUUID(),
                     decision.skill(), decision.score(), decision.reasons());
-            combat.techniqueCooldown = combat.scaledCooldown(lifecycle.phase() == 1 ? 42 : lifecycle.phase() == 2 ? 30 : 22);
         }
     }
 
@@ -149,7 +152,9 @@ final class MikageEncounter {
     private boolean start(SkillExecution next) {
         if (active()) return false;
         owner.movement().pauseCombatFootwork();
-        return skills.start(next);
+        boolean started = skills.start(next);
+        if (started) owner.combatDirector().techniqueCooldown = 0;
+        return started;
     }
 
     private void stop(SkillExecution.StopReason reason) {

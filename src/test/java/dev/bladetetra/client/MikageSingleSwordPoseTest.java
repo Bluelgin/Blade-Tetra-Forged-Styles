@@ -22,19 +22,20 @@ class MikageSingleSwordPoseTest {
         assertPoseNear(MikageSingleSwordPose.IDLE, MikageSingleSwordPose.slash(1));
     }
     @Test void layerCannotRenderASecondWaistWeaponOrNativeMmdHolder() throws Exception {
-        String layer = Files.readString(Path.of("src/main/java/dev/bladetetra/client/MikageTailoredBladeLayer.java"));
+        String layer = Files.readString(Path.of("src/main/java/dev/bladetetra/client/MikageHeldBladeLayer.java"));
         assertFalse(layer.contains("LayerMainBlade"));
         assertFalse(layer.contains("\"sheath\""));
         assertFalse(layer.contains("\"LeftHand\""));
-        assertTrue(layer.contains("translateToSocket(\"RightHand\""));
+        assertTrue(layer.contains("translateToHand(HumanoidArm.RIGHT"));
+        assertFalse(layer.contains("MikageTailoredModel"));
         assertTrue(layer.contains("state.isBroken() ? \"blade_damaged\" : \"blade\""));
     }
-    @Test void exporterAndRendererBothPreserveInflation() throws Exception {
-        // Optional licensed artwork/tools are local-only, not prerequisites for core-mod CI.
-        Path exporter = Path.of("tools/art/export_mikage_runtime.cjs");
-        if (Files.exists(exporter)) assertTrue(Files.readString(exporter).contains("inflate: c.inflate"));
-        assertTrue(Files.readString(Path.of("src/main/java/dev/bladetetra/client/MikageTailoredModel.java"))
-                .contains("cube.get(\"inflate\").getAsFloat()"));
+    @Test void playerSkinModelNeedsNoCustomGeometryOrResourceParser() throws Exception {
+        String model = Files.readString(Path.of("src/main/java/dev/bladetetra/client/MikageSkinModel.java"));
+        assertTrue(model.contains("extends PlayerModel"));
+        assertFalse(model.contains("JsonParser"));
+        assertFalse(model.contains("getResourceManager"));
+        assertTrue(model.contains("rightSleeve.copyFrom(rightArm)"));
     }
     private static void assertPoseNear(MikageSingleSwordPose.Pose a, MikageSingleSwordPose.Pose b) {
         assertEquals(a.lean(),b.lean(),.0001); assertEquals(a.turn(),b.turn(),.0001);

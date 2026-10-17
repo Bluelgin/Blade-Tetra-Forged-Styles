@@ -25,8 +25,7 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
 
     public MikageRenderer(EntityRendererProvider.Context context) {
         super(context, new MikagePlayerModel(context.bakeLayer(ModelLayers.PLAYER_SLIM)), 0.5F);
-        // Built-in single-sword rig; old character geometry remains a recovery fallback.
-        addLayer(new MikageTailoredBladeLayer<>(this));
+        addLayer(new MikageHeldBladeLayer<>(this));
     }
 
     @Override
@@ -65,13 +64,12 @@ public final class MikageRenderer extends LivingEntityRenderer<MikageEntity, Pla
 
     @Override
     public ResourceLocation getTextureLocation(MikageEntity entity) {
-        if (((MikageTailoredModel<?>) model).hasTailoredRig()) return MikageTailoredModel.TEXTURE;
         int blink = Math.floorMod(entity.tickCount + entity.getId() * 17, 94);
         return blink < 4 ? BLINK_TEXTURE : TEXTURE;
     }
 
     /** Single drawn-sword forms driven by the existing synchronised action clock. */
-    private static final class MikagePlayerModel extends MikageTailoredModel<MikageEntity> {
+    private static final class MikagePlayerModel extends MikageSkinModel<MikageEntity> {
         MikagePlayerModel(ModelPart root) { super(root); }
 
         @Override

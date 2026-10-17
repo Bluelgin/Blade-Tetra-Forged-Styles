@@ -19,13 +19,12 @@ public final class MikageDivineCompanionRenderer extends LivingEntityRenderer<Mi
     private static final ResourceLocation BLINK=new ResourceLocation(BladeTetra.MOD_ID,"textures/entity/mikage_blink.png");
     public MikageDivineCompanionRenderer(EntityRendererProvider.Context context) {
         super(context,new CompanionModel(context.bakeLayer(ModelLayers.PLAYER_SLIM)),.5F);
-        addLayer(new MikageTailoredBladeLayer<>(this));
+        addLayer(new MikageHeldBladeLayer<>(this));
     }
     @Override public ResourceLocation getTextureLocation(MikageDivineCompanionEntity entity) {
-        if (((MikageTailoredModel<?>) model).hasTailoredRig()) return MikageTailoredModel.TEXTURE;
         return (entity.tickCount+entity.getId()*17)%94<4?BLINK:SKIN;
     }
-    private static final class CompanionModel extends MikageTailoredModel<MikageDivineCompanionEntity> {
+    private static final class CompanionModel extends MikageSkinModel<MikageDivineCompanionEntity> {
         CompanionModel(ModelPart root) { super(root); }
         @Override public void setupAnim(MikageDivineCompanionEntity e,float walk,float amount,float age,float yaw,float pitch) {
             body.xRot=body.yRot=rightArm.yRot=leftArm.yRot=0;

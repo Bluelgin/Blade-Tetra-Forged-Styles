@@ -125,6 +125,7 @@ public final class ChallengeManager {
 
     public static void openGate(ServerPlayer owner, GateMode mode) {
         ensureActiveServer(owner.getServer());
+        if (ChallengeSuspension.rejectEntry(owner, mode)) return;
         if (isProtectedRealm(owner.level())) {
             owner.displayClientMessage(Component.translatable(
                     "message.blade_tetra.gate.already_inside").withStyle(ChatFormatting.GRAY), true);
@@ -145,6 +146,15 @@ public final class ChallengeManager {
                         : mode == GateMode.VISITOR
                                 ? "message.blade_tetra.gate.visitor_opened"
                                 : "message.blade_tetra.gate.opened"), true);
+    }
+
+    static boolean gateModeAvailable(GateMode mode) {
+        return mode != null && MikageChallengeAccess.allowsGate(mode == GateMode.VISITOR);
+    }
+
+    static void notifyChallengeSealed(ServerPlayer player) {
+        player.displayClientMessage(Component.translatable("message.blade_tetra.challenge.sealed")
+                .withStyle(ChatFormatting.GRAY), true);
     }
 
     @SubscribeEvent
@@ -219,6 +229,10 @@ public final class ChallengeManager {
         Iterator<ChallengeGate> iterator = GATES.iterator();
         while (iterator.hasNext()) {
             ChallengeGate gate = iterator.next();
+            if (!gateModeAvailable(gate.mode)) {
+                iterator.remove();
+                continue;
+            }
             ServerLevel level = server.getLevel(gate.dimension);
             if (level == null || level.getGameTime() > gate.expiresAt) {
                 iterator.remove();
@@ -449,6 +463,12 @@ public final class ChallengeManager {
             ChallengeSession challenge = hadChallenge
                     ? CHALLENGES.get(player.getPersistentData().getLong(PLAYER_CHALLENGE))
                     : null;
+            if (!MikageChallengeAccess.combatOpen() && (challenge == null
+                    || MikageChallengeAccess.shouldSuspend(challenge.mode == GateMode.VISITOR, challenge.won))) {
+                returnFromPersistentOrigin(player);
+                notifyChallengeSealed(player);
+                return;
+            }
             if (challenge == null || !challenge.reconnect(player.getUUID())) {
                 returnFromPersistentOrigin(player);
                 if (hadChallenge) {
@@ -579,16 +599,21 @@ public final class ChallengeManager {
 
     static void returnFromPersistentOrigin(ServerPlayer player) {
         var tag = player.getPersistentData();
+        ResourceLocation savedDimension = ResourceLocation.tryParse(tag.getString(ORIGIN_DIMENSION));
         ResourceKey<Level> key = ResourceKey.create(
                 net.minecraft.core.registries.Registries.DIMENSION,
-                ResourceLocation.tryParse(tag.getString(ORIGIN_DIMENSION)) == null
-                        ? Level.OVERWORLD.location()
-                        : ResourceLocation.tryParse(tag.getString(ORIGIN_DIMENSION)));
+                savedDimension == null ? Level.OVERWORLD.location() : savedDimension);
         ServerLevel destination = player.getServer().getLevel(key);
-        if (destination == null) {
+        boolean validOrigin = savedDimension != null && destination != null && !isProtectedRealm(destination);
+        if (!validOrigin) {
             destination = player.getServer().overworld();
         }
-        if (tag.contains(ORIGIN_X)) {
+        stopMusic(player);
+        hideBoundary(player);
+        hideHud(player);
+        if (validOrigin && tag.contains(ORIGIN_X) && tag.contains(ORIGIN_Y) && tag.contains(ORIGIN_Z)
+                && Double.isFinite(tag.getDouble(ORIGIN_X)) && Double.isFinite(tag.getDouble(ORIGIN_Y))
+                && Double.isFinite(tag.getDouble(ORIGIN_Z))) {
             player.teleportTo(destination, tag.getDouble(ORIGIN_X), tag.getDouble(ORIGIN_Y),
                     tag.getDouble(ORIGIN_Z), tag.getFloat(ORIGIN_YAW), tag.getFloat(ORIGIN_PITCH));
         } else {

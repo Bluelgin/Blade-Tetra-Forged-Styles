@@ -29,13 +29,16 @@ public final class SkillRunner {
 
     public void tick() {
         if (!active()) return;
+        SkillExecution ticking = active;
         SkillExecution.Status status;
-        try { status = active.tick(); }
+        try { status = ticking.tick(); }
         catch (RuntimeException ex) {
-            try { stop(SkillExecution.StopReason.CANCELLED); }
+            try { if (active == ticking) stop(SkillExecution.StopReason.CANCELLED); }
             catch (RuntimeException cleanupFailure) { ex.addSuppressed(cleanupFailure); }
             throw ex;
         }
+        // A synchronous callback may stop this cast and start another. Never stop the replacement.
+        if (active != ticking) return;
         if (status != SkillExecution.Status.RUNNING) stop(switch (status) {
             case COMPLETE -> SkillExecution.StopReason.COMPLETE;
             case TARGET_LOST -> SkillExecution.StopReason.TARGET_LOST;

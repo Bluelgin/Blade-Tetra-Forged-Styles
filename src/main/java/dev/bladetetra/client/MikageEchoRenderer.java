@@ -36,11 +36,10 @@ public final class MikageEchoRenderer extends LivingEntityRenderer<MikageEchoEnt
 
     @Override
     public ResourceLocation getTextureLocation(MikageEchoEntity entity) {
-        if (((MikageTailoredModel<?>) model).hasTailoredRig()) return MikageTailoredModel.TEXTURE;
         return TEXTURE;
     }
 
-    private static final class EchoModel extends MikageTailoredModel<MikageEchoEntity> {
+    private static final class EchoModel extends MikageSkinModel<MikageEchoEntity> {
         EchoModel(ModelPart root) { super(root); }
         @Override
         public void setupAnim(MikageEchoEntity entity, float swing, float amount, float age,

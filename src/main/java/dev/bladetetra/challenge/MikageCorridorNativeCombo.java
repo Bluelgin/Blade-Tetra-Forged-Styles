@@ -25,20 +25,24 @@ public final class MikageCorridorNativeCombo {
         this.owner = owner; this.release = release;
     }
     void tick() {
+        if (!release.nativeComboAllowed()) return;
         long now = owner.level().getGameTime();
         if (lastTick == now) return;
         lastTick = now;
         slashes.removeIf(Entity::isRemoved);
         if (stage == null) change(new ResourceLocation("slashblade", "combo_b1"));
+        if (!release.nativeComboAllowed()) return;
         ComboState combo = Objects.requireNonNull(ComboStateRegistry.REGISTRY.get().getValue(stage));
         var next = combo.getNext(owner);
         if (!next.equals(stage) && (next.getPath().matches("combo_b[2-7]")
                 || stage.getPath().equals("combo_b7") && next.getPath().equals("none"))) {
             change(next);
+            if (!release.nativeComboAllowed()) return;
             if (finished()) return;
             combo = Objects.requireNonNull(ComboStateRegistry.REGISTRY.get().getValue(stage));
         } else if (elapsed(owner) * 50 > combo.getTimeoutMS()) {
             change(combo.getNextOfTimeout(owner));
+            if (!release.nativeComboAllowed()) return;
             if (!stage.getPath().matches("combo_b[1-7]")) { change(new ResourceLocation("slashblade", "none")); return; }
             combo = Objects.requireNonNull(ComboStateRegistry.REGISTRY.get().getValue(stage));
         }

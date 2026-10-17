@@ -2,6 +2,8 @@ package dev.bladetetra.challenge;
 
 import dev.bladetetra.challenge.mikage.CastScope;
 import dev.bladetetra.challenge.mikage.SkillExecution;
+import dev.bladetetra.challenge.mikage.CastBudget;
+import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.challenge.mikage.ThousandGatesSequence;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -18,6 +20,8 @@ final class MikageThousandGatesExecution implements SkillExecution {
     private final MikageEntity owner;
     private final UUID target;
     private final ThousandGatesSequence sequence = new ThousandGatesSequence();
+    private final CastBudget budget = new CastBudget(GameplayConfig.MIKAGE_SIGNATURE_MAX_DURATION_TICKS.get(),
+            GameplayConfig.MIKAGE_GATE_ARRIVAL_RETRY_LIMIT.get());
     private final MikageThousandGatesPresentation visuals;
     private final Runnable committed;
     private CastScope scope;
@@ -43,12 +47,13 @@ final class MikageThousandGatesExecution implements SkillExecution {
                     0, ThousandGatesSequence.REQUIRED_PARRIES), true);
         committed.run();
     }
-    @Override public boolean windingUp() { return !sequence.terminal(); }
+    @Override public boolean windingUp() { return !sequence.terminal() && strikeWindow == 0 && sequence.remaining() > 0; }
 
     @Override public Status tick() {
         if (!(owner.level() instanceof ServerLevel level)
                 || !(level.getEntity(target) instanceof ServerPlayer player)
                 || !owner.encounter().eligible(player)) return Status.TARGET_LOST;
+        if (!budget.tick()) return Status.COMPLETE;
         owner.setTarget(player); owner.getNavigation().stop(); owner.setDeltaMovement(Vec3.ZERO);
         if (sequence.stage() == ThousandGatesSequence.Stage.BROKEN) {
             owner.duel().breakPursuitBalance(); visuals.portal("break", scope.id(), 24); return Status.COUNTERED;
@@ -68,7 +73,7 @@ final class MikageThousandGatesExecution implements SkillExecution {
             case HIDDEN -> conceal(true);
             case CUE -> {
                 Vec3 next = MikageGateArrival.choose(owner, player, arrival);
-                if (next == null) { sequence.retryArrival(); break; }
+                if (next == null) { budget.arrivalFailed(); sequence.retryArrival(); break; }
                 arrival = next;
                 visuals.cue(player, arrival, sequence.streak());
             }
@@ -78,10 +83,12 @@ final class MikageThousandGatesExecution implements SkillExecution {
                 } else {
                     // Terrain may change after the cue. Never announce one place and attack from another.
                     if (!MikageGateArrival.safe(owner, player, level, arrival)) {
+                        budget.arrivalFailed();
                         sequence.retryArrival();
                         break;
                     }
                     owner.movement().teleportWithinArena(arrival.x, arrival.y, arrival.z);
+                    budget.arrivalSucceeded();
                     direction = player.position().subtract(arrival).multiply(1, 0, 1).normalize();
                     if (direction.lengthSqr() < .001) direction = new Vec3(0, 0, 1);
                     conceal(false); face();
