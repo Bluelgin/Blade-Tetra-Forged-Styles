@@ -9,6 +9,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.PartEntity;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,6 +22,8 @@ import java.util.Set;
  */
 public final class SwordAuraDriveEntity extends EntityDrive {
     private static final String DECORATION = "blade_tetra_lifeng_decoration";
+    private static final double MAX_RANGE_SQUARED = 8.0D * 8.0D;
+    private Vec3 launchPosition;
     private final Set<Integer> hitTargets = new HashSet<>();
 
     public SwordAuraDriveEntity(EntityType<? extends Projectile> type, Level level) {
@@ -30,6 +33,15 @@ public final class SwordAuraDriveEntity extends EntityDrive {
 
     public void setDecoration(boolean value) {
         getPersistentData().putBoolean(DECORATION, value);
+    }
+
+    @Override
+    public void tick() {
+        if (launchPosition == null) launchPosition = position();
+        super.tick();
+        if (!level().isClientSide() && launchPosition.distanceToSqr(position()) >= MAX_RANGE_SQUARED) {
+            discard();
+        }
     }
 
     @Override

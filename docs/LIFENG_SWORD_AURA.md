@@ -8,7 +8,7 @@ Experimental standalone passive, separate from Tetra schematic scrolls and nativ
 - No extra attack from entering a combo, clicking without a slash, SA, or an ownerless decorative effect. B1's same-tick crossed pair shares one aura damage budget.
 - Damage uses the same native SlashBlade/global multipliers and Forge damage hooks, with no fixed high-stat ceiling. Initial calibration is \`0.95 * max(ceil(Power enchant), 0.1 * effective Attack Damage)\`. This is **not** an assertion that damage always equals precisely 95% of every phantom sword in modded combat; the two growth channels differ.
 - A custom Drive subclass inherits movement/rendering but **does not zero target invulnerability time**. Damage is attributed to the player and marked secondary for legacy guards.
-- The 8–11 tick native Drive lifetime at 1.7–2.7 blocks/tick is a *lifetime*, not a proven exact 8-block limit; range must be calibrated in game.
+- The projectile discards after travelling about 8 blocks from its initial location, independently of its 8–11-tick lifetime; physical collisions near the range boundary still need real-world verification.
 
 ## Responsibilities
 

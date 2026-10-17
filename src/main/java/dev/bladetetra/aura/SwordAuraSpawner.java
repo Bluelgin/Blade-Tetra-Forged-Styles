@@ -3,7 +3,6 @@ package dev.bladetetra.aura;
 import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.registry.ModEntities;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
-import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
@@ -17,22 +16,21 @@ public final class SwordAuraSpawner {
         Vec3 forward = Vec3.directionFromRotation(player.getXRot(), slash.getYRot()).normalize();
         if (forward.lengthSqr() < 1.0E-6D) return;
         spawn(player, slash.position().add(forward.scale(0.45D)), forward, roll,
-                profile, damage, false);
+                profile, damage, false, slash.getColor());
         if (profile.hasDecoration()) {
             spawn(player, slash.position().add(forward.scale(0.45D))
                             .add(0, profile.additionalHeight(), 0),
-                    forward, roll + profile.additionalRoll(), profile, 0.0F, true);
+                    forward, roll + profile.additionalRoll(), profile, 0.0F, true, slash.getColor());
         }
     }
 
     private static void spawn(ServerPlayer player, Vec3 position, Vec3 direction,
-            float roll, SwordAuraStyleProfile profile, float damage, boolean decoration) {
+            float roll, SwordAuraStyleProfile profile, float damage, boolean decoration, int color) {
         SwordAuraDriveEntity drive = new SwordAuraDriveEntity(ModEntities.SWORD_AURA_DRIVE.get(),
                 player.level());
         drive.setPos(position.x, position.y, position.z);
         drive.setOwner(player);
-        drive.setColor(player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
-                .map(state -> state.getColorCode()).orElse(0xFFFFFF));
+        drive.setColor(color);
         drive.setRotationRoll(roll);
         drive.setBaseSize(profile.mainSize());
         drive.setSpeed(profile.speed());
