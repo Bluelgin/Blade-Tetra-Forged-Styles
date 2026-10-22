@@ -2,6 +2,7 @@ package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ForgedSlashArtOrbItem;
+import dev.bladetetra.item.StyleRecorderItem;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.LegacyDebugTalismanItem;
 import dev.bladetetra.item.LegacyImprintScrollItem;
@@ -36,6 +37,8 @@ public final class ModItems {
             ITEMS.register("modular_slashblade", ModularSlashBladeItem::new);
     public static final RegistryObject<ForgedSlashArtOrbItem> FORGED_SLASH_ART_ORB =
             ITEMS.register("forged_slash_art_orb", ForgedSlashArtOrbItem::new);
+    public static final RegistryObject<StyleRecorderItem> STYLE_RECORDER =
+            ITEMS.register("style_recorder", StyleRecorderItem::new);
     public static final RegistryObject<Item> BLOOD_CRYSTAL =
             ITEMS.register("blood_crystal", () -> new Item(
                     new Item.Properties().rarity(Rarity.RARE)));
@@ -88,6 +91,7 @@ public final class ModItems {
                     .displayItems((parameters, output) -> {
                         output.accept(MODULAR_SLASHBLADE.get().createDefaultStack());
                         output.accept(FORGED_SLASH_ART_ORB.get().createDefaultStack());
+                        output.accept(STYLE_RECORDER.get());
                         output.accept(BLOOD_CRYSTAL.get());
                         output.accept(SAKURA_SOUL_CRYSTAL.get());
                         output.accept(BOUNDARY_GATE_CHARM.get());
