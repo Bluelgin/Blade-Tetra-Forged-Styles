@@ -56,6 +56,7 @@ public final class CustomStyleForgeSmokeTest {
         } finally {
             level.setBlockAndUpdate(benchPos.above(), oldScroll);
             level.setBlockAndUpdate(benchPos, oldBench);
+            event.getServer().halt(false);
         }
     }
 
