@@ -40,20 +40,12 @@ public final class RecentComboTracker {
 
             ObservedState sample = new ObservedState(action, started);
             ObservedState previous = OBSERVED.put(player.getUUID(), sample);
-            if (sample.equals(previous) || !recordable(action)) return;
+            if (sample.equals(previous) || !ComboCompatibilityResolver.playable(action)) return;
 
             long sequence = LAST.containsKey(player.getUUID())
                     ? LAST.get(player.getUUID()).sequence() + 1L : 1L;
             LAST.put(player.getUUID(), new LastAction(action, sequence, now));
         });
-    }
-
-    private static boolean recordable(ResourceLocation action) {
-        String path = action.getPath();
-        return !action.equals(ComboStateRegistry.NONE.getId())
-                && !action.equals(ComboStateRegistry.STANDBY.getId())
-                && !path.endsWith("_root") && !path.endsWith("_end")
-                && !path.contains("recovery") && !path.contains("sheathe");
     }
 
     public static LastAction mostRecent(ServerPlayer player) {

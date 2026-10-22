@@ -21,7 +21,7 @@ public final class CustomStyleScrollLookup {
             if (!"blade_tetra.custom_style".equals(data.key)) continue;
             // Refuse ambiguous or invalid scrolls, even during client preview.
             CustomStyleSpec candidate = CustomStyleScrolls.read(data);
-            if (candidate == null || found != null) return null;
+            if (!ComboCompatibilityResolver.playable(candidate) || found != null) return null;
             found = candidate;
         }
         return found;

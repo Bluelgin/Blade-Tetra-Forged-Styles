@@ -78,7 +78,7 @@ public final class CustomComboRouter {
 
         CustomStyleSpec spec = CustomStyleSpec.decode(
                 blade.getTag().getCompound(CustomStyleSpec.STACK_KEY));
-        if (spec == null || spec.actions().isEmpty()) return null;
+        if (!ComboCompatibilityResolver.playable(spec)) return null;
 
         Cursor cursor = CURSORS.get(user);
         long now = user.level().getGameTime();

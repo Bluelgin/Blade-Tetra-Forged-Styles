@@ -17,7 +17,7 @@ public final class StyleRecordingSession {
 
     public static CaptureResult capture(ServerPlayer player) {
         RecentComboTracker.LastAction last = RecentComboTracker.mostRecent(player);
-        if (last == null) return CaptureResult.NO_RECENT_ACTION;
+        if (last == null || !ComboCompatibilityResolver.playable(last.id())) return CaptureResult.NO_RECENT_ACTION;
         Draft draft = DRAFTS.computeIfAbsent(player.getUUID(), ignored -> new Draft());
         if (draft.sequence == last.sequence()) return CaptureResult.ALREADY_CAPTURED;
         if (draft.actions.size() >= CustomStyleSpec.MAX_ACTIONS) return CaptureResult.FULL;

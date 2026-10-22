@@ -18,3 +18,7 @@ This is an **in-progress implementation**, not a playable finished fifth style.
 - Source mod action support guarantees, client UI and naming.
 
 Never advertise completion until a real Tetra workbench can read the unfolded scroll's sequence and forge a playable custom blade. Preset styles must not be modified during this PR.
+
+## Attack privileges
+
+Any equipped SlashBlade may be sampled, but only registry-backed *ordinary* ComboStates vetted by `ComboCompatibilityResolver` can be written or forged. The initial safe set is native A/B/C combos and selected BladeTetra normal attacks; other add-ons may opt in via `registerOrdinaryAction` after checking the animation's callbacks and resource prerequisites. SA entry states are deliberately excluded to prevent free special attacks through ordinary clicks.
