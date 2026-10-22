@@ -10,6 +10,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import org.jetbrains.annotations.Nullable;
+import java.util.List;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -20,6 +23,15 @@ import net.minecraft.world.level.Level;
 public final class StyleRecorderItem extends Item {
     public StyleRecorderItem() {
         super(new Properties().stacksTo(1));
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
+            List<Component> tooltip, TooltipFlag flag) {
+        tooltip.add(Component.translatable("tooltip.blade_tetra.style_recorder.capture")
+                .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.style_recorder.finish")
+                .withStyle(ChatFormatting.GOLD));
     }
 
     @Override

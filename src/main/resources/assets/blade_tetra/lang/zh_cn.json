@@ -1,5 +1,9 @@
 {
-  "style.blade_tetra.custom": "自创流派",
+  "tooltip.blade_tetra.style_recorder.capture": "右键：采录最近施展的一招（需要先挥刀）",
+  "tooltip.blade_tetra.style_recorder.finish": "潜行右键：完成剑谱，直接获得可展开的 Tetra 卷轴",
+  "tooltip.blade_tetra.custom_style.name": "剑谱：%s",
+  "tooltip.blade_tetra.custom_style.count": "已录入 %s 招",
+"style.blade_tetra.custom": "自创流派",
   "style.blade_tetra.custom.role": "剑谱 · 自由编纂",
   "style.blade_tetra.custom.description": "从任意已验证的拔刀剑采录普通招式，按录制顺序施展地面普通攻击；空中与通用方向技沿用本传。",
   "style.blade_tetra.custom.tradeoff": "取舍：招式仍遵守原本的安全接招时机；不同长度刀身调整攻击距离，但没有居合、连舞或断岳的专有增益。",

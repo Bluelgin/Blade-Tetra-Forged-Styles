@@ -1,5 +1,9 @@
 {
-  "style.blade_tetra.custom": "Custom Style",
+  "tooltip.blade_tetra.style_recorder.capture": "Use: capture the last committed ordinary blade move",
+  "tooltip.blade_tetra.style_recorder.finish": "Sneak-use: finish and receive a native Tetra scroll",
+  "tooltip.blade_tetra.custom_style.name": "Style: %s",
+  "tooltip.blade_tetra.custom_style.count": "%s recorded moves",
+"style.blade_tetra.custom": "Custom Style",
   "style.blade_tetra.custom.role": "Scroll · Authored Combo",
   "style.blade_tetra.custom.description": "Record vetted ordinary blade moves, replay them in order as grounded regular attacks. Aerial and directional moves retain the orthodox path.",
   "style.blade_tetra.custom.tradeoff": "Tradeoff: each move keeps its native timing requirements. Blade length affects reach but grants none of Iaido, Rengeki or Dangaku's unique bonuses.",
