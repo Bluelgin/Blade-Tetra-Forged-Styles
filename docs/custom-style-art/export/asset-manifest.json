@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "namespace": "blade_tetra",
+  "base_commit": "8132bc8fd48675717717353e0b03294f715909a3",
+  "palette": {
+    "ink": "#211d2a",
+    "edge": "#735747",
+    "gold": "#a88651",
+    "light": "#dfbd79",
+    "paper": "#e6ddcf",
+    "shade": "#c7b697",
+    "white": "#f7eddb",
+    "red": "#8a2f2f",
+    "hot": "#c27462",
+    "teal": "#365a63",
+    "mute": "#938574"
+  },
+  "assets": [
+    {
+      "name": "shiroku_fuda",
+      "source": "docs/custom-style-art/sources/shiroku_fuda.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/item/custom_style/shiroku_fuda.png",
+      "size": [
+        32,
+        32
+      ]
+    },
+    {
+      "name": "shiroku_fuda_active",
+      "source": "docs/custom-style-art/sources/shiroku_fuda_active.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/item/custom_style/shiroku_fuda_active.png",
+      "size": [
+        32,
+        32
+      ]
+    },
+    {
+      "name": "blank_schematic",
+      "source": "docs/custom-style-art/sources/blank_schematic.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/item/custom_style/blank_schematic.png",
+      "size": [
+        32,
+        32
+      ]
+    },
+    {
+      "name": "compiled_schematic",
+      "source": "docs/custom-style-art/sources/compiled_schematic.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/item/custom_style/compiled_schematic.png",
+      "size": [
+        32,
+        32
+      ]
+    },
+    {
+      "name": "recording_hud",
+      "source": "docs/custom-style-art/sources/recording_hud.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/recording_hud.png",
+      "size": [
+        160,
+        36
+      ]
+    },
+    {
+      "name": "editor_panel",
+      "source": "docs/custom-style-art/sources/editor_panel.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/editor_panel.png",
+      "size": [
+        248,
+        220
+      ]
+    },
+    {
+      "name": "action_row",
+      "source": "docs/custom-style-art/sources/action_row.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/action_row.png",
+      "size": [
+        224,
+        22
+      ]
+    },
+    {
+      "name": "action_row_selected",
+      "source": "docs/custom-style-art/sources/action_row_selected.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/action_row_selected.png",
+      "size": [
+        224,
+        22
+      ]
+    },
+    {
+      "name": "button_normal",
+      "source": "docs/custom-style-art/sources/button_normal.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/button_normal.png",
+      "size": [
+        24,
+        20
+      ]
+    },
+    {
+      "name": "button_hover",
+      "source": "docs/custom-style-art/sources/button_hover.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/button_hover.png",
+      "size": [
+        24,
+        20
+      ]
+    },
+    {
+      "name": "button_disabled",
+      "source": "docs/custom-style-art/sources/button_disabled.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/button_disabled.png",
+      "size": [
+        24,
+        20
+      ]
+    },
+    {
+      "name": "button_pressed",
+      "source": "docs/custom-style-art/sources/button_pressed.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/button_pressed.png",
+      "size": [
+        24,
+        20
+      ]
+    },
+    {
+      "name": "length_short",
+      "source": "docs/custom-style-art/sources/length_short.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/length_short.png",
+      "size": [
+        16,
+        16
+      ]
+    },
+    {
+      "name": "length_standard",
+      "source": "docs/custom-style-art/sources/length_standard.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/length_standard.png",
+      "size": [
+        16,
+        16
+      ]
+    },
+    {
+      "name": "length_long",
+      "source": "docs/custom-style-art/sources/length_long.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/length_long.png",
+      "size": [
+        16,
+        16
+      ]
+    },
+    {
+      "name": "style_custom",
+      "source": "docs/custom-style-art/sources/style_custom.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/style_custom.png",
+      "size": [
+        16,
+        16
+      ]
+    },
+    {
+      "name": "state_waiting",
+      "source": "docs/custom-style-art/sources/state_waiting.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_waiting.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_recordable",
+      "source": "docs/custom-style-art/sources/state_recordable.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_recordable.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_added",
+      "source": "docs/custom-style-art/sources/state_added.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_added.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_full",
+      "source": "docs/custom-style-art/sources/state_full.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_full.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_unavailable",
+      "source": "docs/custom-style-art/sources/state_unavailable.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_unavailable.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_compiled",
+      "source": "docs/custom-style-art/sources/state_compiled.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_compiled.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_locked",
+      "source": "docs/custom-style-art/sources/state_locked.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_locked.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_recognized",
+      "source": "docs/custom-style-art/sources/state_recognized.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_recognized.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "state_forged",
+      "source": "docs/custom-style-art/sources/state_forged.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/state_forged.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "undo",
+      "source": "docs/custom-style-art/sources/undo.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/undo.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "clear",
+      "source": "docs/custom-style-art/sources/clear.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/clear.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "finish",
+      "source": "docs/custom-style-art/sources/finish.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/finish.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "arrow",
+      "source": "docs/custom-style-art/sources/arrow.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/arrow.png",
+      "size": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "ink_write",
+      "source": "docs/custom-style-art/sources/ink_write.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/ink_write.png",
+      "size": [
+        16,
+        96
+      ]
+    },
+    {
+      "name": "seal_set",
+      "source": "docs/custom-style-art/sources/seal_set.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/seal_set.png",
+      "size": [
+        16,
+        96
+      ]
+    },
+    {
+      "name": "forge_glint",
+      "source": "docs/custom-style-art/sources/forge_glint.svg",
+      "texture": "src/main/resources/assets/blade_tetra/textures/gui/custom_style/forge_glint.png",
+      "size": [
+        16,
+        96
+      ]
+    }
+  ],
+  "event_sheets": {
+    "ink_write": {
+      "frame_size": [
+        16,
+        16
+      ],
+      "frames": 6,
+      "frame_ticks": 1,
+      "loop": false,
+      "trigger": "record_ack_success"
+    },
+    "seal_set": {
+      "frame_size": [
+        16,
+        16
+      ],
+      "frames": 6,
+      "frame_ticks": 2,
+      "loop": false,
+      "trigger": "compile_ack_success"
+    },
+    "forge_glint": {
+      "frame_size": [
+        16,
+        16
+      ],
+      "frames": 6,
+      "frame_ticks": 2,
+      "loop": false,
+      "trigger": "workbench_apply_ack_success"
+    }
+  }
+}
