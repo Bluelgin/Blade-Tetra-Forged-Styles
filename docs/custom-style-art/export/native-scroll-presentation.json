@@ -1,0 +1,12 @@
+{
+  "purpose": "Presentation proposal only; not a runtime schematic definition",
+  "nativeItem": "tetra:scroll",
+  "material": "#e6ddcf",
+  "ribbon": "#8a2f2f",
+  "glyphs": [11, 5, 2, 9],
+  "glyphNote": "Existing Tetra glyph indices already used by ForgingScrolls. Order is a visual suggestion; core owns the actual ScrollData.",
+  "prefix": {"zh_cn": "自创剑谱", "en_us": "Custom sword manual"},
+  "lengthIndependent": true,
+  "customInventoryModelOptional": "blade_tetra:item/custom_style/compiled_schematic",
+  "warning": "The optional model needs a targeted core bridge. Never replace the global tetra:scroll model. Core owns the dynamic key, unlock ids, validity and tooltip data."
+}
