@@ -92,11 +92,11 @@ public final class BladeNameResolver {
 
     private static String resolveBladeType(CompoundTag tag) {
         return switch (tag.getString(ModularSlashBladeItem.BLADE_SLOT)) {
-            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE ->
+            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE, ModularSlashBladeItem.CUSTOM_STANDARD_BLADE_MODULE ->
                     "name.blade_tetra.type.orthodox";
-            case ModularSlashBladeItem.WAKIZASHI_MODULE ->
+            case ModularSlashBladeItem.WAKIZASHI_MODULE, ModularSlashBladeItem.CUSTOM_SHORT_BLADE_MODULE ->
                     "name.blade_tetra.type.wakizashi";
-            case ModularSlashBladeItem.NODACHI_MODULE ->
+            case ModularSlashBladeItem.NODACHI_MODULE, ModularSlashBladeItem.CUSTOM_LONG_BLADE_MODULE ->
                     "name.blade_tetra.type.nodachi";
             default -> "name.blade_tetra.type.katana";
         };
