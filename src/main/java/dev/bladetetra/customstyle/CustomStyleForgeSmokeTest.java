@@ -152,6 +152,17 @@ public final class CustomStyleForgeSmokeTest {
         var committed = state.progressCombo(player);
         check(committed.equals(ComboStateRegistry.COMBO_A1.getId()),
                 "native first combo is the first recorded action: " + committed);
+        // The native A1 action has a five-frame commitment window.
+        // Querying a virtual prediction must NOT advance the authored cursor.
+        state.setLastActionTime(player.level().getGameTime() - 4L);
+        var secondPreview = state.progressCombo(player, true);
+        check(secondPreview.equals(ComboStateRegistry.COMBO_B1.getId()),
+                "virtual follow-up predicts recorded second move: " + secondPreview);
+        var secondCommitted = state.progressCombo(player);
+        check(secondCommitted.equals(ComboStateRegistry.COMBO_B1.getId()),
+                "native follow-up commits second recorded action: " + secondCommitted);
+        check(state.getComboSeq().equals(ComboStateRegistry.COMBO_B1.getId()),
+                "server-side ComboState is second recorded action");
     }
 
     private static Block requiredBlock(String id) {
