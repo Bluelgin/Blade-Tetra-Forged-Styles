@@ -34,7 +34,7 @@ public final class CustomStyleScrolls {
         ItemStack stack = new ItemStack(ScrollItem.instance);
         String payload = encodeDetails(spec);
         new ScrollData(KEY, Optional.of(payload), true,
-                0xE4D9C3, 0x704259, List.of(3, 10, 5, 12),
+                0, 0x704259, List.of(3, 10, 5, 12),
                 UNLOCKS, List.of(CRAFTING_EFFECT)).write(stack);
         return stack;
     }
