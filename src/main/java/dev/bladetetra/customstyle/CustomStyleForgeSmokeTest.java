@@ -28,6 +28,7 @@ import se.mickelus.tetra.blocks.scroll.ScrollTile;
 import se.mickelus.tetra.blocks.workbench.AbstractWorkbenchBlock;
 import se.mickelus.tetra.craftingeffect.CraftingEffectRegistry;
 import se.mickelus.tetra.module.SchematicRegistry;
+import se.mickelus.tetra.items.modular.IModularItem;
 
 import java.util.Arrays;
 import java.util.List;
@@ -98,7 +99,9 @@ public final class CustomStyleForgeSmokeTest {
             check(Arrays.stream(active).anyMatch(it -> schematic.getKey().equals(it.getKey())),
                     "Tetra workbench lists unlocked " + names[i] + " blade");
             var result = baseBlade.copy();
-            result.getOrCreateTag().putString(slot, modules[i]);
+            IModularItem.putModuleInSlot(result, slot, modules[i],
+                    modules[i] + "_material", "custom_" + names[i] + "_blade/iron");
+            IModularItem.updateIdentifier(result);
 
             var material = new ItemStack(Items.IRON_INGOT, 12);
             var materials = new ItemStack[]{material};
