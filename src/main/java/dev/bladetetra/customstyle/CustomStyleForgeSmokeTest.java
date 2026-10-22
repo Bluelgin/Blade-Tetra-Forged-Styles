@@ -107,7 +107,7 @@ public final class CustomStyleForgeSmokeTest {
             check(effects.length == 1, "precisely one style-encoding crafting effect");
             check(effects[0].applyOutcomes(effectUnlocks, result, slot,
                     true, player, materials, materials, Map.of(),
-                    level, schematic, benchPos, level.getBlockState(benchPos), true, 0),
+                    level, schematic, benchPos, level.getBlockState(benchPos), true),
                     "native Tetra crafting outcome succeeds");
             check(spec.equals(CustomStyleSpec.decode(
                     result.getTag().getCompound(CustomStyleSpec.STACK_KEY))), "style persisted onto " + names[i]);
@@ -137,10 +137,10 @@ public final class CustomStyleForgeSmokeTest {
     private static void verifyNativeCombo(net.minecraft.world.entity.player.Player player, ItemStack blade) {
         player.setItemSlot(EquipmentSlot.MAINHAND, blade);
         player.setOnGround(true);
-        var input = player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow();
+        var input = player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
         input.getCommands().clear();
         input.getCommands().add(InputCommand.R_CLICK);
-        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow();
+        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
         state.setComboSeq(ComboStateRegistry.NONE.getId());
         var preview = state.progressCombo(player, true);
         check(preview.equals(ComboStateRegistry.COMBO_A1.getId()),
