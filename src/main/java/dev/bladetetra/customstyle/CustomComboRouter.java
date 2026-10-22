@@ -5,8 +5,8 @@ import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
+import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
-import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.util.InputCommand;
 import net.minecraft.resources.ResourceLocation;
@@ -22,8 +22,9 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Routes only grounded, ordinary clicks. SlashBlade still owns input timing,
- * actual ComboState transitions, hits, motion and damage.
+ * Selects the next recorded normal attack without a second input queue.
+ * The cursor moves ONLY on a committed BladeMotionEvent, not when the engine
+ * asks for a root or previews a NextComboEvent (which can happen more than once).
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class CustomComboRouter {
@@ -31,15 +32,15 @@ public final class CustomComboRouter {
             Collections.synchronizedMap(new WeakHashMap<>());
     private static final int MAX_COMBO_GAP = 40;
 
-    /** The root's fallback must agree with NextComboEvent's chosen next state. */
+    /** Native SlashBlade resolves current-vs-root priority on each actual click. */
     public static ResourceLocation opener(LivingEntity user) {
         ResourceLocation special = nativeSpecial(user);
         if (special != null) return special;
-        ResourceLocation next = peek(user);
-        return next != null ? next : ComboStateRegistry.NONE.getId();
+        ResourceLocation candidate = desired(user);
+        return candidate == null ? ComboStateRegistry.NONE.getId() : candidate;
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void next(SlashBladeEvent.NextComboEvent event) {
         ItemStack blade = event.getBlade();
         LivingEntity user = event.getUser();
@@ -47,69 +48,80 @@ public final class CustomComboRouter {
                 || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) return;
         if (nativeSpecial(user) != null) {
             CURSORS.remove(user);
-            return; // Air, backstep/upper, and forward dash stay native.
+            return;
         }
 
         ResourceLocation current = event.getSlashBladeState().resolvCurrentComboState(user);
-        // Native ComboState may return itself while still in the protected hit
-        // timeline. Never turn such an early input into a forced skip.
+        // Preserve the original ComboState's minimum input window.
         if (current.equals(event.getNextCombo())) return;
 
-        ResourceLocation desired = peek(user);
-        if (desired == null || !ComboStateRegistry.REGISTRY.get().containsKey(desired)) {
+        ResourceLocation candidate = desired(user);
+        if (candidate == null) return;
+        if (candidate.equals(current)) {
+            // Resharped rejects same-ID transitions inside progressCombo, but
+            // updateComboSeq intentionally supports restarting the same state.
+            // Do not mutate during client-side virtual prediction.
+            if (!user.level().isClientSide()) {
+                event.setCanceled(true);
+                event.getSlashBladeState().updateComboSeq(user, candidate);
+            }
             return;
         }
-        if (desired.equals(current)) {
-            // The native progressCombo guards against same-id transitions.
-            // Enter through its genuine update path; this replays clickAction
-            // but does not invent any new hit or animation executor.
-            event.setCanceled(true);
-            event.getSlashBladeState().updateComboSeq(user, desired);
-            return;
-        }
-        event.setNextCombo(desired);
+        event.setNextCombo(candidate);
     }
 
-    private static ResourceLocation peek(LivingEntity user) {
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void committed(BladeMotionEvent event) {
+        if (event.isCanceled()) return;
+        LivingEntity user = event.getEntity();
         ItemStack blade = user.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
-                || StyleResolver.resolve(blade) != BladeStyle.CUSTOM
-                || blade.getTag() == null) return null;
+                || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) {
+            CURSORS.remove(user);
+            return;
+        }
+        if (nativeSpecial(user) != null) {
+            CURSORS.remove(user);
+            return;
+        }
+        CustomStyleSpec spec = spec(blade);
+        if (!ComboCompatibilityResolver.playable(spec)) {
+            CURSORS.remove(user);
+            return;
+        }
+        Cursor cursor = cursor(user, blade, spec);
+        if (cursor != null && event.getCombo().equals(spec.actions().get(cursor.nextIndex))) {
+            cursor.nextIndex = (cursor.nextIndex + 1) % spec.actions().size();
+            cursor.lastCommitTick = user.level().getGameTime();
+        }
+    }
 
-        CustomStyleSpec spec = CustomStyleSpec.decode(
-                blade.getTag().getCompound(CustomStyleSpec.STACK_KEY));
+    private static ResourceLocation desired(LivingEntity user) {
+        ItemStack blade = user.getMainHandItem();
+        if (!(blade.getItem() instanceof ModularSlashBladeItem)
+                || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) return null;
+        CustomStyleSpec spec = spec(blade);
         if (!ComboCompatibilityResolver.playable(spec)) return null;
+        Cursor cursor = cursor(user, blade, spec);
+        return cursor == null ? null : spec.actions().get(cursor.nextIndex);
+    }
 
+    private static CustomStyleSpec spec(ItemStack blade) {
+        return blade.getTag() == null ? null
+                : CustomStyleSpec.decode(blade.getTag().getCompound(CustomStyleSpec.STACK_KEY));
+    }
+
+    private static Cursor cursor(LivingEntity user, ItemStack blade, CustomStyleSpec spec) {
         Cursor cursor = CURSORS.get(user);
         long now = user.level().getGameTime();
-        ResourceLocation current = blade.getCapability(ItemSlashBlade.BLADESTATE)
-                .map(state -> state.getComboSeq())
-                .orElse(ComboStateRegistry.NONE.getId());
-        long started = blade.getCapability(ItemSlashBlade.BLADESTATE)
-                .map(state -> state.getLastActionTime())
-                .orElse(-1L);
-
         if (cursor == null || cursor.blade != blade
                 || cursor.fingerprint != spec.hashCode()
-                || now - cursor.lastDispatchTime > MAX_COMBO_GAP
-                || (cursor.lastTarget != null && !cursor.lastTarget.equals(current)
-                && cursor.lastDispatchTime != started)) {
-            cursor = new Cursor(blade, spec.hashCode());
+                || now < cursor.lastCommitTick
+                || now - cursor.lastCommitTick > MAX_COMBO_GAP) {
+            cursor = new Cursor(blade, spec.hashCode(), now);
             CURSORS.put(user, cursor);
-        } else if (cursor.lastTarget != null
-                && cursor.lastTarget.equals(current)
-                && started != cursor.lastDispatchTime) {
-            cursor.nextIndex = (cursor.nextIndex + 1) % spec.actions().size();
-            cursor.lastDispatchTime = started;
-            cursor.lastTarget = null;
         }
-        ResourceLocation next = spec.actions().get(cursor.nextIndex);
-        if (!ComboStateRegistry.REGISTRY.get().containsKey(next)) return null;
-        // This is a *candidate*, not an animation frame skip; SlashBlade decides
-        // if the input may advance based on the active state.
-        cursor.lastTarget = next;
-        if (cursor.lastDispatchTime == -1) cursor.lastDispatchTime = started;
-        return next;
+        return cursor;
     }
 
     private static ResourceLocation nativeSpecial(LivingEntity user) {
@@ -131,12 +143,13 @@ public final class CustomComboRouter {
     private static final class Cursor {
         final ItemStack blade;
         final int fingerprint;
-        ResourceLocation lastTarget;
-        long lastDispatchTime = -1;
+        long lastCommitTick;
         int nextIndex;
-        Cursor(ItemStack blade, int fingerprint) {
+
+        Cursor(ItemStack blade, int fingerprint, long now) {
             this.blade = blade;
             this.fingerprint = fingerprint;
+            this.lastCommitTick = now;
         }
     }
     private CustomComboRouter() {}
