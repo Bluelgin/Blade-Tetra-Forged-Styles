@@ -22,3 +22,7 @@ Never advertise completion until a real Tetra workbench can read the unfolded sc
 ## Attack privileges
 
 Any equipped SlashBlade may be sampled, but only registry-backed *ordinary* ComboStates vetted by `ComboCompatibilityResolver` can be written or forged. The initial safe set is native A/B/C combos and selected BladeTetra normal attacks; other add-ons may opt in via `registerOrdinaryAction` after checking the animation's callbacks and resource prerequisites. SA entry states are deliberately excluded to prevent free special attacks through ordinary clicks.
+
+## Forge integration regression
+
+PR CI builds and launches an isolated server with `-PcustomStyleSmoke`. The smoke builds a real Tetra workbench and unfolded ScrollTile above it, checks three schematic unlocks, applies the crafting-effect pipeline to a copied modular blade, asserts custom combo root resolution, and confirms ambiguous nearby scroll data fails closed. Completion is reported only when the log contains `CUSTOM_STYLE_SMOKE_PASS`.

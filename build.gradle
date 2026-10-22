@@ -40,6 +40,10 @@ minecraft {
                 workingDirectory project.file('build/mikage-native-smoke')
                 property 'blade_tetra.mikageNativeSmoke', 'true'
             }
+            if (project.hasProperty('customStyleSmoke')) {
+                workingDirectory project.file('build/custom-style-smoke')
+                property 'blade_tetra.customStyleSmoke', 'true'
+            }
             if (project.hasProperty('combatBalanceSmoke')) {
                 workingDirectory project.file('build/combat-balance-smoke')
                 property 'blade_tetra.combatBalanceSmoke', 'true'

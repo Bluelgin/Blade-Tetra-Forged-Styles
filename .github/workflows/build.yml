@@ -31,3 +31,11 @@ jobs:
           echo 'eula=true' > build/mikage-native-smoke/eula.txt
           ./gradlew runServer -PmikageNativeSmoke 2>&1 | tee build/mikage-native-smoke.log
           grep -F 'MIKAGE_NATIVE_SMOKE_PASS' build/mikage-native-smoke.log
+      - name: Custom style Tetra Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/custom-style-smoke
+          echo 'eula=true' > build/custom-style-smoke/eula.txt
+          ./gradlew runServer -PcustomStyleSmoke 2>&1 | tee build/custom-style-smoke.log
+          grep -F 'CUSTOM_STYLE_SMOKE_PASS' build/custom-style-smoke.log
