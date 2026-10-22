@@ -28,7 +28,6 @@ import se.mickelus.tetra.blocks.scroll.ScrollTile;
 import se.mickelus.tetra.blocks.workbench.AbstractWorkbenchBlock;
 import se.mickelus.tetra.craftingeffect.CraftingEffectRegistry;
 import se.mickelus.tetra.module.SchematicRegistry;
-import se.mickelus.tetra.items.modular.IModularItem;
 
 import java.util.Arrays;
 import java.util.List;
@@ -98,13 +97,15 @@ public final class CustomStyleForgeSmokeTest {
             check(schematic != null, "data-backed custom schematic " + id);
             check(Arrays.stream(active).anyMatch(it -> schematic.getKey().equals(it.getKey())),
                     "Tetra workbench lists unlocked " + names[i] + " blade");
-            var result = baseBlade.copy();
-            IModularItem.putModuleInSlot(result, slot, modules[i],
-                    modules[i] + "_material", "custom_" + names[i] + "_blade/iron");
-            IModularItem.updateIdentifier(result);
-
             var material = new ItemStack(Items.IRON_INGOT, 12);
             var materials = new ItemStack[]{material};
+            check(schematic.acceptsMaterial(baseBlade, slot, 0, material),
+                    "custom " + names[i] + " schematic recognizes iron through Tetra materials");
+            check(schematic.isMaterialsValid(baseBlade, slot, materials),
+                    "native workbench material validation " + names[i]);
+            var result = schematic.applyUpgrade(baseBlade, materials, false, slot, player);
+            check(modules[i].equals(result.getOrCreateTag().getString(slot)),
+                    "real Tetra schematic installs " + modules[i]);
             var effects = CraftingEffectRegistry.getEffects(effectUnlocks, result, slot,
                     true, player, materials, Map.<ToolAction, Integer>of(), schematic,
                     level, benchPos, level.getBlockState(benchPos));
