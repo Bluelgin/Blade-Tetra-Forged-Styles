@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.customstyle.CustomBladeLength;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ComponentEffectResolver;
 import dev.bladetetra.combat.ModComboStates;
@@ -93,6 +94,9 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String ORTHODOX_BLADE_MODULE = "slashblade/orthodox_blade";
     public static final String WAKIZASHI_MODULE = "slashblade/wakizashi_blade";
     public static final String NODACHI_MODULE = "slashblade/nodachi_blade";
+    public static final String CUSTOM_SHORT_BLADE_MODULE = "slashblade/custom_short_blade";
+    public static final String CUSTOM_STANDARD_BLADE_MODULE = "slashblade/custom_standard_blade";
+    public static final String CUSTOM_LONG_BLADE_MODULE = "slashblade/custom_long_blade";
     public static final String TSUKA_MODULE = "slashblade/wrapped_tsuka";
     public static final String SWIFT_TSUKA_MODULE = "slashblade/swift_tsuka";
     public static final String STABLE_TSUKA_MODULE = "slashblade/stable_tsuka";
@@ -400,6 +404,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             double reachAmplifier = switch (StyleResolver.resolve(stack)) {
                 case IAIDO -> IAIDO_REACH_AMPLIFIER;
                 case DANGAKU -> DANGAKU_REACH_AMPLIFIER;
+                case CUSTOM -> CustomBladeLength.from(stack).reachBonus();
                 default -> DEFAULT_REACH_AMPLIFIER;
             };
             result.entries().removeIf(entry ->

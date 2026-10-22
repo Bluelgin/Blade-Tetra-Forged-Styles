@@ -1,7 +1,5 @@
 package dev.bladetetra.customstyle;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import se.mickelus.tetra.blocks.scroll.ScrollData;
@@ -24,8 +22,12 @@ import java.util.Optional;
 public final class CustomStyleScrolls {
     private static final String PREFIX = "BTCS1:";
     private static final String KEY = "blade_tetra.custom_style";
-    public static final ResourceLocation UNLOCK =
-            new ResourceLocation("tetra", "slashblade/custom_style");
+    public static final List<ResourceLocation> UNLOCKS = List.of(
+            new ResourceLocation("tetra", "slashblade/custom_style_short"),
+            new ResourceLocation("tetra", "slashblade/custom_style_standard"),
+            new ResourceLocation("tetra", "slashblade/custom_style_long"));
+    public static final ResourceLocation CRAFTING_EFFECT =
+            new ResourceLocation("tetra", "blade_tetra/custom_style_craft");
     private static final int MAX_PAYLOAD_LENGTH = 2048;
 
     public static ItemStack create(CustomStyleSpec spec) {
@@ -33,7 +35,7 @@ public final class CustomStyleScrolls {
         String payload = encodeDetails(spec);
         new ScrollData(KEY, Optional.of(payload), true,
                 0xE4D9C3, 0x704259, List.of(3, 10, 5, 12),
-                List.of(UNLOCK), List.of()).write(stack);
+                UNLOCKS, List.of(CRAFTING_EFFECT)).write(stack);
         return stack;
     }
 
@@ -43,7 +45,8 @@ public final class CustomStyleScrolls {
 
     public static CustomStyleSpec read(ScrollData data) {
         if (data == null || !KEY.equals(data.key) || data.details == null
-                || !data.schematics.contains(UNLOCK)) {
+                || !data.schematics.containsAll(UNLOCKS)
+                || !data.craftingEffects.contains(CRAFTING_EFFECT)) {
             return null;
         }
         return decodeDetails(data.details);

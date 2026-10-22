@@ -9,12 +9,12 @@ This is an **in-progress implementation**, not a playable finished fifth style.
 - Repeatedly pressing the tool does not add the same attack twice. Re-perform the attack to capture it twice.
 - Sneak + use completes the bounded draft and **immediately grants a native Tetra scroll** (not a consumable upgrade material).
 - The scroll's `ScrollData.details` stores a bounded versioned sequence. That is intentional: Tetra's `ScrollTile` strips extra stack NBT when placing an unfolded scroll.
-- Scrolls advertise a single fixed schematic unlock `tetra:slashblade/custom_style`; dynamic pattern handling and workbench binding are the next step.
+- Scrolls advertise three stable Tetra schematic IDs (short, standard, long), plus a native Tetra crafting effect.\n- The placed intricate scroll is read from **exactly above** the workbench by a dedicated bridge. More than one valid custom scroll makes crafting ambiguous and blocks the upgrade.\n- Workbench crafting snapshots the scroll specification onto the upgraded modular blade via a Tetra CraftingEffectOutcome.
 
 ## Not implemented yet
 
-- The custom blade schematic module/length choices and scroll-to-craft authoring bridge.
-- Dedicated ordinary combo runtime, legal action compatibility validation and combat testing.
+- Real-game validation of dynamic schematic and three blade-module outcomes.
+- Detailed combat validation, timing tuning, third-party action compatibility and in-game testing.
 - Source mod action support guarantees, client UI and naming.
 
 Never advertise completion until a real Tetra workbench can read the unfolded scroll's sequence and forge a playable custom blade. Preset styles must not be modified during this PR.

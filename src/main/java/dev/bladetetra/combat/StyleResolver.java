@@ -1,6 +1,8 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.customstyle.CustomBladeLength;
+import dev.bladetetra.customstyle.CustomStyleSpec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
@@ -16,6 +18,10 @@ public final class StyleResolver {
             return BladeStyle.STANDARD;
         }
 
+        if (CustomBladeLength.isCustomModule(tag.getString(ModularSlashBladeItem.BLADE_SLOT))) {
+            return CustomStyleSpec.decode(tag.getCompound(CustomStyleSpec.STACK_KEY)) != null
+                    ? BladeStyle.CUSTOM : BladeStyle.STANDARD;
+        }
         return switch (tag.getString(ModularSlashBladeItem.BLADE_SLOT)) {
             case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE -> BladeStyle.STANDARD;
             case ModularSlashBladeItem.BLADE_MODULE -> BladeStyle.IAIDO;

@@ -1,0 +1,12 @@
+{
+  "replace": true,
+  "active": true,
+  "requirement": {
+    "type": "blade_tetra:custom_style_craft"
+  },
+  "outcomes": [
+    {
+      "type": "blade_tetra:apply_custom_style_spec"
+    }
+  ]
+}
