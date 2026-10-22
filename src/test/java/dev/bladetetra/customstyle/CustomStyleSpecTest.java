@@ -5,6 +5,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
+import se.mickelus.tetra.blocks.scroll.ScrollData;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -27,6 +29,18 @@ class CustomStyleSpecTest {
     @Test void roundTripThroughTetraScrollDetails() {
         CustomStyleSpec style = sample();
         assertEquals(style, CustomStyleScrolls.decodeDetails(CustomStyleScrolls.encodeDetails(style)));
+    }
+
+    @Test void actualTetraScrollTileSerializationRetainsAuthoredActions() {
+        CustomStyleSpec expected = sample();
+        ScrollData data = new ScrollData("blade_tetra.custom_style",
+                Optional.of(CustomStyleScrolls.encodeDetails(expected)), true,
+                0, 0x704259, List.of(3, 10, 5, 12),
+                CustomStyleScrolls.UNLOCKS, List.of(CustomStyleScrolls.CRAFTING_EFFECT));
+        CompoundTag placedTile = ScrollData.write(new ScrollData[]{data}, new CompoundTag());
+        ScrollData[] loaded = ScrollData.read(placedTile);
+        assertEquals(1, loaded.length);
+        assertEquals(expected, CustomStyleScrolls.read(loaded[0]));
     }
 
     @Test void tamperedAndMalformedScrollsAreRejected() {
