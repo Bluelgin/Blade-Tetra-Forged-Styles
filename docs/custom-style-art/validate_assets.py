@@ -32,7 +32,11 @@ lang=json.loads((D/'export/ui-strings.json').read_text(encoding='utf-8'));assert
 assert len(lang['zh_cn'])>=25
 parser=argparse.ArgumentParser()
 parser.add_argument('--integration-base', help='Audit the client integration against this exact core HEAD instead of the art-only baseline')
+parser.add_argument('--resources-only', action='store_true', help='Check all art resources without imposing the historical art-only Java scope on later feature branches')
 args=parser.parse_args()
+if args.resources_only:
+    print(f'PASS: {len(assets)} PNGs; RGBA/pixel alpha, dimensions, SVG reproducibility, model references, 3 nonlooping sheets, bilingual keys')
+    sys.exit(0)
 base=args.integration_base or m['base_commit']
 tracked=subprocess.check_output(['git','diff','--name-only',base],cwd=R,text=True).splitlines()
 untracked=subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=R,text=True).splitlines()

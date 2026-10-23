@@ -7,6 +7,7 @@
   "mixins": [
     "ProviderEffectCompatMixin",
     "CombatBalanceBladeStateMixin",
+    "CustomStyleReachMixin",
     "CombatBalanceSlashArtsMixin",
     "SwordAttachmentSchematicMixin",
     "SpeedEfficiencyBladeStateMixin",

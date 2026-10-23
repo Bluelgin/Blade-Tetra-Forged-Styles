@@ -27,9 +27,30 @@ public final class StyleRecordingSession {
     }
 
     public static CustomStyleSpec finish(ServerPlayer player) {
-        Draft draft = DRAFTS.remove(player.getUUID());
+        Draft draft = DRAFTS.get(player.getUUID());
         if (draft == null || draft.actions.isEmpty()) return null;
-        return new CustomStyleSpec(draft.name, draft.actions);
+        CustomStyleSpec spec = new CustomStyleSpec(draft.name, draft.actions);
+        if (!ComboCompatibilityResolver.playable(spec)) return null;
+        DRAFTS.remove(player.getUUID());
+        return spec;
+    }
+
+    /** Failed imports leave the entire old draft intact. Revalidate on the server. */
+    public static boolean importCode(ServerPlayer player, String code) {
+        var result = CustomStyleExchange.importValidated(code);
+        if (!result.accepted()) return false;
+        Draft draft = new Draft();
+        draft.name = result.style().name();
+        draft.actions.addAll(result.style().actions());
+        DRAFTS.put(player.getUUID(), draft);
+        return true;
+    }
+
+    public static CustomStyleSpec exportable(ServerPlayer player) {
+        Snapshot snapshot = snapshot(player);
+        if (snapshot.actions().isEmpty()) return null;
+        CustomStyleSpec spec = new CustomStyleSpec(snapshot.name(), snapshot.actions());
+        return ComboCompatibilityResolver.playable(spec) ? spec : null;
     }
 
     /** Immutable state for future screens and synchronized read-only previews. */

@@ -31,7 +31,10 @@ public final class CustomStyleExchange {
         OK, INVALID_FORMAT, UNSUPPORTED_VERSION, INVALID_CONTENT, UNAVAILABLE_ACTION
     }
 
-    public record ImportResult(Status status, CustomStyleSpec style) {
+    public record Requirement(String modId, String displayName) {}
+
+    public record ImportResult(Status status, CustomStyleSpec style, List<Requirement> requirements) {
+        public ImportResult(Status status, CustomStyleSpec style) { this(status, style, List.of()); }
         public boolean accepted() {
             return status == Status.OK && style != null;
         }
@@ -50,6 +53,29 @@ public final class CustomStyleExchange {
                 .encodeToString(json.toString().getBytes(StandardCharsets.UTF_8));
     }
 
+    /** Optional, trusted provider hints for recipients without the same adapters. */
+    public static String exportWithDependencies(CustomStyleSpec style) {
+        String legacy = export(style);
+        JsonObject json = JsonParser.parseString(new String(Base64.getUrlDecoder().decode(
+                legacy.substring(PREFIX.length())), StandardCharsets.UTF_8)).getAsJsonObject();
+        JsonArray requirements = new JsonArray();
+        java.util.Set<String> included = new java.util.HashSet<>();
+        for (ResourceLocation action : style.actions()) {
+            var provider = CustomStyleDependencyResolver.provider(action);
+            if (provider == null || !included.add(provider.modId())) continue;
+            JsonObject requirement = new JsonObject();
+            requirement.addProperty("modId", provider.modId());
+            requirement.addProperty("displayName", provider.displayName());
+            requirements.add(requirement);
+        }
+        if (requirements.isEmpty()) return legacy;
+        json.add("requirements", requirements);
+        byte[] bytes = json.toString().getBytes(StandardCharsets.UTF_8);
+        // Optional hints never make an otherwise valid old code exceed the v1 limit.
+        return bytes.length > MAX_JSON_BYTES ? legacy
+                : PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     /**
      * Validates structure AND installed ordinary attack permissions at import
      * time. All consumers that grant a scroll must use this result.
@@ -57,7 +83,7 @@ public final class CustomStyleExchange {
     public static ImportResult importValidated(String code) {
         ImportResult parsed = inspect(code);
         if (!parsed.accepted()) return parsed;
-        return ComboCompatibilityResolver.playable(parsed.style())
+        return CustomStyleDependencyResolver.inspect(code).allowed()
                 ? parsed : new ImportResult(Status.UNAVAILABLE_ACTION, null);
     }
 
@@ -71,7 +97,10 @@ public final class CustomStyleExchange {
         try {
             byte[] bytes = Base64.getUrlDecoder().decode(body);
             if (bytes.length > MAX_JSON_BYTES) return reject(Status.INVALID_CONTENT);
-            JsonElement parsed = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8));
+            String decoded = StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                    .decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+            JsonElement parsed = JsonParser.parseString(decoded);
             if (!parsed.isJsonObject()) return reject(Status.INVALID_CONTENT);
             JsonObject json = parsed.getAsJsonObject();
             if (!stringField(json, "format") || !FORMAT.equals(json.get("format").getAsString())) {
@@ -81,6 +110,7 @@ public final class CustomStyleExchange {
                     || !json.get("version").getAsJsonPrimitive().isNumber()) {
                 return reject(Status.INVALID_CONTENT);
             }
+            if (!json.get("version").getAsString().matches("[0-9]{1,9}")) return reject(Status.INVALID_CONTENT);
             if (json.get("version").getAsInt() != SHARE_VERSION) {
                 return reject(Status.UNSUPPORTED_VERSION);
             }
@@ -108,8 +138,23 @@ public final class CustomStyleExchange {
                 if (id == null) return reject(Status.INVALID_CONTENT);
                 actions.add(id);
             }
-            return new ImportResult(Status.OK, new CustomStyleSpec(name, actions));
-        } catch (IllegalArgumentException | IllegalStateException | JsonParseException exception) {
+            List<Requirement> requirements = new ArrayList<>();
+            if (json.has("requirements")) {
+                if (!json.get("requirements").isJsonArray() || json.getAsJsonArray("requirements").size() > 12)
+                    return reject(Status.INVALID_CONTENT);
+                for (JsonElement element : json.getAsJsonArray("requirements")) {
+                    if (!element.isJsonObject()) return reject(Status.INVALID_CONTENT);
+                    JsonObject requirement = element.getAsJsonObject();
+                    if (!stringField(requirement, "modId")) return reject(Status.INVALID_CONTENT);
+                    String modId = requirement.get("modId").getAsString();
+                    if (!modId.matches("[a-z][a-z0-9_]{1,63}")) return reject(Status.INVALID_CONTENT);
+                    String label = stringField(requirement, "displayName") ? requirement.get("displayName").getAsString() : "";
+                    if (label.length() > 96 || label.chars().anyMatch(Character::isISOControl)) return reject(Status.INVALID_CONTENT);
+                    requirements.add(new Requirement(modId, label));
+                }
+            }
+            return new ImportResult(Status.OK, new CustomStyleSpec(name, actions), List.copyOf(requirements));
+        } catch (IllegalArgumentException | IllegalStateException | JsonParseException | java.nio.charset.CharacterCodingException exception) {
             return reject(Status.INVALID_CONTENT);
         }
     }
