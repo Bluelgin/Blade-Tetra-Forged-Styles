@@ -118,6 +118,7 @@ public final class CustomComboRouter {
                 || now - cursor.lastCommitTick > MAX_COMBO_GAP) {
             cursor = new Cursor(spec.hashCode(), slot, now);
             CURSORS.put(user, cursor);
+            Cursor restored = cursor;
             // Tetra/SlashBlade may replace the held ItemStack wrapper while
             // updating item capabilities. Recover from the *actual* committed
             // combo instead of treating a new Java object as a new attack.
@@ -128,8 +129,8 @@ public final class CustomComboRouter {
                 if (start >= 0 && elapsed >= 0 && elapsed <= MAX_COMBO_GAP) {
                     int previous = spec.actions().indexOf(bladeState.getComboSeq());
                     if (previous >= 0) {
-                        cursor.nextIndex = (previous + 1) % spec.actions().size();
-                        cursor.lastCommitTick = start;
+                        restored.nextIndex = (previous + 1) % spec.actions().size();
+                        restored.lastCommitTick = start;
                     }
                 }
             });
