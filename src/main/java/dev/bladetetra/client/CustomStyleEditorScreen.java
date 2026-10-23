@@ -28,7 +28,7 @@ public final class CustomStyleEditorScreen extends Screen {
     private Button remove;
     private Button complete;
     private int top, left, span;
-    private static final int ROW_HEIGHT = 19;
+    private static final int ROW_HEIGHT = 17;
 
     private CustomStyleEditorScreen(CustomStyleDraftSyncPacket packet) {
         super(Component.translatable("screen.blade_tetra.custom_style.title"));
