@@ -11,6 +11,7 @@ import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.util.InputCommand;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -58,13 +59,9 @@ public final class CustomComboRouter {
         ResourceLocation candidate = desired(user);
         if (candidate == null) return;
         if (candidate.equals(current)) {
-            // Resharped rejects same-ID transitions inside progressCombo, but
-            // updateComboSeq intentionally supports restarting the same state.
-            // Do not mutate during client-side virtual prediction.
-            if (!user.level().isClientSide()) {
-                event.setCanceled(true);
-                event.getSlashBladeState().updateComboSeq(user, candidate);
-            }
+            // NextComboEvent is not cancelable. Choose the normal root fallback
+            // to replay the same ComboState after its native minimum window.
+            event.setNextCombo(ComboStateRegistry.NONE.getId());
             return;
         }
         event.setNextCombo(candidate);
@@ -114,12 +111,28 @@ public final class CustomComboRouter {
     private static Cursor cursor(LivingEntity user, ItemStack blade, CustomStyleSpec spec) {
         Cursor cursor = CURSORS.get(user);
         long now = user.level().getGameTime();
-        if (cursor == null || cursor.blade != blade
-                || cursor.fingerprint != spec.hashCode()
+        int slot = user instanceof Player player ? player.getInventory().selected : -1;
+        if (cursor == null || cursor.fingerprint != spec.hashCode()
+                || cursor.slot != slot
                 || now < cursor.lastCommitTick
                 || now - cursor.lastCommitTick > MAX_COMBO_GAP) {
-            cursor = new Cursor(blade, spec.hashCode(), now);
+            cursor = new Cursor(spec.hashCode(), slot, now);
             CURSORS.put(user, cursor);
+            // Tetra/SlashBlade may replace the held ItemStack wrapper while
+            // updating item capabilities. Recover from the *actual* committed
+            // combo instead of treating a new Java object as a new attack.
+            var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE);
+            state.ifPresent(bladeState -> {
+                long start = bladeState.getLastActionTime();
+                long elapsed = now - start;
+                if (start >= 0 && elapsed >= 0 && elapsed <= MAX_COMBO_GAP) {
+                    int previous = spec.actions().indexOf(bladeState.getComboSeq());
+                    if (previous >= 0) {
+                        cursor.nextIndex = (previous + 1) % spec.actions().size();
+                        cursor.lastCommitTick = start;
+                    }
+                }
+            });
         }
         return cursor;
     }
@@ -141,14 +154,14 @@ public final class CustomComboRouter {
     }
 
     private static final class Cursor {
-        final ItemStack blade;
         final int fingerprint;
+        final int slot;
         long lastCommitTick;
         int nextIndex;
 
-        Cursor(ItemStack blade, int fingerprint, long now) {
-            this.blade = blade;
+        Cursor(int fingerprint, int slot, long now) {
             this.fingerprint = fingerprint;
+            this.slot = slot;
             this.lastCommitTick = now;
         }
     }
