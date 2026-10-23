@@ -22,7 +22,7 @@
   "message.blade_tetra.style_exchange.finished": "编纂完成，已获得 Tetra 剑谱卷轴",
   "message.blade_tetra.style_exchange.empty": "当前没有已记录的招式",
 "tooltip.blade_tetra.style_recorder.capture": "右键：采录最近施展的一招（需要先挥刀）",
-  "tooltip.blade_tetra.style_recorder.finish": "潜行右键：完成剑谱，直接获得可展开的 Tetra 卷轴",
+  "tooltip.blade_tetra.style_recorder.finish": "潜行右键：打开剑谱编纂界面（在界面中完成卷轴）",
   "tooltip.blade_tetra.custom_style.name": "剑谱：%s",
   "tooltip.blade_tetra.custom_style.count": "已录入 %s 招",
 "style.blade_tetra.custom": "自创流派",
