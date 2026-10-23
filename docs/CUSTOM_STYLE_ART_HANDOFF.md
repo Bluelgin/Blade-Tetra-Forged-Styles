@@ -7,7 +7,7 @@ Tetra or network classes from the art branch.
 ## Current client interaction
 
 - Keep the existing physical `blade_tetra:style_recorder` object: right-click
-  captures one last committed ordinary SlashBlade action, sneak-use finishes
+  captures one last committed ordinary SlashBlade action, sneak-use opens the editor (Finish in editor mints the scroll)
   and grants a reusable native Tetra scroll.
 - `/blade_tetra_style edit` opens the text-first `CustomStyleEditorScreen`.
 - The editor shows the current draft's name and ordered ComboState IDs. The
