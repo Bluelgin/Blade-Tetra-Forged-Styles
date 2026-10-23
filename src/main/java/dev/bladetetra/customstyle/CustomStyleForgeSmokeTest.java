@@ -72,7 +72,21 @@ public final class CustomStyleForgeSmokeTest {
                 ComboStateRegistry.COMBO_A1.getId(), ComboStateRegistry.COMBO_B1.getId()));
         var recorded = CustomStyleScrolls.create(spec);
         check(CustomStyleScrolls.read(recorded).equals(spec), "recorded native ScrollItem retains spec");
-        check(tile.addScroll(recorded), "unfold scroll into actual Tetra tile");
+        String shareCode = CustomStyleExchange.export(spec);
+        var importedResult = CustomStyleExchange.importValidated(shareCode);
+        check(importedResult.accepted() && spec.equals(importedResult.style()),
+                "community export and server-validated import preserve the same spec");
+        var privileged = new CustomStyleSpec("Forbidden SA",
+                List.of(ComboStateRegistry.JUDGEMENT_CUT.getId()));
+        check(CustomStyleExchange.importValidated(CustomStyleExchange.export(privileged)).status()
+                        == CustomStyleExchange.Status.UNAVAILABLE_ACTION,
+                "share codes must not turn a privileged Slash Art into a normal attack");
+        var importedScroll = CustomStyleScrolls.create(importedResult.style());
+        check(tile.addScroll(importedScroll),
+                "imported community code unfolds as the same genuine Tetra schematic");
+        check(level.getServer().getCommands().getDispatcher().getRoot()
+                        .getChild("blade_tetra_style") != null,
+                "in-game authoring and import/export commands registered");
         check(CustomStyleScrollLookup.unique(level, benchPos).equals(spec), "lookup real unfolded scroll");
 
         AbstractWorkbenchBlock bench = (AbstractWorkbenchBlock) workbench;
