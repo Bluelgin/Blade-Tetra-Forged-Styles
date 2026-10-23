@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="36" viewBox="0 0 160 36" shape-rendering="crispEdges">
+<title>recording hud</title>
+<rect x="0" y="0" width="160" height="36" fill="#211d2a"/>
+<rect x="1" y="1" width="158" height="34" fill="#735747"/>
+<rect x="2" y="2" width="156" height="32" fill="#302a2d"/>
+<rect x="3" y="2" width="2" height="32" fill="#a88651"/>
+<rect x="7" y="4" width="1" height="28" fill="#8a2f2f"/>
+<rect x="26" y="17" width="126" height="1" fill="#735747"/>
+</svg>

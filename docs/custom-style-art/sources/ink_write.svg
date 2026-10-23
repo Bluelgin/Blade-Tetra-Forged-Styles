@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="96" viewBox="0 0 16 96" shape-rendering="crispEdges">
+<title>ink write</title>
+<polygon points="2,10 5,8 4,10" fill="#211d2a"/>
+<polygon points="2,26 5,24 4,26" fill="#211d2a"/>
+<polygon points="5,24 8,22 7,24" fill="#211d2a"/>
+<polygon points="2,42 5,40 4,42" fill="#211d2a"/>
+<polygon points="5,40 8,38 7,40" fill="#211d2a"/>
+<polygon points="8,38 11,36 10,38" fill="#211d2a"/>
+<polygon points="2,58 5,56 4,58" fill="#211d2a"/>
+<polygon points="5,56 8,54 7,56" fill="#211d2a"/>
+<polygon points="8,54 11,52 10,54" fill="#211d2a"/>
+<polygon points="11,52 14,50 13,52" fill="#211d2a"/>
+<polygon points="2,74 5,72 4,74" fill="#735747"/>
+<polygon points="5,72 8,70 7,72" fill="#735747"/>
+<polygon points="8,70 11,68 10,70" fill="#735747"/>
+<polygon points="11,68 14,66 13,68" fill="#735747"/>
+<polygon points="2,90 5,88 4,90" fill="#735747"/>
+<polygon points="5,88 8,86 7,88" fill="#735747"/>
+<polygon points="8,86 11,84 10,86" fill="#735747"/>
+<polygon points="11,84 14,82 13,84" fill="#735747"/>
+</svg>

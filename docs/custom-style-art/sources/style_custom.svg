@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+<title>style custom</title>
+<rect x="2" y="2" width="12" height="12" fill="#211d2a"/>
+<rect x="3" y="3" width="10" height="10" fill="#a88651"/>
+<rect x="4" y="4" width="8" height="8" fill="#e6ddcf"/>
+<rect x="7" y="2" width="1" height="4" fill="#8a2f2f"/>
+<polygon points="10,5 11,7 8,10 6,10 6,8" fill="#211d2a"/>
+<polygon points="10,5 10,7 8,9 7,9" fill="#f7eddb"/>
+<rect x="5" y="10" width="5" height="1" fill="#a88651"/>
+<rect x="6" y="11" width="2" height="3" fill="#8a2f2f"/>
+</svg>
