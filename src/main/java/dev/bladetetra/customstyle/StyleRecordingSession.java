@@ -50,6 +50,25 @@ public final class StyleRecordingSession {
         return true;
     }
 
+    /** Edits only previously captured positions; never creates arbitrary moves. */
+    public static boolean move(ServerPlayer player, int index, int offset) {
+        Draft draft = DRAFTS.get(player.getUUID());
+        if (draft == null || (offset != -1 && offset != 1)
+                || index < 0 || index >= draft.actions.size()
+                || index + offset < 0 || index + offset >= draft.actions.size()) {
+            return false;
+        }
+        java.util.Collections.swap(draft.actions, index, index + offset);
+        return true;
+    }
+
+    public static boolean remove(ServerPlayer player, int index) {
+        Draft draft = DRAFTS.get(player.getUUID());
+        if (draft == null || index < 0 || index >= draft.actions.size()) return false;
+        draft.actions.remove(index);
+        return true;
+    }
+
     public static void clear(ServerPlayer player) {
         DRAFTS.remove(player.getUUID());
     }

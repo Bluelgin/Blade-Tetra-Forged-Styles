@@ -2,6 +2,7 @@ package dev.bladetetra.customstyle;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.network.CustomStyleDraftSyncPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.ClickEvent;
@@ -22,6 +23,11 @@ public final class CustomStyleCommands {
     public static void register(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("blade_tetra_style")
                 .requires(source -> source.hasPermission(0))
+                .then(Commands.literal("edit").executes(ctx -> {
+                    var player = ctx.getSource().getPlayerOrException();
+                    CustomStyleDraftSyncPacket.send(player, false);
+                    return 1;
+                }))
                 .then(Commands.literal("show").executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
                     var snap = StyleRecordingSession.snapshot(player);
