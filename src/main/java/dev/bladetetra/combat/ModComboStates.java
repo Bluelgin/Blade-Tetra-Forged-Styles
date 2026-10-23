@@ -1,6 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.customstyle.CustomComboRouter;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
 import mods.flammpfeil.slashblade.init.DefaultResources;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -113,6 +114,9 @@ public final class ModComboStates {
     public static final RegistryObject<ComboState> DANGAKU_ROOT =
             COMBOS.register("dangaku_root", () -> root(ModComboStates::selectDangakuOpener));
 
+    public static final RegistryObject<ComboState> CUSTOM_ROOT =
+            COMBOS.register("custom_style_root", () -> root(CustomComboRouter::opener));
+
     static { BranchingStyleCombos.register(); }
 
     public static ResourceLocation getRoot(BladeStyle style) {
@@ -120,6 +124,7 @@ public final class ModComboStates {
             case IAIDO -> IAIDO_ROOT.getId();
             case RENGEKI -> RENGEKI_ROOT.getId();
             case DANGAKU -> DANGAKU_ROOT.getId();
+            case CUSTOM -> CUSTOM_ROOT.getId();
             default -> ComboStateRegistry.STANDBY.getId();
         };
     }

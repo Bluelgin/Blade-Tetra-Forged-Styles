@@ -31,7 +31,7 @@ public final class CombatBalanceConfig {
 
     public static double multiplier(BladeStyle style, CombatBalanceRules.AttackKind kind) {
         double styleScale = switch (style) {
-            case STANDARD -> STANDARD.get();
+            case STANDARD, CUSTOM -> STANDARD.get(); // Custom styles use neutral standard scaling.
             case IAIDO -> IAIDO.get();
             case DANGAKU -> DANGAKU.get();
             case RENGEKI -> RENGEKI.get();
