@@ -3,6 +3,7 @@ package dev.bladetetra.item;
 import dev.bladetetra.customstyle.CustomStyleScrolls;
 import dev.bladetetra.customstyle.CustomStyleSpec;
 import dev.bladetetra.customstyle.StyleRecordingSession;
+import dev.bladetetra.network.CustomStyleDraftSyncPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -41,17 +42,9 @@ public final class StyleRecorderItem extends Item {
             return InteractionResultHolder.sidedSuccess(tool, level.isClientSide);
         }
         if (player.isShiftKeyDown()) {
-            CustomStyleSpec spec = StyleRecordingSession.finish(serverPlayer);
-            if (spec == null) {
-                serverPlayer.displayClientMessage(Component.translatable(
-                        "message.blade_tetra.custom_style.empty").withStyle(ChatFormatting.RED), true);
-            } else {
-                ItemStack scroll = CustomStyleScrolls.create(spec);
-                if (!player.getInventory().add(scroll)) player.drop(scroll, false);
-                serverPlayer.displayClientMessage(Component.translatable(
-                        "message.blade_tetra.custom_style.finished", spec.actions().size())
-                        .withStyle(ChatFormatting.GOLD), false);
-            }
+            // A player-facing route into the existing server-owned editor.
+            // The editor's Finish button creates the native Tetra scroll.
+            CustomStyleDraftSyncPacket.send(serverPlayer, false);
         } else {
             StyleRecordingSession.CaptureResult result = StyleRecordingSession.capture(serverPlayer);
             serverPlayer.displayClientMessage(Component.translatable(
