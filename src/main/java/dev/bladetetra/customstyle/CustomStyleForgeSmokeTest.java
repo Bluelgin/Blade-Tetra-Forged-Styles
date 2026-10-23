@@ -178,6 +178,24 @@ public final class CustomStyleForgeSmokeTest {
                 "native follow-up commits second recorded action: " + secondCommitted);
         check(state.getComboSeq().equals(ComboStateRegistry.COMBO_B1.getId()),
                 "server-side ComboState is second recorded action");
+
+        // Regression: two adjacent identical native states MUST each execute
+        // once. NextComboEvent is non-cancelable: the old workaround crashed.
+        var duplicates = new CustomStyleSpec("Echo", List.of(
+                ComboStateRegistry.COMBO_A1.getId(),
+                ComboStateRegistry.COMBO_A1.getId(),
+                ComboStateRegistry.COMBO_B1.getId()));
+        blade.getOrCreateTag().put(CustomStyleSpec.STACK_KEY, duplicates.encode());
+        state.setComboSeq(ComboStateRegistry.NONE.getId());
+        check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_A1.getId()),
+                "duplicate-style first click is A1");
+        state.setLastActionTime(player.level().getGameTime() - 4L);
+        check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_A1.getId()),
+                "duplicate-style second click re-enters A1 without canceling an uncancelable event");
+        state.setLastActionTime(player.level().getGameTime() - 4L);
+        check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_B1.getId()),
+                "duplicate-style third click advances to B1");
+
     }
 
     private static Block requiredBlock(String id) {
