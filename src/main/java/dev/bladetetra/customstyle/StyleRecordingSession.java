@@ -29,7 +29,29 @@ public final class StyleRecordingSession {
     public static CustomStyleSpec finish(ServerPlayer player) {
         Draft draft = DRAFTS.remove(player.getUUID());
         if (draft == null || draft.actions.isEmpty()) return null;
-        return new CustomStyleSpec("Unnamed Style", draft.actions);
+        return new CustomStyleSpec(draft.name, draft.actions);
+    }
+
+    /** Immutable state for future screens and synchronized read-only previews. */
+    public record Snapshot(String name, List<ResourceLocation> actions, int maximum) {}
+
+    public static Snapshot snapshot(ServerPlayer player) {
+        Draft draft = DRAFTS.get(player.getUUID());
+        return draft == null
+                ? new Snapshot("Unnamed Style", List.of(), CustomStyleSpec.MAX_ACTIONS)
+                : new Snapshot(draft.name, List.copyOf(draft.actions), CustomStyleSpec.MAX_ACTIONS);
+    }
+
+    public static boolean rename(ServerPlayer player, String name) {
+        if (name == null || name.isBlank()
+                || name.length() > CustomStyleSpec.MAX_NAME_LENGTH
+                || name.chars().anyMatch(Character::isISOControl)) return false;
+        DRAFTS.computeIfAbsent(player.getUUID(), ignored -> new Draft()).name = name.strip();
+        return true;
+    }
+
+    public static void clear(ServerPlayer player) {
+        DRAFTS.remove(player.getUUID());
     }
 
     public static int count(ServerPlayer player) {
@@ -51,6 +73,7 @@ public final class StyleRecordingSession {
     private static final class Draft {
         private final List<ResourceLocation> actions = new ArrayList<>();
         private long sequence = -1;
+        private String name = "Unnamed Style";
     }
 
     private StyleRecordingSession() {}
