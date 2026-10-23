@@ -61,11 +61,19 @@ def main():
             outputs[ROOT/f'src/main/resources/assets/blade_tetra/models/item/custom_style/{a["name"]}.json']=(json.dumps(model,indent=2)+'\n').encode()
     for p,b in outputs.items():
         if args.check:
-            assert p.exists() and p.read_bytes()==b, f'Stale/missing output: {p.relative_to(ROOT)}'
+            assert p.exists(), f'Missing output: {p.relative_to(ROOT)}'
+            if p.suffix == '.png':
+                # zlib streams can differ between Windows/Linux with identical pixels.
+                with Image.open(p) as actual, Image.open(io.BytesIO(b)) as expected:
+                    assert actual.mode == expected.mode and actual.size == expected.size and actual.tobytes() == expected.tobytes(), f'Stale pixels: {p}'
+            else:
+                assert p.read_bytes().replace(b'\r\n',b'\n') == b, f'Stale output: {p}'
         else:p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b)
-    checksums={str(p.relative_to(ROOT)):hashlib.sha256(b).hexdigest() for p,b in outputs.items()}
+    checksums={p.relative_to(ROOT).as_posix():hashlib.sha256(
+        (p.read_bytes().replace(b'\r\n',b'\n') if p.suffix == '.json' else p.read_bytes()) if args.check else b
+        ).hexdigest() for p,b in outputs.items()}
     checksum=DOC/'export/sha256.json';expected=(json.dumps(checksums,indent=2)+'\n').encode()
-    if args.check:assert checksum.read_bytes()==expected,'Stale checksum manifest'
+    if args.check:assert checksum.read_bytes().replace(b'\r\n',b'\n')==expected,'Stale checksum manifest'
     else:checksum.write_bytes(expected)
     print(f'{"Verified" if args.check else "Exported"} {len(m["assets"])} SVGs, {len(outputs)} outputs, deterministic SHA-256 match')
 
