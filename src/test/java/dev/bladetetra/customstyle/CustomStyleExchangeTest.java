@@ -45,6 +45,35 @@ class CustomStyleExchangeTest {
                 encoded("{\"format\":\"blade_tetra:custom_style\",\"version\":1,\"name\":\"Valid\",\"actions\":[true]}")).status());
     }
 
+    @Test void optionalRequirementsRemainDataAndOldCodesRemainUnchanged() {
+        String payload = "{\"format\":\"blade_tetra:custom_style\",\"version\":1,\"name\":\"Addon\","
+                + "\"actions\":[\"alias_namespace:ordinary_cut\"],\"requirements\":[{\"modId\":\"actual_mod\",\"displayName\":\"Example\"}]}";
+        var parsed = CustomStyleExchange.inspect(encoded(payload));
+        assertTrue(parsed.accepted());
+        assertEquals("actual_mod", parsed.requirements().get(0).modId());
+        assertEquals("alias_namespace", parsed.style().actions().get(0).getNamespace());
+        assertEquals(List.of(), CustomStyleExchange.inspect(CustomStyleExchange.export(STYLE)).requirements());
+        assertTrue(CustomStyleExchange.inspect(encoded(payload.replace("Example", "Untrusted label"))).accepted());
+    }
+
+    @Test void fractionalVersionsAndMalformedRequirementTypesAreRejected() {
+        String valid = new String(Base64.getUrlDecoder().decode(CustomStyleExchange.export(STYLE)
+                .substring(CustomStyleExchange.PREFIX.length())), StandardCharsets.UTF_8);
+        assertEquals(CustomStyleExchange.Status.INVALID_CONTENT,
+                CustomStyleExchange.inspect(encoded(valid.replace("\"version\":1", "\"version\":1.5"))).status());
+        assertEquals(CustomStyleExchange.Status.INVALID_CONTENT,
+                CustomStyleExchange.inspect(encoded(valid.substring(0, valid.length()-1) + ",\"requirements\":[true]}")).status());
+        assertEquals(CustomStyleExchange.Status.INVALID_CONTENT,
+                CustomStyleExchange.inspect(encoded(valid.substring(0, valid.length()-1) + ",\"requirements\":[{\"modId\":\"https://bad\"}]}")).status());
+    }
+
+    @Test void damagedUtf8AndOversizedDecodedJsonAreRejected() {
+        assertEquals(CustomStyleExchange.Status.INVALID_CONTENT, CustomStyleExchange.inspect(CustomStyleExchange.PREFIX
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[]{(byte)0xc3, 0x28})).status());
+        assertEquals(CustomStyleExchange.Status.INVALID_CONTENT,
+                CustomStyleExchange.inspect(encoded(" ".repeat(2049))).status());
+    }
+
     private static String encoded(String payload) {
         return CustomStyleExchange.PREFIX + Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(payload.getBytes(StandardCharsets.UTF_8));

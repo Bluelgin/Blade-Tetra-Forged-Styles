@@ -40,6 +40,11 @@ import java.util.Map;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class CustomStyleForgeSmokeTest {
+    private static net.minecraft.world.entity.player.Player timingActor;
+    private static int timelineSlashes;
+    @SubscribeEvent public static void slash(mods.flammpfeil.slashblade.event.SlashBladeEvent.DoSlashEvent event) {
+        if (timingActor != null && event.getUser() == timingActor) timelineSlashes++;
+    }
     @SubscribeEvent
     public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("blade_tetra.customStyleSmoke")) return;
@@ -49,6 +54,7 @@ public final class CustomStyleForgeSmokeTest {
         BlockState oldScroll = level.getBlockState(benchPos.above());
         try {
             verify(level, benchPos);
+            verifyExchange(level);
             LogUtils.getLogger().info("CUSTOM_STYLE_SMOKE_PASS");
         } catch (Throwable failure) {
             LogUtils.getLogger().error("CUSTOM_STYLE_SMOKE_FAIL", failure);
@@ -136,7 +142,12 @@ public final class CustomStyleForgeSmokeTest {
             check(result.getCapability(ModularSlashBladeItem.BLADESTATE)
                     .map(state -> ModComboStates.CUSTOM_ROOT.getId().equals(state.getComboRoot()))
                     .orElse(false), "native SlashBlade root points to player custom style");
-            if (i == 1) verifyNativeCombo(player, result);
+            if (i == 1) {
+                verifyNativeCombo(player, result);
+                verifyInputTicks(level, player, result);
+            }
+            verifyRoutes(level, player, result, CustomBladeLength.values()[i]);
+            verifyTiming(level, player, result, CustomBladeLength.values()[i]);
         }
 
         check(StyleResolver.resolve(baseBlade) == BladeStyle.IAIDO, "original Iaido remains unchanged");
@@ -169,7 +180,7 @@ public final class CustomStyleForgeSmokeTest {
                 "native first combo is the first recorded action: " + committed);
         // The native A1 action has a five-frame commitment window.
         // Querying a virtual prediction must NOT advance the authored cursor.
-        state.setLastActionTime(player.level().getGameTime() - 4L);
+        tickBlade((ServerLevel) player.level(), player, blade, 4);
         var secondPreview = state.progressCombo(player, true);
         check(secondPreview.equals(ComboStateRegistry.COMBO_B1.getId()),
                 "virtual follow-up predicts recorded second move: " + secondPreview);
@@ -189,13 +200,188 @@ public final class CustomStyleForgeSmokeTest {
         state.setComboSeq(ComboStateRegistry.NONE.getId());
         check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_A1.getId()),
                 "duplicate-style first click is A1");
-        state.setLastActionTime(player.level().getGameTime() - 4L);
+        tickBlade((ServerLevel) player.level(), player, blade, 4);
         check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_A1.getId()),
                 "duplicate-style second click re-enters A1 without canceling an uncancelable event");
-        state.setLastActionTime(player.level().getGameTime() - 4L);
+        tickBlade((ServerLevel) player.level(), player, blade, 4);
         check(state.progressCombo(player).equals(ComboStateRegistry.COMBO_B1.getId()),
                 "duplicate-style third click advances to B1");
 
+    }
+
+    private static void verifyInputTicks(ServerLevel level, net.minecraft.world.entity.player.Player player, ItemStack blade) {
+        var spec = new CustomStyleSpec("Input", List.of(ComboStateRegistry.COMBO_A1.getId(),
+                ComboStateRegistry.COMBO_B1.getId(), ComboStateRegistry.COMBO_A2.getId()));
+        blade.getOrCreateTag().put(CustomStyleSpec.STACK_KEY, spec.encode());
+        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
+        state.setComboSeq(ComboStateRegistry.NONE.getId());
+        player.getCapability(CapabilityInputState.INPUT_STATE).ifPresent(input -> input.getCommands().clear());
+        for (int round = 0; round < 6; round++) {
+            blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            player.stopUsingItem();
+            LogUtils.getLogger().info("CUSTOM_INPUT beat={} actual={} expected={}", round, state.getComboSeq(), spec.actions().get(round % 3));
+            check(state.getComboSeq().equals(spec.actions().get(round % 3)), "Item.use + inventory ticks beat " + round);
+            tickBlade(level, player, blade, 12);
+        }
+    }
+
+    private static void tickBlade(ServerLevel level, net.minecraft.world.entity.player.Player player, ItemStack blade, int ticks) {
+        for (int tick = 0; tick < ticks; tick++) {
+            blade.getItem().inventoryTick(blade, level, player, player.getInventory().selected, true);
+            level.getServer().getWorldData().overworldData().setGameTime(level.getGameTime() + 1);
+        }
+    }
+
+    private static void verifyRoutes(ServerLevel level, net.minecraft.world.entity.player.Player player, ItemStack blade, CustomBladeLength length) {
+        player.setItemSlot(EquipmentSlot.MAINHAND, blade); player.setOnGround(true);
+        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
+        var input = player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
+        input.getCommands().clear();
+        List<List<ResourceLocation>> routes = List.of(
+                ids("combo_a1", "combo_b1", "combo_a2", "combo_b2"),
+                ids("combo_a1", "combo_a1", "combo_b1"),
+                ids("combo_a1", "combo_b1", "combo_a2", "combo_b2", "combo_a3", "combo_c"),
+                ids("combo_a1"), ids("upperslash", "upperslash", "rapid_slash"),
+                ids("rapid_slash", "combo_a1"));
+        for (var route : routes) {
+            blade.getOrCreateTag().put(CustomStyleSpec.STACK_KEY, new CustomStyleSpec("Routes", route).encode());
+            CustomComboRouter.interrupt(player); state.setComboSeq(ComboStateRegistry.NONE.getId());
+            for (int beat = 0; beat < route.size() * 2; beat++) {
+                var action = route.get(beat % route.size());
+                blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+                check(state.getComboSeq().equals(action), "input route " + length + " beat=" + beat + " actual=" + state.getComboSeq() + " expected=" + action);
+                long entered = state.getLastActionTime();
+                // An early second click must not restart, skip or duplicate this hit.
+                blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+                check(state.getLastActionTime() == entered && state.getComboSeq().equals(action), "early click rejected " + length);
+                tickBlade(level, player, blade, 28);
+            }
+            tickBlade(level, player, blade, 41);
+            blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+            check(state.getComboSeq().equals(route.get(0)), "timeout restarts at first action " + length);
+        }
+        // Native target search, with actual held-item attribute modifiers applied.
+        var reach = player.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
+        var modifiers = blade.getAttributeModifiers(EquipmentSlot.MAINHAND);
+        var owned = modifiers.get(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
+        for (var modifier : owned) { reach.removeModifier(modifier); reach.addTransientModifier(modifier); }
+        double resolved = mods.flammpfeil.slashblade.util.TargetSelector.getResolvedReach(player);
+        check(Math.abs(resolved - (reach.getBaseValue() + length.reachBonus() - 1)) < 1e-5, "native reach resolves actual attribute " + length + " " + resolved);
+        var target = new net.minecraft.world.entity.monster.Zombie(level);
+        target.setNoAi(true); target.setNoGravity(true); target.setPos(player.getX(), player.getY(), player.getZ() + resolved - .2);
+        level.addFreshEntity(target); player.setYRot(0); player.setXRot(0);
+        check(mods.flammpfeil.slashblade.util.TargetSelector.getTargettableEntitiesWithinAABB(level, player).contains(target), "native server target in reach " + length);
+        float beforeHit = target.getHealth();
+        mods.flammpfeil.slashblade.util.AttackManager.areaAttack(player, ignored -> {}, 1F, true, true, true);
+        check(target.getHealth() < beforeHit, "native managed melee damages the target inside reach " + length);
+        target.setPos(player.getX(), player.getY(), player.getZ() + resolved + .2);
+        check(!mods.flammpfeil.slashblade.util.TargetSelector.getTargettableEntitiesWithinAABB(level, player).contains(target), "native server target outside reach " + length);
+        float afterHit = target.getHealth();
+        mods.flammpfeil.slashblade.util.AttackManager.areaAttack(player, ignored -> {}, 1F, true, true, true);
+        check(target.getHealth() == afterHit, "native managed melee cannot damage outside reach " + length);
+        target.discard();
+        dev.bladetetra.combat.CombatBalanceRuntime.selectedSlashArt(player, state.getComboSeq());
+        check(Math.abs(mods.flammpfeil.slashblade.util.TargetSelector.getResolvedReach(player)
+                - (reach.getBaseValue() + CustomBladeLength.STANDARD.reachBonus() - 1)) < 1e-5, "SA has standard reach independent of length");
+        dev.bladetetra.combat.CombatBalanceRuntime.ordinaryCombo(player);
+        owned.forEach(reach::removeModifier);
+        // Air and SA interruption return to the first authored move on landing.
+        tickBlade(level, player, blade, 45);
+        player.setOnGround(false);
+        blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        check(state.getComboSeq().equals(ComboStateRegistry.AERIAL_RAVE_A1.getId()), "native air path preserved: " + state.getComboSeq());
+        player.setOnGround(true); tickBlade(level, player, blade, 45);
+        blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        check(state.getComboSeq().equals(ids("rapid_slash").get(0)), "landing restarts last route");
+        // Real stack copies keep the stable Tetra identifier; actual holstering resets.
+        blade.getOrCreateTag().put(CustomStyleSpec.STACK_KEY, new CustomStyleSpec("Switch", ids("combo_a1", "combo_b1", "combo_a2")).encode());
+        state.setComboSeq(ComboStateRegistry.NONE.getId()); CustomComboRouter.interrupt(player);
+        blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        tickBlade(level, player, blade, 5);
+        var copied = blade.copy(); player.setItemSlot(EquipmentSlot.MAINHAND, copied);
+        copied.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        check(copied.getCapability(ModularSlashBladeItem.BLADESTATE).map(it -> it.getComboSeq().equals(ids("combo_b1").get(0))).orElse(false), "Tetra stack copy does not reset cursor");
+        player.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        CustomComboRouter.held(new net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent(player));
+        player.setItemSlot(EquipmentSlot.MAINHAND, blade); tickBlade(level, player, blade, 5);
+        blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        check(state.getComboSeq().equals(ids("combo_a1").get(0)), "holstering and drawing starts first action");
+        // Actual native item release enters an SA; its completion resets the authored chain.
+        blade.enchant(net.minecraft.world.item.enchantment.Enchantments.UNBREAKING, 1);
+        state.setBroken(false); state.setSealed(false);
+        tickBlade(level, player, blade, 5);
+        blade.getItem().releaseUsing(blade, level, player, blade.getUseDuration() - state.getFullChargeTicks(player) - 1);
+        check(!ComboCompatibilityResolver.playable(state.getComboSeq()) && !state.getComboSeq().equals(ComboStateRegistry.NONE.getId()), "native charged item release enters privileged SA");
+        tickBlade(level, player, blade, 200);
+        blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+        check(state.getComboSeq().equals(ids("combo_a1").get(0)), "first ordinary action after SA recovery");
+        LogUtils.getLogger().info("CUSTOM_ROUTES_PASS length={} nativeReach={}", length, resolved);
+    }
+    private static List<ResourceLocation> ids(String... paths) {
+        return Arrays.stream(paths).map(path -> new ResourceLocation("slashblade", path)).toList();
+    }
+
+    private static void verifyTiming(ServerLevel level, net.minecraft.world.entity.player.Player player, ItemStack blade, CustomBladeLength length) {
+        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
+        for (var sample : Map.of("combo_a1", 1, "combo_c", 2, "combo_a3", 2,
+                "combo_a4_ex", 2, "upperslash", 1, "rapid_slash", 5).entrySet()) {
+            var action = ids(sample.getKey()).get(0);
+            int minimum = CustomStyleTimingPolicy.timing(action, length).effectiveTicks();
+            blade.getOrCreateTag().put(CustomStyleSpec.STACK_KEY, new CustomStyleSpec("Timing", ids(sample.getKey(), "combo_a2")).encode());
+            state.setComboSeq(ComboStateRegistry.NONE.getId()); CustomComboRouter.interrupt(player);
+            timingActor = player; timelineSlashes = 0;
+            blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+            long entered = state.getLastActionTime();
+            tickBlade(level, player, blade, minimum - 1);
+            blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+            check(state.getLastActionTime() == entered || !state.getComboSeq().equals(ids("combo_a2").get(0)), "no premature follow-up " + sample.getKey());
+            tickBlade(level, player, blade, 1);
+            check(timelineSlashes == sample.getValue(), "required native callbacks exactly once " + sample.getKey() + " " + length + " count=" + timelineSlashes);
+            blade.getItem().use(level, player, net.minecraft.world.InteractionHand.MAIN_HAND); player.stopUsingItem();
+            check(state.getComboSeq().equals(ids("combo_a2").get(0)), "follow-up at safe boundary " + length + " " + sample.getKey());
+            check(timelineSlashes == sample.getValue() + 1, "one native follow-up slash, no duplicate damage");
+            timingActor = null;
+            LogUtils.getLogger().info("CUSTOM_TIMING_PASS length={} action={} tick={} requiredSlashes={}", length, sample.getKey(), minimum, sample.getValue());
+        }
+    }
+
+    private static void verifyExchange(ServerLevel level) {
+        var player = FakePlayerFactory.getMinecraft(level);
+        var spec = new CustomStyleSpec("Import draft", ids("combo_a1", "combo_a1", "combo_b1"));
+        String code = CustomStyleExchange.export(spec);
+        String enriched = CustomStyleExchange.exportWithDependencies(spec);
+        check(CustomStyleExchange.importValidated(enriched).accepted()
+                && CustomStyleExchange.inspect(enriched).requirements().get(0).modId().equals("slashblade"),
+                "optional provider hints round trip without becoming permissions");
+        check(StyleRecordingSession.importCode(player, code), "valid share code loads draft");
+        check(StyleRecordingSession.exportable(player).equals(spec), "draft export preserves repeats and order");
+        var before = StyleRecordingSession.snapshot(player);
+        check(!StyleRecordingSession.importCode(player, "BTSTYLE1:corrupt"), "corrupt import refused");
+        check(before.equals(StyleRecordingSession.snapshot(player)), "failed import leaves draft unchanged");
+        var missing = new ResourceLocation("different_namespace", "missing_cut");
+        CustomStyleDependencyResolver.registerProvider(missing,
+                new CustomStyleDependencyResolver.Provider("not_installed_test_mod", "Trusted missing provider", ""));
+        check(CustomStyleDependencyResolver.diagnose(missing).status() == CustomStyleDependencyResolver.Status.MISSING_MOD,
+                "trusted provider mod ID differs from action namespace");
+        check(CustomStyleDependencyResolver.diagnose(new ResourceLocation("slashblade", "not_registered")).status()
+                == CustomStyleDependencyResolver.Status.UNREGISTERED_ACTION, "installed mod with absent action is not missing mod");
+        var incompatible = new ResourceLocation("different_namespace", "incompatible_cut");
+        CustomStyleDependencyResolver.registerProvider(incompatible,
+                new CustomStyleDependencyResolver.Provider("slashblade", "SlashBlade", "[999999,)"));
+        check(CustomStyleDependencyResolver.diagnose(incompatible).status() == CustomStyleDependencyResolver.Status.INCOMPATIBLE_VERSION,
+                "only trusted adapter version constraints are authoritative");
+        check(CustomStyleDependencyResolver.diagnose(ComboStateRegistry.JUDGEMENT_CUT.getId()).status()
+                == CustomStyleDependencyResolver.Status.UNSAFE_ACTION, "registered SA remains forbidden");
+        var unknown = CustomStyleDependencyResolver.diagnose(new ResourceLocation("no_mapping", "move"));
+        check(unknown.provider().isEmpty() && unknown.modId().isEmpty() && unknown.status()
+                == CustomStyleDependencyResolver.Status.UNREGISTERED_ACTION, "unknown namespace does not invent a provider");
+        var missingCode = CustomStyleExchange.export(new CustomStyleSpec("Missing", List.of(missing)));
+        var preview = CustomStyleDependencyResolver.inspect(missingCode);
+        check(preview.style() != null && !preview.allowed(), "missing addon still permits content preview");
+        check(!StyleRecordingSession.importCode(player, missingCode)
+                && before.equals(StyleRecordingSession.snapshot(player)), "missing addon cannot replace a valid draft");
+        check(StyleRecordingSession.finish(player).equals(spec), "imported draft finalizes as original style");
+        LogUtils.getLogger().info("CUSTOM_EXCHANGE_SMOKE_PASS");
     }
 
     private static Block requiredBlock(String id) {

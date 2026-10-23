@@ -20,6 +20,22 @@ public enum CustomBladeLength {
     public double reachBonus() { return reachBonus; }
     public String modelName() { return modelName; }
 
+    /** Native player melee reads ENTITY_REACH - 1. Projectiles use their own overload. */
+    public static double resolvedMeleeReach(net.minecraft.world.entity.LivingEntity user, double nativeReach) {
+        ItemStack blade = user.getMainHandItem();
+        if (!(blade.getItem() instanceof ModularSlashBladeItem)
+                || dev.bladetetra.combat.StyleResolver.resolve(blade) != dev.bladetetra.combat.BladeStyle.CUSTOM)
+            return nativeReach;
+        var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElse(null);
+        if (state == null || state.isBroken()) return nativeReach;
+        String namespace = state.getComboSeq().getNamespace();
+        boolean special = dev.bladetetra.combat.CombatBalanceRuntime.kind(user, user)
+                == dev.bladetetra.combat.CombatBalanceRules.AttackKind.SLASH_ART;
+        // Unadapted third-party attacks keep the standard physical reach; no guess about their callbacks.
+        return special || (!namespace.equals("slashblade") && !namespace.equals("blade_tetra"))
+                ? nativeReach - from(blade).reachBonus() + STANDARD.reachBonus() : nativeReach;
+    }
+
     public static boolean isCustomModule(String module) {
         return ModularSlashBladeItem.CUSTOM_SHORT_BLADE_MODULE.equals(module)
                 || ModularSlashBladeItem.CUSTOM_STANDARD_BLADE_MODULE.equals(module)

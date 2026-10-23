@@ -22,6 +22,7 @@ import java.util.List;
 public final class CustomStyleEditorScreen extends Screen {
     private String draftName;
     private List<ResourceLocation> actions;
+    private dev.bladetetra.customstyle.StyleRecordingSession.Snapshot serverDraft;
     private int selected = -1, firstRow, visibleRows, left, top, listBottom, panelHeight;
     private EditBox nameBox;
     private Button moveUp, moveDown, remove, undo, clear, complete, rename;
@@ -35,6 +36,7 @@ public final class CustomStyleEditorScreen extends Screen {
         super(Component.translatable("screen.blade_tetra.custom_style.title"));
         draftName = packet.name();
         actions = packet.actions();
+        serverDraft = new dev.bladetetra.customstyle.StyleRecordingSession.Snapshot(draftName, actions, CustomStyleSpec.MAX_ACTIONS);
     }
 
     public static void accept(CustomStyleDraftSyncPacket packet) {
@@ -52,6 +54,7 @@ public final class CustomStyleEditorScreen extends Screen {
         var previous = actions;
         draftName = packet.name();
         actions = packet.actions();
+        serverDraft = new dev.bladetetra.customstyle.StyleRecordingSession.Snapshot(draftName, actions, CustomStyleSpec.MAX_ACTIONS);
         feedback = null;
         // Follow an acknowledged move only when the returned sequence matches it.
         if (pending == CustomStyleDraftActionPacket.Action.MOVE_UP
@@ -77,9 +80,9 @@ public final class CustomStyleEditorScreen extends Screen {
     }
 
     @Override protected void init() {
-        // Four rows at 320x240; all six at taller scales. Footer never shares a row.
-        visibleRows = Math.max(1, Math.min(CustomStyleSpec.MAX_ACTIONS, (height - 8 - 141) / ROW_HEIGHT));
-        panelHeight = 141 + visibleRows * ROW_HEIGHT;
+        // Three rows at 320x240; all six at taller scales. Footer never shares a row.
+        visibleRows = Math.max(1, Math.min(CustomStyleSpec.MAX_ACTIONS, (height - 8 - 165) / ROW_HEIGHT));
+        panelHeight = 165 + visibleRows * ROW_HEIGHT;
         left = (width - PANEL_WIDTH) / 2;
         top = Math.max(0, (height - panelHeight) / 2);
         listBottom = top + LIST_TOP + visibleRows * ROW_HEIGHT;
@@ -118,7 +121,10 @@ public final class CustomStyleEditorScreen extends Screen {
                 b -> send(CustomStyleDraftActionPacket.Action.MOVE_DOWN, selected, ""));
         remove = button(108, toolY, 128, "remove", "clear",
                 b -> send(CustomStyleDraftActionPacket.Action.REMOVE, selected, ""));
-        int footerY = listBottom - top + 55;
+        int shareY = listBottom - top + 52;
+        button(12, shareY, 108, "import", null, b -> openExchange(false));
+        button(128, shareY, 108, "export", null, b -> openExchange(true));
+        int footerY = listBottom - top + 79;
         undo = button(10, footerY, 52, "undo", "undo",
                 b -> send(CustomStyleDraftActionPacket.Action.UNDO, 0, ""));
         clear = button(66, footerY, 52, "clear", "clear", b -> {
@@ -138,6 +144,11 @@ public final class CustomStyleEditorScreen extends Screen {
     private Button button(int x, int y, int width, String key, String icon, Button.OnPress onPress) {
         return addRenderableWidget(new CustomStyleArt.ArtButton(left + x, top + y, width,
                 Component.translatable("screen.blade_tetra.custom_style." + key), icon, onPress));
+    }
+
+    private void openExchange(boolean exporting) {
+        if (pending != null) return;
+        minecraft.setScreen(new CustomStyleExchangeScreen(this, exporting, serverDraft));
     }
 
     private Component actionName(ResourceLocation id) {

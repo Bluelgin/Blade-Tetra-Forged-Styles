@@ -21,6 +21,11 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('customStyleInputReview')) {
+                workingDirectory project.file('build/custom-style-input-review')
+                property 'blade_tetra.customStyleInputReview', 'true'
+                property 'blade_tetra.customStyleDebug', 'true'
+            }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'

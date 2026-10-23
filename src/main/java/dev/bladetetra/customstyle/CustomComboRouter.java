@@ -5,7 +5,7 @@ import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
-import mods.flammpfeil.slashblade.event.BladeMotionEvent;
+import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.util.InputCommand;
@@ -21,17 +21,26 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Supplier;
 
 /**
  * Selects the next recorded normal attack without a second input queue.
- * The cursor moves ONLY on a committed BladeMotionEvent, not when the engine
- * asks for a root or previews a NextComboEvent (which can happen more than once).
+ * Motion events precede state writes and are replayed by client animation packets.
+ * Advance only after a real native progressCombo call has committed its result.
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class CustomComboRouter {
-    private static final Map<LivingEntity, Cursor> CURSORS =
+    private static final Map<net.minecraft.world.level.Level, Map<java.util.UUID, Cursor>> CURSORS =
             Collections.synchronizedMap(new WeakHashMap<>());
     private static final int MAX_COMBO_GAP = 40;
+
+    // Entity.equals compares numeric entity IDs: the local player and its server
+    // counterpart compare equal in an integrated server. Never share their cursor.
+    private static Map<java.util.UUID, Cursor> cursors(LivingEntity user) {
+        synchronized (CURSORS) {
+            return CURSORS.computeIfAbsent(user.level(), ignored -> new java.util.concurrent.ConcurrentHashMap<>());
+        }
+    }
 
     /** Native SlashBlade resolves current-vs-root priority on each actual click. */
     public static ResourceLocation opener(LivingEntity user) {
@@ -48,13 +57,26 @@ public final class CustomComboRouter {
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) return;
         if (nativeSpecial(user) != null) {
-            CURSORS.remove(user);
+            cursors(user).remove(user.getUUID());
             return;
         }
 
         ResourceLocation current = event.getSlashBladeState().resolvCurrentComboState(user);
-        // Preserve the original ComboState's minimum input window.
-        if (current.equals(event.getNextCombo())) return;
+        CustomStyleSpec spec = spec(blade);
+        if (!ComboCompatibilityResolver.playable(spec)) return;
+        Cursor cursor = cursor(user, blade, spec);
+        if (cursor.lastAction == null && !current.equals(ComboStateRegistry.NONE.getId())
+                && current.equals(event.getNextCombo())) return;
+        if (cursor.lastAction != null) {
+            long elapsed = user.level().getGameTime() - cursor.lastCommitTick;
+            var timing = CustomStyleTimingPolicy.timing(cursor.lastAction, CustomBladeLength.from(blade));
+            boolean locked = timing == null ? current.equals(event.getNextCombo())
+                    : elapsed < timing.effectiveTicks();
+            if (locked && !current.equals(ComboStateRegistry.NONE.getId())) {
+                event.setNextCombo(current);
+                return;
+            }
+        }
 
         ResourceLocation candidate = desired(user);
         if (candidate == null) return;
@@ -67,30 +89,38 @@ public final class CustomComboRouter {
         event.setNextCombo(candidate);
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void committed(BladeMotionEvent event) {
-        if (event.isCanceled()) return;
-        LivingEntity user = event.getEntity();
+    public static ResourceLocation progress(ISlashBladeState state, LivingEntity user, boolean virtual,
+            Supplier<ResourceLocation> nativeProgress) {
         ItemStack blade = user.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)
                 || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) {
-            CURSORS.remove(user);
-            return;
+            cursors(user).remove(user.getUUID());
+            return nativeProgress.get();
         }
         if (nativeSpecial(user) != null) {
-            CURSORS.remove(user);
-            return;
+            cursors(user).remove(user.getUUID());
+            return nativeProgress.get();
         }
         CustomStyleSpec spec = spec(blade);
         if (!ComboCompatibilityResolver.playable(spec)) {
-            CURSORS.remove(user);
-            return;
+            cursors(user).remove(user.getUUID());
+            return nativeProgress.get();
         }
         Cursor cursor = cursor(user, blade, spec);
-        if (cursor != null && event.getCombo().equals(spec.actions().get(cursor.nextIndex))) {
+        ResourceLocation expected = spec.actions().get(cursor.nextIndex);
+        ResourceLocation result = nativeProgress.get();
+        if (!virtual && result != null && result.equals(expected)
+                && state.getComboSeq().equals(result)
+                && state.getLastActionTime() == user.level().getGameTime()) {
             cursor.nextIndex = (cursor.nextIndex + 1) % spec.actions().size();
             cursor.lastCommitTick = user.level().getGameTime();
+            cursor.lastAction = result;
         }
+        if (Boolean.getBoolean("blade_tetra.customStyleDebug")) com.mojang.logging.LogUtils.getLogger().info(
+                "CUSTOM_CURSOR side={} tick={} blade={} index={} expected={} result={} virtual={}",
+                user.level().isClientSide() ? "client" : "server", user.level().getGameTime(),
+                cursor.identifier, cursor.nextIndex, expected, result, virtual);
+        return result;
     }
 
     private static ResourceLocation desired(LivingEntity user) {
@@ -109,31 +139,16 @@ public final class CustomComboRouter {
     }
 
     private static Cursor cursor(LivingEntity user, ItemStack blade, CustomStyleSpec spec) {
-        Cursor cursor = CURSORS.get(user);
+        Cursor cursor = cursors(user).get(user.getUUID());
         long now = user.level().getGameTime();
         int slot = user instanceof Player player ? player.getInventory().selected : -1;
-        if (cursor == null || cursor.fingerprint != spec.hashCode()
+        String identifier = blade.getOrCreateTag().getString("id");
+        if (cursor == null || !cursor.spec.equals(spec) || !cursor.identifier.equals(identifier)
                 || cursor.slot != slot
                 || now < cursor.lastCommitTick
                 || now - cursor.lastCommitTick > MAX_COMBO_GAP) {
-            cursor = new Cursor(spec.hashCode(), slot, now);
-            CURSORS.put(user, cursor);
-            Cursor restored = cursor;
-            // Tetra/SlashBlade may replace the held ItemStack wrapper while
-            // updating item capabilities. Recover from the *actual* committed
-            // combo instead of treating a new Java object as a new attack.
-            var state = blade.getCapability(ModularSlashBladeItem.BLADESTATE);
-            state.ifPresent(bladeState -> {
-                long start = bladeState.getLastActionTime();
-                long elapsed = now - start;
-                if (start >= 0 && elapsed >= 0 && elapsed <= MAX_COMBO_GAP) {
-                    int previous = spec.actions().indexOf(bladeState.getComboSeq());
-                    if (previous >= 0) {
-                        restored.nextIndex = (previous + 1) % spec.actions().size();
-                        restored.lastCommitTick = start;
-                    }
-                }
-            });
+            cursor = new Cursor(spec, identifier, slot, now);
+            cursors(user).put(user.getUUID(), cursor);
         }
         return cursor;
     }
@@ -154,14 +169,30 @@ public final class CustomComboRouter {
         return null;
     }
 
+    public static void interrupt(LivingEntity user) { cursors(user).remove(user.getUUID()); }
+
+    @SubscribeEvent public static void held(net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent event) {
+        LivingEntity user = event.getEntity();
+        Cursor cursor = cursors(user).get(user.getUUID());
+        if (cursor == null) return;
+        ItemStack blade = user.getMainHandItem();
+        int slot = user instanceof Player player ? player.getInventory().selected : -1;
+        if (slot != cursor.slot || blade.getTag() == null
+                || !cursor.identifier.equals(blade.getTag().getString("id"))
+                || StyleResolver.resolve(blade) != BladeStyle.CUSTOM) cursors(user).remove(user.getUUID());
+    }
+
     private static final class Cursor {
-        final int fingerprint;
+        final CustomStyleSpec spec;
+        final String identifier;
         final int slot;
         long lastCommitTick;
         int nextIndex;
+        ResourceLocation lastAction;
 
-        Cursor(int fingerprint, int slot, long now) {
-            this.fingerprint = fingerprint;
+        Cursor(CustomStyleSpec spec, String identifier, int slot, long now) {
+            this.spec = spec;
+            this.identifier = identifier;
             this.slot = slot;
             this.lastCommitTick = now;
         }

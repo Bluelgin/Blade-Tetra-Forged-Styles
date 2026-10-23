@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "13";
+    private static final String PROTOCOL = "14";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -138,6 +138,12 @@ public final class ModNetwork {
         CHANNEL.registerMessage(18, CustomStyleDraftActionPacket.class,
                 CustomStyleDraftActionPacket::encode, CustomStyleDraftActionPacket::decode,
                 CustomStyleDraftActionPacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(19, CustomStyleExchangePacket.Request.class,
+                CustomStyleExchangePacket.Request::encode, CustomStyleExchangePacket.Request::decode,
+                CustomStyleExchangePacket.Request::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(20, CustomStyleExchangePacket.Reply.class,
+                CustomStyleExchangePacket.Reply::encode, CustomStyleExchangePacket.Reply::decode,
+                CustomStyleExchangePacket.Reply::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     private ModNetwork() {
