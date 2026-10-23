@@ -22,7 +22,7 @@
   "message.blade_tetra.style_exchange.finished": "Finished your native Tetra style scroll",
   "message.blade_tetra.style_exchange.empty": "No moves have been recorded",
 "tooltip.blade_tetra.style_recorder.capture": "Use: capture the last committed ordinary blade move",
-  "tooltip.blade_tetra.style_recorder.finish": "Sneak-use: finish and receive a native Tetra scroll",
+  "tooltip.blade_tetra.style_recorder.finish": "Sneak-use: open the style editor (finish the scroll there)",
   "tooltip.blade_tetra.custom_style.name": "Style: %s",
   "tooltip.blade_tetra.custom_style.count": "%s recorded moves",
 "style.blade_tetra.custom": "Custom Style",
