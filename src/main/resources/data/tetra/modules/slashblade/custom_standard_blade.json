@@ -49,7 +49,9 @@
         "integrity": -1,
         "magicCapacity": 1,
         "glyph": {
-          "textureX": 0
+          "textureLocation": "blade_tetra:textures/gui/custom_style/workbench_glyphs.png",
+          "textureX": 0,
+          "textureY": 0
         }
       }
     }

@@ -1,5 +1,6 @@
 {
   "replace": true,
+  "glyph": {"textureLocation": "blade_tetra:textures/gui/custom_style/workbench_glyphs.png", "textureX": 48, "textureY": 0},
   "slots": [
     "slashblade/blade"
   ],
