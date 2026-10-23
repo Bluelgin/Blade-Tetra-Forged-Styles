@@ -44,6 +44,11 @@ public record CustomStyleDraftActionPacket(Action action, int position, String v
                     case MOVE_DOWN -> StyleRecordingSession.move(player, packet.position, 1);
                     case REMOVE -> StyleRecordingSession.remove(player, packet.position);
                     case FINISH -> {
+                        // Finishing commits the currently visible GUI name too.
+                        if (!StyleRecordingSession.rename(player, packet.value)) {
+                            CustomStyleDraftSyncPacket.send(player, false);
+                            return;
+                        }
                         CustomStyleSpec spec = StyleRecordingSession.finish(player);
                         if (spec != null) {
                             ItemStack scroll = CustomStyleScrolls.create(spec);

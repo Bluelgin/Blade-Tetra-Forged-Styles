@@ -90,7 +90,7 @@ public final class CustomStyleEditorScreen extends Screen {
                 .bounds(left + 92, top + 198, 73, 20).build());
         complete = addRenderableWidget(Button.builder(
                 Component.translatable("screen.blade_tetra.custom_style.complete"),
-                b -> send(CustomStyleDraftActionPacket.Action.FINISH, 0, ""))
+                b -> send(CustomStyleDraftActionPacket.Action.FINISH, 0, nameBox.getValue()))
                 .bounds(left + span - 137, top + 198, 125, 20).build());
         updateButtons();
     }
