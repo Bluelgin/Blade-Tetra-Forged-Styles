@@ -1,6 +1,7 @@
 package dev.bladetetra.item;
 
 import dev.bladetetra.combat.ComponentEffectResolver;
+import dev.bladetetra.customstyle.CustomBladeLength;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.StyleResolver;
@@ -124,6 +125,7 @@ final class ModularBladeStateSync {
             case DANGAKU -> "nodachi";
             case IAIDO -> "katana";
             case STANDARD -> "orthodox";
+            case CUSTOM -> CustomBladeLength.from(stack).modelName();
         };
         String saya = ComponentEffectResolver.hasModule(
                 stack, ModularSlashBladeItem.SAYA_SLOT,

@@ -46,7 +46,7 @@ public final class CombatBalanceSmokeTest {
             for (BladeStyle style : BladeStyle.values()) {
                 blade.getOrCreateTag().putString(dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT,
                         switch (style) {
-                            case STANDARD -> dev.bladetetra.item.ModularSlashBladeItem.ORTHODOX_BLADE_MODULE;
+                            case STANDARD, CUSTOM -> dev.bladetetra.item.ModularSlashBladeItem.ORTHODOX_BLADE_MODULE;
                             case IAIDO -> dev.bladetetra.item.ModularSlashBladeItem.BLADE_MODULE;
                             case DANGAKU -> dev.bladetetra.item.ModularSlashBladeItem.NODACHI_MODULE;
                             case RENGEKI -> dev.bladetetra.item.ModularSlashBladeItem.WAKIZASHI_MODULE;

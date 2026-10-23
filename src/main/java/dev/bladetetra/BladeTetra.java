@@ -1,6 +1,9 @@
 package dev.bladetetra;
 
 import dev.bladetetra.combat.ModComboStates;
+import dev.bladetetra.customstyle.CustomStyleScrollRequirement;
+import dev.bladetetra.customstyle.CustomStyleCraftingCondition;
+import dev.bladetetra.customstyle.CustomStyleCraftingOutcome;
 import dev.bladetetra.compat.LegacyFusionRequirement;
 import dev.bladetetra.compat.LegacyImprintCraftingCondition;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
@@ -30,6 +33,7 @@ public final class BladeTetra {
 
     public BladeTetra() {
         SoulFusionRequirement.register();
+        CustomStyleScrollRequirement.register();
         dev.bladetetra.compat.LegacyPatternRequirement.register();
         LegacyFusionRequirement.register();
 
@@ -64,6 +68,10 @@ public final class BladeTetra {
                     "blade_tetra:legacy_imprint_slot", LegacyImprintCraftingCondition.class);
             CraftingEffectRegistry.registerEffectType(
                     "blade_tetra:apply_legacy_imprint_identity", LegacyImprintCraftingOutcome.class);
+            CraftingEffectRegistry.registerConditionType(
+                    "blade_tetra:custom_style_craft", CustomStyleCraftingCondition.class);
+            CraftingEffectRegistry.registerEffectType(
+                    "blade_tetra:apply_custom_style_spec", CustomStyleCraftingOutcome.class);
             ProgrammaticFusionCompat.registerLoadedAddons();
         });
     }

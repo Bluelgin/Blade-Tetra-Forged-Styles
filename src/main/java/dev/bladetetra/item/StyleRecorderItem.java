@@ -1,0 +1,56 @@
+package dev.bladetetra.item;
+
+import dev.bladetetra.customstyle.CustomStyleScrolls;
+import dev.bladetetra.customstyle.CustomStyleSpec;
+import dev.bladetetra.customstyle.StyleRecordingSession;
+import dev.bladetetra.network.CustomStyleDraftSyncPacket;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import org.jetbrains.annotations.Nullable;
+import java.util.List;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+
+/**
+ * Right-click after wielding a SlashBlade to capture its last committed move.
+ * Sneak-right-click completes the bounded draft and gives a native Tetra scroll.
+ */
+public final class StyleRecorderItem extends Item {
+    public StyleRecorderItem() {
+        super(new Properties().stacksTo(1));
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
+            List<Component> tooltip, TooltipFlag flag) {
+        tooltip.add(Component.translatable("tooltip.blade_tetra.style_recorder.capture")
+                .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.style_recorder.finish")
+                .withStyle(ChatFormatting.GOLD));
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack tool = player.getItemInHand(hand);
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResultHolder.sidedSuccess(tool, level.isClientSide);
+        }
+        if (player.isShiftKeyDown()) {
+            // A player-facing route into the existing server-owned editor.
+            // The editor's Finish button creates the native Tetra scroll.
+            CustomStyleDraftSyncPacket.send(serverPlayer, false);
+        } else {
+            StyleRecordingSession.CaptureResult result = StyleRecordingSession.capture(serverPlayer);
+            serverPlayer.displayClientMessage(Component.translatable(
+                    "message.blade_tetra.custom_style." + result.name().toLowerCase(java.util.Locale.ROOT),
+                    StyleRecordingSession.count(serverPlayer), CustomStyleSpec.MAX_ACTIONS), true);
+        }
+        return InteractionResultHolder.sidedSuccess(tool, level.isClientSide);
+    }
+}

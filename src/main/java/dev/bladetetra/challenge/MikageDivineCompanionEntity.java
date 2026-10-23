@@ -2,7 +2,6 @@ package dev.bladetetra.challenge;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.registry.ModEntities;
-import dev.bladetetra.registry.ModItems;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -39,7 +38,7 @@ public final class MikageDivineCompanionEntity extends PathfinderMob {
 
     public void bind(long id) {
         session = id;
-        setItemSlot(EquipmentSlot.MAINHAND, ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+        setItemSlot(EquipmentSlot.MAINHAND, MikageEquipment.ironKatana(level()));
         setDropChance(EquipmentSlot.MAINHAND, 0);
     }
 

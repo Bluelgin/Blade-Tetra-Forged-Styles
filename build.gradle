@@ -21,6 +21,15 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('lifengSmoke')) {
+                workingDirectory project.file('build/lifeng-smoke')
+                property 'blade_tetra.lifengSmoke', 'true'
+            }
+            if (project.hasProperty('customStyleInputReview')) {
+                workingDirectory project.file('build/custom-style-input-review')
+                property 'blade_tetra.customStyleInputReview', 'true'
+                property 'blade_tetra.customStyleDebug', 'true'
+            }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'
@@ -35,6 +44,14 @@ minecraft {
             if (project.hasProperty('deadThoughtRemovalSmoke')) {
                 workingDirectory project.file('build/dead-thought-removal-smoke')
                 property 'blade_tetra.deadThoughtRemovalSmoke', 'true'
+            }
+            if (project.hasProperty('mikageNativeSmoke')) {
+                workingDirectory project.file('build/mikage-native-smoke')
+                property 'blade_tetra.mikageNativeSmoke', 'true'
+            }
+            if (project.hasProperty('customStyleSmoke')) {
+                workingDirectory project.file('build/custom-style-smoke')
+                property 'blade_tetra.customStyleSmoke', 'true'
             }
             if (project.hasProperty('combatBalanceSmoke')) {
                 workingDirectory project.file('build/combat-balance-smoke')
@@ -287,6 +304,11 @@ tasks.named('test', Test).configure {
 }
 
 tasks.named('processResources', ProcessResources).configure {
+    // Keep the original artwork recoverable in source control, but ship only the player skin.
+    exclude 'assets/blade_tetra/models/entity/mikage_tailored.json'
+    exclude 'assets/blade_tetra/textures/entity/mikage_tailored.png'
+    exclude 'META-INF/notices/mikage-winefox.txt'
+    exclude 'META-INF/licenses/winefox-CC-BY-NC-SA-4.0.txt'
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,

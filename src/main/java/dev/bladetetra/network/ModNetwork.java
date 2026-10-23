@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "12";
+    private static final String PROTOCOL = "14";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -132,6 +132,18 @@ public final class ModNetwork {
                 ModularTechniqueVfxPacket::decode,
                 ModularTechniqueVfxPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(17, CustomStyleDraftSyncPacket.class,
+                CustomStyleDraftSyncPacket::encode, CustomStyleDraftSyncPacket::decode,
+                CustomStyleDraftSyncPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(18, CustomStyleDraftActionPacket.class,
+                CustomStyleDraftActionPacket::encode, CustomStyleDraftActionPacket::decode,
+                CustomStyleDraftActionPacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(19, CustomStyleExchangePacket.Request.class,
+                CustomStyleExchangePacket.Request::encode, CustomStyleExchangePacket.Request::decode,
+                CustomStyleExchangePacket.Request::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(20, CustomStyleExchangePacket.Reply.class,
+                CustomStyleExchangePacket.Reply::encode, CustomStyleExchangePacket.Reply::decode,
+                CustomStyleExchangePacket.Reply::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     private ModNetwork() {

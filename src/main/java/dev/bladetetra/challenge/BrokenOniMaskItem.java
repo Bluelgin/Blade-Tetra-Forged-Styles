@@ -61,6 +61,9 @@ public final class BrokenOniMaskItem extends Item implements Equipable {
                     .withStyle(ChatFormatting.DARK_RED));
             tooltip.add(Component.translatable("tooltip.blade_tetra.mask.visitor")
                     .withStyle(ChatFormatting.GOLD));
+        } else if (!MikageChallengeAccess.combatOpen()) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.boundary_gate_charm.sealed")
+                    .withStyle(ChatFormatting.DARK_GRAY));
         } else {
             tooltip.add(Component.translatable("tooltip.blade_tetra.mask.reminiscence")
                     .withStyle(ChatFormatting.DARK_RED));

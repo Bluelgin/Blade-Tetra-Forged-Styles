@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="248" height="220" viewBox="0 0 248 220" shape-rendering="crispEdges">
+<title>editor panel</title>
+<rect x="0" y="0" width="248" height="220" fill="#211d2a"/>
+<rect x="1" y="1" width="246" height="218" fill="#a88651"/>
+<rect x="2" y="2" width="244" height="216" fill="#735747"/>
+<rect x="3" y="3" width="242" height="214" fill="#e6ddcf"/>
+<rect x="4" y="4" width="240" height="1" fill="#f7eddb"/>
+<rect x="4" y="215" width="240" height="1" fill="#c7b697"/>
+<rect x="8" y="26" width="232" height="1" fill="#8a2f2f"/>
+<rect x="8" y="179" width="232" height="1" fill="#a88651"/>
+<rect x="10" y="33" width="228" height="22" fill="#c7b697"/>
+<rect x="12" y="35" width="224" height="18" fill="#f7eddb"/>
+<rect x="234" y="61" width="3" height="110" fill="#c7b697"/>
+</svg>

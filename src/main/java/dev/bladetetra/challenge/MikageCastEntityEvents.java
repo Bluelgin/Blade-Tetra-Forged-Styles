@@ -1,0 +1,30 @@
+package dev.bladetetra.challenge;
+
+import dev.bladetetra.BladeTetra;
+import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
+import mods.flammpfeil.slashblade.entity.EntityJudgementCut;
+import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
+import net.minecraft.world.entity.Entity;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+/** Registers authored native visuals/projectiles with their current cast, without realm scans. */
+@Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public final class MikageCastEntityEvents {
+    @SubscribeEvent
+    public static void onSpawn(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        Entity entity = event.getEntity();
+        if (MikageNativeCombat.capture(entity)) {
+            if (MikageNativeCombat.shooter(entity) instanceof MikageEntity boss && boss.encounter().corridor() != null)
+                boss.encounter().corridor().combo.capture(entity);
+            return;
+        }
+        if ((entity instanceof EntityAbstractSummonedSword || entity instanceof EntityJudgementCut
+                || entity instanceof EntitySlashEffect) && MikageNativeCombat.shooter(entity) instanceof MikageEntity)
+            event.setCanceled(true);
+    }
+
+    private MikageCastEntityEvents() {}
+}

@@ -2,6 +2,8 @@ package dev.bladetetra.aura;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.CombatBalanceRuntime;
+import dev.bladetetra.combat.CombatBalanceRules;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRankCapabilityProvider;
@@ -16,7 +18,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.WeakHashMap;
 
 /** Hooks actual server-side slash creation, not clicks, hits or animation guesses. */
@@ -31,10 +32,15 @@ public final class SwordAuraTrigger {
                 || !(slash.getShooter() instanceof ServerPlayer player)) return;
         if (!(player.getMainHandItem().getItem() instanceof ModularSlashBladeItem)
                 || !SwordAuraMastery.knows(player)) return;
+        // Reuse the server's actual native/forged SA context. An SA can emit a
+        // normal-looking ComboState or slash, so a motion ID alone is not proof.
+        if (!Double.isFinite(slash.getDamage()) || slash.getDamage() <= 0
+                || CombatBalanceRuntime.kind(player, slash) != CombatBalanceRules.AttackKind.ORDINARY) return;
         ResourceLocation combo = player.getMainHandItem()
                 .getCapability(ItemSlashBlade.BLADESTATE)
                 .map(state -> state.getComboSeq()).orElse(null);
-        if (!SwordAuraMotionFilter.permits(combo)) return;
+        BladeStyle style = StyleResolver.resolve(player.getMainHandItem());
+        if (!SwordAuraMotionFilter.permits(combo, style)) return;
         boolean sss = player.getCapability(ConcentrationRankCapabilityProvider.RANK_POINT)
                 .map(rank -> rank.getRank(player.level().getGameTime())
                         == IConcentrationRank.ConcentrationRanks.SSS)
@@ -46,7 +52,6 @@ public final class SwordAuraTrigger {
         long tick = player.level().getGameTime();
         if (LAST_BEAT.getOrDefault(player, Long.MIN_VALUE) == tick) return;
         LAST_BEAT.put(player, tick);
-        BladeStyle style = StyleResolver.resolve(player.getMainHandItem());
         SwordAuraSpawner.emit(player, slash, style);
     }
 
