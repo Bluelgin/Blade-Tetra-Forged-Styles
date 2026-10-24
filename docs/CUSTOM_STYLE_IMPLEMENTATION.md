@@ -1,6 +1,6 @@
-# 千门剑谱 / Custom Style (Draft)
+# 千门剑谱 / Custom Style
 
-This is an **in-progress implementation**, not a playable finished fifth style.
+Core recording, the client editor, native Tetra scroll forging, combo routing fixes and compact offline sharing are merged into `main` (source version 1.6.5). This page describes the recording/storage contract. See [current player operations and timing](CUSTOM_STYLE_FINALIZATION.md) and the [current share-code protocol](CUSTOM_STYLE_COMMUNITY_PROTOCOL.md). A source version is not a published release announcement.
 
 ## Committed recording contract
 
@@ -9,15 +9,16 @@ This is an **in-progress implementation**, not a playable finished fifth style.
 - Repeatedly pressing the tool does not add the same attack twice. Re-perform the attack to capture it twice.
 - Sneak + use opens the server-authoritative style editor; its Finish action creates the **native reusable Tetra scroll**. The `/blade_tetra_style finish` command remains as a text fallback.
 - The scroll's `ScrollData.details` stores a bounded versioned sequence. That is intentional: Tetra's `ScrollTile` strips extra stack NBT when placing an unfolded scroll.
-- Scrolls advertise three stable Tetra schematic IDs (short, standard, long), plus a native Tetra crafting effect.\n- The placed intricate scroll is read from **exactly above** the workbench by a dedicated bridge. More than one valid custom scroll makes crafting ambiguous and blocks the upgrade.\n- Workbench crafting snapshots the scroll specification onto the upgraded modular blade via a Tetra CraftingEffectOutcome.
+- Scrolls advertise three stable Tetra schematic IDs (short, standard, long), plus a native Tetra crafting effect.
+- The placed intricate scroll is read from **exactly above** the workbench by a dedicated bridge. More than one valid custom scroll makes crafting ambiguous and blocks the upgrade.
+- Workbench crafting snapshots the scroll specification onto the upgraded modular blade via a Tetra CraftingEffectOutcome.
 
-## Not implemented yet
+## Current boundaries
 
-- Real-game validation of dynamic schematic and three blade-module outcomes.
-- Detailed combat validation, timing tuning, third-party action compatibility and in-game testing.
-- Source mod action support guarantees, client UI and naming.
-
-Never advertise completion until a real Tetra workbench can read the unfolded scroll's sequence and forge a playable custom blade. Preset styles must not be modified during this PR.
+- A registered action is not automatically permitted: third-party ordinary actions require the trusted compatibility adapter.
+- The native editor supports naming, selection, moving, deleting, undoing, clearing, finishing and import/export. See the linked player operations for details.
+- UI status and animations use acknowledged state; missing visual interfaces are listed in the [client integration record](custom-style-art/CLIENT_INTEGRATION.md).
+- Existing scroll/blade storage is unchanged by the compact sharing format.
 
 ## Attack privileges
 
