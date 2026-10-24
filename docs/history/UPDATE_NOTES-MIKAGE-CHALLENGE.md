@@ -1,5 +1,7 @@
 # Mikage Challenge Update
 
+> 历史交付／审计记录：文中“本次”、PR 状态、接口建议和验证结果指记录形成时的范围；当前功能从[文档导航](../README.md)查阅。
+
 ## New endgame challenge
 
 - Added the reusable Boundary Gate Charm. Holding it opens a temporary torii;

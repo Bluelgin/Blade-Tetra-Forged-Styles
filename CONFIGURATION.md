@@ -4,7 +4,7 @@ Gameplay settings are stored per world in:
 
 `<world>/serverconfig/blade-tetra-server.toml`
 
-For the current neutral (1.0) combat multipliers and their scope, see [Combat balance configuration](docs/COMBAT_BALANCE_CONFIG.md). Mikage combat settings are retained for development and existing saves; they do not reopen the [suspended challenge](docs/MIKAGE_CHALLENGE_SUSPENSION.md).
+For the current neutral (1.0) combat multipliers and their scope, see [Combat balance configuration](docs/guides/COMBAT_BALANCE_CONFIG.md). Mikage combat settings are retained for development and existing saves; they do not reopen the [suspended challenge](docs/guides/MIKAGE_CHALLENGE_SUSPENSION.md).
 
 ## Discoveries
 
@@ -123,7 +123,7 @@ Visual and audio settings are stored per client in:
 
 `config/blade-tetra-client.toml`
 
-The three `swordAura*` settings below are in `[visuals]`. See [Lifeng performance details](docs/LIFENG_SWORD_AURA.md#sword-aura-performance-pass) for behavior and limits.
+The three `swordAura*` settings below are in `[visuals]`. See [Lifeng performance details](docs/guides/LIFENG_SWORD_AURA.md#sword-aura-performance-pass) for behavior and limits.
 
 | Setting | Default | Purpose |
 | --- | ---: | --- |

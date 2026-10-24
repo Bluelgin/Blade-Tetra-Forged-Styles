@@ -1,5 +1,7 @@
 # Programmatic fusion presentation audit
 
+> 历史交付／审计记录：文中“本次”、PR 状态、接口建议和验证结果指记录形成时的范围；当前功能从[文档导航](../README.md)查阅。
+
 ## What failed
 
 The old scheduler inferred signature completion from 35% of the first combo's

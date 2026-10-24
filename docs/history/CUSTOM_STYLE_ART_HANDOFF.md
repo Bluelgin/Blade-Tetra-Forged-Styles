@@ -1,5 +1,7 @@
 # 千门剑谱 · UI / Astra asset handoff
 
+> 历史交付／审计记录：文中“本次”、PR 状态、接口建议和验证结果指记录形成时的范围；当前功能从[文档导航](../README.md)查阅。
+
 Core implementation provides the editor logic; Astra owns **only** texture assets,
 icons, layout mockups and visual polish. Do not edit the Java command, combat,
 Tetra or network classes from the art branch.

@@ -4,7 +4,7 @@
 
 本文件最初来自 PR #12 的纯客户端美术实现。后续 `feat/dead-thought-soul-collapse` 在其上叠加了命魂／魂碎／魂崩机制；已有模型、贴图和演出结构继续复用，不推倒重做。
 
-机制细节见：`DEAD_THOUGHT_SOUL_SYSTEM.md`。
+机制细节见：`docs/guides/DEAD_THOUGHT_SOUL_SYSTEM.md`。
 
 ## 美术范围
 
