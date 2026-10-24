@@ -1193,5 +1193,12 @@
   "action.blade_tetra.slashblade.rapid_slash_quick": "迅冲斩 · 快速起式",
   "action.blade_tetra.slashblade.combo_c": "原生连击 C",
   "action.blade_tetra.slashblade.combo_a4_ex": "原生连击 A · 四（绝）",
-  "action.blade_tetra.slashblade.combo_a5ex": "原生连击 A · 五（绝）"
+  "action.blade_tetra.slashblade.combo_a5ex": "原生连击 A · 五（绝）",
+  "item.blade_tetra.lifeng_scroll": "离锋秘卷",
+  "tooltip.blade_tetra.lifeng_scroll": "刃止于形，锋行于外。",
+  "message.blade_tetra.lifeng.already": "你已经掌握了秘传·离锋。",
+  "message.blade_tetra.lifeng.learned": "秘传·离锋，已铭刻于心。",
+  "config.blade_tetra.combatBalance.swordAuraDamageMultiplier": "离锋剑气伤害倍率",
+  "config.blade_tetra.combatBalance.swordAuraDamageMultiplier.tooltip": "仅调整离锋剑气伤害。默认 1.0，范围 0–10；0 关闭剑气伤害。发射时生效，不改变已发射的剑气。",
+  "tooltip.blade_tetra.lifeng_scroll.verse": "心随剑至，余势自成离锋。"
 }

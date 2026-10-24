@@ -21,6 +21,14 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('swordAuraHitSmoke')) {
+                workingDirectory project.file('build/sword-aura-hit-smoke')
+                property 'blade_tetra.swordAuraHitSmoke', 'true'
+            }
+            if (project.hasProperty('lifengSmoke')) {
+                workingDirectory project.file('build/lifeng-smoke')
+                property 'blade_tetra.lifengSmoke', 'true'
+            }
             if (project.hasProperty('customStyleInputReview')) {
                 workingDirectory project.file('build/custom-style-input-review')
                 property 'blade_tetra.customStyleInputReview', 'true'

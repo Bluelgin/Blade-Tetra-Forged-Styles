@@ -1205,5 +1205,12 @@
   "action.blade_tetra.slashblade.rapid_slash_quick": "Rapid Slash · Quick entry",
   "action.blade_tetra.slashblade.combo_c": "Native combo C",
   "action.blade_tetra.slashblade.combo_a4_ex": "Native combo A · 4 EX",
-  "action.blade_tetra.slashblade.combo_a5ex": "Native combo A · 5 EX"
+  "action.blade_tetra.slashblade.combo_a5ex": "Native combo A · 5 EX",
+  "item.blade_tetra.lifeng_scroll": "Lifeng Secret Scroll",
+  "tooltip.blade_tetra.lifeng_scroll": "The blade has bounds; its edge knows none.",
+  "message.blade_tetra.lifeng.already": "You have already mastered Lifeng.",
+  "message.blade_tetra.lifeng.learned": "Lifeng is now yours to command.",
+  "config.blade_tetra.combatBalance.swordAuraDamageMultiplier": "Lifeng sword aura damage",
+  "config.blade_tetra.combatBalance.swordAuraDamageMultiplier.tooltip": "Lifeng aura damage only. Default 1.0, range 0–10; 0 disables aura damage. Applied on emission; existing projectiles are unchanged.",
+  "tooltip.blade_tetra.lifeng_scroll.verse": "Where intent follows steel, the lingering stroke flies free."
 }

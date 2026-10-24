@@ -19,9 +19,10 @@ dangakuDamageMultiplier = 1.0
 rengekiDamageMultiplier = 1.0
 slashArtDamageMultiplier = 1.0
 summonedSwordDamageMultiplier = 1.0
+swordAuraDamageMultiplier = 1.0
 ```
 
-依次为总伤害、本传、居合、断岳、连舞、SA、非 SA 幻影剑倍率。范围为 **0～10**：0 不造成受支持的伤害，1 保持原样，0.75 降低 25%。不改变材料属性、动作、机动性、资源消耗或冷却。
+依次为总伤害、本传、居合、断岳、连舞、SA、非 SA 幻影剑、离锋剑气倍率。范围为 **0～10**：0 不造成受支持的伤害，1 保持原样，0.75 降低 25%。不改变材料属性、动作、机动性、资源消耗或冷却。
 
 ## 结算规则
 
@@ -35,6 +36,8 @@ summonedSwordDamageMultiplier = 1.0
 
 未知第三方自定义攻击实体、直接修改生命值、灵魂状态和处决机制不在通用伤害倍率的保证范围内。
 
+离锋剑气额外使用 `swordAuraDamageMultiplier`：在发射时读取一次，0 会停止生成新剑气，已发射剑气保持原伤害。普通伤害和其他弹射物仍按上面的规则结算。
+
 ## 修改与配置菜单
 
 成功重新载入后影响后续命中，不追溯已经结算的伤害预算。配置项不要求重启；Forge 的文件监视器负责读取外部 TOML 修改，不必使用 `/reload`。
@@ -45,11 +48,13 @@ summonedSwordDamageMultiplier = 1.0
 
 ## English
 
-All seven multipliers default to **1.0** and accept **0–10**. The world-owned SERVER file is `<world>/serverconfig/blade-tetra-server.toml`; place a template in `defaultconfigs` for new worlds only.
+All eight multipliers default to **1.0** and accept **0–10**. The world-owned SERVER file is `<world>/serverconfig/blade-tetra-server.toml`; place a template in `defaultconfigs` for new worlds only.
 
 Supported damage is multiplied by global × originating style × attack kind. Ordinary attacks have a kind multiplier of 1. SA projectiles use the SA multiplier instead of the non-SA summoned-sword multiplier. Native projectiles retain their origin across weapon switches while reading current values on impact. Effects based on an already-scaled damage budget are not scaled again.
 
 Only player-owned Blade Tetra modular-blade attacks are covered. Other blades, bosses, pets, natural lightning, direct health changes and unknown third-party attack entities are excluded. Materials, animation, mobility, costs and cooldowns stay unchanged. This is not automatic DPS normalization.
+
+Lifeng adds `swordAuraDamageMultiplier`, snapshotted at emission; zero disables new aura emissions, while existing auras keep their damage.
 
 Changes affect subsequent hits after Forge reloads the file; no restart flags are required. Configured is optional. Editing multiplayer SERVER configs requires server support and permission. English and Chinese labels/tooltips are provided.
 
@@ -57,6 +62,6 @@ Changes affect subsequent hits after Forge reloads the file; no restart flags ar
 
 `./gradlew runServer -PcombatBalanceSmoke -PconfiguredTest` 在 `build/combat-balance-smoke` 的独立世界验证伤害分类、继承预算、Configured 配置识别和实际文件重载，不修改常规测试存档。测试配置会恢复到 1.0。
 
-已验证：328 项回归测试通过；Tetra 6.3 基础环境和 Tetra 6.9 + MMT 环境均通过运行检查，包含普通幻影剑/SA 互斥、换刀后的延迟命中、继承伤害、零倍率、非玩家攻击隔离、实际伤害事件与文件自动重载。Configured 2.2.0 后端识别七项配置、翻译键、范围校验及无需重启标记。
+原配置验证记录（新增离锋配置之前）：328 项回归测试通过；Tetra 6.3 基础环境和 Tetra 6.9 + MMT 环境均通过运行检查，包含普通幻影剑/SA 互斥、换刀后的延迟命中、继承伤害、零倍率、非玩家攻击隔离、实际伤害事件与文件自动重载。Configured 2.2.0 后端识别七项配置、翻译键、范围校验及无需重启标记。
 
 MMT 测试环境存在其可选联动配方缺少外部物品的报错（例如未安装 Iron's Spellbooks 时的 `irons_spellbooks:arcane_essence`）；不影响本次战斗配置检查通过，不代表这些外部配方已修复。

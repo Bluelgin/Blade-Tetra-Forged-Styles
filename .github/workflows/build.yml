@@ -39,3 +39,19 @@ jobs:
           echo 'eula=true' > build/custom-style-smoke/eula.txt
           ./gradlew runServer -PcustomStyleSmoke 2>&1 | tee build/custom-style-smoke.log
           grep -F 'CUSTOM_STYLE_SMOKE_PASS' build/custom-style-smoke.log
+      - name: Lifeng CUSTOM Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/lifeng-smoke
+          echo 'eula=true' > build/lifeng-smoke/eula.txt
+          ./gradlew runServer -PlifengSmoke 2>&1 | tee build/lifeng-smoke.log
+          grep -F 'LIFENG_CUSTOM_SMOKE_PASS' build/lifeng-smoke.log
+      - name: Sword aura hotfix hit smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sword-aura-hit-smoke
+          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
+          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
+          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
