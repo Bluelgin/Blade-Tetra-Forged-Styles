@@ -87,7 +87,7 @@ public final class CustomStyleExchangeScreen extends Screen {
         if (!error.isEmpty()) result.add(label(error));
         if (preview == null) return result;
         if (preview.style() == null) { result.add(Component.translatable("message.blade_tetra.style_exchange." + preview.formatStatus().name().toLowerCase(java.util.Locale.ROOT))); return result; }
-        result.add(Component.literal(preview.style().name() + " · BTSTYLE1 · " + preview.actions().size() + "/6"));
+        result.add(Component.literal(preview.style().name() + " · " + preview.actions().size() + "/6"));
         result.add(label(preview.allowed() ? "available" : "blocked"));
         int position = 1;
         for (var info : preview.actions()) {

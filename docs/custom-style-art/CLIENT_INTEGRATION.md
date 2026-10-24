@@ -63,10 +63,13 @@ Java编译与资源处理通过；现有弃用警告未扩展修复。没有启�
 - [ ] 清空取消不修改草稿，确认才清空；空草稿禁用完成；等待回执时不能重复提交。
 - [ ] 通过式录札潜行右键进入编纂界面，在界面中完成后获得真实 Tetra 卷轴，印章只播一次；原生展开/收回、工作台识别和三档自创刀身加工仍可用。
 - [ ] 工作台保留原生布局，三档长度图标与自创模块图标清晰，原有四流派未变化。
-- [ ] 导出BTSTYLE1再导入：卷轴外观与自录一致，分享码及错误提示可读。
+- [ ] 导出分享码再导入：卷轴外观与自录一致，分享码及错误提示可读。
 - [ ] 任选常用GUI Scale和中英文查看纸色、字宽、按钮状态、焦点框与HUD位置；将审美或位置调整反馈给本PR。
 
 ## 后续功能开发
 
 本文件记录 PR #32 的纯美术接入边界。后续流程修复、刀身节奏和导入／导出 GUI 见
 [千门剑谱功能交付说明](../CUSTOM_STYLE_FINALIZATION.md)，不再受本文件的纯客户端修改范围限制。
+
+
+Protocol update: the unreleased JSON share code has been replaced by the prefix-free compact format. The historical integration scope above describes the original art-only work. See [current exchange contract](../CUSTOM_STYLE_COMMUNITY_PROTOCOL.md).

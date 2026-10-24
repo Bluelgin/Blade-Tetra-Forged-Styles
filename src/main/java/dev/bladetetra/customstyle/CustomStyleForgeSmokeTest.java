@@ -351,11 +351,14 @@ public final class CustomStyleForgeSmokeTest {
         String code = CustomStyleExchange.export(spec);
         String enriched = CustomStyleExchange.exportWithDependencies(spec);
         check(CustomStyleExchange.importValidated(enriched).accepted()
-                && CustomStyleExchange.inspect(enriched).requirements().get(0).modId().equals("slashblade"),
-                "optional provider hints round trip without becoming permissions");
+                && CustomStyleExchange.inspect(enriched).requirements().isEmpty(),
+                "built-in provider IDs implied without metadata overhead");
         check(StyleRecordingSession.importCode(player, code), "valid share code loads draft");
         check(StyleRecordingSession.exportable(player).equals(spec), "draft export preserves repeats and order");
         var before = StyleRecordingSession.snapshot(player);
+        String damaged = (code.startsWith("A") ? "B" : "A") + code.substring(1);
+        check(!StyleRecordingSession.importCode(player, damaged), "checksum damage refused");
+        check(before.equals(StyleRecordingSession.snapshot(player)), "damaged compact code preserves draft");
         check(!StyleRecordingSession.importCode(player, "BTSTYLE1:corrupt"), "corrupt import refused");
         check(before.equals(StyleRecordingSession.snapshot(player)), "failed import leaves draft unchanged");
         var missing = new ResourceLocation("different_namespace", "missing_cut");
@@ -375,9 +378,11 @@ public final class CustomStyleForgeSmokeTest {
         var unknown = CustomStyleDependencyResolver.diagnose(new ResourceLocation("no_mapping", "move"));
         check(unknown.provider().isEmpty() && unknown.modId().isEmpty() && unknown.status()
                 == CustomStyleDependencyResolver.Status.UNREGISTERED_ACTION, "unknown namespace does not invent a provider");
-        var missingCode = CustomStyleExchange.export(new CustomStyleSpec("Missing", List.of(missing)));
+        var missingCode = CustomStyleExchange.exportWithDependencies(new CustomStyleSpec("Missing", List.of(missing, missing)));
         var preview = CustomStyleDependencyResolver.inspect(missingCode);
         check(preview.style() != null && !preview.allowed(), "missing addon still permits content preview");
+        check(preview.style().actions().equals(List.of(missing, missing))
+                && preview.missingDeclaredMods().contains("not_installed_test_mod"), "external dictionary and provider hints preserved");
         check(!StyleRecordingSession.importCode(player, missingCode)
                 && before.equals(StyleRecordingSession.snapshot(player)), "missing addon cannot replace a valid draft");
         check(StyleRecordingSession.finish(player).equals(spec), "imported draft finalizes as original style");

@@ -67,7 +67,7 @@ public final class CustomStyleInputReview {
                 capture(mc, "imported-editor.png"); click(mc, "screen.blade_tetra.custom_style.export"); next();
             }}
             case 6 -> { click(mc, "screen.blade_tetra.exchange.draft"); next(); }
-            case 7 -> { if (codeBox(mc).getValue().startsWith(CustomStyleExchange.PREFIX)) {
+            case 7 -> { if (!codeBox(mc).getValue().isEmpty()) {
                 if (!IMPORT.equals(CustomStyleExchange.inspect(codeBox(mc).getValue()).style())) throw new AssertionError("Server draft export differs from import");
                 capture(mc, "export-code.png"); click(mc, "screen.blade_tetra.exchange.copy");
                 if (!mc.keyboardHandler.getClipboard().equals(codeBox(mc).getValue())) throw new AssertionError("Clipboard truncated share code");
