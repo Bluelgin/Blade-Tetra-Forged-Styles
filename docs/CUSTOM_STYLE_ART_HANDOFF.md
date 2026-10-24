@@ -16,7 +16,7 @@ Tetra or network classes from the art branch.
   remove selected action, undo last, clear, complete as Tetra scroll.
 - Server is authoritative. The client renders snapshots from
   `CustomStyleDraftSyncPacket`; actions use `CustomStyleDraftActionPacket`.
-- `/blade_tetra_style export` shows the portable `BTSTYLE1:` code from an
+- `/blade_tetra_style export` shows the portable prefix-free compact code from an
   existing completed scroll and supports click-to-copy. The import command
   uses the exact same server validation as future community integration.
 

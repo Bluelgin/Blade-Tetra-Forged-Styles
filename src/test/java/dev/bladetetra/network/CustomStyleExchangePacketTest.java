@@ -25,7 +25,7 @@ class CustomStyleExchangePacketTest {
         } finally { buffer.release(); }
     }
     @Test void requestCodeIsBoundedAndRevisionIsPreserved() {
-        var packet = new CustomStyleExchangePacket.Request(2, CustomStyleExchangePacket.Mode.IMPORT, -927, "BTSTYLE1:code");
+        var packet = new CustomStyleExchangePacket.Request(2, CustomStyleExchangePacket.Mode.IMPORT, -927, "example_compact_code");
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             CustomStyleExchangePacket.Request.encode(packet, buffer);

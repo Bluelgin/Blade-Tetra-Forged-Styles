@@ -1,126 +1,111 @@
-# 千门剑谱 — offline community exchange contract (v1)
+# Qianmen offline share code (compact binary v1)
 
-This is a stable **offline** import/export boundary; no network calls, accounts,
-upload APIs, community moderation, remote execution or code download are implemented.
+Share codes are unpadded Base64URL with **no textual prefix**, JSON, account,
+network request or online lookup. Import restores the author's exact name and
+ordered actions, including repeats. The unreleased `BTSTYLE1:` JSON format is
+intentionally unsupported. Stored sword/scroll NBT is unchanged: this is only
+the portable exchange encoding, not a save migration.
 
-## Data flow
+## Envelope
 
-- Recorded ordinary slash combo → `CustomStyleSpec` → native Tetra `ScrollData`.
-- Completed scroll in either hand → `/blade_tetra_style export` → clickable/copyable code.
-- Another player uses `/blade_tetra_style import <code>` → server decodes
-  data, checks every move with `ComboCompatibilityResolver.playable`, then
-  grants the same genuine reusable Tetra schematic scroll as manual recording.
-- The editor UI and any future web community API depend on
-  `CustomStyleExchange.export`, `inspect` (preview only), and
-  `importValidated` (server authoritative), **never directly mint from inspect**.
-- GUI import previews a code on the server, then loads it into the player's
-  editable draft only after explicit overwrite confirmation. It does not mint
-  a scroll or modify a weapon. Existing command import still grants a scroll.
-- GUI export reads either a server-validated saved draft or a genuine Tetra
-  scroll in either hand and offers complete selectable text and clipboard copy.
+Decode Base64URL to bytes:
 
-## Version 1 wire format
+| Field | Encoding |
+| --- | --- |
+| Header | One byte: high nibble = version 1, bit 0 = raw DEFLATE payload, bit 1 = dependency trailer present; bits 2/3 must be zero |
+| Payload | Raw bytes or raw DEFLATE (RFC 1951, no zlib/gzip wrapper) |
+| Checksum | Two bytes, big-endian CRC-16/CCITT-FALSE over header and transmitted payload; polynomial 0x1021, initial 0xffff, no reflection or final XOR |
 
-Prefix: `BTSTYLE1:`
+The checksum detects accidental damage, not authorship or permissions. Check
+it before decompressing or interpreting the version. Export compares raw and
+compressed payloads and uses compression only if strictly smaller. Import
+rejects padding, whitespace, non-URL-alphabet characters, noncanonical Base64
+padding bits, trailing bytes and unknown flags. Maximum input: 4096 characters;
+maximum expanded payload: 2048 bytes. Truncated streams, concatenated streams
+and oversized decompression are rejected.
 
-The remainder is unpadded Base64URL of UTF-8 JSON. Example JSON before encoding:
+## Payload
 
-```json
-{
-  "format": "blade_tetra:custom_style",
-  "version": 1,
-  "name": "飞燕",
-  "actions": ["slashblade:combo_a1", "slashblade:combo_b1"]
-}
-```
+Strings are strict UTF-8, prefixed by their byte length as a minimal unsigned
+LEB128 integer (at most two bytes). No Unicode normalization or name trimming.
 
-The format and integer version make the contract independent from the
-implementation-specific binary Tetra scroll payload (`BTCS1:`).
-The JSON may be extended with optional metadata in future versions, without
-allowing client payloads to alter damage, reach, permission or attack effects.
-Do not publish personally identifying author data by default.
+1. Name string: nonblank, at most 48 Java UTF-16 code units, no ISO controls;
+   maximum UTF-8 length 144 bytes.
+2. Action count: one byte, 1 through 6.
+3. External dictionary count: one byte, 0 through action count.
+4. That many unique full `namespace:path` strings, each at most 128 bytes.
+   IDs must parse canonically as Minecraft ResourceLocations. Dictionary order
+   is first occurrence; repeated actions reuse one entry. Unknown/unsafe IDs
+   are allowed in parse-only previews, never automatically permitted.
+5. One token byte per action, in authored order. Values 0..127 reference the
+   fixed dictionary below. Values 128..133 reference external entry `token-128`.
+   Unassigned built-in IDs and out-of-range external indices are rejected.
+   Every external entry must be referenced.
+6. Only when header bit 1 is set: one-byte dependency count (1..12), then that
+   many unique mod ID strings matching `[a-z][a-z0-9_]{1,63}`. No display names
+   or code-supplied version policies are encoded. No remaining payload bytes.
 
-Limits: <=4 KiB encoded string, <=2 KiB decoded JSON, <=6 actions,
-<=48 Java chars for the name, <=128 chars per action ID. Unknown/unregistered
-or unauthorized ordinary actions reject at **import time**. Invalid and
-future-version formats fail closed with explicit statuses. A share code is
-untrusted editable data, not a signature or provenance assertion.
+## Fixed action dictionary
 
-## In-game draft management
+These are wire IDs, never registry ordinals. Never reorder/remove/reuse an
+entry. New entries may be appended up to ID 127; readers missing those entries
+must reject them rather than substitute another action. Incompatible layouts
+require a new version nibble.
 
-`/blade_tetra_style show` — read-only ordered list of drafted actions.
-`/blade_tetra_style rename <name>` — name the current recording.
-`/blade_tetra_style undo` and `clear` — edit a draft without new hit logic.
-`/blade_tetra_style finish` — finalize as native Tetra scroll.
-The physical Style Recorder remains the main interaction: right-click records
-only the most recently performed valid move, and sneak-use opens the editor.
-`/blade_tetra_style edit` remains available.
+| IDs | Namespace | Paths in exact ID order |
+| --- | --- | --- |
+| 0..5 | slashblade | combo_a1, combo_a2, combo_a3, combo_a4, combo_a4_ex, combo_a5ex |
+| 6..12 | slashblade | combo_b1, combo_b2, combo_b3, combo_b4, combo_b5, combo_b6, combo_b7 |
+| 13..16 | slashblade | combo_c, upperslash, rapid_slash, rapid_slash_quick |
+| 17..20 | blade_tetra | iaido_draw, iaido_follow, iaido_return, iaido_finish |
+| 21..23 | blade_tetra | dangaku_sweep, dangaku_cleave, dangaku_charged_sweep |
 
-The UI displays `StyleRecordingSession.snapshot` and asks the server
-to mutate that session, never directly rewrite sword NBT or scroll contents.
+`export` emits the portable name/actions without dependency hints.
+`exportWithDependencies` (GUI export) adds only trusted external provider mod IDs
+from installed adapters, deduplicated. Built-in SlashBlade/BladeTetra providers
+are implied and never add length. Provider labels/installed versions come from
+local trusted adapters. Unknown namespaces are never assumed to be mod IDs.
+Hints remain untrusted declarations; missing declared mods block import but
+cannot grant permissions, identify a trusted provider, or download anything.
 
-Current scope does not upload/download, search community styles, display
-published likes/rankings, or allow import of privileged Slash Arts.
+## Import and existing interactions
 
-## Optional v1 dependency hints
+`inspect` is registry-independent parsing for previews. It never mints a scroll.
+`importValidated` and `CustomStyleDependencyResolver.inspect` retain server-side
+registry, ordinary-action permission, trusted provider and version checks.
+Finalization/forging/runtime permission checks are unchanged. SA and arbitrary
+unregistered actions remain forbidden, regardless of checksum validity.
 
-Old codes are unchanged. GUI export may append:
+The GUI requests a server preview, shows the original name/ordered actions and
+provider diagnostics, and asks before overwriting a draft. A failed import
+leaves the existing draft intact. Export reads a server-approved draft or real
+Tetra scroll in either hand; the complete code remains selectable/copyable.
+The commands `/blade_tetra_style import <code>` and `export` continue to work;
+command import grants the existing native Tetra scroll, while GUI import loads
+an editable draft. No combat, reach, timing, schematic or persistence changes.
 
-```json
-"requirements": [{"modId":"slashblade","displayName":"SlashBlade: Resharped"}]
-```
+Trusted third-party adapters can register an exact action/provider mapping via
+`CustomStyleDependencyResolver.registerProvider` even when that mod is absent.
+Only an audited `ComboCompatibilityResolver.registerOrdinaryAction` permission
+allows replay. Provider mapping alone does not. Trusted Maven version ranges
+remain local adapter policies. Diagnostics continue to distinguish missing mod,
+incompatible version, unregistered action and unsafe action.
 
-At most 12 entries; mod IDs match `[a-z][a-z0-9_]{1,63}`, display labels are
-at most 96 characters without controls. The 2 KiB JSON limit still applies.
-Export omits these optional hints if they would exceed that limit.
-`CustomStyleExchange.export` remains the deterministic legacy export;
-`exportWithDependencies` adds trusted installed-adapter provider hints.
+The game network channel is bumped from 14 to 15 so old GUI clients cannot
+connect to this incompatible export implementation. Both sides need the same
+build. Scroll/NBT schema versions are independent of exchange/network versions.
 
-Hints are editable, untrusted dependency declarations. They never whitelist
-an action, supply a trusted provider name/version policy, download code, or
-grant SA, damage, reach, timing or crafting permissions. Missing declared mod
-IDs block import and remain visible in previews. Declared display names are
-not used as authoritative action attribution. An unknown action namespace
-does not imply a mod with that ID is missing.
+## Length and validation
 
-Parsing (`CustomStyleExchange.inspect`) needs no installed combo registry;
-server diagnostics (`CustomStyleDependencyResolver.inspect`) retain parsed
-content even if dependencies are unavailable. Formal import revalidates each
-action against the actual registry and ordinary-action allowlist. Finalizing
-a draft and forging its native scroll also retain runtime permission checks.
-Invalid UTF-8, fractional format versions, corrupt/oversized JSON and invalid
-requirement types fail closed. Future format versions remain unsupported.
+With a four-character Chinese name, measured uncompressed lengths including
+header/checksum are 27 characters for two built-in actions, 28 for three, and
+32 for six. Long names and external full IDs cost more; compression is selected
+only if useful. This does not promise a fixed length for arbitrary modded IDs.
 
-## Trusted provider adapters
+`CustomStyleExchangeTest` pins all 24 wire IDs and checks name/order/repeats,
+external hints, both encoding modes, CRC corruption, malformed UTF-8/lengths,
+future versions, dictionary references and bounded decompression. Existing
+`runServer -PcustomStyleSmoke` verifies real draft import/finalization and failed
+import protection. Final in-game clipboard/visual acceptance remains user-owned.
 
-Core explicitly maps `slashblade:*` to mod ID `slashblade` and
-`blade_tetra:*` to `blade_tetra`. Third-party namespaces are never guessed.
-An adapter may register an exact ID mapping even when the optional mod is
-absent, allowing useful missing-mod diagnostics:
-
-```java
-CustomStyleDependencyResolver.registerProvider(
-    new ResourceLocation("different_namespace", "ordinary_cut"),
-    new CustomStyleDependencyResolver.Provider("actual_mod_id", "Actual Mod", ""));
-// Only after auditing click/tick effects, prerequisites and free normal execution:
-ComboCompatibilityResolver.registerOrdinaryAction(
-    new ResourceLocation("different_namespace", "ordinary_cut"));
-```
-
-Provider mapping alone grants nothing. Conflicting mappings are rejected.
-Only a real compatibility adapter may supply a Maven version range, such as
-`[1.2,2)`; the default empty range makes no minimum-version claim.
-Code-supplied version-like fields cannot become trusted policy.
-
-Diagnostics distinguish `AVAILABLE`, `MISSING_MOD`, `INCOMPATIBLE_VERSION`,
-`UNREGISTERED_ACTION`, and `UNSAFE_ACTION`; malformed/unsupported formats
-retain the separate exchange format status. Unknown attribution is shown
-explicitly, without invented names or download links.
-
-No timing metadata is read from share codes. Unadapted external actions keep
-their native transition gate and standard melee reach. See
-[implementation, timing table and acceptance checklist](CUSTOM_STYLE_FINALIZATION.md).
-
-GUI requests use the mod's existing server channel (protocol 14); the
-portable share prefix/JSON version remain `BTSTYLE1:` / `1`. Both game sides
-must run the same mod build, independently of portable share-code compatibility.
+Local validation: build/JUnit passed (422 tests, 0 failures/errors, 1 existing skip); `CUSTOM_EXCHANGE_SMOKE_PASS`, `CUSTOM_STYLE_SMOKE_PASS` and 32-PNG resource validation passed. No game GUI session was launched for this protocol change.
