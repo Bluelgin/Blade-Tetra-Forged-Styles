@@ -2,12 +2,12 @@
 
 **全部展示图均为概念设计，不是 Minecraft 实机截图。** 正式资源与客户端整合现已合入 `main`；已接通的界面、模型、HUD 和仍待接口的状态见[客户端整合记录](CLIENT_INTEGRATION.md)。
 
-本目录保留最初的美术设计、源图和导出工具；概念图与旧接口契约不代表现行功能范围。当前操作和短分享码见[千门剑谱说明](../CUSTOM_STYLE_FINALIZATION.md)。
+本目录保留最初的美术设计、源图和导出工具；概念图与旧接口契约不代表现行功能范围。当前操作和短分享码见[千门剑谱说明](../guides/CUSTOM_STYLE_FINALIZATION.md)。
 
 ## 基线与风格依据
 
 - 开发基线：`main`，`8132bc8fd48675717717353e0b03294f715909a3`。
-- 参考：`docs/ART_INVENTORY_REVIEW.md` 的克制金属边缘规范；
+- 参考：`docs/history/ART_INVENTORY_REVIEW.md` 的克制金属边缘规范；
   `art-previews/legacy_imprint_scroll_redesign.svg` 的旧金、暖纸与深轮廓；
   `LegacyImprintScreen` 的纸色底板、朱红分隔和原生按钮；
   `ForgingScrolls` 的原生 `ScrollItem` / `ScrollData` 表现方式。

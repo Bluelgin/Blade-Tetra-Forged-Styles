@@ -24,7 +24,7 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 
 ### 整合包战斗平衡配置
 
-模块刀提供总伤害、四流派、SA、非 SA 幻影剑和离锋剑气共 8 个倍率，默认全部为 **1.0**。由存档/服务器的 `serverconfig/blade-tetra-server.toml` 控制，不影响其他模组的刀或御影伤害。配置菜单、修改生效与兼容边界见 [战斗平衡配置说明（中文 / English）](docs/COMBAT_BALANCE_CONFIG.md)。
+模块刀提供总伤害、四流派、SA、非 SA 幻影剑和离锋剑气共 8 个倍率，默认全部为 **1.0**。由存档/服务器的 `serverconfig/blade-tetra-server.toml` 控制，不影响其他模组的刀或御影伤害。配置菜单、修改生效与兼容边界见 [战斗平衡配置说明（中文 / English）](docs/guides/COMBAT_BALANCE_CONFIG.md)。
 
 - **模块化锻刀**：自由组合刀身、刀柄、刀镡、刀鞘等部件，并继承 Tetra 的材料、完整度、加工、修复与打磨体系。
 - **四种预设流派**：本传、居合、连舞与断岳拥有不同的攻击节奏、范围、连段与风险收益。
@@ -32,22 +32,22 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 - **秘传·离锋**：研习后在 SSS 下由真实普通斩击发出剑气，支持预设与自创流派；客户端提供三档剑气画质。
 - **名刀映锻**：研习重锋本体及标准附属名刀，将其刀鞘与完整镡柄仿造成可混装的 Tetra 部件；同源刀装会形成动态映锻契合。
 - **隐藏传承与魂铭**：通过锻刀秘录探索赤月、镜花水月、千本樱、雷切等觉醒，并允许部分魂铭融合。
-- **御影内容保留**：普通挑战与回忆战暂时封印，等待战斗完善；保留旧进度与符合资格的非战斗访客入口。见[当前开放策略](docs/MIKAGE_CHALLENGE_SUSPENSION.md)。
+- **御影内容保留**：普通挑战与回忆战暂时封印，等待战斗完善；保留旧进度与符合资格的非战斗访客入口。见[当前开放策略](docs/guides/MIKAGE_CHALLENGE_SUSPENSION.md)。
 - **动态材料美术**：读取已加载的 Tetra 材料，为刀身、刀装和刀光生成对应视觉，同时保留手工制作的特殊材料表现。
 - **存档与附属兼容**：旧刀自动迁移；标准重锋附属名刀可以自动发现，特殊模型则可通过适配器扩展。
 
 ## 文档入口
 
 - [全部文档与历史记录](docs/README.md)
-- [千门剑谱操作、刀身与导入导出](docs/CUSTOM_STYLE_FINALIZATION.md#玩家操作)
-- [离锋剑气与画质配置](docs/LIFENG_SWORD_AURA.md)
-- [战斗与连招指南](docs/COMBAT_GUIDE.zh-CN.md)
+- [千门剑谱操作、刀身与导入导出](docs/guides/CUSTOM_STYLE_FINALIZATION.md#玩家操作)
+- [离锋剑气与画质配置](docs/guides/LIFENG_SWORD_AURA.md)
+- [战斗与连招指南](docs/guides/COMBAT_GUIDE.zh-CN.md)
 - [特殊刀与隐藏传承 Wiki](docs/legacy-wiki/README.md)（答案默认折叠，避免意外剧透）
-- [名刀映锻说明](NAMED_BLADE_IMPRINTING.md)
-- [附属兼容说明](ADDON_COMPATIBILITY.md)
+- [名刀映锻说明](docs/guides/NAMED_BLADE_IMPRINTING.md)
+- [附属兼容说明](docs/guides/ADDON_COMPATIBILITY.md)
 - [配置说明](CONFIGURATION.md)
-- [镶嵌、裹柄与涂层](docs/SWORD_ATTACHMENTS.md)
-- [解除死念](docs/DEAD_THOUGHT_REMOVAL.md)
+- [镶嵌、裹柄与涂层](docs/guides/SWORD_ATTACHMENTS.md)
+- [解除死念](docs/guides/DEAD_THOUGHT_REMOVAL.md)
 
 ## 环境与安装
 

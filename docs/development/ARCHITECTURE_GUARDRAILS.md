@@ -223,7 +223,7 @@ existing `ChallengeSession`. Cancellation is not victory. Recovery restores
 the phase without replaying phase dialogue. Persistent arena hazards have
 separate lifetime ownership from their originating cast.
 
-See `docs/MIKAGE_REACTIVE_ENCOUNTER.md` for the current migration boundary.
+See `docs/development/MIKAGE_REACTIVE_ENCOUNTER.md` for the current migration boundary.
 
 ## Combat balance configuration
 

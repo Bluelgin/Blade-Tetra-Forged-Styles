@@ -1,6 +1,6 @@
 # 千门剑谱客户端美术整合交付
 
-> 此页是美术整合时的交付记录，所述基线、网络协议与验证结果属于当时版本；相关 PR 现已合入 main。后续录制流程与分享 GUI 见[功能完善记录](../CUSTOM_STYLE_FINALIZATION.md)，现行分享格式见[社区协议](../CUSTOM_STYLE_COMMUNITY_PROTOCOL.md)。下文 BTSTYLE1 等旧格式引用仅用于说明原整合范围。
+> 此页是美术整合时的交付记录，所述基线、网络协议与验证结果属于当时版本；相关 PR 现已合入 main。后续录制流程与分享 GUI 见[功能完善记录](../guides/CUSTOM_STYLE_FINALIZATION.md)，现行分享格式见[社区协议](../development/CUSTOM_STYLE_COMMUNITY_PROTOCOL.md)。下文 BTSTYLE1 等旧格式引用仅用于说明原整合范围。
 
 ## 开发基线与资源来源
 
@@ -71,7 +71,7 @@ Java编译与资源处理通过；现有弃用警告未扩展修复。没有启�
 ## 后续功能开发
 
 本文件记录 PR #32 的纯美术接入边界。后续流程修复、刀身节奏和导入／导出 GUI 见
-[千门剑谱功能交付说明](../CUSTOM_STYLE_FINALIZATION.md)，不再受本文件的纯客户端修改范围限制。
+[千门剑谱功能交付说明](../guides/CUSTOM_STYLE_FINALIZATION.md)，不再受本文件的纯客户端修改范围限制。
 
 
-Protocol update: the unreleased JSON share code has been replaced by the prefix-free compact format. The historical integration scope above describes the original art-only work. See [current exchange contract](../CUSTOM_STYLE_COMMUNITY_PROTOCOL.md).
+Protocol update: the unreleased JSON share code has been replaced by the prefix-free compact format. The historical integration scope above describes the original art-only work. See [current exchange contract](../development/CUSTOM_STYLE_COMMUNITY_PROTOCOL.md).

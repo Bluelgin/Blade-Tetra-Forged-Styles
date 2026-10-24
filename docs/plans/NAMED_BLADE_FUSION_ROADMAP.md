@@ -91,7 +91,7 @@
 
 主要验证点：SA 多段只侵蚀一次；被取消的普通伤害仍可触发命蚀；命魂归零只发起一次死亡握手；有伤害 cap／转阶段规则的 Boss 能进入魂碎且不再被后台压到 0.01 HP；只有下一次完整“无生”请求终末魂崩；终末死亡被取消时不形成事件循环；目标死亡后 detached 魂崩演出仍可完整结束；显式无敌与实体标签能退出机制。
 
-完整机制与美术时序见 `DEAD_THOUGHT_SOUL_SYSTEM.md` 与 `DEAD_THOUGHT_VFX.md`。
+完整机制与美术时序见 `docs/guides/DEAD_THOUGHT_SOUL_SYSTEM.md` 与 `docs/development/DEAD_THOUGHT_VFX.md`。
 
 ## 第一批
 
