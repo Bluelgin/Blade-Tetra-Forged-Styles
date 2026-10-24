@@ -6,6 +6,7 @@
 
 后续更新日志请统一放在此目录，并在下方补充索引。
 
+- 1.6.5：[中文](RELEASE_NOTES-1.6.5-ZH.md) / [English](RELEASE_NOTES-1.6.5.md)
 - 1.5.9.1：[中文](RELEASE_NOTES-1.5.9.1-ZH.md) / [记录](RELEASE_NOTES-1.5.9.1.md)
 - 1.5.9：[中文](RELEASE_NOTES-1.5.9-ZH.md) / [记录](RELEASE_NOTES-1.5.9.md)
 - 1.5.8：[中文](RELEASE_NOTES-1.5.8-ZH.md) / [记录](RELEASE_NOTES-1.5.8.md)
