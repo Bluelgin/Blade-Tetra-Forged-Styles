@@ -1,5 +1,7 @@
 # 千门剑谱客户端美术整合交付
 
+> 此页是美术整合时的交付记录，所述基线、网络协议与验证结果属于当时版本；相关 PR 现已合入 main。后续录制流程与分享 GUI 见[功能完善记录](../CUSTOM_STYLE_FINALIZATION.md)，现行分享格式见[社区协议](../CUSTOM_STYLE_COMMUNITY_PROTOCOL.md)。下文 BTSTYLE1 等旧格式引用仅用于说明原整合范围。
+
 ## 开发基线与资源来源
 
 - 功能基线：PR #30，`ebd3e72ff26e2e03a8ddc57986ba5a5298f979fb`。

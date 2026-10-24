@@ -8,13 +8,15 @@ Built for Minecraft 1.20.1 and Forge 47.x. One jar supports Tetra 6.3.0 and late
 
 - A dedicated modular SlashBlade that preserves Resharped's blade state, combos, ownership, kill count, break state and Slash Arts.
 - Eight Tetra module slots: blade, tsuka, tsuba, saya, habaki, kashira, fuller and soul inscription.
-- Four blade disciplines selected by the installed blade: Orthodox, Iaido, Rengeki and Dangaku.
+- Four preset blade disciplines: Orthodox, Iaido, Rengeki and Dangaku.
+- Qianmen custom styles: record up to six ordinary actions, edit and name a native Tetra scroll, then forge short, standard or long blades; compact offline sharing preserves names and action order.
+- Lifeng sword aura: learned mastery enables auras from real ordinary slashes at SSS, including custom styles, with three client detail levels.
 - Meaningful fittings, including quickdraw and spirit saya, defensive guards, precision or reinforced habaki, multiple handle forms and blade finishings.
 - Tetra repair and honing progression using the same durability state as SlashBlade.
 - Material-aware blade surfaces, fittings, slash colors and restrained emissive details for Tetra, MMT and datapack-provided materials.
 - Forging and technique scrolls that turn advanced construction and combat options into discoverable survival progression.
 - Hidden blade legacies, four awakened souls—Akatsuki, Kyouka Suigetsu, Senbonzakura and Raikiri—and pairwise soul fusion without stat stacking or recursive bonus attacks.
-- The Mikage endgame challenge, with its own arena, phases, dialogue, rewards and a rather unhealthy number of torii gates.
+- Mikage combat and rematches are temporarily suspended while combat is refined; existing progress and eligible non-combat visits are retained.
 - Server-side balance controls and client-side visual/audio options for modpack authors and players.
 
 ## New in 1.5.0: Named Blade Imprinting
