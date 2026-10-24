@@ -39,11 +39,27 @@ public final class ClientVisualConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_BLADE_COMBAT_CAMERA_IMPACT;
     public static final ForgeConfigSpec.BooleanValue ENABLE_PARRY_CAMERA_IMPACT;
     public static final ForgeConfigSpec.DoubleValue BLADE_COMBAT_CAMERA_INTENSITY;
+    public static final ForgeConfigSpec.IntValue SWORD_AURA_DETAIL;
+    public static final ForgeConfigSpec.DoubleValue SWORD_AURA_DECORATION_DISTANCE;
+    public static final ForgeConfigSpec.IntValue SWORD_AURA_MAX_DECORATIONS;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         builder.push("visuals");
+        SWORD_AURA_DETAIL = builder
+                .comment("Lifeng sword aura detail: 0 = main layer only, 1 = balanced, 2 = full.",
+                        "Balanced halves the decoration distance and per-frame budget. Damage is unchanged.")
+                .translation("config.blade_tetra.visuals.swordAuraDetail")
+                .defineInRange("swordAuraDetail", 2, 0, 2);
+        SWORD_AURA_DECORATION_DISTANCE = builder
+                .comment("Maximum camera distance for optional crossed/heavy aura layers; main projectiles remain visible.")
+                .translation("config.blade_tetra.visuals.swordAuraDecorationDistance")
+                .defineInRange("swordAuraDecorationDistance", 48.0D, 8.0D, 128.0D);
+        SWORD_AURA_MAX_DECORATIONS = builder
+                .comment("Maximum optional aura layers per rendered frame; never limits attacks or damage.")
+                .translation("config.blade_tetra.visuals.swordAuraMaxDecorations")
+                .defineInRange("swordAuraMaxDecorations", 32, 0, 128);
         ENABLE_DEAD_THOUGHT_GRADING = builder
                 .comment("Brief, caster-only desaturation for Dead Thought. Off in low VFX quality.",
                         "Disable for shader-pack compatibility; all 3D effects remain available.")

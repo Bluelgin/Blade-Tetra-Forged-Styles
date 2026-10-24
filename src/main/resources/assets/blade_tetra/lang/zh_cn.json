@@ -1200,5 +1200,11 @@
   "message.blade_tetra.lifeng.learned": "秘传·离锋，已铭刻于心。",
   "config.blade_tetra.combatBalance.swordAuraDamageMultiplier": "离锋剑气伤害倍率",
   "config.blade_tetra.combatBalance.swordAuraDamageMultiplier.tooltip": "仅调整离锋剑气伤害。默认 1.0，范围 0–10；0 关闭剑气伤害。发射时生效，不改变已发射的剑气。",
-  "tooltip.blade_tetra.lifeng_scroll.verse": "心随剑至，余势自成离锋。"
+  "tooltip.blade_tetra.lifeng_scroll.verse": "心随剑至，余势自成离锋。",
+  "config.blade_tetra.visuals.swordAuraDetail": "离锋剑气画质",
+  "config.blade_tetra.visuals.swordAuraDetail.tooltip": "0：仅主剑气；1：均衡；2：完整。均衡模式将装饰距离和每帧数量减半；不改变伤害。",
+  "config.blade_tetra.visuals.swordAuraDecorationDistance": "剑气装饰显示距离",
+  "config.blade_tetra.visuals.swordAuraDecorationDistance.tooltip": "可选交叉／双层剑气距摄像机的显示距离。主剑气保留显示。",
+  "config.blade_tetra.visuals.swordAuraMaxDecorations": "每帧剑气装饰上限",
+  "config.blade_tetra.visuals.swordAuraMaxDecorations.tooltip": "仅限制额外装饰层数量，不限制攻击次数、伤害或主剑气。"
 }

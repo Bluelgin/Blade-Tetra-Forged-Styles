@@ -3,6 +3,10 @@ package dev.bladetetra.aura;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.registry.ModEntities;
+import dev.bladetetra.combat.BladeStyle;
+import mods.flammpfeil.slashblade.SlashBlade;
+import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -88,6 +92,29 @@ public final class SwordAuraHitSmokeTest {
             decoration.onHitEntity(new EntityHitResult(victim));
             check(victim.getHealth() == after, "decorative slash never spends a damage budget");
             check(!victim.hurt(level.damageSources().mobAttack(owner), 1), "normal attacks still obey their own hurt cooldown");
+            // A visual-heavy profile must still emit exactly one physical damage projectile.
+            for (BladeStyle style : BladeStyle.values()) {
+                int before = level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> aura.getOwner() == owner).size();
+                var slash = new EntitySlashEffect(SlashBlade.RegistryEvents.SlashEffect, level);
+                slash.setPos(5, 80, 5);
+                SwordAuraSpawner.emit(owner, slash, style);
+                var emitted = level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> aura.getOwner() == owner);
+                check(emitted.size() == before + 1, "one physical aura for " + style);
+                // Entity iteration order is not a creation-order contract.
+                var latest = emitted.stream().filter(aura -> aura.position().distanceToSqr(5, 80, 5) < 1).findFirst().orElseThrow();
+                check(latest.getDamage() > 0, "damage projectile retained for " + style);
+                BladeStyle visual = style == BladeStyle.RENGEKI || style == BladeStyle.DANGAKU ? style : BladeStyle.STANDARD;
+                check(latest.getVisualStyle() == visual, "launch visual snapshot for " + style);
+                var saved = new CompoundTag(); latest.addAdditionalSaveData(saved);
+                var restored = new SwordAuraDriveEntity(ModEntities.SWORD_AURA_DRIVE.get(), level);
+                var metadata = latest.getEntityData().getNonDefaultValues();
+                if (metadata != null) restored.getEntityData().assignValues(metadata);
+                check(restored.getVisualStyle() == visual, "spawn metadata carries visual for " + style);
+                restored.setVisualStyle(BladeStyle.STANDARD);
+                restored.readAdditionalSaveData(saved);
+                check(restored.getVisualStyle() == visual, "visual survives save/load for " + style);
+                latest.discard();
+            }
             LogUtils.getLogger().info("SWORD_AURA_HIT_SMOKE_PASS: {} checks", checks);
         } catch (Throwable failure) {
             LogUtils.getLogger().error("SWORD_AURA_HIT_SMOKE_FAIL", failure);

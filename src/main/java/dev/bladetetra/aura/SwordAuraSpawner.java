@@ -16,16 +16,11 @@ public final class SwordAuraSpawner {
         Vec3 forward = Vec3.directionFromRotation(player.getXRot(), slash.getYRot()).normalize();
         if (forward.lengthSqr() < 1.0E-6D) return;
         spawn(player, slash.position().add(forward.scale(0.45D)), forward, roll,
-                profile, damage, false, slash.getColor());
-        if (profile.hasDecoration()) {
-            spawn(player, slash.position().add(forward.scale(0.45D))
-                            .add(0, profile.additionalHeight(), 0),
-                    forward, roll + profile.additionalRoll(), profile, 0.0F, true, slash.getColor());
-        }
+                profile, style, damage, slash.getColor());
     }
 
     private static void spawn(ServerPlayer player, Vec3 position, Vec3 direction,
-            float roll, SwordAuraStyleProfile profile, float damage, boolean decoration, int color) {
+            float roll, SwordAuraStyleProfile profile, BladeStyle style, float damage, int color) {
         SwordAuraDriveEntity drive = new SwordAuraDriveEntity(ModEntities.SWORD_AURA_DRIVE.get(),
                 player.level());
         drive.setPos(position.x, position.y, position.z);
@@ -36,7 +31,9 @@ public final class SwordAuraSpawner {
         drive.setSpeed(profile.speed());
         drive.setLifetime(profile.lifetimeTicks());
         drive.setDamage(damage);
-        drive.setDecoration(decoration);
+        // Crossed/heavy silhouettes are extra render passes on this projectile,
+        // not extra server entities with their own physics, collision and tracking.
+        drive.setVisualStyle(style);
         drive.shoot(direction.x, direction.y, direction.z, profile.speed(), 0.0F);
         player.level().addFreshEntity(drive);
     }
