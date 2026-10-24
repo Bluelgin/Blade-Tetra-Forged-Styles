@@ -80,4 +80,4 @@ gradlew build
 - 自创剑谱只接受经过普通动作权限校验的招式；注册了动作 ID 不代表可直接导入或继承原流派的全部被动。
 - 分享码保留剑谱名称和动作顺序；导入时仍由服务器验证所需模组、版本与普通招式权限，不兼容未发布的旧 `BTSTYLE1:` 格式。
 - 部分美术状态仍缺可靠客户端接口，未伪造录制或锻造成功反馈，详见[客户端整合边界](docs/custom-style-art/CLIENT_INTEGRATION.md)。
-- 原有版本日志仍在仓库根目录；Alpha 至 1.5.2 的旧首页内容移至[历史记录](docs/history/README_HISTORY.md)，不作为当前功能说明。
+- 历次[版本更新日志](docs/releases/README.md)统一收纳在 `docs/releases/`；Alpha 至 1.5.2 的旧首页内容移至[历史记录](docs/history/README_HISTORY.md)，不作为当前功能说明。

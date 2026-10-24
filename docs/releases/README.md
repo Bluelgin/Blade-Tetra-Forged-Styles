@@ -1,0 +1,40 @@
+# 版本更新日志
+
+[返回文档导航](../README.md) · [返回项目首页](../../README.md)
+
+本目录按版本汇总已归档的更新日志，中文与原文保留各自文件名。日志内容描述对应历史版本，不代表当前功能状态，也不代表当前源码已正式发布。
+
+后续更新日志请统一放在此目录，并在下方补充索引。
+
+- 1.5.9.1：[中文](RELEASE_NOTES-1.5.9.1-ZH.md) / [记录](RELEASE_NOTES-1.5.9.1.md)
+- 1.5.9：[中文](RELEASE_NOTES-1.5.9-ZH.md) / [记录](RELEASE_NOTES-1.5.9.md)
+- 1.5.8：[中文](RELEASE_NOTES-1.5.8-ZH.md) / [记录](RELEASE_NOTES-1.5.8.md)
+- 1.5.7：[中文](RELEASE_NOTES-1.5.7-ZH.md) / [记录](RELEASE_NOTES-1.5.7.md)
+- 1.5.3：[记录](RELEASE_NOTES-1.5.3.md)
+- 1.5.2：[中文](RELEASE_NOTES-1.5.2-ZH.md) / [记录](RELEASE_NOTES-1.5.2.md)
+- 1.5.1：[中文](RELEASE_NOTES-1.5.1-ZH.md) / [记录](RELEASE_NOTES-1.5.1.md)
+- 1.5.0：[中文](RELEASE_NOTES-1.5.0-ZH.md) / [记录](RELEASE_NOTES-1.5.0.md)
+- 1.4.4：[中文](RELEASE_NOTES-1.4.4-ZH.md) / [记录](RELEASE_NOTES-1.4.4.md)
+- 1.4.3：[中文](RELEASE_NOTES-1.4.3-ZH.md) / [记录](RELEASE_NOTES-1.4.3.md)
+- 1.4.2：[记录](RELEASE_NOTES-1.4.2.md)
+- 1.4.1：[记录](RELEASE_NOTES-1.4.1.md)
+- 1.4.0：[记录](RELEASE_NOTES-1.4.0.md)
+- 1.3.8：[记录](RELEASE_NOTES-1.3.8.md)
+- 1.3.5：[记录](RELEASE_NOTES-1.3.5.md)
+- 1.3.4：[记录](RELEASE_NOTES-1.3.4.md)
+- 1.3.3：[记录](RELEASE_NOTES-1.3.3.md)
+- 1.3.2：[记录](RELEASE_NOTES-1.3.2.md)
+- 1.3.1：[记录](RELEASE_NOTES-1.3.1.md)
+- 1.3.0：[记录](RELEASE_NOTES-1.3.0.md)
+- 1.2.9：[记录](RELEASE_NOTES-1.2.9.md)
+- 1.2.8：[记录](RELEASE_NOTES-1.2.8.md)
+- 1.2.7：[记录](RELEASE_NOTES-1.2.7.md)
+- 1.2.6：[记录](RELEASE_NOTES-1.2.6.md)
+- 1.2.5：[记录](RELEASE_NOTES-1.2.5.md)
+- 1.2.4：[记录](RELEASE_NOTES-1.2.4.md)
+- 1.2.3：[记录](RELEASE_NOTES-1.2.3.md)
+- 1.2.2：[记录](RELEASE_NOTES-1.2.2.md)
+- 1.2.1：[记录](RELEASE_NOTES-1.2.1.md)
+- 1.2.0：[记录](RELEASE_NOTES-1.2.0.md)
+- 1.1.1：[记录](RELEASE_NOTES-1.1.1.md)
+- 1.0.0：[记录](RELEASE_NOTES-1.0.0.md)
