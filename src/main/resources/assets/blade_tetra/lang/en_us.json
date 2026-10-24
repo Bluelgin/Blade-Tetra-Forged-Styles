@@ -1212,5 +1212,11 @@
   "message.blade_tetra.lifeng.learned": "Lifeng is now yours to command.",
   "config.blade_tetra.combatBalance.swordAuraDamageMultiplier": "Lifeng sword aura damage",
   "config.blade_tetra.combatBalance.swordAuraDamageMultiplier.tooltip": "Lifeng aura damage only. Default 1.0, range 0–10; 0 disables aura damage. Applied on emission; existing projectiles are unchanged.",
-  "tooltip.blade_tetra.lifeng_scroll.verse": "Where intent follows steel, the lingering stroke flies free."
+  "tooltip.blade_tetra.lifeng_scroll.verse": "Where intent follows steel, the lingering stroke flies free.",
+  "config.blade_tetra.visuals.swordAuraDetail": "Lifeng Aura Detail",
+  "config.blade_tetra.visuals.swordAuraDetail.tooltip": "0: main layer only; 1: balanced; 2: full. Balanced halves decoration distance and budget. Damage is unchanged.",
+  "config.blade_tetra.visuals.swordAuraDecorationDistance": "Aura Decoration Distance",
+  "config.blade_tetra.visuals.swordAuraDecorationDistance.tooltip": "Camera distance for optional crossed/heavy layers. Main projectiles remain visible.",
+  "config.blade_tetra.visuals.swordAuraMaxDecorations": "Aura Decorations per Frame",
+  "config.blade_tetra.visuals.swordAuraMaxDecorations.tooltip": "Limits optional layers only, never attack count, damage or main projectiles."
 }
