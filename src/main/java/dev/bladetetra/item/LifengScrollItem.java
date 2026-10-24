@@ -30,10 +30,6 @@ public final class LifengScrollItem extends Item {
             player.displayClientMessage(Component.translatable("message.blade_tetra.lifeng.already"), true);
             return InteractionResultHolder.fail(scroll);
         }
-        if (!SwordAuraMastery.worldUnlocked(serverPlayer)) {
-            player.displayClientMessage(Component.translatable("message.blade_tetra.lifeng.locked"), true);
-            return InteractionResultHolder.fail(scroll);
-        }
         if (SwordAuraMastery.learn(serverPlayer)) {
             if (!player.getAbilities().instabuild) scroll.shrink(1);
             player.displayClientMessage(Component.translatable("message.blade_tetra.lifeng.learned"), false);
@@ -46,6 +42,8 @@ public final class LifengScrollItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.blade_tetra.lifeng_scroll")
+                .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.lifeng_scroll.verse")
                 .withStyle(ChatFormatting.GRAY));
     }
 }

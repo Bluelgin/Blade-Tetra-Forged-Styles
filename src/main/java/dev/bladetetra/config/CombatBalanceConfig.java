@@ -6,7 +6,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 /** Part of the existing world-owned SERVER spec; values are read for each damage request. */
 public final class CombatBalanceConfig {
-    public static ForgeConfigSpec.DoubleValue GLOBAL, STANDARD, IAIDO, DANGAKU, RENGEKI, SLASH_ART, SUMMONED_SWORD;
+    public static ForgeConfigSpec.DoubleValue GLOBAL, STANDARD, IAIDO, DANGAKU, RENGEKI, SLASH_ART, SUMMONED_SWORD, SWORD_AURA;
 
     static void define(ForgeConfigSpec.Builder builder) {
         builder.comment("Damage multipliers for player-owned Blade Tetra modular blades only.",
@@ -21,6 +21,11 @@ public final class CombatBalanceConfig {
         RENGEKI = multiplier(builder, "rengekiDamageMultiplier", "Rengeki style damage.", "连舞流伤害倍率。");
         SLASH_ART = multiplier(builder, "slashArtDamageMultiplier", "Slash Art damage, including supported Super SA and its projectiles.", "SA 与受支持的 Super SA 伤害倍率，包含其斩波和幻影剑，不再叠乘普通幻影剑倍率。");
         SUMMONED_SWORD = multiplier(builder, "summonedSwordDamageMultiplier", "Summoned swords outside Slash Arts; does not also multiply SA projectiles.", "非 SA 幻影剑伤害倍率，不与 SA 倍率重复叠乘。");
+        SWORD_AURA = builder.comment("Lifeng sword aura only. Applied once when a new projectile is emitted; existing projectiles keep their damage.",
+                        "仅影响离锋剑气；发射时读取一次，已发射的剑气保持原伤害。",
+                        "0 = disable aura damage, 1 = unchanged. Range: 0..10.")
+                .translation("config.blade_tetra.combatBalance.swordAuraDamageMultiplier")
+                .defineInRange("swordAuraDamageMultiplier", 1.0D, 0.0D, 10.0D);
         builder.pop();
     }
 

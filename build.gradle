@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('swordAuraHitSmoke')) {
+                workingDirectory project.file('build/sword-aura-hit-smoke')
+                property 'blade_tetra.swordAuraHitSmoke', 'true'
+            }
             if (project.hasProperty('lifengSmoke')) {
                 workingDirectory project.file('build/lifeng-smoke')
                 property 'blade_tetra.lifengSmoke', 'true'

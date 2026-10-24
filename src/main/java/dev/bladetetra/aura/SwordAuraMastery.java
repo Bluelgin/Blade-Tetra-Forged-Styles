@@ -1,10 +1,7 @@
 package dev.bladetetra.aura;
 
 import dev.bladetetra.BladeTetra;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,13 +19,6 @@ public final class SwordAuraMastery {
         if (knows(player)) return false;
         player.getPersistentData().putBoolean(LEARNED, true);
         return true;
-    }
-
-    /** A world's dragon defeat unlocks research for every resident, even late joiners. */
-    public static boolean worldUnlocked(ServerPlayer player) {
-        ServerLevel end = player.server.getLevel(Level.END);
-        return end != null && end.getDragonFight() != null
-                && end.getDragonFight().hasPreviouslyKilledDragon();
     }
 
     @SubscribeEvent

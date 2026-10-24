@@ -17,12 +17,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Reuses native Drive physics and renderer, not Drive's iframe-clearing hit code.
+ * Reuses native Drive physics and renderer, with a separate bounded aura hit cadence.
  * Secondary visual petals never deal damage.
  */
 public final class SwordAuraDriveEntity extends EntityDrive {
     private static final String DECORATION = "blade_tetra_lifeng_decoration";
-    private static final double MAX_RANGE_SQUARED = 8.0D * 8.0D;
+    private static final SwordAuraHitCadence<Entity> HIT_CADENCE = new SwordAuraHitCadence<>();
     private Vec3 launchPosition;
     private final Set<Integer> hitTargets = new HashSet<>();
 
@@ -39,7 +39,7 @@ public final class SwordAuraDriveEntity extends EntityDrive {
     public void tick() {
         if (launchPosition == null) launchPosition = position();
         super.tick();
-        if (!level().isClientSide() && launchPosition.distanceToSqr(position()) >= MAX_RANGE_SQUARED) {
+        if (!level().isClientSide() && launchPosition.distanceToSqr(position()) >= SwordAuraFlight.RANGE_SQUARED) {
             discard();
         }
     }
@@ -51,11 +51,18 @@ public final class SwordAuraDriveEntity extends EntityDrive {
         Entity target = directTarget instanceof PartEntity<?> part ? part.getParent() : directTarget;
         Entity owner = getOwner();
         if (!(owner instanceof LivingEntity attacker) || target == owner || !target.isAlive()
-                || !hitTargets.add(target.getId())) return;
-        // No bypass, no invulnerability reset, no direct health mutation. The
-        // target, Forge hooks and other mods keep ownership of damage mitigation.
+                || hitTargets.contains(target.getId())) return;
+        // Do not zero invulnerableTime or bypass real invulnerability. Only aura hurt-cooldown
+        // handling is replaced, at most once per victim every four ticks across all projectiles.
         float amount = (float) getDamage();
-        if (amount > 0.0F && target.hurt(damageSources().indirectMagic(this, attacker), amount)) {
+        if (amount > 0.0F && HIT_CADENCE.tryHit(target, level().getGameTime(), () -> {
+            float health = target instanceof LivingEntity victim ? victim.getHealth() : 0;
+            float absorption = target instanceof LivingEntity victim ? victim.getAbsorptionAmount() : 0;
+            boolean accepted = SwordAuraImpact.hurt(target, new SwordAuraDamageSource(this, attacker), amount);
+            return accepted && (!(target instanceof LivingEntity victim) || victim.getHealth() < health
+                    || victim.getAbsorptionAmount() < absorption || !victim.isAlive());
+        })) {
+            hitTargets.add(target.getId());
             attacker.setLastHurtMob(target);
             discard();
         }

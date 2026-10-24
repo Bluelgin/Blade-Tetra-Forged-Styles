@@ -22,7 +22,7 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 
 ### 整合包战斗平衡配置
 
-模块刀提供总伤害、四流派、SA 和非 SA 幻影剑共 7 个倍率，默认全部为 **1.0**。由存档/服务器的 `serverconfig/blade-tetra-server.toml` 控制，不影响其他模组的刀或御影伤害。配置菜单、修改生效与兼容边界见 [战斗平衡配置说明（中文 / English）](docs/COMBAT_BALANCE_CONFIG.md)。
+模块刀提供总伤害、四流派、SA、非 SA 幻影剑和离锋剑气共 8 个倍率，默认全部为 **1.0**。由存档/服务器的 `serverconfig/blade-tetra-server.toml` 控制，不影响其他模组的刀或御影伤害。配置菜单、修改生效与兼容边界见 [战斗平衡配置说明（中文 / English）](docs/COMBAT_BALANCE_CONFIG.md)。
 
 - **模块化锻刀**：自由组合刀身、刀柄、刀镡、刀鞘等部件，并继承 Tetra 的材料、完整度、加工、修复与打磨体系。
 - **四种战斗流派**：本传、居合、连舞与断岳拥有不同的攻击节奏、范围、连段与风险收益。

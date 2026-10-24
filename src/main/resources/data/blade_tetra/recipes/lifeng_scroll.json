@@ -4,8 +4,8 @@
   "key": {
     "P": { "item": "minecraft:paper" },
     "H": { "item": "minecraft:shulker_shell" },
-    "M": { "item": "minecraft:phantom_membrane" },
-    "D": { "item": "minecraft:dragon_breath" },
+    "M": { "item": "minecraft:end_stone" },
+    "D": { "item": "minecraft:ender_pearl" },
     "S": { "item": "slashblade:proudsoul" },
     "C": { "item": "minecraft:chorus_flower" }
   },

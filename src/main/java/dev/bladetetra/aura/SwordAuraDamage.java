@@ -1,6 +1,7 @@
 package dev.bladetetra.aura;
 
 import mods.flammpfeil.slashblade.util.AttackManager;
+import dev.bladetetra.config.CombatBalanceConfig;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -22,10 +23,15 @@ public final class SwordAuraDamage {
         double amount = reference * SUMMONED_SWORD_RATIO
                 * AttackManager.getSlashBladeDamageScale(player)
                 * SLASHBLADE_DAMAGE_MULTIPLIER.get();
-        if (!Double.isFinite(amount)) return 0.0F;
+        return scale(amount, CombatBalanceConfig.SWORD_AURA.get());
+    }
+
+    static float scale(double amount, double multiplier) {
+        double scaled = amount * multiplier;
+        if (!Double.isFinite(scaled)) return 0.0F;
         // Float representation is a limitation of Minecraft's damage API, not
         // a gameplay soft cap. Do not clamp to arbitrary pack-size limits.
-        return (float) Math.max(0.0D, amount);
+        return (float) Math.min(Float.MAX_VALUE, Math.max(0.0D, scaled));
     }
 
     private SwordAuraDamage() {}
