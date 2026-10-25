@@ -318,14 +318,7 @@ public final class AwakenedBladeCombat {
             Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
             if (horizontal.lengthSqr() < 0.0001D) return;
             Vec3 direction = horizontal.normalize();
-            Vec3 moved = from;
-            // Check every sub-step against the actual player AABB; no wall phasing.
-            for (int step = 1; step <= 7; step++) {
-                Vec3 next = from.add(direction.scale(step * 0.5D));
-                if (!level.noCollision(player, player.getBoundingBox()
-                        .move(next.subtract(from)))) break;
-                moved = next;
-            }
+            Vec3 moved = collisionCheckedStep(level, player, from, direction, 3.5D);
             if (moved.distanceToSqr(from) < 0.24D) return;
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
@@ -341,18 +334,51 @@ public final class AwakenedBladeCombat {
         }
         if (state.raikiriCharge < 2 || now < state.cooldownUntil
                 || now - state.lastHit > EXPIRE_TICKS) return;
-        LivingEntity primary = target(level, player, state, 20.0D);
-        if (primary == null) return;
+        LivingEntity primary = target(level, player, state, 8.0D);
+        if (primary == null || !player.hasLineOfSight(primary)) return;
         float damage = AwakenedCombatMath.thunderFinisher(
                 state.lastDamage, state.raikiriCharge);
+        Vec3 from = player.position();
+        Vec3 delta = primary.position().subtract(from).multiply(1, 0, 1);
+        Vec3 moved = from;
+        if (delta.lengthSqr() > 1.44D) {
+            double travel = Math.min(3.5D, delta.length() - 1.15D);
+            moved = collisionCheckedStep(level, player, from, delta.normalize(), travel);
+        }
+        // The thrust is real movement, not a fabricated visual homing attack.
+        if (moved.distanceToSqr(from) > 0.24D) {
+            player.connection.teleport(moved.x, moved.y, moved.z,
+                    player.getYRot(), player.getXRot());
+        }
         if (!secondaryHit(level, player, primary, damage)) return;
+        int chain = state.stepChain;
         state.raikiriCharge = 0;
         state.stepChain = 0;
         state.stepConfirmed = false;
         state.cooldownUntil = now + 75L;
+        Vec3 trailEnd = moved.distanceToSqr(from) > 0.24D
+                ? moved.add(0, 1, 0) : primary.getBoundingBox().getCenter();
         visual(level, SoulLegacyState.Legacy.RAIKIRI,
                 AwakenedBladeVfxPacket.RELEASE,
-                player.position().add(0, 1, 0), primary.getBoundingBox().getCenter(), 0);
+                from.add(0, 1, 0), trailEnd, chain);
+    }
+
+    /** Identical continuous AABB collision checks for manual steps and finishers. */
+    private static Vec3 collisionCheckedStep(ServerLevel level, ServerPlayer player,
+            Vec3 from, Vec3 horizontalDirection, double maxTravel) {
+        if (!Double.isFinite(maxTravel) || maxTravel <= 0
+                || horizontalDirection.lengthSqr() < 0.0001D) return from;
+        Vec3 direction = horizontalDirection.normalize();
+        Vec3 moved = from;
+        int checks = Math.min(7, (int) Math.ceil(Math.min(3.5D, maxTravel) * 2.0D));
+        for (int step = 1; step <= checks; step++) {
+            double distance = Math.min(maxTravel, step * 0.5D);
+            Vec3 next = from.add(direction.scale(distance));
+            if (!level.noCollision(player, player.getBoundingBox()
+                    .move(next.subtract(from)))) break;
+            moved = next;
+        }
+        return moved;
     }
 
     /**
