@@ -485,7 +485,7 @@ public final class AwakenedBladeCombat {
                             SoulLegacyState.Legacy.AKATSUKI)) continue;
             Entity found = level.getEntity(pending.target);
             if (!(found instanceof LivingEntity target)
-                    || target.position().distanceToSqr(pending.anchor) > 25.0D
+                    || target.getBoundingBox().getCenter().distanceToSqr(pending.anchor) > 25.0D
                     || !canAffect(player, target) || player.distanceToSqr(target) > 576.0D
                     || !player.hasLineOfSight(target)) continue;
             secondaryHit(level, player, target, pending.damage);
