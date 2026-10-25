@@ -440,9 +440,14 @@ public final class AwakenedBladeCombat {
             if (horizontal.lengthSqr() < 0.0001D) return;
             Vec3 direction = horizontal.normalize();
             Vec3 moved = collisionCheckedStep(level, player, from, direction, 3.5D);
-            if (moved.distanceToSqr(from) < 0.24D
-                    || !AwakenedRankCost.trySpend(player, blade,
-                            AwakenedRankCost.Cast.RAIKIRI_STEP)) return;
+            if (moved.distanceToSqr(from) < 0.24D) return;
+            // One Rank payment opens a full hit-confirmed three-step sequence.
+            // Charging again after every step would immediately demote a B
+            // player below B and make the follow-up mechanically impossible.
+            boolean continuing = AwakenedCombatMath.isThunderFollowup(
+                    state.stepChain, state.stepConfirmed, state.lastStep, now);
+            if (!continuing && !AwakenedRankCost.trySpend(player, blade,
+                    AwakenedRankCost.Cast.RAIKIRI_STEP)) return;
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
             state.stepChain = AwakenedCombatMath.nextThunderChain(
