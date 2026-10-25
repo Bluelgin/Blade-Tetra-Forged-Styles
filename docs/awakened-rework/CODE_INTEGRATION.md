@@ -36,6 +36,43 @@
 - 44tick觉醒演出已按四种素材类型拆分阶段；赤月节点/裂隙/裁断、镜花多镜展开、三类樱阵分批攻击等已有阶段化接入，但**真名解放终结技**的完整56/64tick逐镜头合成、世界内本地化真名文字、真正雷步模型残影和复杂模型材质 pass 仍需后续接入。
 - 本环境无法拉取 Gradle wrapper 与 Forge 依赖，构建/专服/实机验证应以 GitHub Actions 和用户客户端为准；**未测试的项目不得标记通过**。
 
+## 原生 Rank 消耗与六种双魂协奏（第三轮）
+
+直接使用 SlashBlade Resharped 的 `CapabilityConcentrationRank.RANK_POINT`，读取 `getRankPoint(serverGameTime)` 与 `getRank(...).level`，通过 `IConcentrationRank.addRankPoint(player, -price)` 扣减并触发其原生 HUD 同步。绝不写入独立 Rank 数据或伪造 NBT。Rank 1级=300原生点数（可由其他模组覆盖）；SS/SSS采用原生阈值。**通过等级+点数门槛、且战斗条件全部通过后，才原子性消费一次。失去 Rank 后需正常战斗补回。** 鉴于原生 SA 本身可能另外消耗 ProudSoul，本设计只控制觉醒能力的额外支出。
+
+| 技能 | 最低 Rank | 基础原生分数消耗 | 扣费条件 |
+| --- | --- | --- | --- |
+| 赤月 · 命断 | S | 360 | 有合法交错斩线、有效目标、队列有空间 |
+| 镜花 · 镜像重演 | A | 300 | 两次以上真实招式、合法目标、队列有空间 |
+| 千本樱 · 三类剑阵 | A | 300 | 散华积累至少三格、至少一个目标、队列有空间 |
+| 雷切 · 雷步 | B | 75 | 服务器确实检测到至少0.5格可移动空间 |
+| 雷切 · 雷光终击 | A | 240 | 雷荷足够、有效目标在8格范围内、有视线 |
+
+千本樱潜行+SA切换凝刃/散华**不消耗** Rank；真实命中产生的斩线、樱刃小反击、雷荷、镜影记录均免费。这让 Rank 用于决定主动高阶技何时释放，而不是每次出刀都被扣。玩家评分不足会收到原生动作栏提示；HUD直接显示当前技能消耗及最低等级。
+
+### 双魂协奏（仅两魂觉醒、对应流派真正形成）
+
+- **镜月（赤月+镜花）**：赤月裁断额外留下一个原空间镜影，继续按真实原生斩击视觉结算小型反射追击，可被闪避。
+- **葬樱（赤月+千本樱）**：裁断结束后最多为旁边两个其他敌人安排樱阵扩散斩击，分批判定和原位置范围验证。
+- **赤雷（赤月+雷切）**：发动裁断时附带一次距离、安全碰撞检查的追身雷步，依旧可能被目标躲开裁断。
+- **镜樱（镜花+千本樱）**：历史镜影落点再生成两次独立位置樱刃，分别检查目标是否还在记录位置。
+- **镜雷（镜花+雷切）**：本体向一侧安全雷步而旧镜像留在原位置出刀，真正表现虚实错位。
+- **雷樱（千本樱+雷切）**：剑阵分批命中后为对应敌人附加约1.75秒减速电场，并释放双属性特效。
+
+六类组合都沿用 `SoulResonance.isFormed` 既有流派要求及原存档铭刻解锁。**只收一笔 Rank**（原单魂技能费 + 默认120点额外费用，统一要求S等级）；未形成共鸣时不额外收费。Rank成本及总开关均可由世界服务器配置：
+
+- `discoveries.enableAwakenedRankCosts` 默认 `true`；关闭后无Rank门槛和扣费（四刀战斗仍可使用）。
+- `awakenedRankCostAkatsuki` 360
+- `awakenedRankCostKyouka` 300
+- `awakenedRankCostSakuraArray` 300
+- `awakenedRankCostRaikiriStep` 75
+- `awakenedRankCostRaikiriFinisher` 240
+- `awakenedRankCostDualSurcharge` 120
+
+配置键都在 `discoveries` 节点下，0分配置意味着仍需要最低评级但不消耗评分；关闭总开关才是完全豁免。新功能不会阻止玩家使用原生 SlashBlade 的普通攻击或 SA 本体，仅影响觉醒2.0的特殊追加技。
+
+**重要限制：**这六种协奏当前属于第一版结算与已有图集 VFX 复用，不是独立六套新模型/演出；后续还需更独立的动画、音效以及真实客户端多人手感测试。
+
 ## 兼容与回退
 
 服务器配置 `serverconfig/blade-tetra-server.toml` 中的 `discoveries.enableAwakenedV2` 默认为 `true`。关闭后旧四刀战斗逻辑恢复，新战斗队列在服务器 tick 上立即清理；不会删除任何觉醒进度或武器数据。双魂目前仍是单个主魂的 V2 战斗逻辑，切勿把旧 `SoulResonance` 视为已经重做。
@@ -47,6 +84,7 @@
 ### 自动测试
 
 - `AwakenedCombatMathTest`：六方向、真正交错、雷步命中确认链、三种剑阵、伤害上限与NaN/Infinity拒绝。
-- `AwakenedBladeVfxPacketTest` 与 `AwakenedBladeStatePacketTest`：服务端事件/主手资源同步消息的编码往返。
+- `AwakenedBladeVfxPacketTest` 与 `AwakenedBladeStatePacketTest`：服务端事件/主手资源、Rank等级/消耗同步消息的编码往返。
+- `AwakenedRankCostTest`：Rank等级与原生点数门槛、一次完整扣费、Rank下降后再释放失败、异常价格拒绝。
 - `AwakenedArtContractTest`：使用美术 PR #40 的 `assets.json` 校验 19 个直接引用的图集组件贴图坐标。
 - **尚未完成**：四刀逐招端到端 Forge 测试、真实多人同步、帧率和实机模型遮挡验收。GitHub Actions 通过仅能证明对应版本成功编译/现有测试未回归。
