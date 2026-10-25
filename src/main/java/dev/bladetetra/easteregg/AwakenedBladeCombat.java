@@ -367,6 +367,8 @@ public final class AwakenedBladeCombat {
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
+            state.stepChain = 0;
+            state.stepConfirmed = false;
         }
         syncHud(player, soul, blade, state, true);
     }
@@ -376,10 +378,30 @@ public final class AwakenedBladeCombat {
         if (event.phase != TickEvent.Phase.END) return;
         if (!replacesLegacy()) {
             REPLAYS.clear();
+            CAUSAL.clear();
             STATES.clear();
             return;
         }
         MinecraftServer server = event.getServer();
+        Iterator<PendingCausal> causes = CAUSAL.iterator();
+        while (causes.hasNext()) {
+            PendingCausal pending = causes.next();
+            ServerLevel level = server.getLevel(pending.dimension);
+            if (level == null) { causes.remove(); continue; }
+            if (level.getGameTime() < pending.when) continue;
+            causes.remove();
+            ServerPlayer player = server.getPlayerList().getPlayer(pending.player);
+            if (player == null || player.level() != level
+                    || !pending.blade.equals(readId(player.getMainHandItem()))
+                    || !SoulLegacyState.isActive(player.getMainHandItem(),
+                            SoulLegacyState.Legacy.AKATSUKI)) continue;
+            Entity found = level.getEntity(pending.target);
+            if (!(found instanceof LivingEntity target)
+                    || target.position().distanceToSqr(pending.anchor) > 25.0D
+                    || !canAffect(player, target) || player.distanceToSqr(target) > 576.0D
+                    || !player.hasLineOfSight(target)) continue;
+            secondaryHit(level, player, target, pending.damage);
+        }
         Iterator<PendingReplay> it = REPLAYS.iterator();
         while (it.hasNext()) {
             PendingReplay cut = it.next();
@@ -399,6 +421,8 @@ public final class AwakenedBladeCombat {
             if (!(found instanceof LivingEntity target)
                     || !canAffect(player, target) || player.distanceToSqr(target) > 576D)
                 continue;
+            if (!player.hasLineOfSight(target)) continue;
+            spawnMirrorSlash(player, target, cut);
             if (secondaryHit(level, player, target, cut.damage)) {
                 Vec3 center = target.getBoundingBox().getCenter();
                 visual(level, SoulLegacyState.Legacy.KYOUKA,
@@ -421,14 +445,44 @@ public final class AwakenedBladeCombat {
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         REPLAYS.removeIf(entry -> entry.dimension.equals(level.dimension()));
+        CAUSAL.removeIf(entry -> entry.dimension.equals(level.dimension()));
         STATES.entrySet().removeIf(entry -> level.dimension().equals(entry.getValue().dimension));
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         REPLAYS.clear();
+        CAUSAL.clear();
         STATES.clear();
         ticks = 0;
+    }
+
+    private static void spawnMirrorSlash(ServerPlayer attacker, LivingEntity target,
+            PendingReplay replay) {
+        // SlashBlade's native slash effect replays the recorded combo plane.
+        // Zero damage plus the attack-event guard prevents phantom extra hits.
+        float roll = ModComboStates.isIaidoDraw(replay.combo) ? -30.0F
+                : ModComboStates.isIaidoFinish(replay.combo) ? 45.0F
+                : replay.combo.getPath().contains("aerial") ? 90.0F
+                : 14.0F;
+        EntitySlashEffect slash = AttackManager.doSlash(attacker, replay.yaw,
+                true, false, 0.0D);
+        if (slash == null) return;
+        slash.setDamage(0.0D);
+        slash.setMute(true);
+        slash.setIndirect(true);
+        slash.setNoClip(true);
+        slash.setCycleHit(false);
+        slash.setKnockBack(KnockBacks.cancel);
+        slash.setColor(0xB7E8FF);
+        slash.setLifetime(8);
+        slash.setBaseSize(Math.max(1.1F, Math.min(3.0F,
+                target.getBbHeight() * 0.98F)));
+        slash.setRotationRoll(roll);
+        slash.setYRot(replay.yaw);
+        slash.setPos(target.getX(), target.getY() + target.getBbHeight() * 0.53D,
+                target.getZ());
+        slash.getPersistentData().putBoolean(VISUAL_CUT, true);
     }
 
     private static ServerPlayer attacker(LivingDamageEvent event) {
