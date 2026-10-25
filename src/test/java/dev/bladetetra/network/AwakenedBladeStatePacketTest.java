@@ -13,7 +13,7 @@ class AwakenedBladeStatePacketTest {
         UUID weapon = UUID.fromString("aa8d151c-42af-4e11-8a1a-777777777777");
         for (int soul = 1; soul <= 4; soul++) {
             var expected = new AwakenedBladeStatePacket(weapon, soul,
-                    soul, 6, soul == 3);
+                    soul, 6, soul == 3, soul == 1 ? 5 : 4, soul * 60);
             FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
             try {
                 AwakenedBladeStatePacket.encode(expected, buf);
