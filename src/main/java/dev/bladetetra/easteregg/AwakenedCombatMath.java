@@ -40,11 +40,16 @@ public final class AwakenedCombatMath {
                         .contains(arrival.add(0.0D, 0.9D, 0.0D));
     }
 
+    /** Independent of last-hit expiration: a new step opens its own timer. */
+    public static boolean thunderChainExpired(long lastStep, long now) {
+        return now < lastStep || now - lastStep > 36L;
+    }
+
     /** A confirmed hit, not dash button-spam, authorizes the next Raikiri step. */
     public static boolean isThunderFollowup(int current, boolean confirmed,
             long lastStep, long now) {
         return current > 0 && current < 3 && confirmed
-                && now >= lastStep && now - lastStep <= 36;
+                && !thunderChainExpired(lastStep, now);
     }
 
     public static int nextThunderChain(int current, boolean confirmed,
