@@ -1230,5 +1230,6 @@
   "tooltip.blade_tetra.awakened.v2.raikiri": "Awakened Thunder Step: sneak + Slash Art dashes; build charge by attacking/stepping and release with Slash Art.",
   "tooltip.blade_tetra.awakened.v2.primary_only": "Dual-soul V2 pending: only the primary soul currently controls V2 combat.",
   "message.blade_tetra.awakened.rank_insufficient": "Awakened technique requires rank %s and %s Rank points",
-  "hud.blade_tetra.awakened.rank_cost": "Requires %s · Costs %s Rank"
+  "hud.blade_tetra.awakened.rank_cost": "Requires %s · Costs %s Rank",
+  "tooltip.blade_tetra.awakened.v2.dual_active": "Dual signature formed: one shared Rank payment, S rank required"
 }
