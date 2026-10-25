@@ -123,6 +123,8 @@ public final class AwakenedBladeCombat {
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
+            state.stepChain = 0;
+            state.stepConfirmed = false;
         }
         state.dimension = level.dimension();
         state.lastHit = now;
@@ -469,8 +471,7 @@ public final class AwakenedBladeCombat {
         if (primary == null || !player.hasLineOfSight(primary)) return;
         float damage = AwakenedCombatMath.thunderFinisher(
                 state.lastDamage, state.raikiriCharge);
-        if (damage <= 0 || !AwakenedRankCost.trySpend(player, blade,
-                AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
+        if (damage <= 0) return;
         Vec3 from = player.position();
         Vec3 delta = primary.position().subtract(from).multiply(1, 0, 1);
         Vec3 moved = from;
@@ -478,12 +479,24 @@ public final class AwakenedBladeCombat {
             double travel = Math.min(3.5D, delta.length() - 1.15D);
             moved = collisionCheckedStep(level, player, from, delta.normalize(), travel);
         }
+        // A visible enemy 8 blocks away is targetable, but a real melee
+        // thrust must REACH it after the collision-checked lunge. No
+        // wall-blocked remote hit and no Rank debit on an unreachable cast.
+        if (!primary.getBoundingBox().inflate(2.4D, 1.0D, 2.4D)
+                .contains(moved.add(0.0D, 0.9D, 0.0D))) return;
+        if (!AwakenedRankCost.trySpend(player, blade,
+                AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
         // The thrust is real movement, not a fabricated visual homing attack.
         if (moved.distanceToSqr(from) > 0.24D) {
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
         }
-        if (!secondaryHit(level, player, primary, damage)) return;
+        if (!secondaryHit(level, player, primary, damage)) {
+            // The original SA still executed, but our extra hit failed:
+            // compensate exactly our own Rank expenditure, never the SA's.
+            AwakenedRankCost.refund(player, blade, AwakenedRankCost.Cast.RAIKIRI_FINISH);
+            return;
+        }
         int chain = state.stepChain;
         state.raikiriCharge = 0;
         state.stepChain = 0;
@@ -756,10 +769,17 @@ public final class AwakenedBladeCombat {
         // SlashBlade replays are authored hits, not a second instance of the
         // original combo damage: bypass the normal 10-tick mob hurt grace only
         // within this bounded, non-player, already-validated secondary strike.
+        int previousInvulnerability = target.invulnerableTime;
         target.invulnerableTime = 0;
-        return dev.bladetetra.combat.InheritedCombatDamage.apply(() ->
+        boolean landed = dev.bladetetra.combat.InheritedCombatDamage.apply(() ->
                 SoulLegacyDamageGuard.apply(() -> target.hurt(
                         level.damageSources().playerAttack(player), amount)));
+        if (!landed) {
+            // Failed/cancelled hits must not silently strip the victim's
+            // ordinary hurt immunity from unrelated attacks.
+            target.invulnerableTime = previousInvulnerability;
+        }
+        return landed;
     }
 
     private static boolean canAffect(ServerPlayer player, LivingEntity target) {
