@@ -14,6 +14,12 @@ public final class GameplayConfig {
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_RANK_COSTS;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_AKATSUKI;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -126,6 +132,25 @@ public final class GameplayConfig {
                 .comment("Use True Name Release combat on awakened blades.",
                         "When false, keeps original awakened combat behavior; unlocks remain saved.")
                 .define("enableAwakenedV2", true);
+        ENABLE_AWAKENED_RANK_COSTS = builder
+                .comment("Spend native SlashBlade Concentration Rank points for committed awakened skills.",
+                        "Disable to retain V2 abilities without any rank spending.")
+                .define("enableAwakenedRankCosts", true);
+        AWAKENED_RANK_COST_AKATSUKI = builder
+                .comment("Akatsuki causality: requires S rank, charges this many native rank points.")
+                .defineInRange("awakenedRankCostAkatsuki", 360, 0, 1800);
+        AWAKENED_RANK_COST_KYOUKA = builder
+                .comment("Kyouka mirror replay: requires A rank.")
+                .defineInRange("awakenedRankCostKyouka", 300, 0, 1800);
+        AWAKENED_RANK_COST_SAKURA = builder
+                .comment("Senbonzakura full array: requires A rank. Form switching remains free.")
+                .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
+        AWAKENED_RANK_COST_STEP = builder
+                .comment("Raikiri basic lightning step: requires B rank.")
+                .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
+        AWAKENED_RANK_COST_FINISH = builder
+                .comment("Raikiri charged dash finisher: requires A rank.")
+                .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
         SMITHY_CLUE_CHANCE = builder
                 .comment(
                         "Chance that a village weaponsmith chest receives one smithing clue.",
