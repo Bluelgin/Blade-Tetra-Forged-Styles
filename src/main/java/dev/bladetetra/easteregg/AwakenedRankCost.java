@@ -6,6 +6,7 @@ import mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRan
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * One atomic server-authoritative debit of SlashBlade's actual concentration
@@ -20,31 +21,45 @@ public final class AwakenedRankCost {
         AKATSUKI, KYOUKA, SAKURA_ARRAY, RAIKIRI_STEP, RAIKIRI_FINISH
     }
 
-    public static boolean trySpend(ServerPlayer player, Cast cast) {
+    public static boolean trySpend(ServerPlayer player, ItemStack blade, Cast cast) {
         if (!GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get()) return true;
+        int cost = cost(blade, cast);
+        int required = requiredLevel(blade, cast);
         return player.getCapability(CapabilityConcentrationRank.RANK_POINT)
-                .map(rank -> debit(player, rank, cast)).orElseGet(() -> {
-                    warn(player, cast);
+                .map(rank -> debit(player, rank, required, cost)).orElseGet(() -> {
+                    warn(player, required, cost);
                     return false;
                 });
     }
 
     private static boolean debit(ServerPlayer player, IConcentrationRank rank,
-            Cast cast) {
-        int cost = cost(cast);
-        int required = requiredLevel(cast);
+            int required, int cost) {
         long now = player.serverLevel().getGameTime();
         long points = Math.max(0, rank.getRankPoint(now));
         // Some add-ons override the unit; defaults below assume native 300.
         long minimumPoints = (long) required * rank.getUnitCapacity();
         if (rank.getRank(now).level < required
                 || points < minimumPoints || points < cost) {
-            warn(player, cast);
+            warn(player, required, cost);
             return false;
         }
         // AddRankPoint always owns rank decay, clamping and rank HUD sync.
         if (cost > 0) rank.addRankPoint(player, -cost);
         return true;
+    }
+
+    public static boolean fused(ItemStack blade) {
+        SoulResonance.Resonance resonance = SoulResonance.resolve(blade);
+        return SoulResonance.isFormed(blade, resonance);
+    }
+
+    public static int cost(ItemStack blade, Cast cast) {
+        return cost(cast) + (fused(blade)
+                ? GameplayConfig.AWAKENED_RANK_COST_DUAL_BONUS.get() : 0);
+    }
+
+    public static int requiredLevel(ItemStack blade, Cast cast) {
+        return fused(blade) ? 5 : requiredLevel(cast);
     }
 
     public static int cost(Cast cast) {
@@ -65,10 +80,10 @@ public final class AwakenedRankCost {
         };
     }
 
-    private static void warn(ServerPlayer player, Cast cast) {
+    private static void warn(ServerPlayer player, int required, int cost) {
         player.displayClientMessage(Component.translatable(
                         "message.blade_tetra.awakened.rank_insufficient",
-                        rankName(requiredLevel(cast)), cost(cast))
+                        rankName(required), cost)
                 .withStyle(ChatFormatting.GRAY), true);
     }
 
