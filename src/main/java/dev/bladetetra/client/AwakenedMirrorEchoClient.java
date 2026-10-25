@@ -32,17 +32,20 @@ import java.util.List;
 
 /**
  * Archived real PlayerModel bone poses, not fake player entities.
- * This samples a hit-frame from the actual player renderer, then displays
- * that same skinned articulated pose at the server-authorized past position.
+ * Records a bounded six-frame post-hit skeletal clip from the actual renderer,
+ * then plays back the original skinned articulated action at the server-
+ * authorized past position, with no new damage-authoritative entity.
  * It never changes the real player's animation or game state.
  *
- * A full multi-frame SlashBlade/player-animation clip recorder is separate.
+ * The full player-animation library's underlying animation timeline is not
+ * serialized; short visible render poses are sampled in the original scene.
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class AwakenedMirrorEchoClient {
     private static final int MAX_ARCHIVED = 48;
     private static final int MAX_ECHOES = 12;
+    private static final int CLIP_FRAMES = 6;
     private static final Map<Integer, Capture> ARCHIVE = new HashMap<>();
     private static final List<Ghost> GHOSTS = new ArrayList<>();
     private static ClientLevel world;
@@ -73,14 +76,14 @@ public final class AwakenedMirrorEchoClient {
             var renderer = mc.getEntityRenderDispatcher().getRenderer(player);
             if (!(renderer instanceof PlayerRenderer playerRenderer)) return;
             ARCHIVE.put(packet.cutId(), new Capture(player.getId(),
-                    BonePose.copyOf(playerRenderer.getModel()), ticks + 120, true));
+                    BonePose.copyOf(playerRenderer.getModel()), ticks + 120));
             if (ARCHIVE.size() > MAX_ARCHIVED) evictOldest();
             return;
         }
         Capture sample = ARCHIVE.get(packet.cutId());
         if (sample == null || sample.expires < ticks
                 || sample.owner != packet.entityId()) return;
-        GHOSTS.add(new Ghost(player.getId(), sample.pose,
+        GHOSTS.add(new Ghost(player.getId(), List.copyOf(sample.frames),
                 new Vec3(packet.x(), packet.y(), packet.z()), packet.yaw()));
         while (GHOSTS.size() > MAX_ECHOES) GHOSTS.remove(0);
     }
@@ -91,9 +94,11 @@ public final class AwakenedMirrorEchoClient {
         int playerId = event.getEntity().getId();
         PlayerModel<?> model = event.getRenderer().getModel();
         for (Capture snapshot : ARCHIVE.values()) {
-            if (snapshot.owner == playerId && snapshot.preferLive && snapshot.expires > ticks) {
-                snapshot.pose = BonePose.copyOf(model);
-                snapshot.preferLive = false;
+            if (snapshot.owner == playerId && snapshot.expires > ticks
+                    && snapshot.lastFrameTick != ticks
+                    && snapshot.frames.size() < CLIP_FRAMES) {
+                snapshot.frames.add(BonePose.copyOf(model));
+                snapshot.lastFrameTick = ticks;
             }
         }
     }
@@ -138,7 +143,9 @@ public final class AwakenedMirrorEchoClient {
             PlayerModel<?> model = playerRenderer.getModel();
             BonePose live = BonePose.copyOf(model);
             try {
-                ghost.pose.apply(model);
+                int frame = Math.min(ghost.frames.size() - 1,
+                        (int) ((ghost.age + event.getPartialTick()) / 3.0F));
+                ghost.frames.get(frame).apply(model);
                 matrices.pushPose();
                 matrices.translate(ghost.position.x - camera.x,
                         ghost.position.y - camera.y + ghost.age * 0.012D,
@@ -176,28 +183,27 @@ public final class AwakenedMirrorEchoClient {
 
     private static final class Capture {
         final int owner;
-        BonePose pose;
+        final List<BonePose> frames = new ArrayList<>(CLIP_FRAMES);
         final int expires;
-        boolean preferLive;
+        int lastFrameTick = -1;
 
-        Capture(int owner, BonePose pose, int expires, boolean preferLive) {
+        Capture(int owner, BonePose initial, int expires) {
             this.owner = owner;
-            this.pose = pose;
+            this.frames.add(initial);
             this.expires = expires;
-            this.preferLive = preferLive;
         }
     }
 
     private static final class Ghost {
         final int owner;
-        final BonePose pose;
+        final List<BonePose> frames;
         final Vec3 position;
         final float yaw;
         int age;
 
-        Ghost(int owner, BonePose pose, Vec3 position, float yaw) {
+        Ghost(int owner, List<BonePose> frames, Vec3 position, float yaw) {
             this.owner = owner;
-            this.pose = pose;
+            this.frames = frames;
             this.position = position;
             this.yaw = yaw;
         }
