@@ -282,8 +282,12 @@ public final class SenbonzakuraAwakening {
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || PENDING_VOLLEYS.isEmpty()) return;
-        tickPetalVolleys(event.getServer());
+        if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING_VOLLEYS.clear();
+            return;
+        }
+        if (!PENDING_VOLLEYS.isEmpty()) tickPetalVolleys(event.getServer());
     }
 
     @SubscribeEvent
