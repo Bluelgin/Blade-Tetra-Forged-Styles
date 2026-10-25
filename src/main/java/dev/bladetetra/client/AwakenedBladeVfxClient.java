@@ -13,6 +13,9 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -139,7 +142,52 @@ public final class AwakenedBladeVfxClient {
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableBlend();
+        drawTrueNames(event, poses, camera);
         poses.popPose();
+    }
+
+    /** World-space true-name signature, depth tested, independently localized. */
+    private static void drawTrueNames(RenderLevelStageEvent event, PoseStack poses,
+            Camera camera) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        Font font = mc.font;
+        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        for (Effect fx : EFFECTS) {
+            int type = fx.data.type();
+            if (type != AwakenedBladeVfxPacket.AWAKEN
+                    && type != AwakenedBladeVfxPacket.RELEASE) continue;
+            float at = fx.age + event.getPartialTick();
+            if (at < 22.0F || at >= fx.duration - 5.0F) continue;
+            float opacity = Mth.clamp((at - 22.0F) / 7.0F, 0, 1)
+                    * Mth.clamp((fx.duration - 5.0F - at) / 8.0F, 0, 1);
+            String id = switch (fx.data.soul()) {
+                case 1 -> "akatsuki";
+                case 2 -> "kyouka";
+                case 3 -> "senbonzakura";
+                default -> "raikiri";
+            };
+            Component title = Component.translatable(
+                    "vfx.blade_tetra.true_name." + id);
+            int alpha = Math.max(4, (int) (opacity * 220.0F));
+            int color = (alpha << 24) | switch (fx.data.soul()) {
+                case 1 -> 0xF9A4B6;
+                case 2 -> 0xADDFFB;
+                case 3 -> 0xFFB5E6;
+                default -> 0xB8E8FF;
+            };
+            poses.pushPose();
+            // onRender already subtracts the camera position.
+            poses.translate(fx.data.x(), fx.data.y() + 2.0D + at * 0.006D,
+                    fx.data.z());
+            poses.mulPose(camera.rotation());
+            poses.scale(-0.025F, -0.025F, 0.025F);
+            font.drawInBatch(title, -font.width(title) / 2.0F,
+                    0.0F, color, false, poses.last().pose(),
+                    buffers, Font.DisplayMode.NORMAL, 0, 0x00F000F0);
+            poses.popPose();
+        }
+        buffers.endBatch();
     }
 
     private static void draw(BufferBuilder buffer, Matrix4f matrix, Vec3 eye,
