@@ -4,6 +4,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.BladeTechniqueHandler;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
+import dev.bladetetra.network.AwakenedBladeStatePacket;
 import dev.bladetetra.network.ModNetwork;
 import mods.flammpfeil.slashblade.entity.IShootable;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -136,6 +137,7 @@ public final class AwakenedBladeCombat {
             default -> {
             }
         }
+        syncHud(player, soul, blade, state);
     }
 
     @SubscribeEvent
@@ -156,6 +158,7 @@ public final class AwakenedBladeCombat {
             default -> {
             }
         }
+        syncHud(player, soul, blade, state);
     }
 
     private static void releaseAkatsuki(ServerLevel level, ServerPlayer player,
@@ -391,6 +394,31 @@ public final class AwakenedBladeCombat {
         return created;
     }
 
+    private static void syncHud(ServerPlayer player, SoulLegacyState.Legacy soul,
+            ItemStack blade, State state) {
+        int meter = switch (soul) {
+            case AKATSUKI -> Integer.bitCount(state.scarDirections);
+            case KYOUKA -> state.mirror.size();
+            case SENBONZAKURA -> state.sakuraCharge;
+            case RAIKIRI -> state.raikiriCharge;
+            default -> 0;
+        };
+        int maximum = switch (soul) {
+            case AKATSUKI, SENBONZAKURA -> 6;
+            case KYOUKA -> 3;
+            case RAIKIRI -> 4;
+            default -> 1;
+        };
+        boolean dispersed = soul == SoulLegacyState.Legacy.SENBONZAKURA
+                && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED);
+        if (state.lastSyncedMeter == meter && state.lastSyncedStance == dispersed) return;
+        state.lastSyncedMeter = meter;
+        state.lastSyncedStance = dispersed;
+        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+                new AwakenedBladeStatePacket(id(blade), soul.ordinal(), meter,
+                        maximum, dispersed));
+    }
+
     private static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
             int type, Vec3 pos, Vec3 end, int variant) {
         AwakenedBladeVfxPacket packet = new AwakenedBladeVfxPacket(
@@ -419,6 +447,8 @@ public final class AwakenedBladeCombat {
         long cooldownUntil;
         long stepUntil;
         long stanceUntil;
+        int lastSyncedMeter = -1;
+        boolean lastSyncedStance;
         final List<RecordedCut> mirror = new ArrayList<>(3);
     }
 
