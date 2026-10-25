@@ -47,6 +47,20 @@ public final class AwakenedRankCost {
         return true;
     }
 
+    /**
+     * Compensating payment for a cast whose post-debit extra hit was rejected
+     * by another mod's protection or the target. Caller MUST invoke this only
+     * after one successful trySpend and an actual failed server-side effect.
+     * Native SA costs are independent and never reimbursed here.
+     */
+    public static void refund(ServerPlayer player, ItemStack blade, Cast cast) {
+        if (!GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get()) return;
+        int paid = cost(blade, cast);
+        if (paid <= 0) return;
+        player.getCapability(CapabilityConcentrationRank.RANK_POINT)
+                .ifPresent(rank -> rank.addRankPoint(player, paid));
+    }
+
     /** Pure transaction precondition, shared with regression tests. */
     static boolean canPay(long points, long unitCapacity, int currentLevel,
             int minimumLevel, int price) {
