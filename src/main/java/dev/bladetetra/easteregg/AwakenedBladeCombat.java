@@ -138,7 +138,7 @@ public final class AwakenedBladeCombat {
             default -> {
             }
         }
-        syncHud(player, soul, blade, state);
+        syncHud(player, soul, blade, state, false);
     }
 
     @SubscribeEvent
@@ -159,7 +159,7 @@ public final class AwakenedBladeCombat {
             default -> {
             }
         }
-        syncHud(player, soul, blade, state);
+        syncHud(player, soul, blade, state, false);
     }
 
     private static void releaseAkatsuki(ServerLevel level, ServerPlayer player,
@@ -274,6 +274,32 @@ public final class AwakenedBladeCombat {
         visual(level, SoulLegacyState.Legacy.RAIKIRI,
                 AwakenedBladeVfxPacket.RELEASE,
                 player.position().add(0, 1, 0), primary.getBoundingBox().getCenter(), 0);
+    }
+
+    /**
+     * An occasional authoritative heartbeat keeps the owner's HUD visible
+     * after login, dimension changes and weapon swaps without scanning entities.
+     * It also clears gauges once their real-hit window expires.
+     */
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !replacesLegacy()
+                || !(event.player instanceof ServerPlayer player)
+                || player.tickCount % 80 != 0) return;
+        ItemStack blade = player.getMainHandItem();
+        SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
+        if (!SoulLegacyState.isActive(blade, soul)) return;
+        State state = state(player, blade);
+        long now = player.level().getGameTime();
+        if (now - state.lastHit > EXPIRE_TICKS) {
+            state.targetId = null;
+            state.lastDamage = 0;
+            state.scarDirections = 0;
+            state.mirror.clear();
+            state.sakuraCharge = 0;
+            state.raikiriCharge = 0;
+        }
+        syncHud(player, soul, blade, state, true);
     }
 
     @SubscribeEvent
@@ -401,7 +427,7 @@ public final class AwakenedBladeCombat {
     }
 
     private static void syncHud(ServerPlayer player, SoulLegacyState.Legacy soul,
-            ItemStack blade, State state) {
+            ItemStack blade, State state, boolean force) {
         int meter = switch (soul) {
             case AKATSUKI -> Integer.bitCount(state.scarDirections);
             case KYOUKA -> state.mirror.size();
@@ -417,7 +443,8 @@ public final class AwakenedBladeCombat {
         };
         boolean dispersed = soul == SoulLegacyState.Legacy.SENBONZAKURA
                 && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED);
-        if (state.lastSyncedMeter == meter && state.lastSyncedStance == dispersed) return;
+        if (!force && state.lastSyncedMeter == meter
+                && state.lastSyncedStance == dispersed) return;
         state.lastSyncedMeter = meter;
         state.lastSyncedStance = dispersed;
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
