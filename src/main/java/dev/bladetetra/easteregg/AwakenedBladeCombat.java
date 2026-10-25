@@ -78,7 +78,7 @@ public final class AwakenedBladeCombat {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRealDamage(LivingDamageEvent event) {
         if (!(event.getEntity().level() instanceof ServerLevel level)
-                || event.getAmount() <= 0.0F
+                || !Float.isFinite(event.getAmount()) || event.getAmount() <= 0.0F
                 || BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
         ServerPlayer player = attacker(event);
@@ -103,10 +103,8 @@ public final class AwakenedBladeCombat {
         switch (soul) {
             case AKATSUKI -> {
                 // Relative angle forces the player to reposition rather than spam one slash.
-                double angle = Math.atan2(player.getZ() - target.getZ(),
-                        player.getX() - target.getX());
-                int direction = Math.floorMod((int) Math.floor(
-                        (angle + Math.PI) * 3.0D / Math.PI), 6);
+                int direction = AwakenedCombatMath.scarSector(
+                        player.getX() - target.getX(), player.getZ() - target.getZ());
                 int bit = 1 << direction;
                 if ((state.scarDirections & bit) == 0) {
                     state.scarDirections |= bit;
@@ -118,7 +116,8 @@ public final class AwakenedBladeCombat {
                 // Record validated real hits, not raw client inputs or phantom entities.
                 state.mirror.add(new RecordedCut(now, state.lastDamage, player.getYRot()));
                 if (state.mirror.size() > 3) state.mirror.remove(0);
-                visual(level, soul, AwakenedBladeVfxPacket.MARK, center, center, 0);
+                visual(level, soul, AwakenedBladeVfxPacket.MARK, center, center,
+                        Math.round(player.getYRot()));
             }
             case SENBONZAKURA -> {
                 state.sakuraCharge = Math.min(6, state.sakuraCharge + 1);
@@ -166,8 +165,7 @@ public final class AwakenedBladeCombat {
         if (marks < 3) return;
         LivingEntity target = target(level, player, state, 24.0D);
         if (target == null) return;
-        float damage = Math.min(30.0F, state.lastDamage
-                * (0.6F + marks * 0.26F));
+        float damage = AwakenedCombatMath.causalCut(state.lastDamage, marks);
         if (!secondaryHit(level, player, target, damage)) return;
         state.cooldownUntil = now + 100L;
         state.scarDirections = 0;
@@ -185,7 +183,7 @@ public final class AwakenedBladeCombat {
         int number = 0;
         for (RecordedCut cut : state.mirror) {
             // At most three staggered mirror strikes, each within its own budget.
-            float damage = Math.min(12.0F, cut.damage * 0.32F);
+            float damage = AwakenedCombatMath.mirrorCut(cut.damage);
             if (damage > 0) REPLAYS.add(new PendingReplay(level.dimension(),
                     player.getUUID(), id(blade), target.getUUID(),
                     now + 4L + number * 5L, damage, cut.yaw));
@@ -222,8 +220,8 @@ public final class AwakenedBladeCombat {
                 .limit(5).toList();
         if (enemies.isEmpty()) return;
         // One bounded damage budget, shared by all decorative sword blades.
-        float budget = Math.min(26.0F, state.lastDamage
-                * (0.35F + 0.23F * state.sakuraCharge));
+        float budget = AwakenedCombatMath.petalBudget(
+                state.lastDamage, state.sakuraCharge);
         float each = budget / enemies.size();
         for (LivingEntity enemy : enemies) secondaryHit(level, player, enemy, each);
         state.sakuraCharge = 0;
@@ -264,8 +262,8 @@ public final class AwakenedBladeCombat {
                 || now - state.lastHit > EXPIRE_TICKS) return;
         LivingEntity primary = target(level, player, state, 20.0D);
         if (primary == null) return;
-        float damage = Math.min(20.0F,
-                state.lastDamage * (0.35F + state.raikiriCharge * 0.18F));
+        float damage = AwakenedCombatMath.thunderFinisher(
+                state.lastDamage, state.raikiriCharge);
         if (!secondaryHit(level, player, primary, damage)) return;
         state.raikiriCharge = 0;
         state.cooldownUntil = now + 75L;
@@ -300,7 +298,8 @@ public final class AwakenedBladeCombat {
             if (secondaryHit(level, player, target, cut.damage)) {
                 Vec3 center = target.getBoundingBox().getCenter();
                 visual(level, SoulLegacyState.Legacy.KYOUKA,
-                        AwakenedBladeVfxPacket.MARK, center, center, 0);
+                        AwakenedBladeVfxPacket.MARK, center, center,
+                        Math.round(cut.yaw));
             }
         }
         if (++ticks % 100 == 0) {
