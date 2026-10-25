@@ -319,11 +319,55 @@ public final class AwakenedBladeCombat {
                     cut.combo, cut.origin, cut.targetAnchor));
             number++;
         }
+        releaseKyoukaFusion(level, player, blade, target, state.mirror, now);
         state.mirror.clear();
         state.cooldownUntil = now + 90L;
         Vec3 center = target.getBoundingBox().getCenter();
         visual(level, SoulLegacyState.Legacy.KYOUKA,
                 AwakenedBladeVfxPacket.RELEASE, center, center, number);
+    }
+
+    private static void releaseKyoukaFusion(ServerLevel level, ServerPlayer player,
+            ItemStack blade, LivingEntity target, List<RecordedCut> records, long now) {
+        SoulResonance.Resonance fusion = SoulResonance.resolve(blade);
+        if (!SoulResonance.isFormed(blade, fusion)) return;
+        switch (fusion) {
+            case MIRROR_BLOSSOM -> {
+                // Petals materialize where original mirrored attacks landed.
+                // Every attack preserves its own spatial escape window.
+                int limit = Math.min(2, Math.min(records.size(), 96 - SAKURA_WAVES.size()));
+                for (int i = 0; i < limit; i++) {
+                    RecordedCut cut = records.get(i);
+                    SAKURA_WAVES.add(new PendingSakuraWave(level.dimension(),
+                            player.getUUID(), id(blade), target.getUUID(),
+                            cut.targetAnchor, now + 31L + i * 5L,
+                            Math.min(3.0F, cut.damage * 0.13F),
+                            SoulResonance.Resonance.MIRROR_BLOSSOM));
+                }
+                if (limit > 0) {
+                    Vec3 center = target.getBoundingBox().getCenter();
+                    visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
+                            AwakenedBladeVfxPacket.RELEASE, center, center, 2);
+                }
+            }
+            case MIRROR_THUNDER -> {
+                // Mirror cuts stay at the old position while the swordsman
+                // safely side-steps; the mirror cannot drag a foe behind walls.
+                Vec3 look = player.getLookAngle().multiply(1, 0, 1);
+                if (look.lengthSqr() < 0.01D) return;
+                Vec3 side = new Vec3(-look.z, 0, look.x).normalize();
+                Vec3 from = player.position();
+                Vec3 moved = collisionCheckedStep(level, player, from, side, 2.0D);
+                if (moved.distanceToSqr(from) > 0.24D) {
+                    player.connection.teleport(moved.x, moved.y, moved.z,
+                            player.getYRot(), player.getXRot());
+                    visual(level, SoulLegacyState.Legacy.RAIKIRI,
+                            AwakenedBladeVfxPacket.STEP,
+                            from.add(0, 1, 0), moved.add(0, 1, 0), 1);
+                }
+            }
+            default -> { }
+        }
     }
 
     private static void releaseSenbonzakura(ServerLevel level, ServerPlayer player,
