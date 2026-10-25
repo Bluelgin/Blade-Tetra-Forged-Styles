@@ -2,6 +2,7 @@ package dev.bladetetra.easteregg;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.BladeTechniqueHandler;
+import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
 import dev.bladetetra.network.AwakenedBladeStatePacket;
@@ -65,12 +66,12 @@ public final class AwakenedBladeCombat {
 
     /** Guards only legacy combat callbacks; never guards ritual or unlock code. */
     public static boolean replacesLegacy() {
-        return true;
+        return GameplayConfig.ENABLE_AWAKENED_V2.get();
     }
 
     /** Called exclusively after the corresponding server-side ritual succeeds. */
     public static void awakening(ServerPlayer player, SoulLegacyState.Legacy soul) {
-        if (soul == SoulLegacyState.Legacy.NONE) return;
+        if (!replacesLegacy() || soul == SoulLegacyState.Legacy.NONE) return;
         Vec3 pos = player.position().add(0, 1.1D, 0);
         visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.AWAKEN,
                 pos, pos, 0);
@@ -78,7 +79,7 @@ public final class AwakenedBladeCombat {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRealDamage(LivingDamageEvent event) {
-        if (!(event.getEntity().level() instanceof ServerLevel level)
+        if (!replacesLegacy() || !(event.getEntity().level() instanceof ServerLevel level)
                 || !Float.isFinite(event.getAmount()) || event.getAmount() <= 0.0F
                 || BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
@@ -142,7 +143,7 @@ public final class AwakenedBladeCombat {
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
-        if (event.getType() != SlashArts.ArtsType.Success
+        if (!replacesLegacy() || event.getType() != SlashArts.ArtsType.Success
                 || !(event.getEntityLiving() instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
@@ -278,6 +279,11 @@ public final class AwakenedBladeCombat {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        if (!replacesLegacy()) {
+            REPLAYS.clear();
+            STATES.clear();
+            return;
+        }
         MinecraftServer server = event.getServer();
         Iterator<PendingReplay> it = REPLAYS.iterator();
         while (it.hasNext()) {
