@@ -71,6 +71,7 @@ public final class AwakenedBladeCombat {
     private static final Map<Key, State> STATES = new HashMap<>();
     private static final List<PendingReplay> REPLAYS = new ArrayList<>();
     private static final List<PendingCausal> CAUSAL = new ArrayList<>();
+    private static final List<PendingPetal> PETALS = new ArrayList<>();
     private static int ticks;
 
     /** Guards only legacy combat callbacks; never guards ritual or unlock code. */
@@ -159,9 +160,11 @@ public final class AwakenedBladeCombat {
                             center, center, formation);
                     // An independent countercut every three verified hits,
                     // without spawning extra AI entities or a second scan.
-                    if (state.sakuraCharge % 3 == 0 && now >= state.petalUntil) {
+                    if (state.sakuraCharge % 3 == 0 && now >= state.petalUntil
+                            && PETALS.size() < 64) {
                         float petal = Math.min(3.0F, state.lastDamage * 0.18F);
-                        secondaryHit(level, player, target, petal);
+                        PETALS.add(new PendingPetal(level.dimension(), player.getUUID(),
+                                id(blade), target.getUUID(), now + 3L, petal));
                         state.petalUntil = now + 10;
                     }
                 }
@@ -380,10 +383,35 @@ public final class AwakenedBladeCombat {
         if (!replacesLegacy()) {
             REPLAYS.clear();
             CAUSAL.clear();
+            PETALS.clear();
             STATES.clear();
             return;
         }
         MinecraftServer server = event.getServer();
+        Iterator<PendingPetal> petals = PETALS.iterator();
+        while (petals.hasNext()) {
+            PendingPetal pending = petals.next();
+            ServerLevel level = server.getLevel(pending.dimension);
+            if (level == null) { petals.remove(); continue; }
+            if (level.getGameTime() < pending.when) continue;
+            petals.remove();
+            ServerPlayer player = server.getPlayerList().getPlayer(pending.player);
+            if (player == null || player.level() != level
+                    || !pending.blade.equals(readId(player.getMainHandItem()))
+                    || !SoulLegacyState.isActive(player.getMainHandItem(),
+                            SoulLegacyState.Legacy.SENBONZAKURA)
+                    || !player.getMainHandItem().getOrCreateTag().getBoolean(SAKURA_DISPERSED))
+                continue;
+            Entity found = level.getEntity(pending.target);
+            if (!(found instanceof LivingEntity target)
+                    || !canAffect(player, target) || player.distanceToSqr(target) > 400D
+                    || !player.hasLineOfSight(target)) continue;
+            if (secondaryHit(level, player, target, pending.damage)) {
+                Vec3 center = target.getBoundingBox().getCenter();
+                visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
+                        AwakenedBladeVfxPacket.MARK, center, center, 0);
+            }
+        }
         Iterator<PendingCausal> causes = CAUSAL.iterator();
         while (causes.hasNext()) {
             PendingCausal pending = causes.next();
@@ -447,6 +475,7 @@ public final class AwakenedBladeCombat {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         REPLAYS.removeIf(entry -> entry.dimension.equals(level.dimension()));
         CAUSAL.removeIf(entry -> entry.dimension.equals(level.dimension()));
+        PETALS.removeIf(entry -> entry.dimension.equals(level.dimension()));
         STATES.entrySet().removeIf(entry -> level.dimension().equals(entry.getValue().dimension));
     }
 
@@ -454,6 +483,7 @@ public final class AwakenedBladeCombat {
     public static void onServerStopped(ServerStoppedEvent event) {
         REPLAYS.clear();
         CAUSAL.clear();
+        PETALS.clear();
         STATES.clear();
         ticks = 0;
     }
@@ -596,6 +626,8 @@ public final class AwakenedBladeCombat {
             float pitch, ResourceLocation combo, Vec3 origin, Vec3 targetAnchor) { }
     private record PendingCausal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
+    private record PendingPetal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            UUID player, UUID blade, UUID target, long when, float damage) { }
 
     private static final class State {
         net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
