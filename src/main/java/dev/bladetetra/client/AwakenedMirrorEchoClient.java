@@ -141,7 +141,11 @@ public final class AwakenedMirrorEchoClient {
         for (Ghost ghost : GHOSTS) {
             Entity entity = mc.level.getEntity(ghost.owner);
             if (!(entity instanceof AbstractClientPlayer player)) continue;
-            if (player.distanceToSqr(ghost.position) > 576D) continue;
+            // Culling follows the viewer and the *recorded* location.
+            // The attacker may have dashed far away after the original cut.
+            double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
+            if (mc.player == null || mc.player.distanceToSqr(ghost.position) > max * max)
+                continue;
             var renderer = mc.getEntityRenderDispatcher().getRenderer(player);
             if (!(renderer instanceof PlayerRenderer playerRenderer)) continue;
             PlayerModel<?> model = playerRenderer.getModel();
