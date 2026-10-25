@@ -172,10 +172,17 @@ public final class AwakenedBladeVfxClient {
                 default -> 4; // direction_arc
             };
         };
-        if (soul == 4 && type == AwakenedBladeVfxPacket.STEP) {
+        if (soul == 4 && (type == AwakenedBladeVfxPacket.STEP
+                || type == AwakenedBladeVfxPacket.RELEASE)) {
             Vec3 end = new Vec3(data.endX(), data.endY(), data.endZ());
-            segment(buffer, matrix, eye, pos, end, 0.25D * (1 - t * 0.6D),
+            segment(buffer, matrix, eye, pos, end,
+                    (type == AwakenedBladeVfxPacket.STEP ? 0.25D : 0.42D)
+                            * (1 - t * 0.6D),
                     tile, soul, alpha);
+            if (type == AwakenedBladeVfxPacket.RELEASE) {
+                billboardTile(buffer, matrix, eye, end, 1.35D, 6,
+                        soul, alpha * 0.8F, 0);
+            }
             return;
         }
         double baseSize = type == AwakenedBladeVfxPacket.AWAKEN ? 2.5D
@@ -186,9 +193,11 @@ public final class AwakenedBladeVfxClient {
             int count = ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get() < 32 ? 16 : 32;
             for (int i = 0; i < count; i++) {
                 double angle = i * Math.PI * 2.0D / count;
-                double radius = 1.1D + 0.55D * Math.sin(age * 0.12D + i);
+                double formation = Mth.clamp((age - 6) / 16.0F, 0, 1);
+                double dive = Mth.clamp((age - 28) / 14.0F, 0, 1);
+                double radius = (1.1D + formation * 1.6D) * (1 - dive * 0.8D);
                 Vec3 blade = pos.add(Math.cos(angle) * radius,
-                        0.4D + (i % 5) * 0.21D + Math.sin(age * 0.1D + i) * 0.2D,
+                        0.4D + formation * (i % 5) * 0.34D - dive * 1.4D,
                         Math.sin(angle) * radius);
                 billboardTile(buffer, matrix, eye, blade, 0.38D,
                         0, soul, alpha * 0.8F, (float) angle);
