@@ -211,16 +211,25 @@ public final class AwakenedBladeCombat {
             ItemStack blade, State state, long now) {
         if (now < state.cooldownUntil || now - state.lastHit > EXPIRE_TICKS) return;
         int marks = Integer.bitCount(state.scarDirections);
-        if (marks < 3) return;
+        if (!AwakenedCombatMath.hasCausalCross(state.scarDirections)
+                || CAUSAL.size() >= CAUSAL_LIMIT) return;
         LivingEntity target = target(level, player, state, 24.0D);
         if (target == null) return;
-        float damage = AwakenedCombatMath.causalCut(state.lastDamage, marks);
-        if (!secondaryHit(level, player, target, damage)) return;
-        state.cooldownUntil = now + 100L;
-        state.scarDirections = 0;
+        // The causal hit is delayed; swapping blades, losing sight or escaping
+        // the marked area breaks fate instead of granting guaranteed bonus damage.
+        float damage = Math.min(30.0F,
+                AwakenedCombatMath.causalCut(state.lastDamage, marks)
+                        + state.scarMagnitude * 0.25F);
+        if (damage <= 0) return;
         Vec3 center = target.getBoundingBox().getCenter();
+        CAUSAL.add(new PendingCausal(level.dimension(), player.getUUID(),
+                id(blade), target.getUUID(), center, now + 12L, damage));
+        state.cooldownUntil = now + 100L;
+        int directions = state.scarDirections;
+        state.scarDirections = 0;
+        state.scarMagnitude = 0;
         visual(level, SoulLegacyState.Legacy.AKATSUKI,
-                AwakenedBladeVfxPacket.RELEASE, center, center, marks);
+                AwakenedBladeVfxPacket.RELEASE, center, center, directions);
     }
 
     private static void releaseKyouka(ServerLevel level, ServerPlayer player,
@@ -235,7 +244,8 @@ public final class AwakenedBladeCombat {
             float damage = AwakenedCombatMath.mirrorCut(cut.damage);
             if (damage > 0) REPLAYS.add(new PendingReplay(level.dimension(),
                     player.getUUID(), id(blade), target.getUUID(),
-                    now + 4L + number * 5L, damage, cut.yaw));
+                    now + 4L + number * 5L, damage, cut.yaw, cut.pitch,
+                    cut.combo, cut.origin, cut.targetAnchor));
             number++;
         }
         state.mirror.clear();
@@ -262,9 +272,17 @@ public final class AwakenedBladeCombat {
                 || now < state.cooldownUntil || now - state.lastHit > EXPIRE_TICKS) return;
         LivingEntity primary = target(level, player, state, 20.0D);
         if (primary == null) return;
+        int formation = AwakenedCombatMath.sakuraFormation(
+                !player.onGround(), player.isSprinting());
+        Vec3 center = formation == 0
+                ? player.getBoundingBox().getCenter() : primary.getBoundingBox().getCenter();
+        Vec3 forward = player.getLookAngle().multiply(1, 0, 1).normalize();
         List<LivingEntity> enemies = level.getEntitiesOfClass(LivingEntity.class,
-                        new AABB(primary.blockPosition()).inflate(5.0D),
-                        entity -> canAffect(player, entity))
+                        new AABB(center, center).inflate(formation == 1 ? 7.0D : 4.5D),
+                        entity -> canAffect(player, entity)
+                                && (formation != 1 || (entity.getBoundingBox().getCenter()
+                                        .subtract(player.position()).multiply(1, 0, 1)
+                                        .normalize().dot(forward) >= 0.55D)))
                 .stream().sorted(Comparator.comparingDouble(primary::distanceToSqr))
                 .limit(5).toList();
         if (enemies.isEmpty()) return;
@@ -275,9 +293,9 @@ public final class AwakenedBladeCombat {
         for (LivingEntity enemy : enemies) secondaryHit(level, player, enemy, each);
         state.sakuraCharge = 0;
         state.cooldownUntil = now + 110L;
-        Vec3 center = primary.getBoundingBox().getCenter();
+        Vec3 targetCenter = primary.getBoundingBox().getCenter();
         visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
-                AwakenedBladeVfxPacket.RELEASE, center, center, enemies.size());
+                AwakenedBladeVfxPacket.RELEASE, targetCenter, targetCenter, formation);
     }
 
     private static void releaseRaikiri(ServerLevel level, ServerPlayer player,
@@ -300,8 +318,11 @@ public final class AwakenedBladeCombat {
             if (moved.distanceToSqr(from) < 0.24D) return;
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
-            state.stepUntil = now + 14L;
-            state.raikiriCharge = Math.min(4, state.raikiriCharge + 1);
+            state.stepChain = AwakenedCombatMath.nextThunderChain(
+                    state.stepChain, state.stepConfirmed, state.lastStep, now);
+            state.stepConfirmed = false;
+            state.lastStep = now;
+            state.stepUntil = now + (state.stepChain > 1 ? 6L : 10L);
             visual(level, SoulLegacyState.Legacy.RAIKIRI,
                     AwakenedBladeVfxPacket.STEP,
                     from.add(0, 1, 0), moved.add(0, 1, 0), 0);
@@ -315,6 +336,8 @@ public final class AwakenedBladeCombat {
                 state.lastDamage, state.raikiriCharge);
         if (!secondaryHit(level, player, primary, damage)) return;
         state.raikiriCharge = 0;
+        state.stepChain = 0;
+        state.stepConfirmed = false;
         state.cooldownUntil = now + 75L;
         visual(level, SoulLegacyState.Legacy.RAIKIRI,
                 AwakenedBladeVfxPacket.RELEASE,
