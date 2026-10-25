@@ -7,7 +7,6 @@ import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.network.AwakenedMirrorEchoPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
-import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -15,6 +14,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -76,7 +78,8 @@ public final class AwakenedMirrorEchoClient {
             var renderer = mc.getEntityRenderDispatcher().getRenderer(player);
             if (!(renderer instanceof PlayerRenderer playerRenderer)) return;
             ARCHIVE.put(packet.cutId(), new Capture(player.getId(),
-                    BonePose.copyOf(playerRenderer.getModel()), ticks + 120));
+                    BonePose.copyOf(playerRenderer.getModel()),
+                    player.getMainHandItem().copy(), ticks + 120));
             if (ARCHIVE.size() > MAX_ARCHIVED) evictOldest();
             return;
         }
@@ -84,7 +87,8 @@ public final class AwakenedMirrorEchoClient {
         if (sample == null || sample.expires < ticks
                 || sample.owner != packet.entityId()) return;
         GHOSTS.add(new Ghost(player.getId(), List.copyOf(sample.frames),
-                new Vec3(packet.x(), packet.y(), packet.z()), packet.yaw()));
+                sample.weapon.copy(), new Vec3(packet.x(), packet.y(), packet.z()),
+                packet.yaw()));
         while (GHOSTS.size() > MAX_ECHOES) GHOSTS.remove(0);
     }
 
@@ -147,22 +151,47 @@ public final class AwakenedMirrorEchoClient {
                         (int) ((ghost.age + event.getPartialTick()) / 3.0F));
                 ghost.frames.get(frame).apply(model);
                 matrices.pushPose();
-                matrices.translate(ghost.position.x - camera.x,
-                        ghost.position.y - camera.y + ghost.age * 0.012D,
-                        ghost.position.z - camera.z);
-                matrices.mulPose(Axis.YP.rotationDegrees(180.0F - ghost.yaw));
-                matrices.scale(-1, -1, 1);
-                matrices.translate(0, -1.501F, 0);
-                float fade = Math.min(1.0F, (ghost.age + event.getPartialTick()) / 3.0F)
-                        * Math.min(1.0F, (19 - ghost.age - event.getPartialTick()) / 7.0F);
-                RenderType renderType = RenderType.entityTranslucent(
-                        player.getSkinTextureLocation());
-                model.renderToBuffer(matrices,
-                        buffers.getBuffer(renderType), 0x00F000F0,
-                        OverlayTexture.NO_OVERLAY,
-                        0.55F, 0.78F, 1.0F, fade * 0.5F * intensity);
-                buffers.endBatch(renderType);
-                matrices.popPose();
+                try {
+                    matrices.translate(ghost.position.x - camera.x,
+                            ghost.position.y - camera.y + ghost.age * 0.012D,
+                            ghost.position.z - camera.z);
+                    matrices.mulPose(Axis.YP.rotationDegrees(180.0F - ghost.yaw));
+                    matrices.scale(-1, -1, 1);
+                    matrices.translate(0, -1.501F, 0);
+                    float fade = Math.min(1.0F, (ghost.age + event.getPartialTick()) / 3.0F)
+                            * Math.min(1.0F, (19 - ghost.age - event.getPartialTick()) / 7.0F);
+                    RenderType renderType = RenderType.entityTranslucent(
+                            player.getSkinTextureLocation());
+                    model.renderToBuffer(matrices,
+                            buffers.getBuffer(renderType), 0x00F000F0,
+                            OverlayTexture.NO_OVERLAY,
+                            0.55F, 0.78F, 1.0F, fade * 0.5F * intensity);
+                    buffers.endBatch(renderType);
+                    // The captured blade belongs to the historical clip, not
+                    // the player's *current* main hand. Follow real right/left
+                    // arm bones, reusing native ItemRenderer and Tetra material.
+                    if (!ghost.weapon.isEmpty() && intensity > 0.0F) {
+                        matrices.pushPose();
+                        try {
+                            HumanoidArm arm = player.getMainArm();
+                            model.translateToHand(arm, matrices);
+                            matrices.mulPose(Axis.XP.rotationDegrees(-90.0F));
+                            matrices.mulPose(Axis.YP.rotationDegrees(180.0F));
+                            matrices.translate((arm == HumanoidArm.LEFT ? -1 : 1) / 16.0F,
+                                    0.125F, -0.625F);
+                            mc.getItemRenderer().renderStatic(ghost.weapon,
+                                    arm == HumanoidArm.LEFT
+                                            ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND
+                                            : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,
+                                    0x00F000F0, OverlayTexture.NO_OVERLAY,
+                                    matrices, buffers, mc.level, player.getId());
+                        } finally {
+                            matrices.popPose();
+                        }
+                    }
+                } finally {
+                    matrices.popPose();
+                }
             } finally {
                 live.apply(model);
             }
@@ -185,10 +214,12 @@ public final class AwakenedMirrorEchoClient {
         final int owner;
         final List<BonePose> frames = new ArrayList<>(CLIP_FRAMES);
         final int expires;
+        final ItemStack weapon;
         int lastFrameTick = -1;
 
-        Capture(int owner, BonePose initial, int expires) {
+        Capture(int owner, BonePose initial, ItemStack weapon, int expires) {
             this.owner = owner;
+            this.weapon = weapon;
             this.frames.add(initial);
             this.expires = expires;
         }
@@ -197,13 +228,16 @@ public final class AwakenedMirrorEchoClient {
     private static final class Ghost {
         final int owner;
         final List<BonePose> frames;
+        final ItemStack weapon;
         final Vec3 position;
         final float yaw;
         int age;
 
-        Ghost(int owner, List<BonePose> frames, Vec3 position, float yaw) {
+        Ghost(int owner, List<BonePose> frames, ItemStack weapon,
+                Vec3 position, float yaw) {
             this.owner = owner;
             this.frames = frames;
+            this.weapon = weapon;
             this.position = position;
             this.yaw = yaw;
         }
