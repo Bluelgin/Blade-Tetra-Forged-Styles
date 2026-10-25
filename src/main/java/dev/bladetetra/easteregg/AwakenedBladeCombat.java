@@ -532,7 +532,8 @@ public final class AwakenedBladeCombat {
             visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.MARK,
                     center, center, 9);
         }
-        if (player.tickCount % 80 != 0) return;
+        if (player.tickCount % (soul == SoulLegacyState.Legacy.RAIKIRI ? 10 : 80) != 0)
+            return;
         State state = state(player, blade);
         long now = player.level().getGameTime();
         if (now - state.lastHit > EXPIRE_TICKS) {
@@ -546,7 +547,7 @@ public final class AwakenedBladeCombat {
             state.stepChain = 0;
             state.stepConfirmed = false;
         }
-        syncHud(player, soul, blade, state, true);
+        syncHud(player, soul, blade, state, player.tickCount % 80 == 0);
     }
 
     @SubscribeEvent
@@ -833,7 +834,11 @@ public final class AwakenedBladeCombat {
                     : AwakenedRankCost.Cast.RAIKIRI_FINISH;
             default -> null;
         };
-        boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null;
+        boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null
+                && !(cast == AwakenedRankCost.Cast.RAIKIRI_STEP
+                        && AwakenedCombatMath.isThunderFollowup(
+                                state.stepChain, state.stepConfirmed, state.lastStep,
+                                player.serverLevel().getGameTime()));
         int minimum = charge ? AwakenedRankCost.requiredLevel(blade, cast) : 0;
         int price = charge ? AwakenedRankCost.cost(blade, cast) : 0;
         if (!force && state.lastSyncedMeter == meter
