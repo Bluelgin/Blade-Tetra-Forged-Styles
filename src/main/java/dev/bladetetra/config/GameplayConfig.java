@@ -20,6 +20,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
+    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_DUAL_BONUS;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -151,6 +152,10 @@ public final class GameplayConfig {
         AWAKENED_RANK_COST_FINISH = builder
                 .comment("Raikiri charged dash finisher: requires A rank.")
                 .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
+        AWAKENED_RANK_COST_DUAL_BONUS = builder
+                .comment("Extra native Rank points charged for the six awakened dual-soul signatures.",
+                        "Formed dual souls require S rank and one shared payment (never two independent payments).")
+                .defineInRange("awakenedRankCostDualSurcharge", 120, 0, 1800);
         SMITHY_CLUE_CHANCE = builder
                 .comment(
                         "Chance that a village weaponsmith chest receives one smithing clue.",
