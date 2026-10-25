@@ -211,6 +211,25 @@ public final class AwakenedBladeVfxClient {
                     data.variant());
             return;
         }
+        if (soul == 3 && type == AwakenedBladeVfxPacket.STANCE) {
+            // Disperse/reassemble the *real* model via the upstream render hook,
+            // while these bounded Astra atlas shards visually bridge the swap.
+            // 1 = release fragments from the physical blade; 0 = condense.
+            boolean disperse = data.variant() == 1;
+            double progress = Mth.clamp(age / 12.0F, 0.0F, 1.0F);
+            double eased = progress * progress * (3.0D - 2.0D * progress);
+            double radius = 0.12D + (disperse ? eased : 1.0D - eased) * 1.10D;
+            for (int i = 0; i < 9; i++) {
+                double angle = i * Math.PI * 2.0D / 9.0D + age * 0.055D;
+                Vec3 shard = pos.add(Math.cos(angle) * radius,
+                        (i % 3 - 1) * 0.22D + 0.10D + Math.sin(angle * 2) * 0.14D,
+                        Math.sin(angle) * radius);
+                billboardTile(buffer, matrix, eye, shard,
+                        0.30D + 0.11D * (disperse ? eased : 1.0D - eased),
+                        i % 3, soul, alpha * 0.86F, (float) angle);
+            }
+            return;
+        }
         if (soul == 3 && type == AwakenedBladeVfxPacket.MARK
                 && data.variant() == 9) {
             // Detached visible blade body for third-person and self view.
