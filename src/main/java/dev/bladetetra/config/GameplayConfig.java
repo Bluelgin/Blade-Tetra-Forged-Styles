@@ -13,6 +13,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -121,6 +122,10 @@ public final class GameplayConfig {
                         "Allow new blade legacy and easter-egg progress/unlocks.",
                         "Existing unlocked blade tags are never deleted when disabled.")
                 .define("enableEasterEggUnlocks", true);
+        ENABLE_AWAKENED_V2 = builder
+                .comment("Use True Name Release combat on awakened blades.",
+                        "When false, keeps original awakened combat behavior; unlocks remain saved.")
+                .define("enableAwakenedV2", true);
         SMITHY_CLUE_CHANCE = builder
                 .comment(
                         "Chance that a village weaponsmith chest receives one smithing clue.",
