@@ -1,6 +1,8 @@
 package dev.bladetetra.easteregg;
 
 import org.junit.jupiter.api.Test;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AwakenedCombatMathTest {
@@ -55,6 +57,22 @@ class AwakenedCombatMathTest {
         assertEquals(1, AwakenedCombatMath.sakuraFormation(false, true));
         assertEquals(2, AwakenedCombatMath.sakuraFormation(true, false));
         assertEquals(2, AwakenedCombatMath.sakuraFormation(true, true));
+    }
+
+    @Test void thunderFinisherRequiresRealPhysicalMeleeArrival() {
+        AABB target = new AABB(6.5D, 64.0D, -0.4D, 7.5D, 66.0D, 0.4D);
+        // A valid 8-block lock-on does not authorize remote damage by itself.
+        assertFalse(AwakenedCombatMath.thunderFinisherCanReach(
+                new Vec3(0.0D, 64.0D, 0.0D), target));
+        // Collision-free dash ending beside the target is a real hit.
+        assertTrue(AwakenedCombatMath.thunderFinisherCanReach(
+                new Vec3(4.5D, 64.0D, 0.0D), target));
+        // Even directly beneath a high airborne enemy cannot reach it.
+        assertFalse(AwakenedCombatMath.thunderFinisherCanReach(
+                new Vec3(7.0D, 50.0D, 0.0D), target));
+        assertFalse(AwakenedCombatMath.thunderFinisherCanReach(
+                new Vec3(Double.NaN, 64.0D, 0.0D), target));
+        assertFalse(AwakenedCombatMath.thunderFinisherCanReach(null, target));
     }
 
     @Test void invalidDamageDoesNotBecomeBonusDamage() {
