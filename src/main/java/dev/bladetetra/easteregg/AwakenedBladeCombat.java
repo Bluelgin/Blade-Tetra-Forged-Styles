@@ -227,7 +227,7 @@ public final class AwakenedBladeCombat {
         if (damage <= 0) return;
         Vec3 center = target.getBoundingBox().getCenter();
         CAUSAL.add(new PendingCausal(level.dimension(), player.getUUID(),
-                id(blade), target.getUUID(), center, now + 12L, damage));
+                id(blade), target.getUUID(), center, now + 33L, damage));
         state.cooldownUntil = now + 100L;
         int directions = state.scarDirections;
         state.scarDirections = 0;
@@ -248,7 +248,7 @@ public final class AwakenedBladeCombat {
             float damage = AwakenedCombatMath.mirrorCut(cut.damage);
             if (damage > 0) REPLAYS.add(new PendingReplay(level.dimension(),
                     player.getUUID(), id(blade), target.getUUID(),
-                    now + 4L + number * 5L, damage, cut.yaw, cut.pitch,
+                    now + 24L + number * 5L, damage, cut.yaw, cut.pitch,
                     cut.combo, cut.origin, cut.targetAnchor));
             number++;
         }
