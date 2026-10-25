@@ -40,7 +40,12 @@ class AwakenedCombatMathTest {
         assertEquals(1, AwakenedCombatMath.nextThunderChain(1, false, 10, 14));
         assertEquals(2, AwakenedCombatMath.nextThunderChain(1, true, 10, 18));
         assertEquals(3, AwakenedCombatMath.nextThunderChain(2, true, 18, 25));
-        assertEquals(3, AwakenedCombatMath.nextThunderChain(3, true, 25, 33));
+        assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 25, 33));
+        assertTrue(AwakenedCombatMath.isThunderFollowup(1, true, 10, 18));
+        assertTrue(AwakenedCombatMath.isThunderFollowup(2, true, 18, 25));
+        assertFalse(AwakenedCombatMath.isThunderFollowup(3, true, 25, 33));
+        assertFalse(AwakenedCombatMath.isThunderFollowup(2, false, 18, 25));
+        assertFalse(AwakenedCombatMath.isThunderFollowup(2, true, 18, 55));
         assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 10, 47));
         assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 20, 19));
     }
