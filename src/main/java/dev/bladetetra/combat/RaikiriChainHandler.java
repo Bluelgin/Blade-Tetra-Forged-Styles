@@ -76,6 +76,7 @@ public final class RaikiriChainHandler {
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
+        if (dev.bladetetra.easteregg.AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getType() != SlashArts.ArtsType.Success
                 || !(event.getEntityLiving() instanceof ServerPlayer player)
                 || !isActive(player.getMainHandItem())) return;
@@ -105,6 +106,7 @@ public final class RaikiriChainHandler {
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
+        if (dev.bladetetra.easteregg.AwakenedBladeCombat.replacesLegacy()) return;
         if (!(event.getLevel() instanceof ServerLevel level)
                 || !(event.getEntity() instanceof IShootable shootable)
                 || !(shootable.getShooter() instanceof ServerPlayer player)
@@ -118,6 +120,7 @@ public final class RaikiriChainHandler {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (dev.bladetetra.easteregg.AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getAmount() <= 0.0F
                 || BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
