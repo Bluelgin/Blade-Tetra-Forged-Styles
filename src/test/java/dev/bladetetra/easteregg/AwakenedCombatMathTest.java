@@ -52,6 +52,20 @@ class AwakenedCombatMathTest {
         assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 20, 19));
     }
 
+    @Test void lightningStepTimerIsIndependentOfPreviousHits() {
+        // A player can begin a fresh step after a long idle period. The next
+        // ten-tick HUD heartbeat must not erase that newly opened sequence.
+        long lastDamage = 10L;
+        long firstStep = 60000L;
+        assertTrue(firstStep - lastDamage > 160L);
+        assertFalse(AwakenedCombatMath.thunderChainExpired(firstStep, firstStep + 10L));
+        assertTrue(AwakenedCombatMath.isThunderFollowup(1, true,
+                firstStep, firstStep + 12L));
+        assertFalse(AwakenedCombatMath.thunderChainExpired(firstStep, firstStep + 36L));
+        assertTrue(AwakenedCombatMath.thunderChainExpired(firstStep, firstStep + 37L));
+        assertTrue(AwakenedCombatMath.thunderChainExpired(firstStep, firstStep - 1L));
+    }
+
     @Test void sakuraArraysDistinguishGuardFanAndRain() {
         assertEquals(0, AwakenedCombatMath.sakuraFormation(false, false));
         assertEquals(1, AwakenedCombatMath.sakuraFormation(false, true));
