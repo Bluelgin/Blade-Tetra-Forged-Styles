@@ -450,13 +450,15 @@ public final class AwakenedBladeCombat {
             if (!(found instanceof LivingEntity target)
                     || !canAffect(player, target) || player.distanceToSqr(target) > 576D)
                 continue;
-            if (!player.hasLineOfSight(target)) continue;
+            // Recorded-space attacks do not magically follow a fleeing target.
+            if (!player.hasLineOfSight(target) || target.getBoundingBox().getCenter()
+                    .distanceToSqr(cut.targetAnchor) > 9.0D) continue;
             spawnMirrorSlash(player, target, cut);
             if (secondaryHit(level, player, target, cut.damage)) {
                 Vec3 center = target.getBoundingBox().getCenter();
                 visual(level, SoulLegacyState.Legacy.KYOUKA,
-                        AwakenedBladeVfxPacket.MARK, center, center,
-                        Math.round(cut.yaw));
+                        AwakenedBladeVfxPacket.MARK, cut.origin.add(0, 1, 0),
+                        cut.targetAnchor, Math.round(cut.yaw));
             }
         }
         if (++ticks % 100 == 0) {
@@ -511,8 +513,8 @@ public final class AwakenedBladeCombat {
                 target.getBbHeight() * 0.98F)));
         slash.setRotationRoll(roll);
         slash.setYRot(replay.yaw);
-        slash.setPos(target.getX(), target.getY() + target.getBbHeight() * 0.53D,
-                target.getZ());
+        slash.setPos(replay.targetAnchor.x, replay.targetAnchor.y,
+                replay.targetAnchor.z);
         slash.getPersistentData().putBoolean(VISUAL_CUT, true);
     }
 
