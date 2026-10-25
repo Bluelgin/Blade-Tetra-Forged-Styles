@@ -486,8 +486,8 @@ public final class AwakenedBladeCombat {
         // A visible enemy 8 blocks away is targetable, but a real melee
         // thrust must REACH it after the collision-checked lunge. No
         // wall-blocked remote hit and no Rank debit on an unreachable cast.
-        if (!primary.getBoundingBox().inflate(2.4D, 1.0D, 2.4D)
-                .contains(moved.add(0.0D, 0.9D, 0.0D))) return;
+        if (!AwakenedCombatMath.thunderFinisherCanReach(
+                moved, primary.getBoundingBox())) return;
         if (!AwakenedRankCost.trySpend(player, blade,
                 AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
         // The thrust is real movement, not a fabricated visual homing attack.
