@@ -37,7 +37,9 @@ public final class AwakenedBladeHud {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || packet.soul() < 1 || packet.soul() > 4
                 || packet.maximum() < 1 || packet.maximum() > 6
-                || packet.meter() < 0 || packet.meter() > packet.maximum()) return;
+                || packet.meter() < 0 || packet.meter() > packet.maximum()
+                || packet.minimumRank() < 0 || packet.minimumRank() > 7
+                || packet.rankCost() < 0 || packet.rankCost() > 1800) return;
         level = mc.level;
         active = packet;
         lastMessage = mc.level.getGameTime();
@@ -84,6 +86,19 @@ public final class AwakenedBladeHud {
             graphics.drawString(mc.font,
                     Component.translatable("hud.blade_tetra.awakened.dispersed"),
                     x + 27, y + 24, 0xE8ACC8);
+        }
+        if (active.minimumRank() > 0 && active.rankCost() > 0) {
+            String grade = switch (active.minimumRank()) {
+                case 5 -> "S";
+                case 4 -> "A";
+                case 3 -> "B";
+                default -> "?";
+            };
+            graphics.drawString(mc.font,
+                    Component.translatable("hud.blade_tetra.awakened.rank_cost",
+                            grade, active.rankCost()),
+                    x + 27, y + (soul == 3 && active.dispersed() ? 35 : 24),
+                    0xEACB7C);
         }
     }
 
