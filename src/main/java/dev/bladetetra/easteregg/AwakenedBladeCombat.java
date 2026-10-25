@@ -527,9 +527,15 @@ public final class AwakenedBladeCombat {
 
     private static boolean secondaryHit(ServerLevel level, ServerPlayer player,
             LivingEntity target, float amount) {
-        if (amount <= 0 || !canAffect(player, target)) return false;
-        return SoulLegacyDamageGuard.apply(() -> target.hurt(
-                level.damageSources().playerAttack(player), amount));
+        if (!Float.isFinite(amount) || amount <= 0 || !canAffect(player, target))
+            return false;
+        // SlashBlade replays are authored hits, not a second instance of the
+        // original combo damage: bypass the normal 10-tick mob hurt grace only
+        // within this bounded, non-player, already-validated secondary strike.
+        target.invulnerableTime = 0;
+        return dev.bladetetra.combat.InheritedCombatDamage.apply(() ->
+                SoulLegacyDamageGuard.apply(() -> target.hurt(
+                        level.damageSources().playerAttack(player), amount)));
     }
 
     private static boolean canAffect(ServerPlayer player, LivingEntity target) {
