@@ -1,6 +1,9 @@
 package dev.bladetetra.easteregg;
 
-/** Pure deterministic numbers for four awakened souls; no game or client state. */
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+/** Pure deterministic combat predicates for four awakened souls. */
 public final class AwakenedCombatMath {
     public static int scarSector(double deltaX, double deltaZ) {
         double angle = Math.atan2(deltaZ, deltaX);
@@ -22,6 +25,19 @@ public final class AwakenedCombatMath {
             }
         }
         return false;
+    }
+
+    /**
+     * After collision-checked movement, a thunder finisher must actually be in
+     * melee reach of the target's volume. Target acquisition can be 8 blocks,
+     * but an obstructed 8-block target cannot receive a remote melee strike.
+     */
+    public static boolean thunderFinisherCanReach(Vec3 arrival, AABB target) {
+        return arrival != null && target != null
+                && Double.isFinite(arrival.x) && Double.isFinite(arrival.y)
+                && Double.isFinite(arrival.z)
+                && target.inflate(2.4D, 1.0D, 2.4D)
+                        .contains(arrival.add(0.0D, 0.9D, 0.0D));
     }
 
     /** A confirmed hit, not dash button-spam, authorizes the next Raikiri step. */
