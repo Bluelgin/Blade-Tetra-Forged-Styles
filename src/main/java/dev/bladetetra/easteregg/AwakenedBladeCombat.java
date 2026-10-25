@@ -490,19 +490,22 @@ public final class AwakenedBladeCombat {
                 moved, primary.getBoundingBox())) return;
         if (!AwakenedRankCost.trySpend(player, blade,
                 AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
-        // Resolve the authenticated hit before committing movement. If a
-        // protection mod rejects damage, refund Rank and DO NOT award a free
-        // teleport. Both parts of the server-side finisher now succeed/fail
-        // as a single transaction from the player's perspective.
-        if (!secondaryHit(level, player, primary, damage)) {
-            AwakenedRankCost.refund(player, blade, AwakenedRankCost.Cast.RAIKIRI_FINISH);
-            return;
-        }
-        // The hit was authorized only after the simulated collision-safe dash
-        // entered actual melee range; this is not a fabricated homing attack.
-        if (moved.distanceToSqr(from) > 0.24D) {
+        // Apply damage from the REAL post-lunge position, so protection mods
+        // that validate attack distance see the correct server coordinates.
+        // If damage is rejected, roll back the movement and exactly our Rank
+        // charge: the player cannot farm free teleports from protected mobs.
+        boolean relocated = moved.distanceToSqr(from) > 0.24D;
+        if (relocated) {
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
+        }
+        if (!secondaryHit(level, player, primary, damage)) {
+            if (relocated) {
+                player.connection.teleport(from.x, from.y, from.z,
+                        player.getYRot(), player.getXRot());
+            }
+            AwakenedRankCost.refund(player, blade, AwakenedRankCost.Cast.RAIKIRI_FINISH);
+            return;
         }
         int chain = state.stepChain;
         state.raikiriCharge = 0;
