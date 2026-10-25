@@ -358,6 +358,7 @@ public final class BladeLegacyEasterEggs {
         unlock(player, blade, TAG_RAIKIRI_UNLOCKED, RAIKIRI_ADVANCEMENT,
                 "message.blade_tetra.raikiri.unlocked", ChatFormatting.AQUA,
                 ParticleTypes.ELECTRIC_SPARK, SoundEvents.LIGHTNING_BOLT_THUNDER, 1.28F);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.RAIKIRI);
         tag.remove(TAG_RAIKIRI_CHARGED_AT);
         tag.remove(TAG_RAIKIRI_LAST_SA);
     }
