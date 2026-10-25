@@ -1219,5 +1219,9 @@
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",
   "message.blade_tetra.awakened.rank_insufficient": "觉醒技需要 %s 评级与 %s 评分点数",
   "hud.blade_tetra.awakened.rank_cost": "需要 %s · 消耗 %s 评分",
-  "tooltip.blade_tetra.awakened.v2.dual_active": "已形成双魂协奏：两魂共用一次评分支付，要求至少 S Rank"
+  "tooltip.blade_tetra.awakened.v2.dual_active": "已形成双魂协奏：两魂共用一次评分支付，要求至少 S Rank",
+  "vfx.blade_tetra.true_name.akatsuki": "残月·命断",
+  "vfx.blade_tetra.true_name.kyouka": "无相·万镜归一",
+  "vfx.blade_tetra.true_name.senbonzakura": "终景·千樱葬",
+  "vfx.blade_tetra.true_name.raikiri": "神鸣·一闪"
 }
