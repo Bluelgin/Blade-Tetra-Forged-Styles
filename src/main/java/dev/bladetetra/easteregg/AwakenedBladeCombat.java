@@ -237,6 +237,67 @@ public final class AwakenedBladeCombat {
         state.scarMagnitude = 0;
         visual(level, SoulLegacyState.Legacy.AKATSUKI,
                 AwakenedBladeVfxPacket.RELEASE, center, center, directions);
+        releaseAkatsukiFusion(level, player, blade, target, center, now, damage);
+    }
+
+    /** Three genuinely different follow-ups share the *same* one Rank debit. */
+    private static void releaseAkatsukiFusion(ServerLevel level, ServerPlayer player,
+            ItemStack blade, LivingEntity target, Vec3 anchor, long now, float budget) {
+        SoulResonance.Resonance fusion = SoulResonance.resolve(blade);
+        if (!SoulResonance.isFormed(blade, fusion)) return;
+        switch (fusion) {
+            case MIRROR_MOON -> {
+                if (REPLAYS.size() >= 96) return;
+                ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                        .map(b -> b.getComboSeq()).orElse(null);
+                if (combo == null) return;
+                // A second cut is reflected from the original causal crossing,
+                // and misses if the target escapes the recorded location.
+                REPLAYS.add(new PendingReplay(level.dimension(), player.getUUID(),
+                        id(blade), target.getUUID(), now + 39L,
+                        Math.min(5.0F, budget * 0.15F), player.getYRot(),
+                        player.getXRot(), combo, player.position(), anchor));
+                visual(level, SoulLegacyState.Legacy.KYOUKA,
+                        AwakenedBladeVfxPacket.RELEASE, anchor, anchor, 1);
+            }
+            case FUNERAL_BLOSSOM -> {
+                if (SAKURA_WAVES.size() >= 94) return;
+                List<LivingEntity> bystanders = level.getEntitiesOfClass(
+                                LivingEntity.class, new AABB(anchor, anchor).inflate(4.0D),
+                                entity -> entity != target && canAffect(player, entity))
+                        .stream().sorted(Comparator.comparingDouble(
+                                entity -> entity.distanceToSqr(anchor))).limit(2).toList();
+                int i = 0;
+                for (LivingEntity victim : bystanders) {
+                    SAKURA_WAVES.add(new PendingSakuraWave(level.dimension(),
+                            player.getUUID(), id(blade), victim.getUUID(),
+                            victim.getBoundingBox().getCenter(), now + 36L + i++ * 3L,
+                            Math.min(3.0F, budget * 0.10F),
+                            SoulResonance.Resonance.FUNERAL_BLOSSOM));
+                }
+                if (!bystanders.isEmpty()) {
+                    visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
+                            AwakenedBladeVfxPacket.RELEASE, anchor, anchor, 0);
+                }
+            }
+            case CRIMSON_THUNDER -> {
+                // A safe positioning lunge for the player, without another hit.
+                Vec3 from = player.position();
+                Vec3 to = anchor.subtract(from).multiply(1, 0, 1);
+                if (to.lengthSqr() > 4.0D && to.lengthSqr() < 64.0D) {
+                    Vec3 moved = collisionCheckedStep(level, player, from,
+                            to.normalize(), Math.min(3.5D, to.length() - 1.3D));
+                    if (moved.distanceToSqr(from) > 0.24D) {
+                        player.connection.teleport(moved.x, moved.y, moved.z,
+                                player.getYRot(), player.getXRot());
+                        visual(level, SoulLegacyState.Legacy.RAIKIRI,
+                                AwakenedBladeVfxPacket.STEP,
+                                from.add(0, 1, 0), moved.add(0, 1, 0), 1);
+                    }
+                }
+            }
+            default -> { }
+        }
     }
 
     private static void releaseKyouka(ServerLevel level, ServerPlayer player,
