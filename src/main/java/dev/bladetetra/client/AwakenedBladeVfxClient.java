@@ -158,6 +158,11 @@ public final class AwakenedBladeVfxClient {
             drawAwakening(buffer, matrix, eye, pos, soul, age, alpha);
             return;
         }
+        if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) {
+            drawCausalExecution(buffer, matrix, eye, pos, age, alpha,
+                    data.variant());
+            return;
+        }
         // 128px tiles, 8x4 on Akatsuki and 4x4 on the other three atlases.
         int tile = switch (soul) {
             case 1 -> switch (type) {
@@ -278,13 +283,52 @@ public final class AwakenedBladeVfxClient {
                     1.35D, seal, soul, sealAlpha, 0);
         }
         if (soul == 2 && type == AwakenedBladeVfxPacket.RELEASE) {
-            for (int i = 0; i < 5; i++) {
-                double a = i * Math.PI * 2.0D / 5.0D;
+            int mirrors = ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get() < 32 ? 3 : 8;
+            for (int i = 0; i < mirrors; i++) {
+                double a = i * Math.PI * 2.0D / mirrors;
+                float fade = alpha * Mth.clamp((age - i * 2.0F) / 5.0F, 0, 1);
                 Vec3 mirror = pos.add(Math.cos(a) * 2.0D, 0.2D,
                         Math.sin(a) * 2.0D);
                 billboardTile(buffer, matrix, eye, mirror, 1.1D,
-                        t > 0.68F ? 1 : 0, soul, alpha * 0.55F, (float) a);
+                        age > 40 ? 1 : 0, soul, fade * 0.55F, (float) a);
+                if (age >= 24 + i && age < 40) {
+                    billboardTile(buffer, matrix, eye,
+                            pos.add(Math.cos(a) * 0.8D, 0.25D,
+                                    Math.sin(a) * 0.8D),
+                            1.75D, 3, soul, fade * 0.8F, (float) a);
+                }
             }
+        }
+    }
+
+    /** Each phase matches the real causal impact at tick 33. */
+    private static void drawCausalExecution(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 eye, Vec3 pos, float age, float alpha, int directions) {
+        for (int sector = 0; sector < 6; sector++) {
+            if ((directions & (1 << sector)) == 0) continue;
+            float appear = Mth.clamp((age - sector * 2.0F) / 4.0F, 0, 1);
+            float contract = Mth.clamp((age - 24.0F) / 8.0F, 0, 1);
+            int frame = age > 40 ? sector * 3 + 2 : sector * 3 + 1;
+            billboardTile(buffer, matrix, eye,
+                    pos.add(0, Math.sin(sector * Math.PI / 3.0D) * 0.18D, 0),
+                    2.9D * (1 - contract * 0.55D), frame, 1,
+                    alpha * appear * (age > 42 ? 0.5F : 0.9F), 0);
+        }
+        if (age >= 10 && age < 43) {
+            float a = alpha * Mth.clamp((age - 10) / 8.0F, 0, 1)
+                    * Mth.clamp((43 - age) / 7.0F, 0, 1);
+            billboardTile(buffer, matrix, eye, pos, 0.9D, 18, 1, a, 0);
+        }
+        if (age >= 14 && age < 43) {
+            float a = alpha * Mth.clamp((age - 14) / 6.0F, 0, 1)
+                    * Mth.clamp((43 - age) / 7.0F, 0, 1);
+            billboardTile(buffer, matrix, eye, pos, 4.1D, 20, 1, a, 0);
+        }
+        if (age >= 32 && age < 42) {
+            float a = alpha * Mth.clamp((age - 32) / 2.0F, 0, 1)
+                    * Mth.clamp((42 - age) / 6.0F, 0, 1);
+            billboardTile(buffer, matrix, eye, pos, 4.6D,
+                    21, 1, a, 0);
         }
     }
 
