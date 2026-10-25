@@ -163,6 +163,20 @@ public final class AwakenedBladeVfxClient {
                     data.variant());
             return;
         }
+        if (soul == 3 && type == AwakenedBladeVfxPacket.MARK
+                && data.variant() == 9) {
+            // Detached visible blade body for third-person and self view.
+            // Nine quads from the existing Astra atlas, no spawned entities.
+            for (int i = 0; i < 9; i++) {
+                double angle = Math.PI * 2.0D * i / 9 + age * 0.045D;
+                Vec3 piece = pos.add(Math.cos(angle) * 0.90D,
+                        0.15D + Math.sin(angle * 2) * 0.24D,
+                        Math.sin(angle) * 0.90D);
+                billboardTile(buffer, matrix, eye, piece, 0.39D,
+                        i % 3, soul, alpha * 0.75F, (float) angle);
+            }
+            return;
+        }
         // 128px tiles, 8x4 on Akatsuki and 4x4 on the other three atlases.
         int tile = switch (soul) {
             case 1 -> switch (type) {
