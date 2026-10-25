@@ -26,6 +26,32 @@ class AwakenedCombatMathTest {
         assertTrue(AwakenedCombatMath.mirrorCut(Float.MAX_VALUE) <= 12);
     }
 
+    @Test void causalCrossRequiresThreeSectorsWithAngularSeparation() {
+        assertFalse(AwakenedCombatMath.hasCausalCross(0));
+        assertFalse(AwakenedCombatMath.hasCausalCross(0b000011));
+        assertFalse(AwakenedCombatMath.hasCausalCross(0b100001));
+        assertTrue(AwakenedCombatMath.hasCausalCross(0b000111));
+        assertTrue(AwakenedCombatMath.hasCausalCross(0b101010));
+        assertTrue(AwakenedCombatMath.hasCausalCross(0b111111));
+    }
+
+    @Test void thunderChainRequiresConfirmedHitAndWindow() {
+        assertEquals(1, AwakenedCombatMath.nextThunderChain(0, false, 1, 2));
+        assertEquals(1, AwakenedCombatMath.nextThunderChain(1, false, 10, 14));
+        assertEquals(2, AwakenedCombatMath.nextThunderChain(1, true, 10, 18));
+        assertEquals(3, AwakenedCombatMath.nextThunderChain(2, true, 18, 25));
+        assertEquals(3, AwakenedCombatMath.nextThunderChain(3, true, 25, 33));
+        assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 10, 47));
+        assertEquals(1, AwakenedCombatMath.nextThunderChain(3, true, 20, 19));
+    }
+
+    @Test void sakuraArraysDistinguishGuardFanAndRain() {
+        assertEquals(0, AwakenedCombatMath.sakuraFormation(false, false));
+        assertEquals(1, AwakenedCombatMath.sakuraFormation(false, true));
+        assertEquals(2, AwakenedCombatMath.sakuraFormation(true, false));
+        assertEquals(2, AwakenedCombatMath.sakuraFormation(true, true));
+    }
+
     @Test void invalidDamageDoesNotBecomeBonusDamage() {
         for (float bad : new float[]{-1, 0, Float.NaN,
                 Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY}) {
