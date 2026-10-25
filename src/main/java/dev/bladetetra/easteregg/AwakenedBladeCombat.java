@@ -509,11 +509,20 @@ public final class AwakenedBladeCombat {
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !replacesLegacy()
-                || !(event.player instanceof ServerPlayer player)
-                || player.tickCount % 80 != 0) return;
+                || !(event.player instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
         if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (soul == SoulLegacyState.Legacy.SENBONZAKURA
+                && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED)
+                && player.tickCount % 20 == 0) {
+            // One low-rate, bounded ambient event per dispersed player/second.
+            // Renders orbiting pieces, never creates real projectile entities.
+            Vec3 center = player.position().add(0, 1.0D, 0);
+            visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.MARK,
+                    center, center, 9);
+        }
+        if (player.tickCount % 80 != 0) return;
         State state = state(player, blade);
         long now = player.level().getGameTime();
         if (now - state.lastHit > EXPIRE_TICKS) {
