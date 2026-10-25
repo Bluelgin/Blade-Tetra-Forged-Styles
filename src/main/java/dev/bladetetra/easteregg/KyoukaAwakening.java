@@ -302,6 +302,11 @@ public final class KyoukaAwakening {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING.clear();
+            PENDING_HITS.clear();
+            return;
+        }
         MinecraftServer server = event.getServer();
         if (!PENDING_HITS.isEmpty()) {
             Iterator<Map.Entry<UUID, PendingHit>> hits = PENDING_HITS.entrySet().iterator();
