@@ -6,6 +6,7 @@ import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
+import dev.bladetetra.network.AwakenedMirrorEchoPacket;
 import dev.bladetetra.network.AwakenedBladeStatePacket;
 import dev.bladetetra.network.ModNetwork;
 import mods.flammpfeil.slashblade.entity.IShootable;
@@ -76,6 +77,7 @@ public final class AwakenedBladeCombat {
     private static final List<PendingPetal> PETALS = new ArrayList<>();
     private static final List<PendingSakuraWave> SAKURA_WAVES = new ArrayList<>();
     private static int ticks;
+    private static int nextMirrorCutId = 1;
 
     /** Guards only legacy combat callbacks; never guards ritual or unlock code. */
     public static boolean replacesLegacy() {
@@ -146,9 +148,12 @@ public final class AwakenedBladeCombat {
                         .map(value -> value.getComboSeq()).orElse(null);
                 // Capture a genuine native combo and pose at a server-confirmed hit.
                 if (combo != null) {
+                    int cutId = nextMirrorCutId++;
                     state.mirror.add(new RecordedCut(now, state.lastDamage,
                             player.getYRot(), player.getXRot(), combo,
-                            player.position(), center));
+                            player.position(), center, cutId));
+                    sendMirrorPose(level, player, cutId, AwakenedMirrorEchoPacket.CAPTURE,
+                            player.position(), player.getYRot());
                     if (state.mirror.size() > 3) state.mirror.remove(0);
                 }
                 visual(level, soul, AwakenedBladeVfxPacket.MARK, center, center,
@@ -256,7 +261,7 @@ public final class AwakenedBladeCombat {
                 REPLAYS.add(new PendingReplay(level.dimension(), player.getUUID(),
                         id(blade), target.getUUID(), now + 39L,
                         Math.min(5.0F, budget * 0.15F), player.getYRot(),
-                        player.getXRot(), combo, player.position(), anchor));
+                        player.getXRot(), combo, player.position(), anchor, -1));
                 visual(level, SoulLegacyState.Legacy.KYOUKA,
                         AwakenedBladeVfxPacket.RELEASE, anchor, anchor, 1);
             }
@@ -316,7 +321,7 @@ public final class AwakenedBladeCombat {
             if (damage > 0) REPLAYS.add(new PendingReplay(level.dimension(),
                     player.getUUID(), id(blade), target.getUUID(),
                     now + 24L + number * 5L, damage, cut.yaw, cut.pitch,
-                    cut.combo, cut.origin, cut.targetAnchor));
+                    cut.combo, cut.origin, cut.targetAnchor, cut.cutId));
             number++;
         }
         releaseKyoukaFusion(level, player, blade, target, state.mirror, now);
@@ -655,6 +660,10 @@ public final class AwakenedBladeCombat {
             // Recorded-space attacks do not magically follow a fleeing target.
             if (!player.hasLineOfSight(target) || target.getBoundingBox().getCenter()
                     .distanceToSqr(cut.targetAnchor) > 9.0D) continue;
+            if (cut.cutId >= 0) {
+                sendMirrorPose(level, player, cut.cutId, AwakenedMirrorEchoPacket.PLAY,
+                        cut.origin, cut.yaw);
+            }
             spawnMirrorSlash(player, target, cut);
             if (secondaryHit(level, player, target, cut.damage)) {
                 Vec3 center = target.getBoundingBox().getCenter();
@@ -835,6 +844,19 @@ public final class AwakenedBladeCombat {
                         maximum, dispersed, minimum, price));
     }
 
+    private static void sendMirrorPose(ServerLevel level, ServerPlayer attacker,
+            int cutId, int action, Vec3 pos, float yaw) {
+        AwakenedMirrorEchoPacket packet = new AwakenedMirrorEchoPacket(
+                action, attacker.getId(), cutId, pos.x, pos.y, pos.z, yaw);
+        // The capture only goes to players actually near its original location.
+        // Replay has its own authoritative server decision and location.
+        for (ServerPlayer viewer : level.players()) {
+            if (viewer.distanceToSqr(pos) < 48.0D * 48.0D) {
+                ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer), packet);
+            }
+        }
+    }
+
     private static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
             int type, Vec3 pos, Vec3 end, int variant) {
         AwakenedBladeVfxPacket packet = new AwakenedBladeVfxPacket(
@@ -849,10 +871,11 @@ public final class AwakenedBladeCombat {
 
     private record Key(UUID player, UUID blade) { }
     private record RecordedCut(long tick, float damage, float yaw, float pitch,
-            ResourceLocation combo, Vec3 origin, Vec3 targetAnchor) { }
+            ResourceLocation combo, Vec3 origin, Vec3 targetAnchor, int cutId) { }
     private record PendingReplay(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, long when, float damage, float yaw,
-            float pitch, ResourceLocation combo, Vec3 origin, Vec3 targetAnchor) { }
+            float pitch, ResourceLocation combo, Vec3 origin, Vec3 targetAnchor,
+            int cutId) { }
     private record PendingCausal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
     private record PendingPetal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
