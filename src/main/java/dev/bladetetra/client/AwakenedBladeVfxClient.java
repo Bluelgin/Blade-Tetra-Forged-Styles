@@ -74,6 +74,13 @@ public final class AwakenedBladeVfxClient {
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
                 > max * max) return;
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
+        // Release replaces persistent Akatsuki scar marks around this target.
+        if (packet.soul() == 1 && packet.type() == AwakenedBladeVfxPacket.RELEASE) {
+            EFFECTS.removeIf(fx -> fx.data.soul() == 1
+                    && fx.data.type() == AwakenedBladeVfxPacket.MARK
+                    && new Vec3(fx.data.x(), fx.data.y(), fx.data.z())
+                            .distanceToSqr(packet.x(), packet.y(), packet.z()) < 16.0D);
+        }
         EFFECTS.add(new Effect(packet));
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
     }
@@ -189,19 +196,57 @@ public final class AwakenedBladeVfxClient {
                 : type == AwakenedBladeVfxPacket.RELEASE ? 2.5D : 0.95D;
         if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) baseSize = 4.3D;
         if (soul == 3 && type == AwakenedBladeVfxPacket.RELEASE) {
-            // One event expands into decorative quads, never into gameplay entities.
+            // Three distinct formations using the *same* Astra blades.
+            // Server selects the formation; no decorative entity has an AI tick.
             int count = ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get() < 32 ? 16 : 32;
+            Vec3 end = new Vec3(data.endX(), data.endY(), data.endZ());
+            Vec3 heading = end.subtract(pos).multiply(1, 0, 1);
+            if (heading.lengthSqr() < 0.01D) heading = new Vec3(0, 0, 1);
+            heading = heading.normalize();
+            Vec3 sideways = new Vec3(-heading.z, 0, heading.x);
+            int mode = Math.floorMod(data.variant(), 3);
+            double grow = Mth.clamp((age - 6) / 16.0F, 0, 1);
+            double fire = Mth.clamp((age - 28) / 14.0F, 0, 1);
             for (int i = 0; i < count; i++) {
-                double angle = i * Math.PI * 2.0D / count;
-                double formation = Mth.clamp((age - 6) / 16.0F, 0, 1);
-                double dive = Mth.clamp((age - 28) / 14.0F, 0, 1);
-                double radius = (1.1D + formation * 1.6D) * (1 - dive * 0.8D);
-                Vec3 blade = pos.add(Math.cos(angle) * radius,
-                        0.4D + formation * (i % 5) * 0.34D - dive * 1.4D,
-                        Math.sin(angle) * radius);
+                double a = i * Math.PI * 2.0D / count;
+                Vec3 blade;
+                if (mode == 1) {
+                    // Forward fan converges along the genuine player-to-target axis.
+                    double spread = ((i / (double)(count - 1)) - 0.5D) * 5.2D;
+                    blade = pos.add(heading.scale(0.8D + 1.0D * grow + 3.0D * fire))
+                            .add(sideways.scale(spread * (1.0D - 0.8D * fire)))
+                            .add(0, 1.2D + (i % 3) * 0.15D, 0);
+                } else if (mode == 2) {
+                    // Aerial sword rain falls toward the selected enemy location.
+                    blade = end.add(Math.cos(a) * (1.0D + grow * 1.4D),
+                            3.2D + (i % 5) * 0.3D - fire * 3.2D,
+                            Math.sin(a) * (1.0D + grow * 1.4D));
+                } else {
+                    // A short-lived defensive ring centred on the player.
+                    double radius = (1.1D + grow * 0.9D) * (1 - fire * 0.5D);
+                    blade = pos.add(Math.cos(a + age * 0.02D) * radius,
+                            1.0D + (i % 4) * 0.2D,
+                            Math.sin(a + age * 0.02D) * radius);
+                }
                 billboardTile(buffer, matrix, eye, blade, 0.38D,
-                        0, soul, alpha * 0.8F, (float) angle);
+                        i % 8 == 0 ? 2 : 0, soul, alpha * 0.8F, (float) a);
             }
+        }
+        if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) {
+            // Each directional scar was earned by circling the target.
+            for (int sector = 0; sector < 6; sector++) {
+                if ((data.variant() & (1 << sector)) == 0) continue;
+                float phase = Mth.clamp((age - sector * 2.0F) / 5.0F, 0, 1);
+                billboardTile(buffer, matrix, eye, pos.add(0,
+                                Math.sin(sector * Math.PI / 3) * 0.25D, 0),
+                        2.7D * (1 - 0.50D * Mth.clamp((age - 24) / 10.0F, 0, 1)),
+                        sector * 3 + 1, soul, alpha * phase, 0);
+            }
+        }
+        if (soul == 2 && type == AwakenedBladeVfxPacket.MARK) {
+            billboardTile(buffer, matrix, eye, pos, 1.45D, 3,
+                    soul, alpha * 0.8F,
+                    (float) Math.toRadians(Math.floorMod(data.variant(), 360)));
         }
         billboardTile(buffer, matrix, eye, pos, baseSize, tile, soul,
                 alpha, (float) (type == AwakenedBladeVfxPacket.RELEASE
@@ -336,6 +381,7 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.RELEASE -> data.soul() == 3 ? 64
                         : data.soul() == 4 ? 40 : 56;
                 case AwakenedBladeVfxPacket.STEP -> 22;
+                case AwakenedBladeVfxPacket.MARK -> data.soul() == 1 ? 160 : 18;
                 default -> 18;
             };
         }
