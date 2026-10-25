@@ -154,6 +154,10 @@ public final class AwakenedBladeVfxClient {
         Vec3 pos = new Vec3(data.x(), data.y(), data.z());
         int soul = data.soul();
         int type = data.type();
+        if (type == AwakenedBladeVfxPacket.AWAKEN) {
+            drawAwakening(buffer, matrix, eye, pos, soul, age, alpha);
+            return;
+        }
         // 128px tiles, 8x4 on Akatsuki and 4x4 on the other three atlases.
         int tile = switch (soul) {
             case 1 -> switch (type) {
@@ -282,6 +286,91 @@ public final class AwakenedBladeVfxClient {
                         t > 0.68F ? 1 : 0, soul, alpha * 0.55F, (float) a);
             }
         }
+    }
+
+    /**
+     * Astra's compact 44-tick ceremonies: no new ritual conditions, only
+     * different successive art layers after the server confirms an unlock.
+     */
+    private static void drawAwakening(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 eye, Vec3 pos, int soul, float age, float alpha) {
+        float t = Mth.clamp(age / 44.0F, 0, 1);
+        switch (soul) {
+            case 1 -> {
+                // 0-6 crescent, 6-23 sword trace, 23-32 name seal, 32-44 fade.
+                float moon = alpha * Mth.clamp(age / 6.0F, 0, 1);
+                billboardTile(buffer, matrix, eye, pos.add(0, 0.65D, 0),
+                        2.5D, 19, soul, moon, 0);
+                if (age >= 6 && age <= 40) {
+                    float trace = alpha * Mth.clamp((age - 6) / 5.0F, 0, 1)
+                            * Mth.clamp((40 - age) / 8.0F, 0, 1);
+                    billboardTile(buffer, matrix, eye, pos.add(0.25D, 0, 0),
+                            1.3D, 22, soul, trace, -0.27F);
+                }
+            }
+            case 2 -> {
+                // Water pool at feet, reflected ghost, mirror burst, then seal.
+                Vec3 pool = pos.add(0, -0.95D, 0);
+                billboardTile(buffer, matrix, eye, pool, 2.1D,
+                        age < 19 ? 0 : 1, soul, alpha * 0.82F, 0);
+                if (age >= 8 && age < 26) {
+                    billboardTile(buffer, matrix, eye, pos, 1.3D, 2,
+                            soul, alpha * 0.6F, 0);
+                }
+                if (age >= 18 && age < 35) {
+                    float fade = alpha * Mth.clamp((35 - age) / 12.0F, 0, 1);
+                    for (int i = 0; i < 4; i++) {
+                        double a = Math.PI * 0.5D * i;
+                        Vec3 shard = pool.add(Math.cos(a) * (0.2D + 0.07D * (age - 18)),
+                                0.35D + Math.max(0, age - 18) * 0.045D,
+                                Math.sin(a) * (0.2D + 0.07D * (age - 18)));
+                        billboardTile(buffer, matrix, eye, shard, 0.28D,
+                                5 + i, soul, fade, (float) a);
+                    }
+                }
+            }
+            case 3 -> {
+                // 0-16 orbital petal ring, 16-27 condensed sword, 32+ scatter.
+                int petals = 12;
+                double gather = Mth.clamp((age - 16) / 11.0F, 0, 1);
+                double scatter = Mth.clamp((age - 32) / 12.0F, 0, 1);
+                for (int i = 0; i < petals; i++) {
+                    double a = i * Math.PI * 2.0D / petals + age * 0.08D;
+                    double radius = (1.2D - gather * 1.1D) + scatter * 1.6D;
+                    Vec3 v = pos.add(Math.cos(a) * radius,
+                            Math.sin(a * 2) * (0.35D + 0.08D * scatter),
+                            Math.sin(a) * radius);
+                    billboardTile(buffer, matrix, eye, v,
+                            0.36D, 5, soul, alpha * 0.8F, (float) a);
+                }
+                if (age >= 16 && age <= 32) {
+                    billboardTile(buffer, matrix, eye, pos, 1.1D, 2,
+                            soul, alpha * Mth.clamp((age - 16) / 7.0F, 0, 1), 0);
+                }
+            }
+            default -> {
+                // Lightning crawls onto the sheath, peaks at 12-17, then fades.
+                for (int i = 0; i < 3 && age < 27; i++) {
+                    double a = age * 0.2D + i * Math.PI * 2.0D / 3.0D;
+                    Vec3 spark = pos.add(Math.cos(a) * 0.52D,
+                            -0.25D + i * 0.27D, Math.sin(a) * 0.52D);
+                    billboardTile(buffer, matrix, eye, spark, 0.65D, 4,
+                            soul, alpha * (age <= 17 ? 0.8F : 0.35F), (float) a);
+                }
+                if (age >= 12 && age <= 23) {
+                    billboardTile(buffer, matrix, eye, pos, 2.3D, 8,
+                            soul, alpha * Mth.clamp((age - 12) / 3.0F, 0, 1)
+                                    * Mth.clamp((23 - age) / 6.0F, 0, 1), 0);
+                }
+            }
+        }
+        int seal = switch (soul) {
+            case 1 -> 23; case 2 -> 12; case 3 -> 7; default -> 9;
+        };
+        float name = alpha * Mth.clamp((age - (soul == 2 ? 25 : 23)) / 4.0F, 0, 1)
+                * Mth.clamp((43.0F - age) / 11.0F, 0, 1);
+        billboardTile(buffer, matrix, eye, pos.add(0, 0.7D, 0),
+                1.3D, seal, soul, name, 0);
     }
 
     private static void drawAnimation(BufferBuilder buffer, Matrix4f matrix,
