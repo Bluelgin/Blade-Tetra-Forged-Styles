@@ -183,8 +183,9 @@ public final class AwakenedBladeVfxClient {
                 || type == AwakenedBladeVfxPacket.RELEASE)) {
             Vec3 end = new Vec3(data.endX(), data.endY(), data.endZ());
             segment(buffer, matrix, eye, pos, end,
-                    (type == AwakenedBladeVfxPacket.STEP ? 0.25D : 0.42D)
-                            * (1 - t * 0.6D),
+                    (type == AwakenedBladeVfxPacket.STEP
+                            ? 0.20D + Math.min(3, data.variant()) * 0.045D
+                            : 0.42D) * (1 - t * 0.6D),
                     tile, soul, alpha);
             if (type == AwakenedBladeVfxPacket.RELEASE) {
                 billboardTile(buffer, matrix, eye, end, 1.35D, 6,
@@ -244,7 +245,15 @@ public final class AwakenedBladeVfxClient {
             }
         }
         if (soul == 2 && type == AwakenedBladeVfxPacket.MARK) {
-            billboardTile(buffer, matrix, eye, pos, 1.45D, 3,
+            Vec3 anchor = new Vec3(data.endX(), data.endY(), data.endZ());
+            boolean replay = anchor.distanceToSqr(pos) > 0.25D;
+            if (replay) {
+                // Old attacker position -> old target position, never a live
+                // homing trail. Short trails use one alpha-blended atlas quad.
+                segment(buffer, matrix, eye, pos, anchor, 0.13D, 3,
+                        soul, alpha * 0.65F);
+            }
+            billboardTile(buffer, matrix, eye, replay ? anchor : pos, 1.45D, 3,
                     soul, alpha * 0.8F,
                     (float) Math.toRadians(Math.floorMod(data.variant(), 360)));
         }
