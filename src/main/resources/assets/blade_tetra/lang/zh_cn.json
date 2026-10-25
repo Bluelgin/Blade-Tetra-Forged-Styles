@@ -1218,5 +1218,6 @@
   "tooltip.blade_tetra.awakened.v2.raikiri": "觉醒·雷步：潜行SA快速突进；攻击或雷步积蓄雷荷，普通SA释放终击。",
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",
   "message.blade_tetra.awakened.rank_insufficient": "觉醒技需要 %s 评级与 %s 评分点数",
-  "hud.blade_tetra.awakened.rank_cost": "需要 %s · 消耗 %s 评分"
+  "hud.blade_tetra.awakened.rank_cost": "需要 %s · 消耗 %s 评分",
+  "tooltip.blade_tetra.awakened.v2.dual_active": "已形成双魂协奏：两魂共用一次评分支付，要求至少 S Rank"
 }
