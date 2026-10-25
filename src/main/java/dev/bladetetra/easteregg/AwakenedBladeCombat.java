@@ -564,6 +564,11 @@ public final class AwakenedBladeCombat {
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
+        }
+        // A first lightning step may begin after minutes without any hit.
+        // Only its own step timestamp, never stale lastHit, expires the chain.
+        if (soul == SoulLegacyState.Legacy.RAIKIRI
+                && (now < state.lastStep || now - state.lastStep > 36L)) {
             state.stepChain = 0;
             state.stepConfirmed = false;
         }
