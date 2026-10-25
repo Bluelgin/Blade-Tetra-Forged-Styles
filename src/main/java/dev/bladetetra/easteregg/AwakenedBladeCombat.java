@@ -147,7 +147,10 @@ public final class AwakenedBladeCombat {
                 ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                         .map(value -> value.getComboSeq()).orElse(null);
                 // Capture a genuine native combo and pose at a server-confirmed hit.
-                if (combo != null) {
+                // Fast multi-hit SlashBlade effects must not create dozens of
+                // identical capture packets in one server tick.
+                if (combo != null && now - state.lastMirrorCapture >= 3L) {
+                    state.lastMirrorCapture = now;
                     int cutId = nextMirrorCutId++;
                     state.mirror.add(new RecordedCut(now, state.lastDamage,
                             player.getYRot(), player.getXRot(), combo,
@@ -902,6 +905,7 @@ public final class AwakenedBladeCombat {
         float scarMagnitude;
         int sakuraCharge;
         long petalUntil;
+        long lastMirrorCapture = -100L;
         int raikiriCharge;
         long lastHit;
         long cooldownUntil;
