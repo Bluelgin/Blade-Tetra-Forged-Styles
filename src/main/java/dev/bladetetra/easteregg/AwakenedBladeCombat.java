@@ -294,8 +294,9 @@ public final class AwakenedBladeCombat {
         state.sakuraCharge = 0;
         state.cooldownUntil = now + 110L;
         Vec3 targetCenter = primary.getBoundingBox().getCenter();
+        Vec3 origin = formation == 2 ? targetCenter : player.position();
         visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
-                AwakenedBladeVfxPacket.RELEASE, targetCenter, targetCenter, formation);
+                AwakenedBladeVfxPacket.RELEASE, origin, targetCenter, formation);
     }
 
     private static void releaseRaikiri(ServerLevel level, ServerPlayer player,
@@ -325,7 +326,7 @@ public final class AwakenedBladeCombat {
             state.stepUntil = now + (state.stepChain > 1 ? 6L : 10L);
             visual(level, SoulLegacyState.Legacy.RAIKIRI,
                     AwakenedBladeVfxPacket.STEP,
-                    from.add(0, 1, 0), moved.add(0, 1, 0), 0);
+                    from.add(0, 1, 0), moved.add(0, 1, 0), state.stepChain);
             return;
         }
         if (state.raikiriCharge < 2 || now < state.cooldownUntil
