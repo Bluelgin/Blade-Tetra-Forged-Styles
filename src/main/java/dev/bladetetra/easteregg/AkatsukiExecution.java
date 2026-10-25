@@ -78,6 +78,7 @@ public final class AkatsukiExecution {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         LivingEntity target = event.getEntity();
         if (!(target.level() instanceof ServerLevel level)
                 || event.getAmount() <= 0.0F
