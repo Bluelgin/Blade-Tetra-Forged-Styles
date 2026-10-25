@@ -11,18 +11,21 @@ import java.util.function.Supplier;
 
 /** Owner-only authoritative status, never a player-to-server combat request. */
 public record AwakenedBladeStatePacket(UUID blade, int soul, int meter,
-        int maximum, boolean dispersed) {
+        int maximum, boolean dispersed, int minimumRank, int rankCost) {
     public static void encode(AwakenedBladeStatePacket packet, FriendlyByteBuf buf) {
         buf.writeUUID(packet.blade);
         buf.writeVarInt(packet.soul);
         buf.writeVarInt(packet.meter);
         buf.writeVarInt(packet.maximum);
         buf.writeBoolean(packet.dispersed);
+        buf.writeVarInt(packet.minimumRank);
+        buf.writeVarInt(packet.rankCost);
     }
 
     public static AwakenedBladeStatePacket decode(FriendlyByteBuf buf) {
         return new AwakenedBladeStatePacket(buf.readUUID(), buf.readVarInt(),
-                buf.readVarInt(), buf.readVarInt(), buf.readBoolean());
+                buf.readVarInt(), buf.readVarInt(), buf.readBoolean(),
+                buf.readVarInt(), buf.readVarInt());
     }
 
     public static void handle(AwakenedBladeStatePacket packet,
