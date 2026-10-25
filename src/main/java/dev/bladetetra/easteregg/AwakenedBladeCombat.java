@@ -2,15 +2,20 @@ package dev.bladetetra.easteregg;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.BladeTechniqueHandler;
+import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
 import dev.bladetetra.network.AwakenedBladeStatePacket;
 import dev.bladetetra.network.ModNetwork;
 import mods.flammpfeil.slashblade.entity.IShootable;
+import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
+import mods.flammpfeil.slashblade.util.AttackManager;
+import mods.flammpfeil.slashblade.util.KnockBacks;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +35,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -59,9 +65,12 @@ public final class AwakenedBladeCombat {
     private static final String BLADE_ID = "blade_tetra_awakened_v2_id";
     private static final String SAKURA_DISPERSED = "blade_tetra_awakened_v2_sakura_dispersed";
     private static final int EXPIRE_TICKS = 160;
+    private static final String VISUAL_CUT = "blade_tetra_v2_mirror_visual";
+    private static final int CAUSAL_LIMIT = 64;
     private static final int STATE_LIMIT = 512;
     private static final Map<Key, State> STATES = new HashMap<>();
     private static final List<PendingReplay> REPLAYS = new ArrayList<>();
+    private static final List<PendingCausal> CAUSAL = new ArrayList<>();
     private static int ticks;
 
     /** Guards only legacy combat callbacks; never guards ritual or unlock code. */
@@ -75,6 +84,16 @@ public final class AwakenedBladeCombat {
         Vec3 pos = player.position().add(0, 1.1D, 0);
         visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.AWAKEN,
                 pos, pos, 0);
+    }
+
+    /** Visual-only native slash effects cannot hurt or stagger anyone. */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void cancelReplayVisualDamage(LivingAttackEvent event) {
+        Entity direct = event.getSource().getDirectEntity();
+        if (direct instanceof EntitySlashEffect
+                && direct.getPersistentData().getBoolean(VISUAL_CUT)) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -94,6 +113,7 @@ public final class AwakenedBladeCombat {
         if (!target.getUUID().equals(state.targetId) || now - state.lastHit > EXPIRE_TICKS) {
             state.targetId = target.getUUID();
             state.scarDirections = 0;
+            state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
@@ -110,29 +130,54 @@ public final class AwakenedBladeCombat {
                 int bit = 1 << direction;
                 if ((state.scarDirections & bit) == 0) {
                     state.scarDirections |= bit;
+                    state.scarMagnitude = Math.min(32.0F,
+                            state.scarMagnitude + state.lastDamage * 0.32F);
                     visual(level, soul, AwakenedBladeVfxPacket.MARK,
                             center, center, direction);
                 }
             }
             case KYOUKA -> {
                 // Record validated real hits, not raw client inputs or phantom entities.
-                state.mirror.add(new RecordedCut(now, state.lastDamage, player.getYRot()));
-                if (state.mirror.size() > 3) state.mirror.remove(0);
+                ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                        .map(value -> value.getComboSeq()).orElse(null);
+                // Capture a genuine native combo and pose at a server-confirmed hit.
+                if (combo != null) {
+                    state.mirror.add(new RecordedCut(now, state.lastDamage,
+                            player.getYRot(), player.getXRot(), combo,
+                            player.position(), center));
+                    if (state.mirror.size() > 3) state.mirror.remove(0);
+                }
                 visual(level, soul, AwakenedBladeVfxPacket.MARK, center, center,
                         Math.round(player.getYRot()));
             }
             case SENBONZAKURA -> {
-                state.sakuraCharge = Math.min(6, state.sakuraCharge + 1);
                 if (blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED)) {
+                    state.sakuraCharge = Math.min(6, state.sakuraCharge + 1);
+                    int formation = AwakenedCombatMath.sakuraFormation(
+                            !player.onGround(), player.isSprinting());
                     visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            center, center, state.sakuraCharge);
+                            center, center, formation);
+                    // An independent countercut every three verified hits,
+                    // without spawning extra AI entities or a second scan.
+                    if (state.sakuraCharge % 3 == 0 && now >= state.petalUntil) {
+                        float petal = Math.min(3.0F, state.lastDamage * 0.18F);
+                        secondaryHit(level, player, target, petal);
+                        state.petalUntil = now + 10;
+                    }
                 }
             }
             case RAIKIRI -> {
-                state.raikiriCharge = Math.min(4, state.raikiriCharge + 1);
-                if (state.raikiriCharge == 4) {
+                boolean flashFollowup = state.stepChain > 0
+                        && !state.stepConfirmed
+                        && now >= state.lastStep && now - state.lastStep <= 22;
+                if (flashFollowup) {
+                    state.stepConfirmed = true;
+                    state.raikiriCharge = Math.min(4,
+                            state.raikiriCharge + Math.min(2, state.stepChain));
                     visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            center, center, state.raikiriCharge);
+                            center, center, state.stepChain);
+                } else {
+                    state.raikiriCharge = Math.min(4, state.raikiriCharge + 1);
                 }
             }
             default -> {
@@ -295,6 +340,7 @@ public final class AwakenedBladeCombat {
             state.targetId = null;
             state.lastDamage = 0;
             state.scarDirections = 0;
+            state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
@@ -465,20 +511,29 @@ public final class AwakenedBladeCombat {
     }
 
     private record Key(UUID player, UUID blade) { }
-    private record RecordedCut(long tick, float damage, float yaw) { }
+    private record RecordedCut(long tick, float damage, float yaw, float pitch,
+            ResourceLocation combo, Vec3 origin, Vec3 targetAnchor) { }
     private record PendingReplay(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
-            UUID player, UUID blade, UUID target, long when, float damage, float yaw) { }
+            UUID player, UUID blade, UUID target, long when, float damage, float yaw,
+            float pitch, ResourceLocation combo, Vec3 origin, Vec3 targetAnchor) { }
+    private record PendingCausal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
 
     private static final class State {
         net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         UUID targetId;
         float lastDamage;
         int scarDirections;
+        float scarMagnitude;
         int sakuraCharge;
+        long petalUntil;
         int raikiriCharge;
         long lastHit;
         long cooldownUntil;
         long stepUntil;
+        long lastStep;
+        int stepChain;
+        boolean stepConfirmed;
         long stanceUntil;
         int lastSyncedMeter = -1;
         boolean lastSyncedStance;
