@@ -800,10 +800,6 @@ public final class AwakenedBladeCombat {
         };
         boolean dispersed = soul == SoulLegacyState.Legacy.SENBONZAKURA
                 && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED);
-        if (!force && state.lastSyncedMeter == meter
-                && state.lastSyncedStance == dispersed) return;
-        state.lastSyncedMeter = meter;
-        state.lastSyncedStance = dispersed;
         AwakenedRankCost.Cast cast = switch (soul) {
             case AKATSUKI -> AwakenedRankCost.Cast.AKATSUKI;
             case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
@@ -815,11 +811,19 @@ public final class AwakenedBladeCombat {
             default -> null;
         };
         boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null;
+        int minimum = charge ? AwakenedRankCost.requiredLevel(blade, cast) : 0;
+        int price = charge ? AwakenedRankCost.cost(blade, cast) : 0;
+        if (!force && state.lastSyncedMeter == meter
+                && state.lastSyncedStance == dispersed
+                && state.lastSyncedMinimum == minimum
+                && state.lastSyncedCost == price) return;
+        state.lastSyncedMeter = meter;
+        state.lastSyncedStance = dispersed;
+        state.lastSyncedMinimum = minimum;
+        state.lastSyncedCost = price;
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AwakenedBladeStatePacket(id(blade), soul.ordinal(), meter,
-                        maximum, dispersed,
-                        charge ? AwakenedRankCost.requiredLevel(blade, cast) : 0,
-                        charge ? AwakenedRankCost.cost(blade, cast) : 0));
+                        maximum, dispersed, minimum, price));
     }
 
     private static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
@@ -865,6 +869,8 @@ public final class AwakenedBladeCombat {
         boolean stepConfirmed;
         long stanceUntil;
         int lastSyncedMeter = -1;
+        int lastSyncedMinimum = -1;
+        int lastSyncedCost = -1;
         boolean lastSyncedStance;
         final List<RecordedCut> mirror = new ArrayList<>(3);
     }
