@@ -224,7 +224,8 @@ public final class AwakenedBladeCombat {
         float damage = Math.min(30.0F,
                 AwakenedCombatMath.causalCut(state.lastDamage, marks)
                         + state.scarMagnitude * 0.25F);
-        if (damage <= 0) return;
+        if (damage <= 0 || !AwakenedRankCost.trySpend(player,
+                AwakenedRankCost.Cast.AKATSUKI)) return;
         Vec3 center = target.getBoundingBox().getCenter();
         CAUSAL.add(new PendingCausal(level.dimension(), player.getUUID(),
                 id(blade), target.getUUID(), center, now + 33L, damage));
@@ -242,6 +243,9 @@ public final class AwakenedBladeCombat {
                 || state.mirror.size() < 2 || REPLAYS.size() >= 96) return;
         LivingEntity target = target(level, player, state, 24.0D);
         if (target == null) return;
+        // Reserve a single cast payment, not one debit per mirrored image.
+        if (!AwakenedRankCost.trySpend(player,
+                AwakenedRankCost.Cast.KYOUKA)) return;
         int number = 0;
         for (RecordedCut cut : state.mirror) {
             // At most three staggered mirror strikes, each within its own budget.
@@ -293,7 +297,9 @@ public final class AwakenedBladeCombat {
         // One bounded damage budget, shared by all decorative sword blades.
         float budget = AwakenedCombatMath.petalBudget(
                 state.lastDamage, state.sakuraCharge);
-        if (SAKURA_WAVES.size() + enemies.size() > 96) return;
+        if (budget <= 0 || SAKURA_WAVES.size() + enemies.size() > 96
+                || !AwakenedRankCost.trySpend(player,
+                        AwakenedRankCost.Cast.SAKURA_ARRAY)) return;
         float each = budget / enemies.size();
         int step = 0;
         for (LivingEntity enemy : enemies) {
@@ -319,7 +325,9 @@ public final class AwakenedBladeCombat {
             if (horizontal.lengthSqr() < 0.0001D) return;
             Vec3 direction = horizontal.normalize();
             Vec3 moved = collisionCheckedStep(level, player, from, direction, 3.5D);
-            if (moved.distanceToSqr(from) < 0.24D) return;
+            if (moved.distanceToSqr(from) < 0.24D
+                    || !AwakenedRankCost.trySpend(player,
+                            AwakenedRankCost.Cast.RAIKIRI_STEP)) return;
             player.connection.teleport(moved.x, moved.y, moved.z,
                     player.getYRot(), player.getXRot());
             state.stepChain = AwakenedCombatMath.nextThunderChain(
@@ -338,6 +346,8 @@ public final class AwakenedBladeCombat {
         if (primary == null || !player.hasLineOfSight(primary)) return;
         float damage = AwakenedCombatMath.thunderFinisher(
                 state.lastDamage, state.raikiriCharge);
+        if (damage <= 0 || !AwakenedRankCost.trySpend(player,
+                AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
         Vec3 from = player.position();
         Vec3 delta = primary.position().subtract(from).multiply(1, 0, 1);
         Vec3 moved = from;
