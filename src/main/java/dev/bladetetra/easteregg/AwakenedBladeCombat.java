@@ -680,9 +680,22 @@ public final class AwakenedBladeCombat {
                 && state.lastSyncedStance == dispersed) return;
         state.lastSyncedMeter = meter;
         state.lastSyncedStance = dispersed;
+        AwakenedRankCost.Cast cast = switch (soul) {
+            case AKATSUKI -> AwakenedRankCost.Cast.AKATSUKI;
+            case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
+            case SENBONZAKURA -> dispersed
+                    ? AwakenedRankCost.Cast.SAKURA_ARRAY : null;
+            case RAIKIRI -> player.isShiftKeyDown()
+                    ? AwakenedRankCost.Cast.RAIKIRI_STEP
+                    : AwakenedRankCost.Cast.RAIKIRI_FINISH;
+            default -> null;
+        };
+        boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null;
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AwakenedBladeStatePacket(id(blade), soul.ordinal(), meter,
-                        maximum, dispersed));
+                        maximum, dispersed,
+                        charge ? AwakenedRankCost.requiredLevel(cast) : 0,
+                        charge ? AwakenedRankCost.cost(cast) : 0));
     }
 
     private static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
