@@ -123,8 +123,9 @@ public final class AwakenedBladeCombat {
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
-            state.stepChain = 0;
-            state.stepConfirmed = false;
+            // Step confirmation must survive the first hit on a new target:
+            // before the dash lands, targetId may legitimately be null. Reset
+            // the chain on timeout/failed input instead, never here.
         }
         state.dimension = level.dimension();
         state.lastHit = now;
