@@ -312,8 +312,11 @@ public final class AwakenedBladeCombat {
 
     private static void releaseKyouka(ServerLevel level, ServerPlayer player,
             ItemStack blade, State state, long now) {
+        // Reserve enough slots for every recorded cut before Rank payment;
+        // an almost-full shared queue cannot silently exceed its hard limit.
         if (now < state.cooldownUntil || now - state.lastHit > EXPIRE_TICKS
-                || state.mirror.size() < 2 || REPLAYS.size() >= 96) return;
+                || state.mirror.size() < 2
+                || REPLAYS.size() + state.mirror.size() > 96) return;
         LivingEntity target = target(level, player, state, 24.0D);
         if (target == null) return;
         // Reserve a single cast payment, not one debit per mirrored image.
