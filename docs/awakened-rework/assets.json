@@ -1,0 +1,2546 @@
+{
+  "schema_version": 1,
+  "baseline": "72331ebbf5f0f62f2aded0cf28a713ca3a146fb7",
+  "namespace": "blade_tetra",
+  "license": "MIT; original hand-authored vector artwork",
+  "tile_size": 128,
+  "atlas_layout": {
+    "akatsuki": [
+      8,
+      4
+    ],
+    "kyouka": [
+      4,
+      4
+    ],
+    "senbonzakura": [
+      4,
+      4
+    ],
+    "raikiri": [
+      4,
+      4
+    ],
+    "shared": [
+      2,
+      2
+    ]
+  },
+  "padding_px": 2,
+  "alpha": "straight RGBA; RGB retained at edges, no premultiplied output",
+  "sampling": "linear; clamp-to-edge; no mipmaps; sample rect inset by 0.5 px",
+  "assets": [
+    {
+      "id": "akatsuki/scar_0_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_0_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.00048828125,
+        0.0009765625,
+        0.12451171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 0° / appear"
+    },
+    {
+      "id": "akatsuki/scar_0_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_0_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.12548828125,
+        0.0009765625,
+        0.24951171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 0° / stable"
+    },
+    {
+      "id": "akatsuki/scar_0_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_0_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.25048828125,
+        0.0009765625,
+        0.37451171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 0° / break"
+    },
+    {
+      "id": "akatsuki/scar_1_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_1_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.37548828125,
+        0.0009765625,
+        0.49951171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 30° / appear"
+    },
+    {
+      "id": "akatsuki/scar_1_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_1_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        512,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.50048828125,
+        0.0009765625,
+        0.62451171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 30° / stable"
+    },
+    {
+      "id": "akatsuki/scar_1_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_1_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        640,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.62548828125,
+        0.0009765625,
+        0.74951171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 30° / break"
+    },
+    {
+      "id": "akatsuki/scar_2_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_2_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        768,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.75048828125,
+        0.0009765625,
+        0.87451171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 60° / appear"
+    },
+    {
+      "id": "akatsuki/scar_2_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_2_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        896,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.87548828125,
+        0.0009765625,
+        0.99951171875,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 60° / stable"
+    },
+    {
+      "id": "akatsuki/scar_2_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_2_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.00048828125,
+        0.2509765625,
+        0.12451171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 60° / break"
+    },
+    {
+      "id": "akatsuki/scar_3_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_3_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.12548828125,
+        0.2509765625,
+        0.24951171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 90° / appear"
+    },
+    {
+      "id": "akatsuki/scar_3_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_3_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.25048828125,
+        0.2509765625,
+        0.37451171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 90° / stable"
+    },
+    {
+      "id": "akatsuki/scar_3_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_3_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.37548828125,
+        0.2509765625,
+        0.49951171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 90° / break"
+    },
+    {
+      "id": "akatsuki/scar_4_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_4_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        512,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.50048828125,
+        0.2509765625,
+        0.62451171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 120° / appear"
+    },
+    {
+      "id": "akatsuki/scar_4_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_4_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        640,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.62548828125,
+        0.2509765625,
+        0.74951171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 120° / stable"
+    },
+    {
+      "id": "akatsuki/scar_4_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_4_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        768,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.75048828125,
+        0.2509765625,
+        0.87451171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 120° / break"
+    },
+    {
+      "id": "akatsuki/scar_5_appear",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_5_appear.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        896,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.87548828125,
+        0.2509765625,
+        0.99951171875,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/appear",
+      "tier": "daily",
+      "role": "断命线 150° / appear"
+    },
+    {
+      "id": "akatsuki/scar_5_stable",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_5_stable.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.00048828125,
+        0.5009765625,
+        0.12451171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/stable",
+      "tier": "daily",
+      "role": "断命线 150° / stable"
+    },
+    {
+      "id": "akatsuki/scar_5_break",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/scar_5_break.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.12548828125,
+        0.5009765625,
+        0.24951171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.8,
+        0.7
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "mark/break",
+      "tier": "daily",
+      "role": "断命线 150° / break"
+    },
+    {
+      "id": "akatsuki/causal_node",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/causal_node.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        256,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.25048828125,
+        0.5009765625,
+        0.37451171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.3,
+        0.3
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "因果交错的独立交点"
+    },
+    {
+      "id": "akatsuki/crescent",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/crescent.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        384,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.37548828125,
+        0.5009765625,
+        0.49951171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.5,
+        2.5
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "awakening",
+      "tier": "ultimate",
+      "role": "觉醒背后残月"
+    },
+    {
+      "id": "akatsuki/rift",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/rift.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        512,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.50048828125,
+        0.5009765625,
+        0.62451171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        4
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "命断黑红裂隙"
+    },
+    {
+      "id": "akatsuki/execution_cross",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/execution_cross.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        640,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.62548828125,
+        0.5009765625,
+        0.74951171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        5,
+        5
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "命断十字终斩"
+    },
+    {
+      "id": "akatsuki/blade_trace",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/blade_trace.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        768,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.75048828125,
+        0.5009765625,
+        0.87451171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        0.06
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "awakening",
+      "tier": "ultimate",
+      "role": "刀身红纹的独立条带"
+    },
+    {
+      "id": "kyouka/water_mirror",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/water_mirror.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.0009765625,
+        0.2490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.4,
+        2.1
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "mirror/replay",
+      "tier": "medium",
+      "role": "稳定水镜"
+    },
+    {
+      "id": "kyouka/mirror_cracked",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/mirror_cracked.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.0009765625,
+        0.4990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.4,
+        2.1
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "mirror/replay",
+      "tier": "medium",
+      "role": "裂纹镜面"
+    },
+    {
+      "id": "kyouka/mirror_ghost",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/mirror_ghost.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.0009765625,
+        0.7490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1.5
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "mirror/replay",
+      "tier": "medium",
+      "role": "远层水镜"
+    },
+    {
+      "id": "kyouka/replay_cut",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/replay_cut.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.0009765625,
+        0.9990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.6,
+        2.6
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "mirror/replay",
+      "tier": "medium",
+      "role": "重演的双轨虚斩"
+    },
+    {
+      "id": "kyouka/ripple",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/ripple.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.2509765625,
+        0.2490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2,
+        2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "mirror/replay",
+      "tier": "medium",
+      "role": "独立水波圈"
+    },
+    {
+      "id": "kyouka/shard_0",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/shard_0.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.2509765625,
+        0.4990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.2,
+        0.35
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "shatter",
+      "tier": "medium",
+      "role": "镜面可复用碎片"
+    },
+    {
+      "id": "kyouka/shard_1",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/shard_1.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.2509765625,
+        0.7490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.2,
+        0.35
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "shatter",
+      "tier": "medium",
+      "role": "镜面可复用碎片"
+    },
+    {
+      "id": "kyouka/shard_2",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/shard_2.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.2509765625,
+        0.9990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.2,
+        0.35
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "shatter",
+      "tier": "medium",
+      "role": "镜面可复用碎片"
+    },
+    {
+      "id": "kyouka/shard_3",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/shard_3.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.5009765625,
+        0.2490234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.2,
+        0.35
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "shatter",
+      "tier": "medium",
+      "role": "镜面可复用碎片"
+    },
+    {
+      "id": "kyouka/echo_wash",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/echo_wash.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.5009765625,
+        0.4990234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "kyouka/echo_edge",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/echo_edge.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        256,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.5009765625,
+        0.7490234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "kyouka/echo_gradient",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/echo_gradient.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        384,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.5009765625,
+        0.9990234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "raikiri/echo_wash",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/echo_wash.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.0009765625,
+        0.2490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "raikiri/echo_edge",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/echo_edge.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.0009765625,
+        0.4990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "raikiri/echo_gradient",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/echo_gradient.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.0009765625,
+        0.7490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "afterimage",
+      "tier": "daily",
+      "role": "模型残影材质；不是人物图"
+    },
+    {
+      "id": "senbonzakura/blade_small",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/blade_small.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.0009765625,
+        0.2490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.12,
+        0.4
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "disperse",
+      "tier": "daily",
+      "role": "散华独立碎刃 / blade_small"
+    },
+    {
+      "id": "senbonzakura/blade_medium",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/blade_medium.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.0009765625,
+        0.4990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.12,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "disperse",
+      "tier": "daily",
+      "role": "散华独立碎刃 / blade_medium"
+    },
+    {
+      "id": "senbonzakura/phantom_blade",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/phantom_blade.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.0009765625,
+        0.7490234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.12,
+        0.6000000000000001
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "disperse",
+      "tier": "daily",
+      "role": "散华独立碎刃 / phantom_blade"
+    },
+    {
+      "id": "senbonzakura/petal_blade",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/petal_blade.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.0009765625,
+        0.9990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.12,
+        0.7000000000000001
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "disperse",
+      "tier": "daily",
+      "role": "散华独立碎刃 / petal_blade"
+    },
+    {
+      "id": "senbonzakura/dissolve_chip",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/dissolve_chip.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.2509765625,
+        0.2490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.12,
+        0.8
+      ],
+      "blend": "alpha",
+      "interface": "atlas_billboard",
+      "stage": "disperse",
+      "tier": "daily",
+      "role": "散华独立碎刃 / dissolve_chip"
+    },
+    {
+      "id": "senbonzakura/falling_petal",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/falling_petal.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.2509765625,
+        0.4990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.15,
+        0.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "attack",
+      "tier": "daily",
+      "role": "终景后飘落樱瓣"
+    },
+    {
+      "id": "senbonzakura/array_core",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/array_core.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.2509765625,
+        0.7490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        1.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "五瓣阵心；外围由独立剑刃组成"
+    },
+    {
+      "id": "raikiri/step_ribbon",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/step_ribbon.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.0009765625,
+        0.9990234375,
+        0.2490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        3,
+        0.3
+      ],
+      "blend": "additive",
+      "interface": "ribbon",
+      "stage": "dash",
+      "tier": "medium",
+      "role": "雷步定向条带"
+    },
+    {
+      "id": "raikiri/direction_arc",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/direction_arc.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.2509765625,
+        0.2490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        3,
+        0.3
+      ],
+      "blend": "additive",
+      "interface": "ribbon",
+      "stage": "dash",
+      "tier": "medium",
+      "role": "雷步定向条带"
+    },
+    {
+      "id": "raikiri/dash_strobe",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/dash_strobe.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.2509765625,
+        0.4990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        3,
+        0.3
+      ],
+      "blend": "additive",
+      "interface": "ribbon",
+      "stage": "dash",
+      "tier": "medium",
+      "role": "雷步定向条带"
+    },
+    {
+      "id": "raikiri/landing_pulse",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/landing_pulse.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.2509765625,
+        0.7490234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.3,
+        1.3
+      ],
+      "blend": "additive",
+      "interface": "oriented_plane",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "雷刃 / 神鸣终结层"
+    },
+    {
+      "id": "raikiri/thunder_cut",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/thunder_cut.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.2509765625,
+        0.9990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2.7,
+        2.7
+      ],
+      "blend": "additive",
+      "interface": "oriented_plane",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "雷刃 / 神鸣终结层"
+    },
+    {
+      "id": "raikiri/piercing_light",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/piercing_light.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.5009765625,
+        0.2490234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        7,
+        0.18
+      ],
+      "blend": "additive",
+      "interface": "oriented_plane",
+      "stage": "finisher",
+      "tier": "ultimate",
+      "role": "雷刃 / 神鸣终结层"
+    },
+    {
+      "id": "akatsuki/true_name_seal",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/true_name_seal.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        896,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.87548828125,
+        0.5009765625,
+        0.99951171875,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        1.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "release",
+      "tier": "medium",
+      "role": "专属真名符纹，不含文字"
+    },
+    {
+      "id": "akatsuki/hud_corner",
+      "soul": "akatsuki",
+      "status": "produced",
+      "sheet": "akatsuki",
+      "source": "art/svg/awakened/akatsuki/hud_corner.svg",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/atlas.png",
+      "rect": [
+        0,
+        384,
+        128,
+        128
+      ],
+      "canvas_size": [
+        1024,
+        512
+      ],
+      "uv": [
+        0.00048828125,
+        0.7509765625,
+        0.12451171875,
+        0.9990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0,
+        0
+      ],
+      "blend": "alpha",
+      "interface": "hud",
+      "stage": "release",
+      "tier": "daily",
+      "role": "HUD 真名角标"
+    },
+    {
+      "id": "kyouka/true_name_seal",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/true_name_seal.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        0,
+        384,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.7509765625,
+        0.2490234375,
+        0.9990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        1.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "release",
+      "tier": "medium",
+      "role": "专属真名符纹，不含文字"
+    },
+    {
+      "id": "kyouka/hud_corner",
+      "soul": "kyouka",
+      "status": "produced",
+      "sheet": "kyouka",
+      "source": "art/svg/awakened/kyouka/hud_corner.svg",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/atlas.png",
+      "rect": [
+        128,
+        384,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.7509765625,
+        0.4990234375,
+        0.9990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0,
+        0
+      ],
+      "blend": "alpha",
+      "interface": "hud",
+      "stage": "release",
+      "tier": "daily",
+      "role": "HUD 真名角标"
+    },
+    {
+      "id": "senbonzakura/true_name_seal",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/true_name_seal.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.7509765625,
+        0.2509765625,
+        0.9990234375,
+        0.4990234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        1.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "release",
+      "tier": "medium",
+      "role": "专属真名符纹，不含文字"
+    },
+    {
+      "id": "senbonzakura/hud_corner",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "sheet": "senbonzakura",
+      "source": "art/svg/awakened/senbonzakura/hud_corner.svg",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/atlas.png",
+      "rect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.0009765625,
+        0.5009765625,
+        0.2490234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0,
+        0
+      ],
+      "blend": "alpha",
+      "interface": "hud",
+      "stage": "release",
+      "tier": "daily",
+      "role": "HUD 真名角标"
+    },
+    {
+      "id": "raikiri/true_name_seal",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/true_name_seal.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.2509765625,
+        0.5009765625,
+        0.4990234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1.2,
+        1.2
+      ],
+      "blend": "alpha",
+      "interface": "billboard",
+      "stage": "release",
+      "tier": "medium",
+      "role": "专属真名符纹，不含文字"
+    },
+    {
+      "id": "raikiri/hud_corner",
+      "soul": "raikiri",
+      "status": "produced",
+      "sheet": "raikiri",
+      "source": "art/svg/awakened/raikiri/hud_corner.svg",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/atlas.png",
+      "rect": [
+        256,
+        256,
+        128,
+        128
+      ],
+      "canvas_size": [
+        512,
+        512
+      ],
+      "uv": [
+        0.5009765625,
+        0.5009765625,
+        0.7490234375,
+        0.7490234375
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0,
+        0
+      ],
+      "blend": "alpha",
+      "interface": "hud",
+      "stage": "release",
+      "tier": "daily",
+      "role": "HUD 真名角标"
+    },
+    {
+      "id": "shared/success_burst",
+      "soul": "shared",
+      "status": "produced",
+      "sheet": "shared",
+      "source": "art/svg/awakened/shared/success_burst.svg",
+      "texture": "blade_tetra:textures/effect/awakened/shared/atlas.png",
+      "rect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        256,
+        256
+      ],
+      "uv": [
+        0.001953125,
+        0.001953125,
+        0.498046875,
+        0.498046875
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        0.8,
+        0.8
+      ],
+      "blend": "additive",
+      "interface": "billboard",
+      "stage": "success",
+      "tier": "medium",
+      "role": "终结成功短光爆"
+    },
+    {
+      "id": "shared/alpha_ramp",
+      "soul": "shared",
+      "status": "produced",
+      "sheet": "shared",
+      "source": "art/svg/awakened/shared/alpha_ramp.svg",
+      "texture": "blade_tetra:textures/effect/awakened/shared/atlas.png",
+      "rect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "canvas_size": [
+        256,
+        256
+      ],
+      "uv": [
+        0.501953125,
+        0.001953125,
+        0.998046875,
+        0.498046875
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        1,
+        1
+      ],
+      "blend": "alpha",
+      "interface": "model_pass",
+      "stage": "fade",
+      "tier": "daily",
+      "role": "透明度渐变辅助纹理"
+    },
+    {
+      "id": "shared/switch_slash",
+      "soul": "shared",
+      "status": "produced",
+      "sheet": "shared",
+      "source": "art/svg/awakened/shared/switch_slash.svg",
+      "texture": "blade_tetra:textures/effect/awakened/shared/atlas.png",
+      "rect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "canvas_size": [
+        256,
+        256
+      ],
+      "uv": [
+        0.001953125,
+        0.501953125,
+        0.498046875,
+        0.998046875
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "size_blocks": [
+        2,
+        2
+      ],
+      "blend": "alpha",
+      "interface": "oriented_plane",
+      "stage": "switch",
+      "tier": "daily",
+      "role": "普通到解放刀光过渡遮罩"
+    }
+  ],
+  "animations": [
+    {
+      "id": "akatsuki/scar_lifecycle",
+      "soul": "akatsuki",
+      "status": "produced",
+      "source_directory": "art/svg/awakened/akatsuki/scar_lifecycle",
+      "texture": "blade_tetra:textures/effect/awakened/akatsuki/scar_lifecycle.png",
+      "layout": [
+        4,
+        4
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "frames": 16,
+      "ticks_per_frame": 1,
+      "loop": false,
+      "states": {
+        "appear": [
+          0,
+          3
+        ],
+        "stable": [
+          4,
+          9
+        ],
+        "break": [
+          10,
+          15
+        ]
+      },
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "animated_plane"
+    },
+    {
+      "id": "kyouka/mirror_lifecycle",
+      "soul": "kyouka",
+      "status": "produced",
+      "source_directory": "art/svg/awakened/kyouka/mirror_lifecycle",
+      "texture": "blade_tetra:textures/effect/awakened/kyouka/mirror_lifecycle.png",
+      "layout": [
+        4,
+        4
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "frames": 16,
+      "ticks_per_frame": 2,
+      "loop": false,
+      "states": {
+        "generate": [
+          0,
+          3
+        ],
+        "ripple": [
+          4,
+          7
+        ],
+        "stable": [
+          8,
+          8
+        ],
+        "crack": [
+          9,
+          11
+        ],
+        "shatter": [
+          12,
+          15
+        ]
+      },
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "animated_plane"
+    },
+    {
+      "id": "senbonzakura/blade_disperse",
+      "soul": "senbonzakura",
+      "status": "produced",
+      "source_directory": "art/svg/awakened/senbonzakura/blade_disperse",
+      "texture": "blade_tetra:textures/effect/awakened/senbonzakura/blade_disperse.png",
+      "layout": [
+        4,
+        4
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "frames": 16,
+      "ticks_per_frame": 1,
+      "loop": false,
+      "states": {
+        "blade": [
+          0,
+          0
+        ],
+        "split": [
+          1,
+          7
+        ],
+        "scatter": [
+          8,
+          15
+        ],
+        "gather": "reverse frames 15..0"
+      },
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "animated_plane"
+    },
+    {
+      "id": "raikiri/step_flicker",
+      "soul": "raikiri",
+      "status": "produced",
+      "source_directory": "art/svg/awakened/raikiri/step_flicker",
+      "texture": "blade_tetra:textures/effect/awakened/raikiri/step_flicker.png",
+      "layout": [
+        4,
+        4
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "frames": 8,
+      "ticks_per_frame": 1,
+      "loop": false,
+      "states": {
+        "flash": [
+          0,
+          2
+        ],
+        "residue": [
+          3,
+          7
+        ]
+      },
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "animated_plane"
+    },
+    {
+      "id": "shared/release_fold",
+      "soul": "shared",
+      "status": "produced",
+      "source_directory": "art/svg/awakened/shared/release_fold",
+      "texture": "blade_tetra:textures/effect/awakened/shared/release_fold.png",
+      "layout": [
+        4,
+        4
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "frames": 12,
+      "ticks_per_frame": 1,
+      "loop": false,
+      "states": {
+        "unfold": [
+          0,
+          5
+        ],
+        "fold": [
+          6,
+          11
+        ]
+      },
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "blend": "alpha",
+      "interface": "animated_plane"
+    }
+  ],
+  "quality": {
+    "low": {
+      "mirrors": 3,
+      "blades": 32,
+      "echoes": 1,
+      "ribbon_planes": 1
+    },
+    "standard": {
+      "mirrors": 8,
+      "blades": 144,
+      "echoes": 3,
+      "ribbon_planes": 2
+    }
+  },
+  "dynamic_effects": [
+    "server-confirmed events",
+    "attack replay model poses",
+    "ribbon endpoints",
+    "sakura formation transforms",
+    "blade-surface overlay UV",
+    "localized true-name text"
+  ],
+  "concept_only": [
+    "formation layouts in offline previews are composition references, not gameplay implementation"
+  ]
+}

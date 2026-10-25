@@ -49,3 +49,13 @@ art-previews/**/*.png
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Published True Name Release vector sources and reproducible art tools
+!art/svg/awakened/
+!art/svg/awakened/**
+!tools/art/
+tools/art/*
+!tools/art/build_awakened.py
+!tools/art/export_awakened.cjs
+!tools/art/preview_awakened.py
+!tools/art/validate_awakened.py
