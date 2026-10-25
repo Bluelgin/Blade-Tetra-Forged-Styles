@@ -15,6 +15,8 @@ import mods.flammpfeil.slashblade.util.KnockBacks;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -305,7 +307,10 @@ public final class AwakenedBladeCombat {
         for (LivingEntity enemy : enemies) {
             SAKURA_WAVES.add(new PendingSakuraWave(level.dimension(), player.getUUID(),
                     id(blade), enemy.getUUID(), enemy.getBoundingBox().getCenter(),
-                    now + 28L + (step++ * 3L), each));
+                    now + 28L + (step++ * 3L), each,
+                    SoulResonance.isFormed(blade, SoulResonance.Resonance.THUNDER_BLOSSOM)
+                            ? SoulResonance.Resonance.THUNDER_BLOSSOM
+                            : SoulResonance.Resonance.NONE));
         }
         state.sakuraCharge = 0;
         state.cooldownUntil = now + 110L;
@@ -443,8 +448,15 @@ public final class AwakenedBladeCombat {
             if (player == null || player.level() != level
                     || !pending.blade.equals(readId(player.getMainHandItem()))
                     || !SoulLegacyState.isActive(player.getMainHandItem(),
-                            SoulLegacyState.Legacy.SENBONZAKURA)
-                    || !player.getMainHandItem().getOrCreateTag().getBoolean(SAKURA_DISPERSED))
+                            pending.fusion == SoulResonance.Resonance.FUNERAL_BLOSSOM
+                                    ? SoulLegacyState.Legacy.AKATSUKI
+                                    : pending.fusion == SoulResonance.Resonance.MIRROR_BLOSSOM
+                                            ? SoulLegacyState.Legacy.KYOUKA
+                                            : SoulLegacyState.Legacy.SENBONZAKURA)
+                    || (pending.fusion == SoulResonance.Resonance.NONE
+                            ? !player.getMainHandItem().getOrCreateTag()
+                                    .getBoolean(SAKURA_DISPERSED)
+                            : !SoulResonance.isFormed(player.getMainHandItem(), pending.fusion)))
                 continue;
             Entity found = level.getEntity(pending.target);
             if (!(found instanceof LivingEntity target) || !canAffect(player, target)
@@ -455,6 +467,13 @@ public final class AwakenedBladeCombat {
                 Vec3 center = target.getBoundingBox().getCenter();
                 visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
                         AwakenedBladeVfxPacket.MARK, center, center, 2);
+                if (pending.fusion == SoulResonance.Resonance.THUNDER_BLOSSOM) {
+                    // The sixth dual technique traps enemies in a brief static field.
+                    target.addEffect(new MobEffectInstance(
+                            MobEffects.MOVEMENT_SLOWDOWN, 35, 1));
+                    visual(level, SoulLegacyState.Legacy.RAIKIRI,
+                            AwakenedBladeVfxPacket.MARK, center, center, 0);
+                }
             }
         }
         Iterator<PendingPetal> petals = PETALS.iterator();
@@ -721,7 +740,8 @@ public final class AwakenedBladeCombat {
     private record PendingPetal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, long when, float damage) { }
     private record PendingSakuraWave(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
-            UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
+            UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage,
+            SoulResonance.Resonance fusion) { }
 
     private static final class State {
         net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
