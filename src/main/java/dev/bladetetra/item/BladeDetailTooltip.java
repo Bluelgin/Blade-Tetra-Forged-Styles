@@ -100,9 +100,12 @@ public final class BladeDetailTooltip {
                                 + primary.name().toLowerCase(java.util.Locale.ROOT))
                         .withStyle(ChatFormatting.GOLD));
                 if (souls.size() == 2) {
-                    lines.add(Component.translatable(
-                            "tooltip.blade_tetra.awakened.v2.primary_only")
-                            .withStyle(ChatFormatting.GRAY));
+                    boolean formed = dev.bladetetra.easteregg.AwakenedRankCost.fused(stack);
+                    lines.add(Component.translatable(formed
+                                    ? "tooltip.blade_tetra.awakened.v2.dual_active"
+                                    : "tooltip.blade_tetra.awakened.v2.primary_only")
+                            .withStyle(formed ? ChatFormatting.LIGHT_PURPLE
+                                    : ChatFormatting.GRAY));
                 }
                 if (primary == SoulLegacyState.Legacy.AKATSUKI
                         && ContractBladeCompat.hasAkatsuki(stack)) {
