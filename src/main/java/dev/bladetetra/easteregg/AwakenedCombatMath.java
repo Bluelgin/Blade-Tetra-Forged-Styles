@@ -25,10 +25,15 @@ public final class AwakenedCombatMath {
     }
 
     /** A confirmed hit, not dash button-spam, authorizes the next Raikiri step. */
+    public static boolean isThunderFollowup(int current, boolean confirmed,
+            long lastStep, long now) {
+        return current > 0 && current < 3 && confirmed
+                && now >= lastStep && now - lastStep <= 36;
+    }
+
     public static int nextThunderChain(int current, boolean confirmed,
             long lastStep, long now) {
-        if (current <= 0 || !confirmed || now < lastStep
-                || now - lastStep > 36) return 1;
+        if (!isThunderFollowup(current, confirmed, lastStep, now)) return 1;
         return Math.min(3, current + 1);
     }
 
