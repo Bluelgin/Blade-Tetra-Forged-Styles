@@ -156,7 +156,13 @@ public final class RaikiriChainHandler {
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || PENDING_STRIKES.isEmpty()) return;
+        if (event.phase != TickEvent.Phase.END) return;
+        if (dev.bladetetra.easteregg.AwakenedBladeCombat.replacesLegacy()) {
+            PENDING_STRIKES.clear();
+            APPLYING_CHAIN_DAMAGE.clear();
+            return;
+        }
+        if (PENDING_STRIKES.isEmpty()) return;
         MinecraftServer server = event.getServer();
         List<UUID> completed = new ArrayList<>();
         for (Map.Entry<UUID, PendingStrike> entry : PENDING_STRIKES.entrySet()) {
