@@ -37,15 +37,22 @@ public final class AwakenedRankCost {
         long now = player.serverLevel().getGameTime();
         long points = Math.max(0, rank.getRankPoint(now));
         // Some add-ons override the unit; defaults below assume native 300.
-        long minimumPoints = (long) required * rank.getUnitCapacity();
-        if (rank.getRank(now).level < required
-                || points < minimumPoints || points < cost) {
+        if (!canPay(points, rank.getUnitCapacity(), rank.getRank(now).level,
+                required, cost)) {
             warn(player, required, cost);
             return false;
         }
         // AddRankPoint always owns rank decay, clamping and rank HUD sync.
         if (cost > 0) rank.addRankPoint(player, -cost);
         return true;
+    }
+
+    /** Pure transaction precondition, shared with regression tests. */
+    static boolean canPay(long points, long unitCapacity, int currentLevel,
+            int minimumLevel, int price) {
+        return unitCapacity > 0 && points >= 0 && price >= 0
+                && currentLevel >= minimumLevel
+                && points >= (long) minimumLevel * unitCapacity && points >= price;
     }
 
     public static boolean fused(ItemStack blade) {
