@@ -72,6 +72,7 @@ public final class AwakenedBladeCombat {
     private static final List<PendingReplay> REPLAYS = new ArrayList<>();
     private static final List<PendingCausal> CAUSAL = new ArrayList<>();
     private static final List<PendingPetal> PETALS = new ArrayList<>();
+    private static final List<PendingSakuraWave> SAKURA_WAVES = new ArrayList<>();
     private static int ticks;
 
     /** Guards only legacy combat callbacks; never guards ritual or unlock code. */
@@ -292,8 +293,14 @@ public final class AwakenedBladeCombat {
         // One bounded damage budget, shared by all decorative sword blades.
         float budget = AwakenedCombatMath.petalBudget(
                 state.lastDamage, state.sakuraCharge);
+        if (SAKURA_WAVES.size() + enemies.size() > 96) return;
         float each = budget / enemies.size();
-        for (LivingEntity enemy : enemies) secondaryHit(level, player, enemy, each);
+        int step = 0;
+        for (LivingEntity enemy : enemies) {
+            SAKURA_WAVES.add(new PendingSakuraWave(level.dimension(), player.getUUID(),
+                    id(blade), enemy.getUUID(), enemy.getBoundingBox().getCenter(),
+                    now + 28L + (step++ * 3L), each));
+        }
         state.sakuraCharge = 0;
         state.cooldownUntil = now + 110L;
         Vec3 targetCenter = primary.getBoundingBox().getCenter();
@@ -384,10 +391,36 @@ public final class AwakenedBladeCombat {
             REPLAYS.clear();
             CAUSAL.clear();
             PETALS.clear();
+            SAKURA_WAVES.clear();
             STATES.clear();
             return;
         }
         MinecraftServer server = event.getServer();
+        Iterator<PendingSakuraWave> waves = SAKURA_WAVES.iterator();
+        while (waves.hasNext()) {
+            PendingSakuraWave pending = waves.next();
+            ServerLevel level = server.getLevel(pending.dimension);
+            if (level == null) { waves.remove(); continue; }
+            if (level.getGameTime() < pending.when) continue;
+            waves.remove();
+            ServerPlayer player = server.getPlayerList().getPlayer(pending.player);
+            if (player == null || player.level() != level
+                    || !pending.blade.equals(readId(player.getMainHandItem()))
+                    || !SoulLegacyState.isActive(player.getMainHandItem(),
+                            SoulLegacyState.Legacy.SENBONZAKURA)
+                    || !player.getMainHandItem().getOrCreateTag().getBoolean(SAKURA_DISPERSED))
+                continue;
+            Entity found = level.getEntity(pending.target);
+            if (!(found instanceof LivingEntity target) || !canAffect(player, target)
+                    || target.getBoundingBox().getCenter().distanceToSqr(pending.anchor) > 25D
+                    || player.distanceToSqr(target) > 576D || !player.hasLineOfSight(target))
+                continue;
+            if (secondaryHit(level, player, target, pending.damage)) {
+                Vec3 center = target.getBoundingBox().getCenter();
+                visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
+                        AwakenedBladeVfxPacket.MARK, center, center, 2);
+            }
+        }
         Iterator<PendingPetal> petals = PETALS.iterator();
         while (petals.hasNext()) {
             PendingPetal pending = petals.next();
@@ -478,6 +511,7 @@ public final class AwakenedBladeCombat {
         REPLAYS.removeIf(entry -> entry.dimension.equals(level.dimension()));
         CAUSAL.removeIf(entry -> entry.dimension.equals(level.dimension()));
         PETALS.removeIf(entry -> entry.dimension.equals(level.dimension()));
+        SAKURA_WAVES.removeIf(entry -> entry.dimension.equals(level.dimension()));
         STATES.entrySet().removeIf(entry -> level.dimension().equals(entry.getValue().dimension));
     }
 
@@ -486,6 +520,7 @@ public final class AwakenedBladeCombat {
         REPLAYS.clear();
         CAUSAL.clear();
         PETALS.clear();
+        SAKURA_WAVES.clear();
         STATES.clear();
         ticks = 0;
     }
@@ -636,6 +671,8 @@ public final class AwakenedBladeCombat {
             UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
     private record PendingPetal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, long when, float damage) { }
+    private record PendingSakuraWave(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
 
     private static final class State {
         net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
