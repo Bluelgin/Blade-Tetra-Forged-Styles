@@ -18,6 +18,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_AKATSUKI;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
+    public static final ForgeConfigSpec.IntValue AWAKENED_SAKURA_BURN_POINTS_PER_SECOND;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_DUAL_BONUS;
@@ -146,6 +147,10 @@ public final class GameplayConfig {
         AWAKENED_RANK_COST_SAKURA = builder
                 .comment("Senbonzakura full array: requires A rank. Form switching remains free.")
                 .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
+        AWAKENED_SAKURA_BURN_POINTS_PER_SECOND = builder
+                .comment("Base native Rank points spent per second of dispersed Senbonzakura B-combo.",
+                        "A pays 100%, S 88%, SS 80%, SSS 67%. Only actual attacks burn Rank.")
+                .defineInRange("awakenedSakuraFlowDrainPerSecond", 120, 1, 600);
         AWAKENED_RANK_COST_STEP = builder
                 .comment("Raikiri basic lightning step: requires B rank.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
