@@ -103,3 +103,35 @@
 - **自动回归**：`AwakenedCombatMathTest` 新增对冲刺后目标范围、垂直距离、NaN、长时间不攻击后新雷步仍可命中续接的断言。完整游戏内测试清单更新于 `docs/awakened-rework/QA_MATRIX.md`。
 
 **仍须发布前人工验证**：镜花实际手持Tetra OBJ正确对齐、透明渲染、多人同步，千本樱第一/第三人称凝散与Tetra特殊部件，原生SA叠加，世界/服务器生命周期、所有4刀端到端Forge GameTests。CI Java Build和已有回归不等于这些项目已完成。
+
+
+## 第六轮：原生 Shift+W 雷切剑技 / 真名解放独立 HUD（设计落地切片）
+
+本轮实现基于此前用户确认的新架构，并非最终视觉验收完成。
+
+### 原生雷切剑技：先路由，后结算
+
+- `RaikiriRapidCombo` 在 Forge `SlashBladeEvent.NextComboEvent` **候选节点为原生 RAPID_SLASH**、玩家在地面且 `InputCommand.SNEAK + FORWARD + R_CLICK` 三个命令同时存在时才尝试升级。非觉醒雷切、主魂不是雷切、碰撞无路可走、缺少 Rank 时保持原生 `RAPID_SLASH`；不劫持其他 SA/普通招式。
+- `awakened_raikiri_rapid` 注册在 ModComboStates 同一 `DeferredRegister`，沿用 **RAPID_SLASH 的原生动作帧、原生 hold/命中效果和原生斩击节拍（2/4/7 tick）**，但移除原生不受控的 moveRelative 前进，避免其与雷步额外移动叠加。服务端 `beginRaikiriRapid` 在提交新ComboState前完成碰撞扫描、Rank一次性支付、至多3.5格真实位置移动和同步步迹。已移除旧潜行+SA雷步路径；雷切独立普通SA终结技保留。
+- 正式续步依赖**处于真实雷切专用 ComboState 的有效伤害命中**以及 22tick确认、36tick内续接；仅第一步付Rank，续接2、3段免费；普通攻击/不相关SA不能激活续步。
+- **限制**：需要在真实MC服务器中确认原生 `NextComboEvent` 的事件排序、专用ComboState动画及 HoldAction 处理不会被其他模组改写，以及 IAIDO/RENGEKI/DANGAKU/CUSTOM 的兼容；单元测试及构建不代替这项工作。
+
+### 真名解放演出引擎
+
+- `AwakeningPresentationService`：仅被现有四个真实觉醒成功路径调用；统一在一个服务端tick发送 `AwakenedBladeVfxPacket.AWAKEN` 给64格内观众，并向**觉醒玩家本人**发送 `AwakeningPresentationPacket`（网络协议18、S2C消息24）。客户端收到后只能播放，不参与解锁。
+- `AwakeningPresentationTimeline`：唯一纯数据层，世界特效44tick、玩家真名独立HUD共60tick，锁字28tick、刀鸣冲击32tick、49tick开始淡出、统一RGB与双语localization键。
+- `AwakeningIntroClient`：在客户端只持一个短时演出实例，跨世界/断线自动清除；`AwakeningIntroOverlay` 通过 Forge `RegisterGuiOverlaysEvent.registerAboveAll` 在自己的HUD绘制字符串 **逐字变换、错位切裂/水镜倒映/樱瓣聚字/雷光闪字**。没有使用Minecraft原版`/title`、TitleScreen或者大体积动态贴图；所选字形完全走当前资源包本地化字体。
+- `AwakenedBladeVfxClient` 的赤月觉醒新增真实世界坐标线段（不是仅 Billboard）互相靠拢、32tick 交叉裂痕，并停用觉醒期间旧的重复世界空间文字；普通终结技的世界空间名称仍然保留。
+- **注意**：这一切是可测试的原创可扩展首版，暂不声称达到 Infernum 的Shader/字体材质级别，也不声称已录得MC实机效果。特别是屏幕遮罩、相机运动、音画节拍、FOV适配和多人服务器必须根据玩家实机画面继续审稿。
+
+### 分层责任
+
+```
+原生NextComboEvent -> RaikiriRapidCombo(选择ComboState) -> AwakenedBladeCombat(验证/支付/步进)
+服务端真实觉醒成功 -> AwakeningPresentationService -> 世界VFX(旁观者)
+                                                    -> AwakeningPresentationPacket(本人)
+                                                      -> AwakeningIntroClient(纯呈现状态)
+                                                      -> AwakeningIntroOverlay(Forge GUI)
+```
+
+后续建议优先用真实客户端录制一次赤月觉醒与雷切三段迅捷斩，按 `QA_MATRIX.md` 验收，并拆除尚未使用的旧Raikiri手动SA语义文档；若录制发现出招打断或动作错位，以游戏事实优先于Build。
