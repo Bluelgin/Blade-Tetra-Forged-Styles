@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.config.ClientVisualConfig;
+import dev.bladetetra.easteregg.AwakeningPresentationTimeline;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -421,7 +422,7 @@ public final class AwakenedBladeVfxClient {
      */
     private static void drawAwakening(BufferBuilder buffer, Matrix4f matrix,
             Vec3 eye, Vec3 pos, int soul, float age, float alpha) {
-        float t = Mth.clamp(age / 44.0F, 0, 1);
+        float t = Mth.clamp(age / AwakeningPresentationTimeline.WORLD_END, 0, 1);
         switch (soul) {
             case 1 -> {
                 // The blood crescent anchors *world-space* causal scars;
@@ -629,7 +630,7 @@ public final class AwakenedBladeVfxClient {
         Effect(AwakenedBladeVfxPacket data) {
             this.data = data;
             this.duration = switch (data.type()) {
-                case AwakenedBladeVfxPacket.AWAKEN -> 44;
+                case AwakenedBladeVfxPacket.AWAKEN -> AwakeningPresentationTimeline.WORLD_END;
                 case AwakenedBladeVfxPacket.RELEASE -> data.soul() == 3 ? 64
                         : data.soul() == 4 ? 40 : 56;
                 case AwakenedBladeVfxPacket.STEP -> 22;
