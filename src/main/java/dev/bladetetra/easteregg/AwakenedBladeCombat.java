@@ -439,36 +439,47 @@ public final class AwakenedBladeCombat {
                 AwakenedBladeVfxPacket.RELEASE, origin, targetCenter, formation);
     }
 
+    /**
+     * One Shift+W native Rapid Slash activation, never a Slash Art fallback.
+     * Execute once per accepted NextComboEvent before entering the cloned
+     * native animation node. Native rapid slash alone owns melee hit effects.
+     */
+    public static boolean beginRaikiriRapid(ServerPlayer player, ItemStack blade) {
+        if (!replacesLegacy() || blade != player.getMainHandItem()
+                || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.RAIKIRI
+                || !SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.RAIKIRI))
+            return false;
+        ServerLevel level = player.serverLevel();
+        State state = state(player, blade);
+        long now = level.getGameTime();
+        if (now < state.stepUntil) return false;
+        Vec3 from = player.position();
+        Vec3 look = player.getLookAngle();
+        Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
+        if (horizontal.lengthSqr() < 0.0001D) return false;
+        Vec3 moved = collisionCheckedStep(level, player, from,
+                horizontal.normalize(), 3.5D);
+        if (moved.distanceToSqr(from) < 0.24D) return false;
+        boolean continuing = AwakenedCombatMath.isThunderFollowup(
+                state.stepChain, state.stepConfirmed, state.lastStep, now);
+        if (!continuing && !AwakenedRankCost.trySpend(player, blade,
+                AwakenedRankCost.Cast.RAIKIRI_STEP)) return false;
+        state.stepChain = AwakenedCombatMath.nextThunderChain(
+                state.stepChain, state.stepConfirmed, state.lastStep, now);
+        state.stepConfirmed = false;
+        state.lastStep = now;
+        state.stepUntil = now + (state.stepChain > 1 ? 6L : 10L);
+        player.connection.teleport(moved.x, moved.y, moved.z,
+                player.getYRot(), player.getXRot());
+        visual(level, SoulLegacyState.Legacy.RAIKIRI,
+                AwakenedBladeVfxPacket.STEP,
+                from.add(0, 1, 0), moved.add(0, 1, 0), state.stepChain);
+        syncHud(player, SoulLegacyState.Legacy.RAIKIRI, blade, state, false);
+        return true;
+    }
+
     private static void releaseRaikiri(ServerLevel level, ServerPlayer player,
             ItemStack blade, State state, long now) {
-        if (player.isShiftKeyDown()) {
-            if (now < state.stepUntil) return;
-            Vec3 from = player.position();
-            Vec3 look = player.getLookAngle();
-            Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
-            if (horizontal.lengthSqr() < 0.0001D) return;
-            Vec3 direction = horizontal.normalize();
-            Vec3 moved = collisionCheckedStep(level, player, from, direction, 3.5D);
-            if (moved.distanceToSqr(from) < 0.24D) return;
-            // One Rank payment opens a full hit-confirmed three-step sequence.
-            // Charging again after every step would immediately demote a B
-            // player below B and make the follow-up mechanically impossible.
-            boolean continuing = AwakenedCombatMath.isThunderFollowup(
-                    state.stepChain, state.stepConfirmed, state.lastStep, now);
-            if (!continuing && !AwakenedRankCost.trySpend(player, blade,
-                    AwakenedRankCost.Cast.RAIKIRI_STEP)) return;
-            player.connection.teleport(moved.x, moved.y, moved.z,
-                    player.getYRot(), player.getXRot());
-            state.stepChain = AwakenedCombatMath.nextThunderChain(
-                    state.stepChain, state.stepConfirmed, state.lastStep, now);
-            state.stepConfirmed = false;
-            state.lastStep = now;
-            state.stepUntil = now + (state.stepChain > 1 ? 6L : 10L);
-            visual(level, SoulLegacyState.Legacy.RAIKIRI,
-                    AwakenedBladeVfxPacket.STEP,
-                    from.add(0, 1, 0), moved.add(0, 1, 0), state.stepChain);
-            return;
-        }
         if (state.raikiriCharge < 2 || now < state.cooldownUntil
                 || now - state.lastHit > EXPIRE_TICKS) return;
         LivingEntity primary = target(level, player, state, 8.0D);
@@ -867,7 +878,7 @@ public final class AwakenedBladeCombat {
             case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
             case SENBONZAKURA -> dispersed
                     ? AwakenedRankCost.Cast.SAKURA_ARRAY : null;
-            case RAIKIRI -> player.isShiftKeyDown()
+            case RAIKIRI -> RaikiriRapidCombo.directionalIntent(player)
                     ? AwakenedRankCost.Cast.RAIKIRI_STEP
                     : AwakenedRankCost.Cast.RAIKIRI_FINISH;
             default -> null;
