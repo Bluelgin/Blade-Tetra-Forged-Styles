@@ -34,6 +34,8 @@ import java.util.UUID;
 /** Coordinates bounded world-local sessions, never combat or persistent progress. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT)
 public final class AwakeningVisualController {
+    public static final net.minecraft.resources.ResourceLocation BACKDROP =
+            new net.minecraft.resources.ResourceLocation("blade_tetra","textures/effect/awakened/ritual/blood_moon.png");
     private static final int MAX_SESSIONS=8;
     private static final Map<UUID,AwakeningSession> SESSIONS=new LinkedHashMap<>();
     private static final Map<UUID,AwakeningPresentationPacket> PENDING=new LinkedHashMap<>();
@@ -218,6 +220,24 @@ public final class AwakeningVisualController {
             buffers.endBatch();
         } finally {pose.popPose();}
     }
+    /** One optional full-moon texture batch, sharing the existing renderer's GL state and budget. */
+    public static void drawBackdrop(BufferBuilder buffer,Matrix4f matrix,Vec3 eye,
+            float partial,float intensity) {
+        if(world==null||!enabled()) return;
+        for(var s:SESSIONS.values()) {
+            if(s.data.soul()!=1||!s.visible||!s.valid(world)||QUADS[0]<=0) continue;
+            var frame=new RitualEffectBatch(buffer,matrix,eye,s,partial,intensity,
+                    ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get(),QUADS);
+            float alpha=frame.alpha*frame.window(20,45,85,100);
+            if(alpha<=0) continue;
+            --QUADS[0];
+            Vec3 at=frame.local(0,.3,.7), dx=frame.right.scale(1.3), dy=new Vec3(0,1.3,0);
+            dev.bladetetra.client.vfx.render.VfxPrimitives.texturedQuad(buffer,matrix,
+                    at.subtract(dx).add(dy),at.subtract(dx).subtract(dy),
+                    at.add(dx).subtract(dy),at.add(dx).add(dy),0,0,1,1,alpha,0xFFFFFF);
+        }
+    }
+
     /** Invoked inside AwakenedBladeVfxClient's already-open atlas pass. */
     public static void drawBatch(BufferBuilder buffer,Matrix4f matrix,Vec3 eye,
             float partial,float intensity,int soul) {

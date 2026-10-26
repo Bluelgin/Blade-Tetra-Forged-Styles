@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs><radialGradient id="blood"><stop stop-color="#67192d"/><stop offset=".72" stop-color="#350e22"/><stop offset=".93" stop-color="#1c0b19"/><stop offset="1" stop-color="#b63350"/></radialGradient></defs>
+<circle cx="64" cy="64" r="55" fill="url(#blood)" fill-opacity=".86"/>
+<g fill="none" stroke="#c3445c" stroke-width=".65" opacity=".42"><circle cx="64" cy="64" r="54"/><path d="M25 45Q46 25 67 34T108 52M17 75Q35 86 54 72T104 78M40 106Q48 88 80 98M32 42A12 8 0 1 0 48 51M66 62A18 13 0 1 0 90 76M49 80A8 10 0 1 0 58 93"/></g>
+<g fill="#100813" opacity=".35"><ellipse cx="41" cy="48" rx="10" ry="7"/><ellipse cx="80" cy="72" rx="15" ry="10"/><ellipse cx="54" cy="87" rx="6" ry="9"/></g>
+<circle cx="64" cy="64" r="58" fill="none" stroke="#ef637b" stroke-width=".4" opacity=".3"/>
+</svg>

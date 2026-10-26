@@ -37,6 +37,7 @@ public final class FloatingBladeRenderer {
     private static int rendering;
     private static boolean ghostPass;
     private static float fraction = 1;
+    private static float sheathOpacity = 1;
     private static boolean energy;
     private static float overlayAlpha;
     private static int overlayTint;
@@ -75,6 +76,9 @@ public final class FloatingBladeRenderer {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void filter(RenderOverrideEvent event) {
         if (!isRendering()) return;
+        float opacity = event.getTarget().startsWith("sheath") ? sheathOpacity : 1;
+        if (opacity <= .001F) { event.setCanceled(true); return; }
+        if (opacity < .999F) BladeRenderState.setCol((Math.round(opacity*255)<<24)|0xFFFFFF);
         if (ghostPass && overlayAlpha <= 0) {
             event.setEnableEffect(false);
             BladeRenderState.setCol(0x559AD9FF);
@@ -84,7 +88,7 @@ public final class FloatingBladeRenderer {
             event.setTexture(energy ? WHITE : VEINS);
             event.setGetRenderType(BladeRenderState::getSlashBladeBlendLuminous);
             event.setEnableEffect(false);
-            BladeRenderState.setCol((Math.round(overlayAlpha * 255) << 24) | overlayTint);
+            BladeRenderState.setCol((Math.round(overlayAlpha * opacity * 255) << 24) | overlayTint);
         }
         if (fraction >= .999F || !event.getTarget().startsWith("blade")) return;
         var model = AwakeningBladeGeometry.remaining(event.getModel(), event.getTarget(), fraction);
@@ -154,10 +158,11 @@ public final class FloatingBladeRenderer {
         if(sheath) pose.translate(0,-13,10);
         capture.blend(pose,flight);
         rendering++;
-        float oldFraction=fraction, oldAlpha=overlayAlpha;
+        float oldFraction=fraction, oldAlpha=overlayAlpha, oldSheath=sheathOpacity;
         boolean oldEnergy=energy; int oldTint=overlayTint;
         try {
             fraction=AwakeningPresentationTimeline.bladeFraction(tick,s.data.soul());
+            sheathOpacity=s.data.soul()==3?fraction:1;
             energy=tick>=85&&tick<89;
             s.model.render(s.appearance,pose,event.getBuffer(),event.getPackedLightIn(),sheath);
             if(tick<100) {
@@ -165,7 +170,7 @@ public final class FloatingBladeRenderer {
                 s.model.render(s.appearance,pose,event.getBuffer(),LightTexture.FULL_BRIGHT,sheath);
             }
         } finally {
-            fraction=oldFraction; overlayAlpha=oldAlpha; energy=oldEnergy; overlayTint=oldTint;
+            fraction=oldFraction; sheathOpacity=oldSheath; overlayAlpha=oldAlpha; energy=oldEnergy; overlayTint=oldTint;
             rendering--; BladeRenderState.resetCol();
         }
     }
@@ -199,11 +204,12 @@ public final class FloatingBladeRenderer {
     private static void renderAt(AwakeningSession s, PoseStack pose, MultiBufferSource buffers,
             Vec3 pos, float tick, float partial, boolean ghost) {
         pose.pushPose(); rendering++;
-        float oldFraction = fraction, oldAlpha = overlayAlpha; boolean oldEnergy = energy;
+        float oldFraction = fraction, oldAlpha = overlayAlpha, oldSheath = sheathOpacity; boolean oldEnergy = energy;
         int oldTint = overlayTint; boolean oldGhost = ghostPass;
         try {
             ghostPass = ghost;
             fraction = AwakeningPresentationTimeline.bladeFraction(tick,s.data.soul());
+            sheathOpacity = s.data.soul()==3 ? fraction : 1;
             energy = tick >= 85 && tick < 89;
             pose.translate(pos.x,pos.y,pos.z);
             Vec3 f = forward(s,partial);
@@ -241,7 +247,7 @@ public final class FloatingBladeRenderer {
                 }
             }
         } finally {
-            fraction = oldFraction; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; ghostPass = oldGhost; rendering--;
+            fraction = oldFraction; sheathOpacity = oldSheath; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; ghostPass = oldGhost; rendering--;
             BladeRenderState.resetCol(); pose.popPose();
         }
     }

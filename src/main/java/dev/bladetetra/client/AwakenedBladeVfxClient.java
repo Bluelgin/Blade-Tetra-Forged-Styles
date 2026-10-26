@@ -147,6 +147,12 @@ public final class AwakenedBladeVfxClient {
             }
             Tesselator.getInstance().end();
         }
+        RenderSystem.setShaderTexture(0,dev.bladetetra.client.awakening.AwakeningVisualController.BACKDROP);
+        BufferBuilder ritualBackdrop = Tesselator.getInstance().getBuilder();
+        ritualBackdrop.begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_TEX_COLOR);
+        dev.bladetetra.client.awakening.AwakeningVisualController.drawBackdrop(
+                ritualBackdrop,matrix,eye,event.getPartialTick(),intensity);
+        Tesselator.getInstance().end();
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
