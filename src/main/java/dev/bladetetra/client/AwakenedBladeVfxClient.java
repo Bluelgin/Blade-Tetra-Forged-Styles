@@ -415,6 +415,7 @@ public final class AwakenedBladeVfxClient {
             if (blade.getTag() == null
                     || !blade.getTag().getBoolean("blade_tetra_awakened_v2_sakura_dispersed")
                     || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
+                    || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.SENBONZAKURA
                     || !SoulLegacyState.isActive(blade,
                             SoulLegacyState.Legacy.SENBONZAKURA)) continue;
             Vec3 center = new Vec3(
