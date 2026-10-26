@@ -2,7 +2,7 @@ package dev.bladetetra.easteregg;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.ModComboStates;
-import mods.flammpfeil.slashblade.ability.StunManager;
+import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -14,7 +14,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.RegistryObject;
@@ -33,6 +32,9 @@ import java.util.EnumSet;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RaikiriRapidCombo {
+    /** Marks only native slashes actually authored by this specialized combo. */
+    public static final String THUNDER_HIT = "blade_tetra_raikiri_rapid_hit";
+
     public static final RegistryObject<ComboState> THUNDER_RAPID =
             ModComboStates.COMBOS.register("awakened_raikiri_rapid", RaikiriRapidCombo::create);
 
@@ -75,7 +77,7 @@ public final class RaikiriRapidCombo {
                 .next(entity -> ComboStateRegistry.RAPID_SLASH.getId())
                 .nextOfTimeout(entity -> ComboStateRegistry.RAPID_SLASH_END.getId())
                 .addHoldAction(original::holdAction)
-                .addHitEffect(StunManager::setStun)
+                .addHitEffect(original::hitEffect)
                 .clickAction(original::clickAction)
                 .releaseAction(original::releaseAction)
                 .addTickAction(entity -> {
@@ -90,12 +92,17 @@ public final class RaikiriRapidCombo {
                     if (2 <= elapsed && elapsed < 6) {
                         float roll = -45 + 90 * entity.getRandom().nextFloat();
                         if (elapsed % 2 == 0) roll += 180;
-                        AttackManager.doSlash(entity, roll, AttackManager.genRushOffset(entity),
+                        EntitySlashEffect slash = AttackManager.doSlash(entity, roll,
+                                AttackManager.genRushOffset(entity),
                                 false, AttackManager.isPowered(entity), 0.44F);
+                        if (slash != null) slash.getPersistentData()
+                                .putBoolean(THUNDER_HIT, true);
                     }
                     if (elapsed == 7) {
-                        AttackManager.doSlash(entity, -30, AttackManager.genRushOffset(entity),
-                                false, true, 0.44F);
+                        EntitySlashEffect slash = AttackManager.doSlash(entity, -30,
+                                AttackManager.genRushOffset(entity), false, true, 0.44F);
+                        if (slash != null) slash.getPersistentData()
+                                .putBoolean(THUNDER_HIT, true);
                     }
                 })
                 .build();
