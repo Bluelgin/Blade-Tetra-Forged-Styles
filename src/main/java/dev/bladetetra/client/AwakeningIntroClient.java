@@ -1,6 +1,7 @@
 package dev.bladetetra.client;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.easteregg.AwakeningPresentationTimeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -64,7 +65,8 @@ public final class AwakeningIntroClient {
     static void render(GuiGraphics gui, int width, int height, float partial) {
         Intro intro = active;
         if (intro == null || world != Minecraft.getInstance().level
-                || Minecraft.getInstance().options.hideGui) return;
+                || Minecraft.getInstance().options.hideGui
+                || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Font font = Minecraft.getInstance().font;
         float time = intro.age + partial;
         float fade = AwakeningPresentationTimeline.fade(intro.age);
