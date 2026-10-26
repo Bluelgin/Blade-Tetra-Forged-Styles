@@ -39,6 +39,7 @@ public final class SakuraEndlessFlow {
     public static boolean eligible(ItemStack stack) {
         return AwakenedBladeCombat.replacesLegacy()
                 && StyleResolver.resolve(stack) == BladeStyle.RENGEKI
+                && SoulLegacyState.active(stack) == SoulLegacyState.Legacy.SENBONZAKURA
                 && SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.SENBONZAKURA)
                 && stack.getTag() != null && stack.getTag().getBoolean(DISPERSED);
     }
