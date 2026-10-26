@@ -33,6 +33,7 @@ public final class SenbonzakuraDispersedRender {
         CompoundTag tag = blade.getTag();
         if (tag == null || !tag.getBoolean(STANCE)
                 || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
+                || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.SENBONZAKURA
                 || !SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.SENBONZAKURA))
             return;
         String target = event.getTarget();
