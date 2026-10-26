@@ -30,14 +30,17 @@ public final class AwakeningIntroClient {
     private static Intro active;
     private static ClientLevel world;
 
-    public static void begin(int soul) {
+    public static void begin(int soul, int age) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || !AwakeningPresentationTimeline.validSoul(soul)) return;
         world = mc.level;
         String title = Component.translatable(
                 AwakeningPresentationTimeline.nameKey(soul)).getString();
         active = new Intro(soul, title);
+        active.age = age;
     }
+
+    public static void cancel() { active = null; }
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -49,15 +52,7 @@ public final class AwakeningIntroClient {
         }
         if (mc.isPaused() || active == null) return;
         Intro intro = active;
-        if (++intro.age == AwakeningPresentationTimeline.IMPACT) {
-            SoundEvent sound = switch (intro.soul) {
-                case 1 -> SoundEvents.RESPAWN_ANCHOR_CHARGE;
-                case 2 -> SoundEvents.AMETHYST_BLOCK_RESONATE;
-                case 3 -> SoundEvents.AMETHYST_BLOCK_CHIME;
-                default -> SoundEvents.LIGHTNING_BOLT_THUNDER;
-            };
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.1F, 0.6F));
-        }
+        ++intro.age;
         if (intro.age >= AwakeningPresentationTimeline.OVERLAY_END) active = null;
     }
 
@@ -114,7 +109,7 @@ public final class AwakeningIntroClient {
                     }
                     default -> { // thunder: flash into place with asynchronous flicker
                         offsetY = (1.0F - enter) * -8.0F;
-                        flicker = time < 34.0F && ((int) time + i * 3) % 5 == 0
+                        flicker = time < 88.0F && ((int) time + i * 3) % 5 == 0
                                 ? 0.30F : 1.0F;
                     }
                 }
@@ -124,13 +119,13 @@ public final class AwakeningIntroClient {
             }
             x += glyphWidth + 2;
         }
-        if (intro.soul == 1 && time >= 23.0F && time < 39.0F) {
+        if (intro.soul == 1 && time >= 82.0F && time < 96.0F) {
             // Signature cut across the completed name at the awakening beat.
-            float cut = AwakeningPresentationTimeline.smooth((time - 23.0F) / 9.0F);
+            float cut = AwakeningPresentationTimeline.smooth((time - 82.0F) / 4.0F);
             int left = width / 2 - Math.round((total + 22) * cut / 2.0F);
             int right = width / 2 + Math.round((total + 22) * cut / 2.0F);
             gui.fill(left, centerY + 4, right, centerY + 5,
-                    withAlpha(0xFFE6EA, (1.0F - Math.abs(time - 32.0F) / 12.0F)
+                    withAlpha(0xFFE6EA, (1.0F - Math.abs(time - 86.0F) / 12.0F)
                             * fade * 0.86F));
         }
     }

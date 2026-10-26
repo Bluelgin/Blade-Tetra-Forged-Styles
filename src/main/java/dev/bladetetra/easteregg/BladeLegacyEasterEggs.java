@@ -478,9 +478,11 @@ public final class BladeLegacyEasterEggs {
             float pitch) {
         blade.getOrCreateTag().putBoolean(flag, true);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(particle,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                42, 0.75D, 0.65D, 0.75D, 0.035D);
+        if (!TAG_RAIKIRI_UNLOCKED.equals(flag) || !AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(particle,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    42, 0.75D, 0.65D, 0.75D, 0.035D);
+        }
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS,
                 0.9F, pitch);
         player.displayClientMessage(

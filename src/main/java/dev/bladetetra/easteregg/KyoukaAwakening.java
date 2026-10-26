@@ -623,12 +623,14 @@ public final class KyoukaAwakening {
         clearRitualProgress(blade);
         AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.KYOUKA);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(ParticleTypes.END_ROD,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                48, 1.0D, 0.65D, 1.0D, 0.018D);
-        level.sendParticles(ParticleTypes.SPLASH,
-                player.getX(), player.getY() + 0.1D, player.getZ(),
-                36, 1.25D, 0.05D, 1.25D, 0.025D);
+        if (!AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(ParticleTypes.END_ROD,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    48, 1.0D, 0.65D, 1.0D, 0.018D);
+            level.sendParticles(ParticleTypes.SPLASH,
+                    player.getX(), player.getY() + 0.1D, player.getZ(),
+                    36, 1.25D, 0.05D, 1.25D, 0.025D);
+        }
         level.playSound(null, player.blockPosition(),
                 SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS,
                 1.0F, 1.15F);

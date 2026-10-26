@@ -59,3 +59,8 @@ tools/art/*
 !tools/art/export_awakened.cjs
 !tools/art/preview_awakened.py
 !tools/art/validate_awakened.py
+
+# True-name ritual editable art and exporter
+!art/awakening-ritual/
+!art/awakening-ritual/**
+!tools/art/export_ritual.cjs

@@ -1223,5 +1223,6 @@
   "vfx.blade_tetra.true_name.akatsuki": "残月·命断",
   "vfx.blade_tetra.true_name.kyouka": "无相·万镜归一",
   "vfx.blade_tetra.true_name.senbonzakura": "终景·千樱葬",
-  "vfx.blade_tetra.true_name.raikiri": "神鸣·一闪"
+  "vfx.blade_tetra.true_name.raikiri": "神鸣·一闪",
+  "message.blade_tetra.ritual.need_awakened": "请手持已觉醒的模块拔刀剑，并启用觉醒刀 2.0。"
 }

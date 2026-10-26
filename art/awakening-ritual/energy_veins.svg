@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<!-- Original BladeTetra ritual tracer. Native logical blade/saya/hilt UV regions. -->
+<g fill="none" stroke="white" stroke-width=".65" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 16L14 13L19 19L26 14L32 17L40 11L47 16L60 15"/>
+<path d="M13 13L17 7M26 14L28 22M40 11L43 4M47 16L50 24"/>
+<path d="M3 45Q17 37 31 45T61 45M3 48Q17 40 31 48T61 48"/>
+<path d="M5 64L9 68L5 72L9 76M16 64L20 68L16 72L20 76M27 64L31 68L27 72L31 76M38 64L42 68L38 72L42 76"/>
+</g><g fill="white"><circle cx="19" cy="19" r=".9"/><circle cx="40" cy="11" r=".9"/><circle cx="31" cy="45" r="1"/></g>
+</svg>

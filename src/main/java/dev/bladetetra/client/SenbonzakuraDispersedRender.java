@@ -28,7 +28,8 @@ public final class SenbonzakuraDispersedRender {
 
     @SubscribeEvent
     public static void onRenderOverride(RenderOverrideEvent event) {
-        if (!GameplayConfig.ENABLE_AWAKENED_V2.get()) return;
+        if (!GameplayConfig.ENABLE_AWAKENED_V2.get()
+                || dev.bladetetra.client.awakening.FloatingBladeRenderer.isRendering()) return;
         ItemStack blade = event.getStack();
         CompoundTag tag = blade.getTag();
         if (tag == null || !tag.getBoolean(STANCE)
