@@ -49,6 +49,15 @@ public final class SakuraEndlessFlow {
                 && session.active && eligible(blade);
     }
 
+    /** At most one visual volley per three server ticks per wielded blade. */
+    public static boolean shouldShowVolley(ServerPlayer player, ItemStack blade, long now) {
+        Session session = SESSIONS.get(player.getUUID());
+        if (session == null || session.blade != blade || !session.active
+                || now - session.lastVolley < 3L) return false;
+        session.lastVolley = now;
+        return true;
+    }
+
     public static int initialRank(ServerPlayer player, ItemStack blade) {
         Session session = SESSIONS.get(player.getUUID());
         return session != null && session.blade == blade ? session.startRank : 0;
@@ -165,6 +174,7 @@ public final class SakuraEndlessFlow {
         final ItemStack blade;
         long ceiling = -1L;
         long nextCharge;
+        long lastVolley = -100L;
         int startRank;
         boolean seenAttack;
         boolean active;
