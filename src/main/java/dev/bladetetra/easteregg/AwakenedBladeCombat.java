@@ -514,7 +514,8 @@ public final class AwakenedBladeCombat {
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
         if (!SoulLegacyState.isActive(blade, soul)) return;
-        if (player.tickCount % (soul == SoulLegacyState.Legacy.RAIKIRI ? 10 : 80) != 0)
+        if (player.tickCount % ((soul == SoulLegacyState.Legacy.RAIKIRI
+                || soul == SoulLegacyState.Legacy.SENBONZAKURA) ? 10 : 80) != 0)
             return;
         State state = state(player, blade);
         long now = player.level().getGameTime();
