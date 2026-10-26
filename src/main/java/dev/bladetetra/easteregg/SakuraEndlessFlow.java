@@ -126,7 +126,7 @@ public final class SakuraEndlessFlow {
         ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.resolvCurrentComboState(player))
                 .orElse(ComboStateRegistry.NONE.getId());
-        if (!isNativeBAttack(combo)) {
+        if (!SakuraFlowRules.isNativeBAttack(combo)) {
             session.active = false;
             session.seenAttack = false;
             return;
@@ -144,7 +144,7 @@ public final class SakuraEndlessFlow {
         if (!session.active || !GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get()) return;
         if (now < session.nextCharge) return;
 
-        int cost = halfSecondCost(session.startRank,
+        int cost = SakuraFlowRules.halfSecondCost(session.startRank,
                 GameplayConfig.AWAKENED_SAKURA_BURN_POINTS_PER_SECOND.get());
         if (points < cost || cost <= 0) {
             session.active = false;
@@ -153,24 +153,6 @@ public final class SakuraEndlessFlow {
         rank.addRankPoint(player, -cost);
         session.ceiling = Math.min(session.ceiling, rank.getRankPoint(now));
         session.nextCharge = now + CHARGE_INTERVAL;
-    }
-
-    /** Static rules are deterministic and independent of a player or level. */
-    static int halfSecondCost(int grade, int pointsPerSecond) {
-        int percentage = switch (grade) {
-            case 7 -> 67; // SSS: mastery of the blade swarm
-            case 6 -> 80; // SS
-            case 5 -> 88; // S
-            default -> 100; // A
-        };
-        return Math.max(1, (pointsPerSecond * percentage + 199) / 200);
-    }
-
-    static boolean isNativeBAttack(ResourceLocation combo) {
-        if (combo == null || !"slashblade".equals(combo.getNamespace())) return false;
-        String path = combo.getPath();
-        return path.length() == 8 && path.startsWith("combo_b")
-                && path.charAt(7) >= '1' && path.charAt(7) <= '7';
     }
 
     @SubscribeEvent
