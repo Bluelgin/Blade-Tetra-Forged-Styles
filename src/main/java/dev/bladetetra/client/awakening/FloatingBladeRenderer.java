@@ -30,14 +30,14 @@ public final class FloatingBladeRenderer {
         /** Return null to decline an unsupported blade; never silently substitute a default mesh. */
         Prepared prepare(ItemStack stack);
     }
+    /** Draw only the actual blade/hilt; the native player renderer owns the mounted sheath. */
     public interface Prepared {
-        void render(ItemStack appearance, PoseStack pose, MultiBufferSource buffers, int light, boolean sheath);
+        void render(ItemStack appearance, PoseStack pose, MultiBufferSource buffers, int light);
     }
     private static final List<RendererAdapter> ADAPTERS = new ArrayList<>();
     private static int rendering;
     private static boolean ghostPass;
     private static float fraction = 1;
-    private static float sheathOpacity = 1;
     private static boolean energy;
     private static float overlayAlpha;
     private static int overlayTint;
@@ -55,30 +55,31 @@ public final class FloatingBladeRenderer {
         }
         var state = stack.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
         if (state == null) return null;
-            var modelId = state.getModel().orElse(null);
-            var texture = state.getTexture().orElse(null);
-            var resources = Minecraft.getInstance().getResourceManager();
-            if (modelId == null || texture == null || resources.getResource(modelId).isEmpty()
-                    || resources.getResource(texture).isEmpty()) return null;
-            var model = BladeModelManager.getInstance().getModel(modelId);
-            String target = state.isBroken() ? "blade_damaged" : "blade";
-            if (model.groupObjects.stream().noneMatch(g -> target.equals(g.name) && !g.faces.isEmpty()))
-                return null;
-            return (Prepared) (appearance, pose, buffers, light, sheath) -> {
-                String group = sheath ? "sheath" : target;
-                BladeRenderState.renderOverrided(appearance, model, group, texture, pose, buffers, light);
-                BladeRenderState.renderOverridedLuminous(appearance, model, group + "_luminous",
-                        texture, pose, buffers, light);
-            };
+        var modelId = state.getModel().orElse(null);
+        var texture = state.getTexture().orElse(null);
+        var resources = Minecraft.getInstance().getResourceManager();
+        if (modelId == null || texture == null || resources.getResource(modelId).isEmpty()
+                || resources.getResource(texture).isEmpty()) return null;
+        var model = BladeModelManager.getInstance().getModel(modelId);
+        String target = state.isBroken() ? "blade_damaged" : "blade";
+        if (model.groupObjects.stream().noneMatch(g -> target.equals(g.name) && !g.faces.isEmpty()))
+            return null;
+        return (appearance, pose, buffers, light) -> {
+            BladeRenderState.renderOverrided(appearance, model, target, texture, pose, buffers, light);
+            BladeRenderState.renderOverridedLuminous(appearance, model, target + "_luminous",
+                    texture, pose, buffers, light);
+        };
     }
 
     /** Stage-local geometry filter runs after the existing material/legacy adapters. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void filter(RenderOverrideEvent event) {
         if (!isRendering()) return;
-        float opacity = event.getTarget().startsWith("sheath") ? sheathOpacity : 1;
-        if (opacity <= .001F) { event.setCanceled(true); return; }
-        if (opacity < .999F) BladeRenderState.setCol((Math.round(opacity*255)<<24)|0xFFFFFF);
+        // Adapters must not duplicate the sheath in a detached or mirrored pass.
+        if (AwakeningVisibility.isSheathTarget(event.getTarget())) {
+            event.setCanceled(true);
+            return;
+        }
         if (ghostPass && overlayAlpha <= 0) {
             event.setEnableEffect(false);
             BladeRenderState.setCol(0x559AD9FF);
@@ -88,7 +89,7 @@ public final class FloatingBladeRenderer {
             event.setTexture(energy ? WHITE : VEINS);
             event.setGetRenderType(BladeRenderState::getSlashBladeBlendLuminous);
             event.setEnableEffect(false);
-            BladeRenderState.setCol((Math.round(overlayAlpha * opacity * 255) << 24) | overlayTint);
+            BladeRenderState.setCol((Math.round(overlayAlpha * 255) << 24) | overlayTint);
         }
         if (fraction >= .999F || !event.getTarget().startsWith("blade")) return;
         var model = AwakeningBladeGeometry.remaining(event.getModel(), event.getTarget(), fraction);
@@ -134,11 +135,10 @@ public final class FloatingBladeRenderer {
     public static void renderFirstPerson(AwakeningSession s, RenderOverrideEvent event,
             Matrix4f worldView, Matrix4f worldProjection) {
         String target=event.getOriginalTarget();
-        if (!"blade".equals(target) && !"blade_damaged".equals(target) && !"sheath".equals(target)) return;
+        if (!"blade".equals(target) && !"blade_damaged".equals(target)) return;
         var mc=Minecraft.getInstance(); float partial=mc.getPartialTick();
         float tick=s.age(mc.level,partial);
-        boolean sheath=target.equals("sheath");
-        var capture=sheath?s.sheathPose:s.bladePose;
+        var capture=s.bladePose;
         capture.capture(event.getPoseStack().last().pose());
         PoseStack pose=new PoseStack();
         Matrix4f projection=com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix();
@@ -155,22 +155,20 @@ public final class FloatingBladeRenderer {
         float spin=tick<85?(float)Math.sin(tick*.045)*8:0;
         pose.mulPose(Axis.ZP.rotationDegrees(-25+(angle+25+spin)*flight));
         pose.scale(.0078125F,.0078125F,.0078125F); pose.translate(-20,0,0);
-        if(sheath) pose.translate(0,-13,10);
         capture.blend(pose,flight);
         rendering++;
-        float oldFraction=fraction, oldAlpha=overlayAlpha, oldSheath=sheathOpacity;
+        float oldFraction=fraction, oldAlpha=overlayAlpha;
         boolean oldEnergy=energy; int oldTint=overlayTint;
         try {
             fraction=AwakeningPresentationTimeline.bladeFraction(tick,s.data.soul());
-            sheathOpacity=s.data.soul()==3?fraction:1;
             energy=tick>=85&&tick<89;
-            s.model.render(s.appearance,pose,event.getBuffer(),event.getPackedLightIn(),sheath);
+            s.model.render(s.appearance,pose,event.getBuffer(),event.getPackedLightIn());
             if(tick<100) {
                 overlayAlpha=.35F; overlayTint=energy?0xFFFFFF:AwakeningPresentationTimeline.tint(s.data.soul());
-                s.model.render(s.appearance,pose,event.getBuffer(),LightTexture.FULL_BRIGHT,sheath);
+                s.model.render(s.appearance,pose,event.getBuffer(),LightTexture.FULL_BRIGHT);
             }
         } finally {
-            fraction=oldFraction; sheathOpacity=oldSheath; overlayAlpha=oldAlpha; energy=oldEnergy; overlayTint=oldTint;
+            fraction=oldFraction; overlayAlpha=oldAlpha; energy=oldEnergy; overlayTint=oldTint;
             rendering--; BladeRenderState.resetCol();
         }
     }
@@ -185,8 +183,6 @@ public final class FloatingBladeRenderer {
             for (int i=0;i<count;i++) {
                 if (tick < 46+i*5) continue;
                 double a = i*Math.PI*2/count;
-                float draw = AwakeningPresentationTimeline.smooth(
-                        AwakeningPresentationTimeline.progress(tick,46+i*5,51+i*5));
                 Vec3 f = forward(s,partial), side = new Vec3(f.z,0,-f.x);
                 Vec3 ghost = pos.add(side.scale(Math.cos(a)*1.3)).add(0,-.2,0)
                         .add(f.scale(.4+Math.sin(a)*.6));
@@ -204,12 +200,11 @@ public final class FloatingBladeRenderer {
     private static void renderAt(AwakeningSession s, PoseStack pose, MultiBufferSource buffers,
             Vec3 pos, float tick, float partial, boolean ghost) {
         pose.pushPose(); rendering++;
-        float oldFraction = fraction, oldAlpha = overlayAlpha, oldSheath = sheathOpacity; boolean oldEnergy = energy;
+        float oldFraction = fraction, oldAlpha = overlayAlpha; boolean oldEnergy = energy;
         int oldTint = overlayTint; boolean oldGhost = ghostPass;
         try {
             ghostPass = ghost;
             fraction = AwakeningPresentationTimeline.bladeFraction(tick,s.data.soul());
-            sheathOpacity = s.data.soul()==3 ? fraction : 1;
             energy = tick >= 85 && tick < 89;
             pose.translate(pos.x,pos.y,pos.z);
             Vec3 f = forward(s,partial);
@@ -223,31 +218,17 @@ public final class FloatingBladeRenderer {
             pose.scale(.0078125F,.0078125F,.0078125F);
             // Existing SlashBlade source coordinates, grip pivot rather than an icon pivot.
             pose.translate(-20,0,0);
-            pose.pushPose();
-            try {
             if (!ghost) s.bladePose.blend(pose, flight);
             if (ghost) BladeRenderState.setCol(0x559AD9FF);
-            s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT,false);
+            s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
             if (!ghost && tick < 100) {
                 overlayAlpha = .25F + .3F * (float)Math.pow(Math.sin(tick * .2), 2);
                 overlayTint = energy ? 0xFFFFFF : AwakeningPresentationTimeline.tint(s.data.soul());
-                s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT,false);
+                s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
                 overlayAlpha = 0;
             }
-            } finally { pose.popPose(); }
-            // The sheath flies beside the same blade, using its own original model group.
-            if (!ghost) {
-                pose.translate(0,-13,10);
-                s.sheathPose.blend(pose,flight);
-                s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT,true);
-                if (tick < 85) {
-                    overlayAlpha = .28F; overlayTint = AwakeningPresentationTimeline.tint(s.data.soul());
-                    s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT,true);
-                    overlayAlpha = 0;
-                }
-            }
         } finally {
-            fraction = oldFraction; sheathOpacity = oldSheath; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; ghostPass = oldGhost; rendering--;
+            fraction = oldFraction; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; ghostPass = oldGhost; rendering--;
             BladeRenderState.resetCol(); pose.popPose();
         }
     }

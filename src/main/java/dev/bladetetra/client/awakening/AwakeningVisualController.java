@@ -105,6 +105,16 @@ public final class AwakeningVisualController {
         var s=SESSIONS.get(player.getUUID());
         return world!=null&&s!=null&&s.valid(world)&&s.visible;
     }
+    /** Keeps the native sheath during a visible ritual, including a Sakura dispersed preview. */
+    public static boolean keepMountedSheath(net.minecraft.world.item.ItemStack stack) {
+        if(world==null || !enabled()) return false;
+        for(var session:SESSIONS.values()) {
+            if(session.visible && session.valid(world) && stack==session.owner.getMainHandItem())
+                return true;
+        }
+        return false;
+    }
+
     @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent e) {
         if(e.phase!=TickEvent.Phase.END) return;
@@ -152,8 +162,8 @@ public final class AwakeningVisualController {
             if(AwakeningVisibility.hide(s.valid(world),e.getStack()==s.owner.getMainHandItem(),
                     s.visible,false,e.getOriginalTarget())) {
                 if(worldReady && renderingPlayer==s.owner) {
-                    var nativePose=e.getOriginalTarget().startsWith("sheath")?s.sheathPose:s.bladePose;
-                    if(!e.getOriginalTarget().endsWith("luminous")) nativePose.capture(e.getPoseStack().last().pose());
+                    if(!e.getOriginalTarget().endsWith("luminous"))
+                        s.bladePose.capture(e.getPoseStack().last().pose());
                 }
                 e.setCanceled(true);
                 if(worldReady && renderingPlayer==null && FloatingBladeRenderer.localHandPass(s)) {
@@ -179,7 +189,7 @@ public final class AwakeningVisualController {
             QUADS[0]=quality==0?512:quality==1?1536:3072;
             double max=Math.min(64,ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get());
             for(var s:SESSIONS.values()) {
-                s.bladePose.reset(); s.sheathPose.reset();
+                s.bladePose.reset();
                 Vec3 p=FloatingBladeRenderer.position(s,e.getPartialTick(),s.age(world,e.getPartialTick()));
                 s.visible=s.valid(world)&&p.distanceToSqr(e.getCamera().getPosition())<max*max
                         && e.getFrustum().isVisible(new AABB(p.x-4,p.y-4,p.z-4,p.x+4,p.y+8,p.z+4));

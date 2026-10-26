@@ -15,7 +15,6 @@ public final class AwakeningSession {
     public final FloatingBladeRenderer.Prepared model;
     public boolean visible;
     public final NativeBladePose bladePose = new NativeBladePose();
-    public final NativeBladePose sheathPose = new NativeBladePose();
     private boolean failed;
     private final dev.bladetetra.easteregg.AwakeningSessionKey key;
 

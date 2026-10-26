@@ -30,6 +30,11 @@ public final class SenbonzakuraDispersedRender {
     public static void onRenderOverride(RenderOverrideEvent event) {
         if (!GameplayConfig.ENABLE_AWAKENED_V2.get()
                 || dev.bladetetra.client.awakening.FloatingBladeRenderer.isRendering()) return;
+        // A ritual owns only the detached blade. Preserve the native mounted sheath
+        // even when the operator previews an already-dispersed Sakura weapon.
+        if (dev.bladetetra.client.awakening.AwakeningVisibility.isSheathTarget(event.getOriginalTarget())
+                && dev.bladetetra.client.awakening.AwakeningVisualController.keepMountedSheath(event.getStack()))
+            return;
         ItemStack blade = event.getStack();
         CompoundTag tag = blade.getTag();
         if (tag == null || !tag.getBoolean(STANCE)

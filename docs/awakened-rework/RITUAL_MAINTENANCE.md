@@ -19,24 +19,24 @@
 | `AwakeningSession` | 一次会话的原刀快照、渲染准备结果和当前可见性 |
 | `AwakeningVisualController` | 接包、绑定、清理、视锥/距离、调度和位置音效；不实现四刀几何 |
 | `FloatingBladeRenderer.RendererAdapter` | 扩展刀身渲染接入点；默认复用SlashBlade缓存模型、材质与原生RenderOverrideEvent |
-| `NativeBladePose` | 从真实原生MMD渲染事件采集刀/鞘矩阵，与浮空矩阵作位置、缩放、四元数插值 |
+| `NativeBladePose` | 从真实原生MMD渲染事件采集刀身矩阵，与浮空矩阵作位置、缩放、四元数插值 |
 | `AwakeningVisualProfile` + 四个提供器 | 专属几何/运动参数，不重复会话管理 |
 | `RitualEffectBatch` | 带配额的现有图集批次视图，不拥有GL状态/第二套渲染循环 |
 | `AwakenedAtlasBatch` | 从原VFX客户端提取的原有3个图集几何函数，旧战斗与新仪式共用 |
 | `AwakeningBladeGeometry` | 缓存原刀分解视图，复用已有名刀部件多边形裁剪器，保留UV/原刀柄 |
-| `AwakeningVisibility` | 仅隐藏该会话真实主手对象的刀/鞘目标，不隐藏item_*或耐久图标 |
+| `AwakeningVisibility` | 仅隐藏该会话真实主手对象的刀身目标；原生刀鞘始终保留，不隐藏item_*或耐久图标 |
 
 没有新增Mixin、前置模组或自定义Shader。
 
 ## 原刀渲染与回退
 
-默认适配器只接受当前能力明确提供、资源确实存在且有非空blade组的模型。不会用默认铁刀替代失效外观。正常通道仍调用`BladeRenderState.renderOverrided`及其luminous pass，继续经过`MaterialTextureManager`、`ForgedGuardModel`、`LegacyModelPartRenderer`和已有外观适配。刀鞘使用同一真实模型的sheath组，悬浮时位于刀旁，归刃使用各自的原生姿态。
+默认适配器只接受当前能力明确提供、资源确实存在且有非空blade组的模型。不会用默认铁刀替代失效外观。正常通道仍调用`BladeRenderState.renderOverrided`及其luminous pass，继续经过`MaterialTextureManager`、`ForgedGuardModel`、`LegacyModelPartRenderer`和已有外观适配。刀鞘始终使用玩家原生挂载/动作渲染，不抑制sheath/sheath_luminous，也不在浮空或镜影pass中绘制。只有刀身脱离、完成解放、回到原生持刀/归鞘姿态。没有刀鞘的原生外观不会凭空增加刀鞘。
 
 只有准备成功且通过本帧裁剪时才抑制原刀；失败保留正常显示。渲染异常标记会话失效；第一人称异常还会放行当前原生事件。所有临时颜色、姿态栈、递归保护在finally恢复。
 
-第三人称在实体阶段采集原生刀/鞘矩阵。第一人称在原生手持pass内替换，以该帧真实MMD矩阵为离手/归手端点；用世界/手持投影比例对齐世界空间效果。浮空pass仅渲染快照，防止自递归和双刀重影。镜花虚影使用同一原刀快照。
+第三人称在实体阶段只采集原生刀身矩阵，刀鞘沿用原生渲染。第一人称在原生手持pass内替换，以该帧真实MMD矩阵为离手/归手端点；用世界/手持投影比例对齐世界空间效果。浮空pass仅渲染快照，防止自递归和双刀重影。镜花虚影使用同一原刀快照。
 
-千本樱仅裁剪能够识别标准Tetra钢刃UV的面，16个缓存阶段，原刀柄/刀镡继续经过既有适配；浮空刀鞘同步淡出、重凝，避免遮挡碎刃。未知第三方UV保留原模型，**不会用固定通用刀柄冒充**。若要支持非标准UV的精确分解，请注册专门RendererAdapter。此回退保证外观安全，但不保证所有第三方OBJ都能完全碎刃化。
+千本樱仅裁剪能够识别标准Tetra钢刃UV的面，16个缓存阶段，原刀柄/刀镡继续经过既有适配；刀鞘全程留在玩家身上，不参与分解或重凝。若预览时原武器已处于散华，仪式期间仅针对同一把真实主手对象保留原生刀鞘，结束即恢复#42既有状态；不修改战斗姿态NBT。未知第三方UV保留原模型，**不会用固定通用刀柄冒充**。若要支持非标准UV的精确分解，请注册专门RendererAdapter。此回退保证外观安全，但不保证所有第三方OBJ都能完全碎刃化。
 
 ## 五阶段与四刀表现
 
@@ -66,7 +66,7 @@
 
 新增魂时：在既有SoulLegacyState和协议有效范围中注册魂；注册一个AwakeningVisualProfile；提供forward/height/angle与draw；加入真名翻译；由现有服务端成功点调用统一服务。不要另建tick队列或给武器写仪式NBT。
 
-自定义RendererAdapter需在客户端初始化时注册，prepare返回不可渲染应为null，Prepared负责用快照绘制blade/sheath，不能写原刀、创建实体或加载每帧OBJ。保持原生RenderOverrideEvent调用以获得现有材质适配。
+自定义RendererAdapter需在客户端初始化时注册，prepare返回不可渲染应为null，Prepared只负责用快照绘制blade/刀柄，不接受刀鞘绘制参数；刀鞘归原生玩家渲染所有，不能写原刀、创建实体或加载每帧OBJ。保持原生RenderOverrideEvent调用以获得现有材质适配。
 
 ## 实机验收入口
 
