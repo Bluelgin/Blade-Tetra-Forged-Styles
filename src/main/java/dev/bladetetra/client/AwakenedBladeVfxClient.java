@@ -155,8 +155,10 @@ public final class AwakenedBladeVfxClient {
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         for (Effect fx : EFFECTS) {
             int type = fx.data.type();
-            if (type != AwakenedBladeVfxPacket.AWAKEN
-                    && type != AwakenedBladeVfxPacket.RELEASE) continue;
+            // Awakening names now have a separate owner-only animated HUD.
+            // Keep world-space names only for regular ultimate releases to
+            // avoid two overlapping title systems during the ceremony.
+            if (type != AwakenedBladeVfxPacket.RELEASE) continue;
             float at = fx.age + event.getPartialTick();
             if (at < 22.0F || at >= fx.duration - 5.0F) continue;
             float opacity = Mth.clamp((at - 22.0F) / 7.0F, 0, 1)
@@ -422,6 +424,33 @@ public final class AwakenedBladeVfxClient {
         float t = Mth.clamp(age / 44.0F, 0, 1);
         switch (soul) {
             case 1 -> {
+                // The blood crescent anchors *world-space* causal scars;
+                // unlike camera-facing glyphs, these strokes occupy actual
+                // 3D start/end positions and contract into one cut at 32t.
+                if (age >= 10.0F && age < 43.0F) {
+                    float appear = Mth.clamp((age - 10.0F) / 9.0F, 0, 1);
+                    float breakApart = Mth.clamp((age - 32.0F) / 11.0F, 0, 1);
+                    for (int i = 0; i < 3; i++) {
+                        double angle = (i - 1) * Math.PI / 3.5D + 0.25D;
+                        double radius = 1.30D * (1.0D - breakApart * 0.68D);
+                        Vec3 along = new Vec3(Math.cos(angle), 0, Math.sin(angle))
+                                .scale(radius);
+                        Vec3 lift = new Vec3(0, 0.20D * (i - 1), 0);
+                        segment(buffer, matrix, eye,
+                                pos.subtract(along).add(lift),
+                                pos.add(along).add(lift),
+                                0.065D + breakApart * 0.070D,
+                                16, soul, alpha * appear * (1 - breakApart * 0.55F));
+                    }
+                    if (age >= 29 && age < 39) {
+                        float flash = Mth.clamp((age - 29) / 3.0F, 0, 1)
+                                * Mth.clamp((39 - age) / 5.0F, 0, 1);
+                        segment(buffer, matrix, eye,
+                                pos.add(-1.9, 1.1, -0.8),
+                                pos.add(1.9, -1.1, 0.8),
+                                0.13D, 21, soul, alpha * flash);
+                    }
+                }
                 // 0-6 crescent, 6-23 sword trace, 23-32 name seal, 32-44 fade.
                 float moon = alpha * Mth.clamp(age / 6.0F, 0, 1);
                 billboardTile(buffer, matrix, eye, pos.add(0, 0.65D, 0),
