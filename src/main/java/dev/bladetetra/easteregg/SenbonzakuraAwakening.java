@@ -130,10 +130,16 @@ public final class SenbonzakuraAwakening {
             tooltip.add(Component.translatable(
                             "tooltip.blade_tetra.senbonzakura.awakened")
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.marks",
-                            petalMarks(stack), MAX_MARKS)
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+            if (AwakenedBladeCombat.replacesLegacy()) {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.awakened.v2.senbonzakura")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            } else {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.senbonzakura.marks",
+                                petalMarks(stack), MAX_MARKS)
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
         } else if (isUnlocked(stack)) {
             tooltip.add(Component.translatable(
                             "tooltip.blade_tetra.senbonzakura.dormant")
