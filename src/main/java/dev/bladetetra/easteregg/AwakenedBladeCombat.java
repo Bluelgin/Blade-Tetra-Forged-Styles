@@ -181,7 +181,13 @@ public final class AwakenedBladeCombat {
                 }
             }
             case RAIKIRI -> {
-                boolean flashFollowup = state.stepChain > 0
+                // Only actual native Thunder Rapid damage confirms a dash.
+                // Unrelated sword arts, normal combo strikes or projectiles
+                // must never authorize a free next Shift+W step.
+                boolean thunderHit = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
+                        .map(value -> RaikiriRapidCombo.isThunderCombo(value.getComboSeq()))
+                        .orElse(false);
+                boolean flashFollowup = thunderHit && state.stepChain > 0
                         && !state.stepConfirmed
                         && now >= state.lastStep && now - state.lastStep <= 22;
                 if (flashFollowup) {
