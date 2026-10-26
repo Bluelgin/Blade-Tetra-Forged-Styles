@@ -86,10 +86,7 @@ public final class AwakenedBladeCombat {
 
     /** Called exclusively after the corresponding server-side ritual succeeds. */
     public static void awakening(ServerPlayer player, SoulLegacyState.Legacy soul) {
-        if (!replacesLegacy() || soul == SoulLegacyState.Legacy.NONE) return;
-        Vec3 pos = player.position().add(0, 1.1D, 0);
-        visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.AWAKEN,
-                pos, pos, 0);
+        AwakeningPresentationService.success(player, soul);
     }
 
     /** Visual-only native slash effects cannot hurt or stagger anyone. */
