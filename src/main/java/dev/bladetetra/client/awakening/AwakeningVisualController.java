@@ -39,7 +39,6 @@ public final class AwakeningVisualController {
     private static final Map<UUID,AwakeningPresentationPacket> PENDING=new LinkedHashMap<>();
     private static ClientLevel world;
     private static final int[] QUADS={0};
-    private static final Matrix4f WORLD_FROM_VIEW = new Matrix4f();
     private static final Matrix4f WORLD_VIEW = new Matrix4f();
     private static final Matrix4f WORLD_PROJECTION = new Matrix4f();
     private static boolean worldReady;
@@ -150,8 +149,7 @@ public final class AwakeningVisualController {
                     s.visible,false,e.getOriginalTarget())) {
                 if(worldReady && renderingPlayer==s.owner) {
                     var nativePose=e.getOriginalTarget().startsWith("sheath")?s.sheathPose:s.bladePose;
-                    if(!e.getOriginalTarget().endsWith("luminous")) nativePose.capture(WORLD_FROM_VIEW,
-                            e.getPoseStack().last().pose(),Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+                    if(!e.getOriginalTarget().endsWith("luminous")) nativePose.capture(e.getPoseStack().last().pose());
                 }
                 e.setCanceled(true);
                 if(worldReady && renderingPlayer==null && FloatingBladeRenderer.localHandPass(s)) {
@@ -172,7 +170,7 @@ public final class AwakeningVisualController {
         if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_SKY) {
             WORLD_VIEW.set(e.getPoseStack().last().pose());
             WORLD_PROJECTION.set(com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix());
-            WORLD_FROM_VIEW.set(WORLD_VIEW).invert(); worldReady=true;
+            worldReady=true;
             int quality=ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get();
             QUADS[0]=quality==0?512:quality==1?1536:3072;
             double max=Math.min(64,ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get());

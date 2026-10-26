@@ -10,7 +10,7 @@ class NativeBladePoseTest {
         NativeBladePose captured = new NativeBladePose();
         Matrix4f nativePose = new Matrix4f().translation(1,2,3).rotateZ(.2F).scale(.0078125F);
         Matrix4f source = new Matrix4f(nativePose);
-        captured.capture(null,nativePose,null);
+        captured.capture(nativePose);
         for(float progress:new float[]{0,.25F,.5F,.75F,1}) {
             PoseStack target = new PoseStack();
             target.translate(5,6,7); target.scale(.0078125F,.0078125F,.0078125F);

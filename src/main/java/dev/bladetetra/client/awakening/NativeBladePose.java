@@ -1,7 +1,6 @@
 package dev.bladetetra.client.awakening;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -12,7 +11,7 @@ public final class NativeBladePose {
     private final Vector3f scale = new Vector3f();
     private final Quaternionf rotation = new Quaternionf();
     private boolean valid;
-    public void capture(Matrix4f worldFromView, Matrix4f nativeMatrix, Vec3 camera) {
+    public void capture(Matrix4f nativeMatrix) {
         Matrix4f world = new Matrix4f(nativeMatrix);
         world.getTranslation(translation); world.getScale(scale);
         world.getUnnormalizedRotation(rotation).normalize();

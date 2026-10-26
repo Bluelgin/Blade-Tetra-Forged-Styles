@@ -52,23 +52,23 @@ public final class FloatingBladeRenderer {
             Prepared result = adapter.prepare(stack);
             if (result != null) return result;
         }
-        return stack.getCapability(ItemSlashBlade.BLADESTATE).map(state -> {
+        var state = stack.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
+        if (state == null) return null;
             var modelId = state.getModel().orElse(null);
             var texture = state.getTexture().orElse(null);
             var resources = Minecraft.getInstance().getResourceManager();
             if (modelId == null || texture == null || resources.getResource(modelId).isEmpty()
-                    || resources.getResource(texture).isEmpty()) return (Prepared) null;
+                    || resources.getResource(texture).isEmpty()) return null;
             var model = BladeModelManager.getInstance().getModel(modelId);
             String target = state.isBroken() ? "blade_damaged" : "blade";
             if (model.groupObjects.stream().noneMatch(g -> target.equals(g.name) && !g.faces.isEmpty()))
-                return (Prepared) null;
+                return null;
             return (Prepared) (appearance, pose, buffers, light, sheath) -> {
                 String group = sheath ? "sheath" : target;
                 BladeRenderState.renderOverrided(appearance, model, group, texture, pose, buffers, light);
                 BladeRenderState.renderOverridedLuminous(appearance, model, group + "_luminous",
                         texture, pose, buffers, light);
             };
-        }).orElse(null);
     }
 
     /** Stage-local geometry filter runs after the existing material/legacy adapters. */
@@ -135,7 +135,7 @@ public final class FloatingBladeRenderer {
         float tick=s.age(mc.level,partial);
         boolean sheath=target.equals("sheath");
         var capture=sheath?s.sheathPose:s.bladePose;
-        capture.capture(null,event.getPoseStack().last().pose(),null);
+        capture.capture(event.getPoseStack().last().pose());
         PoseStack pose=new PoseStack();
         Matrix4f projection=com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix();
         pose.mulPoseMatrix(new Matrix4f().scaling(worldProjection.m00()/projection.m00(),
