@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.RegistryObject;
@@ -51,7 +52,9 @@ public final class RaikiriRapidCombo {
                 .orElse(false);
     }
 
-    @SubscribeEvent
+    // Let other style routers decide first; upgrade only the final native
+    // Rapid Slash candidate rather than overwriting their explicit choices.
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onNextCombo(SlashBladeEvent.NextComboEvent event) {
         if (!(event.getUser() instanceof ServerPlayer player)
                 || !AwakenedBladeCombat.replacesLegacy()
