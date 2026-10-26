@@ -81,8 +81,10 @@ public final class SakuraEndlessFlow {
                 && ComboState.getElapsed(player) >= 14L) {
             event.setNextCombo(B1);
         } else {
-            // No free loop through the default root's priority fallback.
-            event.setCanceled(true);
+            // NextComboEvent is not @Cancelable in upstream SlashBlade.
+            // Returning the current combo triggers progressCombo's native
+            // self-next guard BEFORE root-priority fallback can restart B1.
+            event.setNextCombo(B7);
         }
     }
 
