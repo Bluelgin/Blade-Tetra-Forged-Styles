@@ -1215,7 +1215,7 @@
   "tooltip.blade_tetra.awakened.v2.akatsuki": "觉醒·因果斩线：绕目标从不同方向造成真实伤害，3道斩线后成功SA触发命断。",
   "tooltip.blade_tetra.awakened.v2.kyouka": "觉醒·镜影重演：记录最多3次有效攻击，至少2次后成功SA释放延迟虚斩。",
   "tooltip.blade_tetra.awakened.v2.senbonzakura": "觉醒·散华剑阵：潜行SA切换形态；散华积累剑势，普通SA释放剑阵。",
-  "tooltip.blade_tetra.awakened.v2.raikiri": "觉醒·雷步：潜行SA快速突进；攻击或雷步积蓄雷荷，普通SA释放终击。",
+  "tooltip.blade_tetra.awakened.v2.raikiri": "觉醒·雷步：地面潜行+前进+右键将迅冲斩强化为连续雷步；命中后可续段，普通SA释放神鸣终击。",
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",
   "message.blade_tetra.awakened.rank_insufficient": "觉醒技需要 %s 评级与 %s 评分点数",
   "hud.blade_tetra.awakened.rank_cost": "需要 %s · 消耗 %s 评分",
