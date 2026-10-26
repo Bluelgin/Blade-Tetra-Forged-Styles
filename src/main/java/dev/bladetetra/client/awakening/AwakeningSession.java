@@ -41,6 +41,7 @@ public final class AwakeningSession {
         var blade = owner.getMainHandItem();
         return owner.getInventory().selected == p.slot()
                 && blade.getItem() instanceof ModularSlashBladeItem
+                && !dev.bladetetra.easteregg.SoulLegacyState.isBroken(blade)
                 && blade.getTag() != null && p.bladeId().equals(blade.getTag().getString("id"));
     }
     public void fail() { failed = true; visible = false; }

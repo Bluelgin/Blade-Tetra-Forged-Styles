@@ -42,6 +42,7 @@ public final class AwakeningVisualController {
     private static final Matrix4f WORLD_VIEW = new Matrix4f();
     private static final Matrix4f WORLD_PROJECTION = new Matrix4f();
     private static boolean worldReady;
+    private static boolean worldEntityPass;
     private static Player renderingPlayer;
 
     @SubscribeEvent public static void playerPre(net.minecraftforge.client.event.RenderPlayerEvent.Pre e) {
@@ -52,7 +53,7 @@ public final class AwakeningVisualController {
     }
 
     public static void clear() {
-        SESSIONS.clear(); PENDING.clear(); worldReady=false; renderingPlayer=null; AwakeningIntroClient.cancel();
+        SESSIONS.clear(); PENDING.clear(); worldReady=false; worldEntityPass=false; renderingPlayer=null; AwakeningIntroClient.cancel();
     }
     private static boolean enabled() {
         return ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
@@ -143,7 +144,8 @@ public final class AwakeningVisualController {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void hideOriginal(RenderOverrideEvent e) {
-        if(world==null||!enabled()||FloatingBladeRenderer.isRendering()) return;
+        if(world==null||!enabled()||FloatingBladeRenderer.isRendering()
+                || (!worldEntityPass && renderingPlayer!=null)) return;
         for(var s:SESSIONS.values()) {
             if(AwakeningVisibility.hide(s.valid(world),e.getStack()==s.owner.getMainHandItem(),
                     s.visible,false,e.getOriginalTarget())) {
@@ -170,7 +172,7 @@ public final class AwakeningVisualController {
         if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_SKY) {
             WORLD_VIEW.set(e.getPoseStack().last().pose());
             WORLD_PROJECTION.set(com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix());
-            worldReady=true;
+            worldReady=true; worldEntityPass=true; renderingPlayer=null;
             int quality=ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get();
             QUADS[0]=quality==0?512:quality==1?1536:3072;
             double max=Math.min(64,ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get());
@@ -183,6 +185,7 @@ public final class AwakeningVisualController {
             return;
         }
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
+        worldEntityPass=false; renderingPlayer=null;
         var mc=Minecraft.getInstance(); var buffers=mc.renderBuffers().bufferSource();
         PoseStack pose=e.getPoseStack(); Vec3 eye=e.getCamera().getPosition();
         pose.pushPose();
