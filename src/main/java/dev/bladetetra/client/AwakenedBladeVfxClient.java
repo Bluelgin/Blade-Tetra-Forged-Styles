@@ -9,6 +9,10 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.easteregg.AwakeningPresentationTimeline;
+import dev.bladetetra.easteregg.SoulLegacyState;
+import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.StyleResolver;
+import net.minecraft.world.entity.player.Player;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -107,7 +111,6 @@ public final class AwakenedBladeVfxClient {
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
-                || EFFECTS.isEmpty()
                 || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Camera camera = event.getCamera();
         PoseStack poses = event.getPoseStack();
@@ -129,6 +132,8 @@ public final class AwakenedBladeVfxClient {
                 if (fx.data.soul() == soul) draw(buffer, matrix, eye, fx,
                         event.getPartialTick(), intensity);
             }
+            if (soul == 3) drawSakuraCrescent(buffer, matrix, eye,
+                    event.getPartialTick(), intensity);
             Tesselator.getInstance().end();
 
             RenderSystem.setShaderTexture(0, ANIMATIONS[soul - 1]);
@@ -212,6 +217,11 @@ public final class AwakenedBladeVfxClient {
         if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) {
             drawCausalExecution(buffer, matrix, eye, pos, age, alpha,
                     data.variant());
+            return;
+        }
+        if (soul == 3 && type == AwakenedBladeVfxPacket.MARK
+                && data.variant() >= 10) {
+            drawSakuraVolley(buffer, matrix, eye, data, age, alpha);
             return;
         }
         if (soul == 3 && type == AwakenedBladeVfxPacket.STANCE) {
@@ -382,6 +392,94 @@ public final class AwakenedBladeVfxClient {
                             1.75D, 3, soul, fade * 0.8F, (float) a);
                 }
             }
+        }
+    }
+
+    /**
+     * Follow the actual player's world position instead of replaying nine
+     * once-per-second static billboards. One bounded atlas batch draws every
+     * dispersed player's half-moon formation with no network heartbeat.
+     */
+    private static void drawSakuraCrescent(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 eye, float partial, float intensity) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
+        int count = Math.max(12, Math.min(42,
+                ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get()));
+        double age = mc.level.getGameTime() + partial;
+        int viewers = 0;
+        for (Player player : mc.level.players()) {
+            if (++viewers > 32) break;
+            var blade = player.getMainHandItem();
+            if (blade.getTag() == null
+                    || !blade.getTag().getBoolean("blade_tetra_awakened_v2_sakura_dispersed")
+                    || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
+                    || !SoulLegacyState.isActive(blade,
+                            SoulLegacyState.Legacy.SENBONZAKURA)) continue;
+            Vec3 center = new Vec3(
+                    Mth.lerp(partial, player.xOld, player.getX()),
+                    Mth.lerp(partial, player.yOld, player.getY()) + 1.25D,
+                    Mth.lerp(partial, player.zOld, player.getZ()));
+            if (center.distanceToSqr(eye) > max * max) continue;
+            double yaw = Math.toRadians(Mth.lerp(partial, player.yRotO, player.getYRot()));
+            Vec3 forward = new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
+            Vec3 right = new Vec3(forward.z, 0, -forward.x);
+            Vec3 back = forward.scale(-0.95D);
+            for (int i = 0; i < count; i++) {
+                double angle = -Math.PI / 2.0D + Math.PI * (i + 0.5D) / count;
+                double wing = Math.sin(angle);
+                double arch = Math.cos(angle);
+                double drift = Math.sin(age * 0.07D + i * 1.618D) * 0.095D;
+                Vec3 shard = center.add(back.scale(1.0D + 0.12D * (i % 3)))
+                        .add(right.scale(wing * (1.65D + drift)))
+                        .add(0, arch * 0.6D + (i % 4 - 1.5D) * 0.09D, 0);
+                billboardTile(buffer, matrix, eye, shard,
+                        0.25D + (i % 5) * 0.035D, i % 3, 3,
+                        intensity * (0.65F + (i % 4) * 0.07F),
+                        (float) (angle * 0.45D + age * 0.013D));
+            }
+        }
+    }
+
+    /**
+     * Every accepted native hit may show a bounded Zenith-like ribbon of
+     * returning fragments. Positions are deterministic from the hit packet.
+     * These quads never spawn projectiles, collision or extra damage.
+     */
+    private static void drawSakuraVolley(BufferBuilder buffer, Matrix4f matrix,
+            Vec3 eye, AwakenedBladeVfxPacket data, float age, float alpha) {
+        Vec3 origin = new Vec3(data.x(), data.y(), data.z());
+        Vec3 target = new Vec3(data.endX(), data.endY(), data.endZ());
+        Vec3 displacement = target.subtract(origin);
+        if (displacement.lengthSqr() < 0.04D
+                || displacement.lengthSqr() > 400.0D) return;
+        Vec3 forward = displacement.normalize();
+        Vec3 side = new Vec3(-forward.z, 0, forward.x);
+        if (side.lengthSqr() < 0.01D) side = new Vec3(1, 0, 0);
+        else side = side.normalize();
+        int grade = Mth.clamp(data.variant() - 10, 4, 7);
+        int count = 9 + (grade - 4) * 3;
+        for (int i = 0; i < count; i++) {
+            double angle = i * 2.399963229728653D;
+            Vec3 start = origin.subtract(forward.scale(0.75D))
+                    .add(side.scale(Math.sin(angle) * 1.0D))
+                    .add(0, Math.cos(angle) * 0.48D, 0);
+            Vec3 end = target.add(side.scale(Math.cos(angle) * 0.62D))
+                    .add(0, Math.sin(angle) * 0.42D, 0);
+            double u = Mth.clamp((age - i * 0.32D) / (9.0D + i % 4), 0, 1);
+            if (u <= 0 || u >= 1) continue;
+            double curve = Math.sin(u * Math.PI) * (0.35D + i % 3 * 0.14D);
+            Vec3 blade = start.lerp(end, u).add(side.scale(curve));
+            double earlier = Math.max(0, u - 0.065D);
+            Vec3 tail = start.lerp(end, earlier)
+                    .add(side.scale(Math.sin(earlier * Math.PI)
+                            * (0.35D + i % 3 * 0.14D)));
+            // Thin, short trails: do not draw light beams across the arena.
+            segment(buffer, matrix, eye, tail, blade,
+                    0.022D, 1, 3, alpha * 0.43F);
+            billboardTile(buffer, matrix, eye, blade, 0.24D + (i % 4) * 0.045D,
+                    i % 3, 3, alpha * 0.92F, (float) angle);
         }
     }
 
