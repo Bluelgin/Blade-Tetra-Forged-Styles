@@ -3,7 +3,7 @@ package dev.bladetetra.client.awakening;
 import net.minecraft.world.phys.Vec3;
 /** Pseudo water reflection and local mirror geometry; no real-time reflection target. */
 final class KyoukaAwakeningVisual implements AwakeningVisualProfile {
-    public double forward(){return 1.55;} public double height(){return 2.15;}
+    public double forward(){return 2.2;} public double height(){return 2.15;}
     public float angle(){return -12;}
     public void draw(RitualEffectBatch f) {
         float water=f.window(10,30,95,112);
@@ -12,7 +12,7 @@ final class KyoukaAwakeningVisual implements AwakeningVisualProfile {
         int mirrors=f.quality==0?2:4;
         for(int i=0;i<mirrors;i++) {
             double a=i*Math.PI*2/mirrors;
-            Vec3 at=f.center.add(Math.cos(a)*1.5,-.2,Math.sin(a)*1.5);
+            Vec3 at=f.local(Math.cos(a)*1.3,-.2,.4+Math.sin(a)*.6);
             Vec3 side=new Vec3(-Math.sin(a)*.45,0,Math.cos(a)*.45);
             float show=f.window(40+i*5,46+i*5,85,91);
             f.plane(at,side,new Vec3(0,.85,0),0,show*.38F);

@@ -104,7 +104,7 @@ public final class FloatingBladeRenderer {
     public static Vec3 hand(AwakeningSession s, float partial) {
         Vec3 f = forward(s, partial), right = new Vec3(f.z,0,-f.x);
         double arm = s.owner.getMainArm() == HumanoidArm.RIGHT ? 1 : -1;
-        return root(s, partial).add(0,s.owner.isCrouching()? .94 : 1.24,0)
+        return root(s, partial).add(0,s.owner.getEyeHeight() - .38,0)
                 .add(f.scale(.38)).add(right.scale(.32*arm));
     }
     public static Vec3 position(AwakeningSession s, float partial, float tick) {
@@ -112,7 +112,7 @@ public final class FloatingBladeRenderer {
         var profile = AwakeningVisualProfile.get(s.data.soul());
         float flight = AwakeningPresentationTimeline.flight(tick,s.data.soul());
         Vec3 altar = root(s,partial).add(f.scale(profile.forward()))
-                .add(0,profile.height(),0);
+                .add(0,s.owner.getEyeHeight() + profile.height() - 1.62,0);
         float hover = AwakeningPresentationTimeline.smooth(
                 AwakeningPresentationTimeline.progress(tick,15,25))
                 * (1-AwakeningPresentationTimeline.progress(tick,100,120));
@@ -178,11 +178,14 @@ public final class FloatingBladeRenderer {
         if (s.data.soul() == 2 && tick >= 45 && tick < 91) {
             int count = dev.bladetetra.config.ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get() == 0 ? 2 : 4;
             for (int i=0;i<count;i++) {
+                if (tick < 46+i*5) continue;
                 double a = i*Math.PI*2/count;
                 float draw = AwakeningPresentationTimeline.smooth(
                         AwakeningPresentationTimeline.progress(tick,46+i*5,51+i*5));
-                Vec3 ghost = pos.add(Math.cos(a)*(1.5-draw*.25),-.3,Math.sin(a)*(1.5-draw*.25));
-                renderAt(s,pose,buffers,ghost,Math.min(tick,80)+i*7,partial,true);
+                Vec3 f = forward(s,partial), side = new Vec3(f.z,0,-f.x);
+                Vec3 ghost = pos.add(side.scale(Math.cos(a)*1.3)).add(0,-.2,0)
+                        .add(f.scale(.4+Math.sin(a)*.6));
+                renderAt(s,pose,buffers,ghost,Math.min(tick-i*6,80),partial,true);
             }
             // Pseudo reflection beneath the real sword, no framebuffer/shader dependency.
             pose.pushPose();
@@ -209,6 +212,8 @@ public final class FloatingBladeRenderer {
             float angle = AwakeningVisualProfile.get(s.data.soul()).angle();
             float spin = tick < 85 ? (float)Math.sin(tick*.045)*8 : 0;
             pose.mulPose(Axis.ZP.rotationDegrees(-25+(angle+25+spin)*flight));
+            if (ghost) pose.mulPose(Axis.ZP.rotationDegrees(-30F*(float)Math.sin(
+                    AwakeningPresentationTimeline.progress(tick,52,58)*Math.PI)));
             pose.scale(.0078125F,.0078125F,.0078125F);
             // Existing SlashBlade source coordinates, grip pivot rather than an icon pivot.
             pose.translate(-20,0,0);

@@ -2,7 +2,7 @@ package dev.bladetetra.client.awakening;
 
 /** Deterministic batched fragments; the physical snapshot reforms before return. */
 final class SenbonzakuraAwakeningVisual implements AwakeningVisualProfile {
-    public double forward(){return 1.7;} public double height(){return 2.1;}
+    public double forward(){return 2.2;} public double height(){return 2.1;}
     public float angle(){return 0;}
     public void draw(RitualEffectBatch f) {
         float breakUp=f.progress(45,65),gather=f.progress(85,100);

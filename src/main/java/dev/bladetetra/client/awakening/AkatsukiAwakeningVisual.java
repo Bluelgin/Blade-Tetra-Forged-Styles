@@ -2,7 +2,7 @@ package dev.bladetetra.client.awakening;
 
 /** Blood moon hangs behind directional, depth-separated causal fractures. */
 final class AkatsukiAwakeningVisual implements AwakeningVisualProfile {
-    public double forward(){return 1.65;} public double height(){return 2.35;}
+    public double forward(){return 2.3;} public double height(){return 2.35;}
     public float angle(){return 90;}
     public void draw(RitualEffectBatch f) {
         float charge=f.window(20,45,85,100);

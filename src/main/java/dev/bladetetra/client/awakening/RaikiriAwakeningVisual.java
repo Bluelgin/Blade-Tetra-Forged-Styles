@@ -3,7 +3,7 @@ package dev.bladetetra.client.awakening;
 import net.minecraft.world.phys.Vec3;
 /** Stateless seeded lightning ribbons; never creates a LightningBolt entity. */
 final class RaikiriAwakeningVisual implements AwakeningVisualProfile {
-    public double forward(){return 1.35;} public double height(){return 2.85;}
+    public double forward(){return 2.5;} public double height(){return 1.95;}
     public float angle(){return -90;}
     public void draw(RitualEffectBatch f) {
         float charge=f.window(10,40,82,91);
