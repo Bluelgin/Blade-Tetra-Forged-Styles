@@ -9,6 +9,7 @@ import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcent
 import mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
+import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -64,16 +65,25 @@ public final class SakuraEndlessFlow {
         return session != null && session.blade == blade ? session.startRank : 0;
     }
 
-    /** Trigger only after B7's own legal input window opens. No mutation
-     * here: progressCombo can be queried virtually by other mods. */
+    /**
+     * Native Rengeki's root can restart B1 even when B7 would return NONE.
+     * Cancel that implicit restart unless Rank burn is active. Require B7's
+     * real late hit timeline to finish before offering the accelerated loop.
+     * No Rank is debited inside NextComboEvent: other callers may query it
+     * virtually, and charging takes place in the server tick only.
+     */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onNextCombo(SlashBladeEvent.NextComboEvent event) {
         if (!(event.getUser() instanceof ServerPlayer player)
                 || !B7.equals(event.getSlashBladeState().getComboSeq())
-                || !ComboStateRegistry.NONE.getId().equals(event.getNextCombo())
-                || !eligible(event.getBlade())
-                || !isBurning(player, event.getBlade())) return;
-        event.setNextCombo(B1);
+                || !eligible(event.getBlade())) return;
+        if (isBurning(player, event.getBlade())
+                && ComboState.getElapsed(player) >= 14L) {
+            event.setNextCombo(B1);
+        } else {
+            // No free loop through the default root's priority fallback.
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
