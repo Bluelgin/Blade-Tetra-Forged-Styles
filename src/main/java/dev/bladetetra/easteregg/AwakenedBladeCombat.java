@@ -181,12 +181,13 @@ public final class AwakenedBladeCombat {
                 }
             }
             case RAIKIRI -> {
-                // Only actual native Thunder Rapid damage confirms a dash.
-                // Unrelated sword arts, normal combo strikes or projectiles
-                // must never authorize a free next Shift+W step.
-                boolean thunderHit = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
-                        .map(value -> RaikiriRapidCombo.isThunderCombo(value.getComboSeq()))
-                        .orElse(false);
+                // Only slash effects created by our upgraded native rapid
+                // combo authorize another free Thunder Step. This remains
+                // valid even when the attack entity hits AFTER the ComboState
+                // changed, and rejects unrelated SA and ordinary melee hits.
+                Entity direct = event.getSource().getDirectEntity();
+                boolean thunderHit = direct instanceof EntitySlashEffect slash
+                        && slash.getPersistentData().getBoolean(RaikiriRapidCombo.THUNDER_HIT);
                 boolean flashFollowup = thunderHit && state.stepChain > 0
                         && !state.stepConfirmed
                         && now >= state.lastStep && now - state.lastStep <= 22;
