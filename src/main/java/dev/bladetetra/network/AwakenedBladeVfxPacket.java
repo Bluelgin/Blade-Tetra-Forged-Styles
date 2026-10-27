@@ -11,7 +11,32 @@ import java.util.function.Supplier;
 /** Server-confirmed awakened-blade visual cue. Never carries damage or client authority. */
 public record AwakenedBladeVfxPacket(int soul, int type,
         double x, double y, double z, double endX, double endY, double endZ,
-        int variant) {
+        int variant, SakuraCue sakura) {
+    public record SakuraCue(java.util.UUID owner, String bladeId,
+            net.minecraft.resources.ResourceLocation dimension, int stage,
+            long sequence, long actionAt, int targetId) {
+        public boolean valid() {
+            return owner != null && bladeId != null && !bladeId.isBlank() && bladeId.length() <= 128
+                    && dimension != null && stage >= 1 && stage <= 6 && sequence > 0
+                    && actionAt >= 0 && targetId >= -1;
+        }
+    }
+    public AwakenedBladeVfxPacket(int soul, int type, double x, double y, double z,
+            double endX, double endY, double endZ, int variant) {
+        this(soul, type, x, y, z, endX, endY, endZ, variant, null);
+    }
+    public static final int SAKURA_SWING = 5;
+    public static final int SAKURA_HIT = 6;
+    public boolean valid() {
+        return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_HIT
+                && finitePosition(x, y, z) && finitePosition(endX, endY, endZ)
+                && (type < SAKURA_SWING ? sakura == null
+                    : soul == 3 && sakura != null && sakura.valid());
+    }
+    private static boolean finitePosition(double x, double y, double z) {
+        return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z)
+                && Math.abs(x) <= 30_000_000 && Math.abs(z) <= 30_000_000 && Math.abs(y) <= 4096;
+    }
     public static final int AWAKEN = 0;
     public static final int MARK = 1;
     public static final int RELEASE = 2;
@@ -28,18 +53,30 @@ public record AwakenedBladeVfxPacket(int soul, int type,
         buf.writeDouble(value.endY);
         buf.writeDouble(value.endZ);
         buf.writeVarInt(value.variant);
+        buf.writeBoolean(value.sakura != null);
+        if (value.sakura != null) {
+            var cue = value.sakura;
+            buf.writeUUID(cue.owner()); buf.writeUtf(cue.bladeId(), 128);
+            buf.writeResourceLocation(cue.dimension()); buf.writeByte(cue.stage());
+            buf.writeLong(cue.sequence()); buf.writeLong(cue.actionAt()); buf.writeVarInt(cue.targetId());
+        }
     }
 
     public static AwakenedBladeVfxPacket decode(FriendlyByteBuf buf) {
-        return new AwakenedBladeVfxPacket(buf.readUnsignedByte(), buf.readUnsignedByte(),
-                buf.readDouble(), buf.readDouble(), buf.readDouble(),
-                buf.readDouble(), buf.readDouble(), buf.readDouble(),
-                buf.readVarInt());
+        int soul = buf.readUnsignedByte(), type = buf.readUnsignedByte();
+        double x = buf.readDouble(), y = buf.readDouble(), z = buf.readDouble();
+        double ex = buf.readDouble(), ey = buf.readDouble(), ez = buf.readDouble();
+        int variant = buf.readVarInt();
+        SakuraCue cue = buf.readBoolean() ? new SakuraCue(buf.readUUID(), buf.readUtf(128),
+                buf.readResourceLocation(), buf.readUnsignedByte(), buf.readLong(),
+                buf.readLong(), buf.readVarInt()) : null;
+        return new AwakenedBladeVfxPacket(soul, type, x, y, z, ex, ey, ez, variant, cue);
     }
 
     public static void handle(AwakenedBladeVfxPacket value,
             Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context ctx = supplier.get();
+        if (!value.valid()) { ctx.setPacketHandled(true); return; }
         ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> AwakenedBladeVfxClient.spawn(value)));
         ctx.setPacketHandled(true);

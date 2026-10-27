@@ -160,16 +160,8 @@ public final class AwakenedBladeCombat {
                 visual(level, soul, AwakenedBladeVfxPacket.MARK, center, center,
                         Math.round(player.getYRot()));
             }
-            case SENBONZAKURA -> {
-                // Native sword hits authorize only a cosmetic swarm volley.
-                // No independent attack entity or secondary damage is spawned.
-                if (SakuraEndlessFlow.isBurning(player, blade)
-                        && SakuraEndlessFlow.shouldShowVolley(player, blade, now)) {
-                    visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            player.position().add(0, 1.0D, 0), center,
-                            10 + SakuraEndlessFlow.initialRank(player, blade));
-                }
-            }
+            case SENBONZAKURA -> SakuraCombatVisuals.confirm(player, blade,
+                    event.getSource().getDirectEntity(), target);
             case RAIKIRI -> {
                 // Only slash effects created by our upgraded native rapid
                 // combo authorize another free Thunder Step. This remains

@@ -1,3 +1,5 @@
+> 本文保留 PR #42 的历史设计。当前千本樱2.1已改为B1–B6与实时碎刃池，见 [SAKURA_21.md](SAKURA_21.md)。
+
 # Senbonzakura 2.0 — dispersed endless Rengeki
 
 Stacked on **Draft PR #41**; no changes to other awakened swords or to normal Rengeki.

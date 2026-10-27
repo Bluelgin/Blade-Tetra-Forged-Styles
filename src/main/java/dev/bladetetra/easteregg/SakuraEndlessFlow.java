@@ -33,7 +33,8 @@ import java.util.UUID;
 public final class SakuraEndlessFlow {
     private static final String DISPERSED = "blade_tetra_awakened_v2_sakura_dispersed";
     private static final ResourceLocation B1 = ComboStateRegistry.COMBO_B1.getId();
-    private static final ResourceLocation B7 = ComboStateRegistry.COMBO_B7.getId();
+    private static final ResourceLocation B5 = ComboStateRegistry.COMBO_B5.getId();
+    private static final ResourceLocation B6 = ComboStateRegistry.COMBO_B6.getId();
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static final int CHARGE_INTERVAL = 10;
 
@@ -48,16 +49,9 @@ public final class SakuraEndlessFlow {
     public static boolean isBurning(ServerPlayer player, ItemStack blade) {
         Session session = SESSIONS.get(player.getUUID());
         return session != null && session.blade == blade
-                && session.active && eligible(blade);
-    }
-
-    /** At most one visual volley per three server ticks per wielded blade. */
-    public static boolean shouldShowVolley(ServerPlayer player, ItemStack blade, long now) {
-        Session session = SESSIONS.get(player.getUUID());
-        if (session == null || session.blade != blade || !session.active
-                || now - session.lastVolley < 3L) return false;
-        session.lastVolley = now;
-        return true;
+                && session.active && eligible(blade)
+                && player.getCapability(CapabilityConcentrationRank.RANK_POINT)
+                    .map(rank -> rank.getRankPoint(player.level().getGameTime()) > 0).orElse(false);
     }
 
     public static int initialRank(ServerPlayer player, ItemStack blade) {
@@ -65,26 +59,30 @@ public final class SakuraEndlessFlow {
         return session != null && session.blade == blade ? session.startRank : 0;
     }
 
-    /**
-     * Native Rengeki's root can restart B1 even when B7 would return NONE.
-     * Cancel that implicit restart unless Rank burn is active. Require B7's
-     * real late hit timeline to finish before offering the accelerated loop.
-     * No Rank is debited inside NextComboEvent: other callers may query it
-     * virtually, and charging takes place in the server tick only.
-     */
+    /** Pure routing: virtual NextComboEvent queries never start sessions or debit Rank. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onNextCombo(SlashBladeEvent.NextComboEvent event) {
-        if (!(event.getUser() instanceof ServerPlayer player)
-                || !B7.equals(event.getSlashBladeState().getComboSeq())
-                || !eligible(event.getBlade())) return;
-        if (isBurning(player, event.getBlade())
-                && ComboState.getElapsed(player) >= 14L) {
-            event.setNextCombo(B1);
-        } else {
-            // NextComboEvent is not @Cancelable in upstream SlashBlade.
-            // Returning the current combo triggers progressCombo's native
-            // self-next guard BEFORE root-priority fallback can restart B1.
-            event.setNextCombo(B7);
+        if (!eligible(event.getBlade())) return;
+        ResourceLocation current = event.getSlashBladeState().getComboSeq();
+        if (B5.equals(current) && B6.equals(event.getNextCombo())) {
+            event.setNextCombo(SakuraSixthCombo.SIXTH.getId());
+        } else if (SakuraSixthCombo.SIXTH.getId().equals(current)) {
+            // Preserve the upstream early-input self guard. A legitimate native
+            // input call after all seven B6 hit ticks can restart B1.
+            if (!SakuraFlowRules.completedB6(ComboState.getElapsed(event.getUser()))
+                    || !(event.getUser() instanceof ServerPlayer player)
+                    || !isBurning(player, event.getBlade())
+                    || !event.getUser().getCapability(mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState.INPUT_STATE)
+                        .map(input -> input.getCommands(event.getUser()).contains(mods.flammpfeil.slashblade.util.InputCommand.R_CLICK)
+                            || input.getCommands(event.getUser()).contains(mods.flammpfeil.slashblade.util.InputCommand.L_CLICK))
+                        .orElse(false))
+                event.setNextCombo(current);
+            else event.setNextCombo(B1);
+        } else if (B6.equals(current)
+                && ComboStateRegistry.COMBO_B7.getId().equals(event.getNextCombo())) {
+            // A weapon switched to dispersed in the middle of a native B6
+            // finishes that node naturally; it must never enter B7 to exit.
+            event.setNextCombo(current);
         }
     }
 
@@ -94,13 +92,13 @@ public final class SakuraEndlessFlow {
             return;
         ItemStack blade = player.getMainHandItem();
         UUID id = player.getUUID();
-        if (!eligible(blade)) {
+        if (!player.isAlive() || !eligible(blade)) {
             SESSIONS.remove(id);
             return;
         }
-        Session session = SESSIONS.computeIfAbsent(id, ignored -> new Session(blade));
-        if (session.blade != blade) {
-            session = new Session(blade);
+        Session session = SESSIONS.computeIfAbsent(id, ignored -> new Session(blade, player.level().dimension()));
+        if (session.blade != blade || !session.dimension.equals(player.level().dimension())) {
+            session = new Session(blade, player.level().dimension());
             SESSIONS.put(id, session);
         }
         Session activeSession = session;
@@ -122,6 +120,7 @@ public final class SakuraEndlessFlow {
             points = Math.max(0, rank.getRankPoint(now));
         }
         session.ceiling = Math.min(session.ceiling, points);
+        if (points == 0) session.active = false;
 
         ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
                 .map(state -> state.resolvCurrentComboState(player))
@@ -167,15 +166,15 @@ public final class SakuraEndlessFlow {
 
     private static final class Session {
         final ItemStack blade;
+        final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         long ceiling = -1L;
         long nextCharge;
-        long lastVolley = -100L;
         int startRank;
         boolean seenAttack;
         boolean active;
 
-        Session(ItemStack blade) {
-            this.blade = blade;
+        Session(ItemStack blade, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension) {
+            this.blade = blade; this.dimension = dimension;
         }
     }
 

@@ -1,59 +1,78 @@
 package dev.bladetetra.client;
 
 import dev.bladetetra.BladeTetra;
-import dev.bladetetra.combat.BladeStyle;
-import dev.bladetetra.combat.StyleResolver;
-import dev.bladetetra.config.GameplayConfig;
-import dev.bladetetra.easteregg.SoulLegacyState;
-import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
+import dev.bladetetra.client.awakening.AwakeningVisualController;
+import dev.bladetetra.client.awakening.AwakeningVisibility;
+import dev.bladetetra.client.awakening.FloatingBladeRenderer;
+import dev.bladetetra.easteregg.SakuraEndlessFlow;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderHandEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/**
- * The original Tetra sword and sheath are never destroyed or changed in NBT.
- * Only their combat render groups are replaced by a small neutral hilt mesh.
- * Native item icons, durability overlays and all other render targets survive.
- */
-@Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
-        bus = Mod.EventBusSubscriber.Bus.FORGE)
+/** A combat-only view of the real held weapon. Never substitutes a stock hilt. */
+@Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT)
 public final class SenbonzakuraDispersedRender {
-    private static final String STANCE = "blade_tetra_awakened_v2_sakura_dispersed";
-    private static final ResourceLocation HILT = new ResourceLocation(
-            BladeTetra.MOD_ID, "model/sakura_hilt.obj");
+    private static Player renderingPlayer;
+    private static boolean handPass;
+    private static int retainedPartDepth;
 
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void playerPre(RenderPlayerEvent.Pre e) { renderingPlayer = e.getEntity(); }
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void playerPost(RenderPlayerEvent.Post e) { renderingPlayer = null; }
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void handPre(RenderHandEvent e) { handPass = true; }
+    // RenderHandEvent precedes vanilla's TEISR draw; it is not a paired render scope.
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void guiPre(net.minecraftforge.client.event.RenderGuiEvent.Pre e) { handPass = false; }
     @SubscribeEvent
-    public static void onRenderOverride(RenderOverrideEvent event) {
-        if (!GameplayConfig.ENABLE_AWAKENED_V2.get()
-                || dev.bladetetra.client.awakening.FloatingBladeRenderer.isRendering()) return;
-        // A ritual owns only the detached blade. Preserve the native mounted sheath
-        // even when the operator previews an already-dispersed Sakura weapon.
-        if (dev.bladetetra.client.awakening.AwakeningVisibility.isSheathTarget(event.getOriginalTarget())
-                && dev.bladetetra.client.awakening.AwakeningVisualController.keepMountedSheath(event.getStack()))
-            return;
-        ItemStack blade = event.getStack();
-        CompoundTag tag = blade.getTag();
-        if (tag == null || !tag.getBoolean(STANCE)
-                || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
-                || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.SENBONZAKURA
-                || !SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.SENBONZAKURA))
-            return;
-        String target = event.getTarget();
-        if ("blade".equals(target) || "blade_damaged".equals(target)) {
-            // Render a physical handle instead of hiding the entire sword;
-            // the native model/texture return automatically in condensed form.
-            event.setModel(BladeModelManager.getInstance().getModel(HILT));
-            event.setTarget("blade");
-        } else if ("blade_luminous".equals(target)
-                || "blade_damaged_luminous".equals(target)
-                || "sheath".equals(target) || "sheath_luminous".equals(target)) {
-            event.setCanceled(true);
-        }
+    public static void levelStage(RenderLevelStageEvent e) {
+        renderingPlayer = null;
+        handPass = false;
     }
 
+    static boolean hiltOnly(ItemStack stack, String target) {
+        if (!AwakeningVisibility.isBladeTarget(target) || FloatingBladeRenderer.isRendering()
+                || !SakuraEndlessFlow.eligible(stack)) return false;
+        Player owner = renderingPlayer;
+        if (owner == null && handPass) owner = Minecraft.getInstance().player;
+        return shouldClip(true, owner != null && owner.getMainHandItem() == stack,
+                owner != null && AwakeningVisualController.presenting(owner), false, target);
+    }
+
+    public static boolean shouldClip(boolean dispersed, boolean realHeldObject,
+            boolean ritual, boolean floating, String target) {
+        return dispersed && realHeldObject && !ritual && !floating
+                && AwakeningVisibility.isBladeTarget(target);
+    }
+
+    // Legacy assembly already selects/calibrates real TSUBA/TSUKA parts. Do not
+    // crop those nested views again using the complete sword's UV assumptions.
+    static void retainedPart(Runnable render) {
+        retainedPartDepth++;
+        try { render.run(); } finally { retainedPartDepth--; }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderOverride(RenderOverrideEvent e) {
+        if (retainedPartDepth > 0 || !hiltOnly(e.getStack(), e.getOriginalTarget())) return;
+        var location = e.getStack().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                .map(state -> state.getModel().orElse(null)).orElse(null);
+        // UV ownership is guaranteed only for our modular atlas. Unknown third-party
+        // OBJ layouts keep their full model; calibrated named assemblies bypass here.
+        if (location == null || !BladeTetra.MOD_ID.equals(location.getNamespace())
+                || !location.getPath().startsWith("model/modular/")) return;
+        var view = DispersedBladeGeometry.hilt(e.getModel(), e.getTarget());
+        if (view == null) e.setCanceled(true); else e.setModel(view);
+        // Never uncancel an earlier handler and never touch native sheath passes.
+    }
     private SenbonzakuraDispersedRender() {}
 }

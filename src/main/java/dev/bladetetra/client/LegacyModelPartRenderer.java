@@ -116,6 +116,8 @@ public final class LegacyModelPartRenderer {
     private static void renderPart(RenderOverrideEvent event,
             LegacyImprintKind kind, Part part, String target,
             ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
+        boolean dispersed = SenbonzakuraDispersedRender.hiltOnly(event.getStack(), target);
+        if (dispersed && part == Part.BLADE) return;
         NamedLegacyParts installedParts = NamedLegacyParts.visualFromStack(event.getStack());
         if (part == Part.TSUKA && installedParts.tsuba() != null) return;
         if (part == Part.TSUBA && kind != null) part = Part.HILT;
@@ -144,13 +146,16 @@ public final class LegacyModelPartRenderer {
         }
         try {
             BladeRenderState.resetCol();
-            BladeRenderState.renderOverrided(event.getStack(), view, target, texture,
-                    poses, event.getBuffer(), event.getPackedLightIn(),
-                    event.getGetRenderType(), event.isEnableEffect());
-            if (!inherited && ordinaryEmissive != null) {
-                BladeRenderState.renderOverridedLuminous(event.getStack(), view, target,
-                        ordinaryEmissive, poses, event.getBuffer(), event.getPackedLightIn());
-            }
+            Runnable draw = () -> {
+                BladeRenderState.renderOverrided(event.getStack(), view, target, texture,
+                        poses, event.getBuffer(), event.getPackedLightIn(),
+                        event.getGetRenderType(), event.isEnableEffect());
+                if (!inherited && ordinaryEmissive != null) {
+                    BladeRenderState.renderOverridedLuminous(event.getStack(), view, target,
+                            ordinaryEmissive, poses, event.getBuffer(), event.getPackedLightIn());
+                }
+            };
+            if (dispersed) SenbonzakuraDispersedRender.retainedPart(draw); else draw.run();
         } finally {
             poses.popPose();
             BladeRenderState.resetCol();
