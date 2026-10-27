@@ -28,7 +28,7 @@
 * `SakuraShardFormation`：稳定索引的背后半月坐标，眼高适配姿态；纯数学最短角插值可测试±180°边界。
 * `SakuraShardPool`：固定24/48/72个Shard，最多6组出击，IDLE→LAUNCH→SLASH→RETURN→IDLE。出击占用同一索引，因此阵列实际缺位。忙碌索引不会复制/抢占，归阵才可复用。
 * `SakuraShardTrajectory`：原创三维贝塞尔切入、倾斜椭圆回旋、切线引导归阵。B1–B6决定左右交叉、倾斜与半径节奏，不改变攻击逻辑。
-* `SakuraCombatVisualController`：绑定玩家UUID、已有Tetra id与热键槽；协调原生动作预测、服务端确认、目标修正、暂停/换世界/卸载/换刀清理。不负责绘制细节。
+* `SakuraCombatVisualController`：绑定玩家UUID、已有Tetra id与本地热键槽；远端以玩家UUID和MAINHAND装备ID为准，槽位由服务端校验，不比较未同步的远端Inventory.selected；协调原生动作预测、服务端确认、目标修正、暂停/换世界/卸载/换刀清理。不负责绘制细节。
 * `SakuraShardRenderer`：追加到现有 `AwakenedBladeVfxClient` 的樱色图集批次，不创建第二渲染引擎。24格内标准/高画质绘制有尖端和厚度的六面薄刃；远处/低画质使用沿轨迹朝向的图集刀片。短淡粉光轨最多保留6个tick样本。金属色通过分面明暗和原图集白色高光采样实现，不引入Shader或AI贴图。
 
 所有出击从当前槽位出发，回到同一槽位；返回终点跟随移动中的玩家。目标最多每tick修正0.55格；死亡/卸载/离开12格范围则提前收束归阵。玩家瞬移超过8格时安全取消，避免画出横穿世界的轨迹。未命中也有前方短程回旋；只有真实伤害确认才增加3tick细小命中高光。

@@ -64,7 +64,7 @@ public final class SakuraCombatVisualController {
     private static View view(Player p) {
         View view=VIEWS.get(p.getUUID());
         String id=bladeId(p);
-        if(view!=null&&(!view.bladeId.equals(id)||view.slot!=p.getInventory().selected
+        if(view!=null&&(!view.bladeId.equals(id)||(p==Minecraft.getInstance().player&&view.slot!=p.getInventory().selected)
                 ||view.pool.shards.length!=count())) {VIEWS.remove(p.getUUID());view=null;}
         if(view==null&&VIEWS.size()<MAX_OWNERS) {
             view=new View(p,id,world.getGameTime()); VIEWS.put(p.getUUID(),view);
@@ -82,8 +82,8 @@ public final class SakuraCombatVisualController {
     private static boolean apply(AwakenedBladeVfxPacket packet) {
         var cue=packet.sakura();
         Player owner=world.getPlayerByUUID(cue.owner());
-        if(owner==null||!eligible(owner)||!bladeId(owner).equals(cue.bladeId())
-                || owner.getInventory().selected != cue.slot()) return false;
+        if(owner==null||!eligible(owner)||!cue.matchesHeld(owner.getUUID(),bladeId(owner),
+                owner.getInventory().selected,owner==Minecraft.getInstance().player)) return false;
         View view=view(owner);
         if(view==null) return true; // outside this client's fixed owner budget
         Vec3 target=new Vec3(packet.endX(),packet.endY(),packet.endZ());

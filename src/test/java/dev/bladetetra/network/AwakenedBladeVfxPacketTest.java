@@ -45,4 +45,14 @@ class AwakenedBladeVfxPacketTest {
                 new net.minecraft.resources.ResourceLocation("minecraft","overworld"),1,0,-1,-2);
         assertFalse(invalid.valid());
     }
+    @Test void observersUseEquipmentIdentityRatherThanAnUnsynchronizedHotbarIndex() {
+        var owner=java.util.UUID.randomUUID();
+        var cue=new AwakenedBladeVfxPacket.SakuraCue(owner,"actual-tetra-id",6,
+                new net.minecraft.resources.ResourceLocation("minecraft","overworld"),3,42,100,-1);
+        assertTrue(cue.matchesHeld(owner,"actual-tetra-id",0,false));
+        assertFalse(cue.matchesHeld(owner,"actual-tetra-id",0,true));
+        assertTrue(cue.matchesHeld(owner,"actual-tetra-id",6,true));
+        assertFalse(cue.matchesHeld(java.util.UUID.randomUUID(),"actual-tetra-id",6,false));
+        assertFalse(cue.matchesHeld(owner,"different-tetra-id",6,false));
+    }
 }

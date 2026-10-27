@@ -15,6 +15,13 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     public record SakuraCue(java.util.UUID owner, String bladeId, int slot,
             net.minecraft.resources.ResourceLocation dimension, int stage,
             long sequence, long actionAt, int targetId) {
+        public boolean matchesHeld(java.util.UUID player, String currentBladeId,
+                int observedSlot, boolean localOwner) {
+            // Observers receive MAINHAND equipment, not another player's selected
+            // hotbar index. Only the local owner can compare a real selected slot.
+            return valid() && owner.equals(player) && bladeId.equals(currentBladeId)
+                    && (!localOwner || slot == observedSlot);
+        }
         public boolean valid() {
             return owner != null && bladeId != null && !bladeId.isBlank() && bladeId.length() <= 128
                     && slot >= 0 && slot < 9 && dimension != null && stage >= 1 && stage <= 6 && sequence > 0
