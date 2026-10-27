@@ -25,7 +25,7 @@ public final class SakuraShardPool {
         public long sequence;
         public final long actionAt;
         public final double startedAt;
-        public Vec3 center, goal;
+        public Vec3 center, goal, hitPosition;
         public final Vec3 forward;
         public int targetId;
         public boolean predicted, canceled, confirmed;
@@ -89,7 +89,8 @@ public final class SakuraShardPool {
     }
     public boolean confirm(long sequence, Vec3 target, int targetId, double time) {
         for(Group group:groups) if(group!=null&&group.sequence==sequence&&!group.confirmed) {
-            group.confirmed=true; group.goal=target; group.targetId=targetId; group.confirmedAt=time;
+            group.confirmed=true; group.goal=target; group.hitPosition=target;
+            group.targetId=targetId; group.confirmedAt=time;
             return true;
         }
         return false; // a late hit does not summon a second unrelated volley
@@ -144,5 +145,4 @@ public final class SakuraShardPool {
         int result=0; for(Shard shard:shards) if(!shard.flying()) result++; return result;
     }
     public double time() { return now; }
-    private SakuraShardPool() { throw new AssertionError(); }
 }

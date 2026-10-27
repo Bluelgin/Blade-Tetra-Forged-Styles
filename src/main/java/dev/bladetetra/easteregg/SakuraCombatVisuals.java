@@ -75,6 +75,8 @@ public final class SakuraCombatVisuals {
         if (!SakuraEndlessFlow.eligible(blade) || !(direct instanceof EntitySlashEffect slash)) return;
         Attack attack = SLASHES.get(slash);
         if (attack == null || attack.player != player || attack.blade != blade || attack.confirmed
+                || attack.slot != player.getInventory().selected
+                || !player.level().dimension().equals(attack.dimension)
                 || player.level().getGameTime() - attack.at > 20) return;
         attack.confirmed = true;
         send(attack, AwakenedBladeVfxPacket.SAKURA_HIT, target.getBoundingBox().getCenter(), target.getId());

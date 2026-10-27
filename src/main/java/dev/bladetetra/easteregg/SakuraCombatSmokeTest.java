@@ -94,6 +94,32 @@ public final class SakuraCombatSmokeTest {
                     check(!state.getComboSeq().equals(ComboStateRegistry.COMBO_B7.getId()),"B7 excluded");
                 }
             }
+            for (int grade=4;grade<=7;grade++) {
+                // Re-enter dispersed form to test each real native entry grade.
+                tag.putBoolean("blade_tetra_awakened_v2_sakura_dispersed",false);
+                SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+                tag.putBoolean("blade_tetra_awakened_v2_sakura_dispersed",true);
+                long at=level.getGameTime()+20;
+                event.getServer().getWorldData().overworldData().setGameTime(at);
+                double pointLevel=switch(grade) {case 4->4.2;case 5->5.1;case 6->5.35;default->5.8;};
+                rank.setRawRankPoint((long)(pointLevel*rank.getUnitCapacity())); rank.setLastUpdte(at);
+                state.setComboSeq(ComboStateRegistry.COMBO_B1.getId()); state.setLastActionTime(at);
+                SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+                check(SakuraEndlessFlow.initialRank(actor,blade)==grade,"native entry grade "+grade);
+                event.getServer().getWorldData().overworldData().setGameTime(at+10);
+                state.setComboSeq(ComboStateRegistry.COMBO_B2.getId()); state.setLastActionTime(at+9);
+                long before=rank.getRankPoint(at+10);
+                int cost=SakuraFlowRules.halfSecondCost(grade,
+                        dev.bladetetra.config.GameplayConfig.AWAKENED_SAKURA_BURN_POINTS_PER_SECOND.get());
+                SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+                long after=rank.getRankPoint(at+10);
+                check(after==before-cost,"exactly one native Rank debit, grade "+grade);
+                SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+                check(after==rank.getRankPoint(at+10),"same tick never double charges");
+                rank.addRankPoint(actor,100);
+                SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+                check(rank.getRankPoint(at+10)<=after,"dispersed cannot replenish Rank");
+            }
             rank.setRawRankPoint(0); rank.setLastUpdte(level.getGameTime());
             state.setComboSeq(SakuraSixthCombo.SIXTH.getId()); state.setLastActionTime(level.getGameTime()-7);
             SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
@@ -103,7 +129,7 @@ public final class SakuraCombatSmokeTest {
             tag.putBoolean("blade_tetra_awakened_v2_sakura_dispersed",false);
             state.setComboSeq(ComboStateRegistry.COMBO_B6.getId()); state.setLastActionTime(level.getGameTime()-4);
             check(state.progressCombo(actor,true).equals(ComboStateRegistry.COMBO_B7.getId()),"ordinary native B6/B7 unchanged");
-            LogUtils.getLogger().info("SAKURA_COMBAT_SMOKE_PASS: three B1-B6 cycles, seven native B6 hits, original damage, early input guard, virtual query costs, input release, Rank exhaustion, stance retained, ordinary B7 unchanged");
+            LogUtils.getLogger().info("SAKURA_COMBAT_SMOKE_PASS: three B1-B6 cycles, seven native B6 hits, original damage, early input guard, virtual query costs, A/S/SS/SSS exact debit and no credit, input release, Rank exhaustion, stance retained, ordinary B7 unchanged");
         } catch(Throwable failure) {
             LogUtils.getLogger().error("SAKURA_COMBAT_SMOKE_FAIL",failure);
             throw new IllegalStateException("Sakura combat smoke failed",failure);

@@ -58,10 +58,10 @@ public final class SakuraShardRenderer {
             if(age<0||age>=3||budget<2) continue;
             float a=(float)((1-age/3)*.48)*alpha;
             Vec3 x=new Vec3(.22,.14,0), y=new Vec3(-.22,.14,0), w=new Vec3(0,.012,.012);
-            solid(buffer,matrix,group.center.subtract(x).add(w),group.center.add(x).add(w),
-                    group.center.add(x).subtract(w),group.center.subtract(x).subtract(w),a,0xFFF6FB);
-            solid(buffer,matrix,group.center.subtract(y).add(w),group.center.add(y).add(w),
-                    group.center.add(y).subtract(w),group.center.subtract(y).subtract(w),a,0xFFF6FB);
+            solid(buffer,matrix,group.hitPosition.subtract(x).add(w),group.hitPosition.add(x).add(w),
+                    group.hitPosition.add(x).subtract(w),group.hitPosition.subtract(x).subtract(w),a,0xFFF6FB);
+            solid(buffer,matrix,group.hitPosition.subtract(y).add(w),group.hitPosition.add(y).add(w),
+                    group.hitPosition.add(y).subtract(w),group.hitPosition.subtract(y).subtract(w),a,0xFFF6FB);
             budget-=2;
         }
         return budget;
