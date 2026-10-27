@@ -125,6 +125,7 @@ public final class SakuraCombatVisualController {
             java.util.Arrays.fill(view.targets,null);
             return true;
         }
+        if(cue.sequence()<=view.stanceSequence) return true; // pre-transition attacks cannot resurrect canceled groups
         Vec3 target=new Vec3(packet.endX(),packet.endY(),packet.endZ());
         if(target.distanceToSqr(owner.position())>144) return true;
         long now=world.getGameTime();

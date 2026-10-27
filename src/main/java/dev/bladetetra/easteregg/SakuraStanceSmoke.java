@@ -95,8 +95,25 @@ public final class SakuraStanceSmoke {
             state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());end(actor);
             check(SakuraStanceController.dispersed(blade),"unawakened sword untouched");
             tag.putBoolean(SenbonzakuraAwakening.TAG_UNLOCKED,true);
+            for(int lifecycle=0;lifecycle<3;lifecycle++) {
+                tag.putBoolean(SakuraStanceRules.DISPERSED,true);advance(level,20);
+                state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());
+                switch(lifecycle) {
+                    case 0 -> SakuraStanceController.dimension(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent(
+                            actor,net.minecraft.world.level.Level.OVERWORLD,net.minecraft.world.level.Level.NETHER));
+                    case 1 -> SakuraStanceController.logout(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(actor));
+                    default -> SakuraStanceController.death(new net.minecraftforge.event.entity.living.LivingDeathEvent(actor,level.damageSources().generic()));
+                }
+                end(actor);
+                check(SakuraStanceController.dispersed(blade),"lifecycle event cancels only pending transition "+lifecycle);
+            }
+            String oldModule=tag.getString(dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT);
+            tag.putString(dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT,dev.bladetetra.item.ModularSlashBladeItem.NODACHI_MODULE);
+            advance(level,20);state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());end(actor);
+            check(SakuraStanceController.dispersed(blade),"other combat style unchanged");
+            tag.putString(dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT,oldModule);
             check(SakuraStanceRules.action(ComboStateRegistry.AERIAL_CLEAVE_LOOP.getId())==0,"loop excluded");
-            LogUtils.getLogger().info("SAKURA_STANCE_SMOKE_PASS: actual native input/commit, air miss, cleave area damage and landing, upper .50, B6 tail at zero Rank, idempotence, virtual/canceled commit, swap, unawakened exclusion, Shift+SA removed");
+            LogUtils.getLogger().info("SAKURA_STANCE_SMOKE_PASS: actual native input/commit, air miss, cleave area damage and landing, upper .50, B6 tail at zero Rank, idempotence, virtual/canceled commit, swap, lifecycle cleanup, unawakened/other-style exclusion, Shift+SA removed");
         } finally {MinecraftForge.EVENT_BUS.unregister(probe);victim.discard();actor.setShiftKeyDown(false);}
     }
     private static void advance(ServerLevel level,long ticks) {advanceTo(level,level.getGameTime()+ticks);}

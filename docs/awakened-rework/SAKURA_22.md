@@ -54,7 +54,7 @@ SakuraStanceTransition是客户端时钟：下劈16tick（tick2开始tip→hilt�
 
 JUnit：动作ID白名单、幂等、取消/过时/覆盖验证、时间轴分段及反向连续性、真实Shard索引、下劈归阵、上挑召回空闲/正在攻击碎刃、过渡期后续攻击、协议往返/阶段类型校验，并保留#44所有测试。
 
-Forge：扩展既有-PsakuraCombatSmoke，在原生progressCombo/输入能力路径验证下劈空挥切换、实际范围伤害/下落/着地回调，上挑空挥/零Rank凝刃及0.50原生斩击，重复/其他招式、Shift+SA失效、虚拟/被取消提交、换刀和未觉醒排除。同时执行原#44三轮B1–B6、完整B6尾帧、A/S/SS/SSS燃烧测试及其余四项Forge回归。最终运行结果及评审JAR链接补入PR。
+Forge：扩展既有-PsakuraCombatSmoke，在原生progressCombo/输入能力路径验证下劈空挥切换、实际范围伤害/下落/着地回调，上挑空挥/零Rank凝刃及0.50原生斩击，重复/其他招式、Shift+SA失效、虚拟/被取消提交、换刀/生命周期事件清理、未觉醒与其他流派排除。同时执行原#44三轮B1–B6、完整B6尾帧、A/S/SS/SSS燃烧测试及其余四项Forge回归。最终运行结果及评审JAR链接补入PR。
 
 **本轮尚未完成真实客户端画面验收或录制新MP4。** 当前工作区缺少先前完整Gradle/Minecraft客户端缓存、javac启动器及Xvfb显示服务；Java17构建/专服验证交由CI，未用离线动画代替游戏录像。
 

@@ -61,6 +61,7 @@ public final class SenbonzakuraDispersedRender {
     static boolean hiltOnly(ItemStack stack, String target) { return bladeFraction(stack,target)<=.001F; }
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void capture(RenderOverrideEvent e) {
+        if(retainedPartDepth>0) return; // inherited hilt views are not full steel-blade endpoints
         Player p=owner(e.getStack());
         if(p!=null&&AwakeningVisibility.isBladeTarget(e.getOriginalTarget())
                 &&!FloatingBladeRenderer.isRendering()&&!AwakeningVisualController.presenting(p))
