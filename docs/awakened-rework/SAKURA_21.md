@@ -33,7 +33,7 @@
 
 ## 网络与预算
 
-复用 `AwakenedBladeVfxPacket` 和 `TRACKING_ENTITY_AND_SELF`，增加可选SakuraCue（玩家、Tetra id、维度、阶段、序号、服务端动作时间、目标ID）。协议19→20，客户端和服务端需一起更新；没有新的C2S入口。
+复用 `AwakenedBladeVfxPacket` 和 `TRACKING_ENTITY_AND_SELF`，增加可选SakuraCue（玩家、Tetra id、热键槽、维度、阶段、序号、服务端动作时间、目标ID）。协议19→20，客户端和服务端需一起更新；没有新的C2S入口。
 
 服务端 `SakuraCombatVisuals` 从真实 DoSlashEvent 为每次动作发送一次SWING；同一次原生动作的多段slash共享序号。原生slash与动作关联，实际伤害结果至多发送一次HIT。客户端按阶段/动作时间把及时的本地预测与权威事件合并，HIT只修正现有组，不另生成一批刀。重复、过期、错误归属/维度、非有限坐标和非法阶段均被拒绝。未同步装备的事件最多暂存32条/6tick。无碎刃逐tick同步、无服务器碎刃实体。
 

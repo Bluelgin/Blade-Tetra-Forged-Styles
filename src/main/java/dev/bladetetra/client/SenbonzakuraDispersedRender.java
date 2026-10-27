@@ -64,6 +64,12 @@ public final class SenbonzakuraDispersedRender {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderOverride(RenderOverrideEvent e) {
         if (retainedPartDepth > 0 || !hiltOnly(e.getStack(), e.getOriginalTarget())) return;
+        if (e.getOriginalTarget().endsWith("_luminous")
+                && dev.bladetetra.forging.NamedLegacyParts.visualFromStack(e.getStack()).present()) {
+            // The assembled parts already own their material/emissive nested passes.
+            // Do not overlay the unassembled base model's grip on a custom legacy hilt.
+            e.setCanceled(true); return;
+        }
         var location = e.getStack().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
                 .map(state -> state.getModel().orElse(null)).orElse(null);
         // UV ownership is guaranteed only for our modular atlas. Unknown third-party

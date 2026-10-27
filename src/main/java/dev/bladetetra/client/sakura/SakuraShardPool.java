@@ -108,7 +108,8 @@ public final class SakuraShardPool {
             if((group.canceled || age>=LAUNCH_TICKS+SLASH_TICKS) && shard.state!=State.RETURN) {
                 Vec3 start=group.canceled?shard.position:
                         orbit(group.center,group.forward,shard.index,group.stage,1);
-                Vec3 velocity=start.subtract(shard.history>0?shard.trail[0]:shard.previous);
+                Vec3 velocity=group.canceled ? start.subtract(shard.history>0?shard.trail[0]:shard.previous)
+                        : start.subtract(shard.previous);
                 beginReturn(shard,time,start,velocity);
             }
             if(shard.state==State.RETURN) {

@@ -12,12 +12,12 @@ import java.util.function.Supplier;
 public record AwakenedBladeVfxPacket(int soul, int type,
         double x, double y, double z, double endX, double endY, double endZ,
         int variant, SakuraCue sakura) {
-    public record SakuraCue(java.util.UUID owner, String bladeId,
+    public record SakuraCue(java.util.UUID owner, String bladeId, int slot,
             net.minecraft.resources.ResourceLocation dimension, int stage,
             long sequence, long actionAt, int targetId) {
         public boolean valid() {
             return owner != null && bladeId != null && !bladeId.isBlank() && bladeId.length() <= 128
-                    && dimension != null && stage >= 1 && stage <= 6 && sequence > 0
+                    && slot >= 0 && slot < 9 && dimension != null && stage >= 1 && stage <= 6 && sequence > 0
                     && actionAt >= 0 && targetId >= -1;
         }
     }
@@ -56,7 +56,7 @@ public record AwakenedBladeVfxPacket(int soul, int type,
         buf.writeBoolean(value.sakura != null);
         if (value.sakura != null) {
             var cue = value.sakura;
-            buf.writeUUID(cue.owner()); buf.writeUtf(cue.bladeId(), 128);
+            buf.writeUUID(cue.owner()); buf.writeUtf(cue.bladeId(), 128); buf.writeByte(cue.slot());
             buf.writeResourceLocation(cue.dimension()); buf.writeByte(cue.stage());
             buf.writeLong(cue.sequence()); buf.writeLong(cue.actionAt()); buf.writeVarInt(cue.targetId());
         }
@@ -67,7 +67,7 @@ public record AwakenedBladeVfxPacket(int soul, int type,
         double x = buf.readDouble(), y = buf.readDouble(), z = buf.readDouble();
         double ex = buf.readDouble(), ey = buf.readDouble(), ez = buf.readDouble();
         int variant = buf.readVarInt();
-        SakuraCue cue = buf.readBoolean() ? new SakuraCue(buf.readUUID(), buf.readUtf(128),
+        SakuraCue cue = buf.readBoolean() ? new SakuraCue(buf.readUUID(), buf.readUtf(128), buf.readUnsignedByte(),
                 buf.readResourceLocation(), buf.readUnsignedByte(), buf.readLong(),
                 buf.readLong(), buf.readVarInt()) : null;
         return new AwakenedBladeVfxPacket(soul, type, x, y, z, ex, ey, ez, variant, cue);

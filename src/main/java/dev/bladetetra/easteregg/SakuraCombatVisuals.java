@@ -84,7 +84,7 @@ public final class SakuraCombatVisuals {
         ServerPlayer player = attack.player;
         Vec3 origin = player.getEyePosition();
         var packet = new AwakenedBladeVfxPacket(3, type, origin.x, origin.y, origin.z,
-                end.x, end.y, end.z, 0, new SakuraCue(player.getUUID(), attack.bladeId,
+                end.x, end.y, end.z, 0, new SakuraCue(player.getUUID(), attack.bladeId, attack.slot,
                 player.level().dimension().location(), attack.stage, attack.sequence, attack.at, target));
         if (packet.valid()) ModNetwork.CHANNEL.send(
                 PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
@@ -93,7 +93,7 @@ public final class SakuraCombatVisuals {
     @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer player)) return;
         Attack attack = CURRENT.get(player.getUUID());
-        if (attack != null && (attack.blade != player.getMainHandItem()
+        if (attack != null && (attack.blade != player.getMainHandItem() || attack.slot != player.getInventory().selected
                 || !SakuraEndlessFlow.eligible(attack.blade) || !player.isAlive()
                 || !player.level().dimension().equals(attack.dimension)
                 || player.level().getGameTime() - attack.at > 40)) CURRENT.remove(player.getUUID());
@@ -109,12 +109,12 @@ public final class SakuraCombatVisuals {
         final ItemStack blade;
         final String bladeId;
         final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
-        final int stage;
+        final int stage, slot;
         final long sequence, at;
         boolean confirmed;
         Attack(ServerPlayer player, ItemStack blade, String id, int stage, long sequence, long at) {
             this.player = player; this.blade = blade; this.bladeId = id;
-            this.dimension = player.level().dimension();
+            this.dimension = player.level().dimension(); this.slot = player.getInventory().selected;
             this.stage = stage; this.sequence = sequence; this.at = at;
         }
     }

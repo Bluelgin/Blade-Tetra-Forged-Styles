@@ -55,7 +55,7 @@ class DispersedBladeGeometryTest {
         }
     }
     @Test void unfamiliarUvProviderSafelyKeepsItsEntireAppearance() {
-        String obj="v 0 0 0\nv 1 0 0\nv 1 1 0\nvt .8 .5\nvn 0 0 1\ng blade\nf 1/1/1 2/1/1 3/1/1\n";
+        String obj="v 0 0 0\nv 1 0 0\nv 1 1 0\nvt 0.8 0.5\nvn 0 0 1\ng blade\nf 1/1/1 2/1/1 3/1/1\n";
         var source=new WavefrontObject("unknown",new java.io.ByteArrayInputStream(obj.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         assertSame(source,DispersedBladeGeometry.hilt(source,"blade"));
     }

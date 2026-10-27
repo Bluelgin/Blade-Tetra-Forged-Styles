@@ -81,7 +81,8 @@ public final class SakuraCombatVisualController {
     private static boolean apply(AwakenedBladeVfxPacket packet) {
         var cue=packet.sakura();
         Player owner=world.getPlayerByUUID(cue.owner());
-        if(owner==null||!eligible(owner)||!bladeId(owner).equals(cue.bladeId())) return false;
+        if(owner==null||!eligible(owner)||!bladeId(owner).equals(cue.bladeId())
+                || owner.getInventory().selected != cue.slot()) return false;
         View view=view(owner);
         if(view==null) return true; // outside this client's fixed owner budget
         Vec3 target=new Vec3(packet.endX(),packet.endY(),packet.endZ());
