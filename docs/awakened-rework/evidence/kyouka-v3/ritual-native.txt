@@ -1,0 +1,5 @@
+[27Oct2026 17:02:46.827] [Render thread/INFO] [dev.bladetetra.client.reflection.MirrorPrototypeScene/]: MIRROR_RITUAL_REVIEW_START tick=60 quality=2
+[27Oct2026 17:02:46.981] [Render thread/INFO] [dev.bladetetra.client.awakening.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[27Oct2026 17:02:46.990] [Render thread/INFO] [dev.bladetetra.client.awakening.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[27Oct2026 17:02:55.683] [Render thread/INFO] [dev.bladetetra.client.reflection.MirrorPrototypeScene/]: MIRROR_REVIEW_LIFECYCLE tick=190 captures=23, targets=0, ready=false, stateAudits=114
+[27Oct2026 17:02:56.044] [Render thread/INFO] [dev.bladetetra.client.reflection.MirrorPrototypeScene/]: MIRROR_RITUAL_REVIEW finished (visual review required)

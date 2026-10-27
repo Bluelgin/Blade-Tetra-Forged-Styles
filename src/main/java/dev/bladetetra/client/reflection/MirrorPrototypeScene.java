@@ -85,7 +85,7 @@ public final class MirrorPrototypeScene {
         }
         if(!review()&&(ticks==100||ticks==140||ticks==180||ticks==220)) capture=ticks;
         if(review()) reviewTick(mc);
-        if(ticks==(review()?980:260)) {
+        if(ticks==(review()?(Boolean.getBoolean("blade_tetra.mirrorReviewFirstOnly")?200:980):260)) {
             LogUtils.getLogger().info("{} finished (visual review required)",review()?"MIRROR_RITUAL_REVIEW":"MIRROR_PROTOTYPE_SCENE");
             mc.stop();
         }
@@ -108,8 +108,14 @@ public final class MirrorPrototypeScene {
     }
     private static void startRitual(Minecraft mc) {
         var server=mc.getSingleplayerServer();var id=mc.player.getUUID();
-        server.execute(()->dev.bladetetra.easteregg.AwakeningPresentationService.success(server.getPlayerList().getPlayer(id),
-                dev.bladetetra.easteregg.SoulLegacyState.Legacy.KYOUKA));
+        server.execute(()-> {
+            var player=server.getPlayerList().getPlayer(id);var level=player.serverLevel();
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTimePacket(level.getGameTime(),level.getDayTime(),false));
+            LogUtils.getLogger().info("MIRROR_REVIEW_SERVER soul={} id={} time={}",
+                    dev.bladetetra.easteregg.SoulLegacyState.active(player.getMainHandItem()),
+                    player.getMainHandItem().getOrCreateTag().getString("id"),level.getGameTime());
+            dev.bladetetra.easteregg.AwakeningPresentationService.success(player,dev.bladetetra.easteregg.SoulLegacyState.Legacy.KYOUKA);
+        });
         LogUtils.getLogger().info("MIRROR_RITUAL_REVIEW_START tick={} quality={}",ticks,
                 dev.bladetetra.config.ClientVisualConfig.MIRROR_REFLECTION_QUALITY.get());
     }

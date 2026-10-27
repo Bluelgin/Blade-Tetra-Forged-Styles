@@ -70,6 +70,7 @@ public final class AwakeningVisualController {
         syncWorld();
         if(world==null||!enabled()||!p.valid()||!p.dimension().equals(world.dimension().location())) return;
         long age=world.getGameTime()-p.startedAt();
+        if(Boolean.getBoolean("blade_tetra.mirrorRitualReview")) LogUtils.getLogger().info("MIRROR_REVIEW_PACKET age={} valid={} soul={}",age,p.valid(),p.soul());
         if(age < -5 || age>=AwakeningPresentationTimeline.DEPART_END) return;
         var old=SESSIONS.get(p.player());
         if(old!=null&&old.data.startedAt()>=p.startedAt()) return;
@@ -92,9 +93,13 @@ public final class AwakeningVisualController {
             iter.remove();
             try {
                 var model=FloatingBladeRenderer.prepare(owner.getMainHandItem());
-                if(model==null) continue; // safe ordinary held rendering
+                if(model==null) {
+                    if(Boolean.getBoolean("blade_tetra.mirrorRitualReview")) LogUtils.getLogger().warn("MIRROR_REVIEW_MODEL_DECLINED {}",owner.getMainHandItem());
+                    continue; // safe ordinary held rendering
+                }
                 var session=new AwakeningSession(p,owner,model);
                 SESSIONS.put(p.player(),session);
+                if(Boolean.getBoolean("blade_tetra.mirrorRitualReview")) LogUtils.getLogger().info("MIRROR_REVIEW_SESSION_READY age={} valid={}",age,session.valid(world));
                 if(owner==Minecraft.getInstance().player)
                     AwakeningIntroClient.begin(p.soul(),(int)age);
             } catch(RuntimeException ex) {

@@ -1,126 +1,148 @@
-# Kyouka 3.0: planar reflection implementation record
+# 镜花觉醒仪式 3.0：实现、维护与验收边界
 
-## Baseline and scope
+## 基线与分支
 
-Base: `codex/true-name-release-ritual`, PR #43, commit
-`6e2e3444538ebf34fb5c9d4d67a1b9a3215bfb06`.
-#40 supplies artwork, #41 awakening runtime, #42 Sakura runtime, #43 shared ritual.
-#44/#45 build Sakura combat on #43 and do not change the Kyouka presentation files.
-This branch is a sibling of #44, not a replacement for it. No upstream PR is merged or edited.
+基于 PR #43 的 `codex/true-name-release-ritual`，提交
+`6e2e3444538ebf34fb5c9d4d67a1b9a3215bfb06`。
+本分支为 `codex/kyouka-planar-reflection-v3`，Draft PR #46 的目标仍是 #43 功能分支。
+#40 美术 → #41 战斗 → #42 千本樱 → #43 通用仪式的依赖保持不变；
+#44/#45 的千本樱战斗修改不混入此分支。没有合并、关闭其他 PR 或发布版本。
 
-The old `KyoukaAwakeningVisual` uses atlas planes/rings; `FloatingBladeRenderer` draws unrelated
-radial blade ghosts and a vertically flipped sword. Neither captures the game world.
+旧镜花使用图集平面、青蓝光圈、径向刀影和翻转的刀身模型，未捕捉游戏世界。
+此版本删除这些仪式表现，复用既有原刀离手、材料/刀装适配、刀鞘留身、真名 HUD 与归刃。
+服务端战斗、觉醒条件、持久化和网络协议均未改动。
 
-## Stage B gate
+## 模块职责
 
-The first deliverable is an opt-in **real Minecraft client** planar-reflection prototype.
-Do not equate its source code, math tests, compilation or startup with a visual pass.
-`./gradlew runClient -PmirrorPrototype` creates/loads its own flat test world. It builds
-colored reference blocks behind the observer, translates the observer and rotates a vertical
-mirror. Four screenshots are written to `build/mirror-prototype/evidence/`.
-`MIRROR_PROTOTYPE_SCENE_FINISHED` means the scenario ended, not that it passed visual review.
+| 模块 | 职责 |
+| --- | --- |
+| MirrorPlane | 双精度镜面基底、反射坐标、手性、逆转置裁剪平面、oblique projection、可见性 |
+| ReflectionRenderer | 一次 vanilla LevelRenderer 离屏绘制、虚拟 Camera、RenderTarget 与冻结投影纹理 |
+| ReflectionRenderState / ReflectionPass | GPU 状态事务、递归保护、捕捉范围、原生雾过渡历史恢复 |
+| MirrorSurfaceRenderer | 有边界的投影反射材质、银白高光和渐进裂纹；兼容模式为明确的近似金属面 |
+| MirrorShardMesh / Renderer | 共享裂纹拓扑、原 UV、薄背面、反光边缘、三维翻转与聚拢 |
+| MirrorRitualController | 纯演出状态，沿用原 120 tick 生命周期，不操作 GL |
+| MirrorRitualResources | 既有客户端会话与单主镜预算的桥接；不另建实体、Tick 系统或网络队列 |
 
-No ordinary ritual is switched to this renderer until the geometric/state-restoration gate
-has actual client evidence. Stage C–E progress and final results are recorded below as work proceeds.
+反射矩阵保留负手性，绘制时反转 front winding；只算 yaw/pitch 无法替代此变换。
+反射 Camera 在独立目标中绘制真实方块、天空和可见原生实体。虚拟相机投影采用镜面裁剪，
+主镜通过齐次投影坐标采样，避免把图像按普通 UV 拉伸。
 
-## Pipeline under evaluation
+底层通过回调接受原刀与延迟刀影的实际原生模型绘制，不认识镜花时间轴。
+镜像刀影只在反射相机内出现，与主镜共用几何映射；没有在现实中随机摆放几把刀。
+为避免递归和第三方主画面特效污染，离屏绘制不分发 Forge 主世界阶段回调。
+其他模组通过这些阶段绘制的特效不保证出现在镜中。
 
-- `MirrorPlane`: double-precision world basis, reflected eye, handedness-reversing view,
-  inverse-transpose clip plane and oblique near-plane projection. No ritual or GL dependency.
-- `ReflectionRenderer`: one persistent `TextureTarget`, mirrored vanilla `Camera`, one extra
-  vanilla `LevelRenderer.renderLevel`, and projective plane-to-texture coordinates.
-- `ReflectionRenderState`: scoped restoration of target binding, viewport, projection,
-  inverse view, front winding, depth/blend/cull, shader and shader parameters.
-- `MirrorSurfaceRenderer`: explicit bounded surface with homogeneous texture projection;
-  target aspect ratio and FOV are not approximated with a flat image stretch.
-- `ReflectionPass`: render-thread recursion guard. Forge stage effects are suppressed only
-  during the secondary pass; the ordinary pass dispatches normally.
-- Client-only mixins: wrap the vanilla world invocation, swap the main target for the capture,
-  and suppress secondary stage callbacks. No server combat, persistent entities or packets.
+## 演出
 
-The main render follows the secondary pass and re-establishes terrain setup. The actual
-observer's culling frustum and entity dispatcher camera are explicitly restored beforehand.
-Unsupported renderer combinations must opt out before world capture; porting an entire portal
-or shader engine is outside scope.
+沿用原 120 tick，不新增等待：
 
-## References and license review
+- 12–32：银白边缘和真实环境映像随镜面展开，原刀按通用流程离手。
+- 32–72：主镜缓慢偏转；镜中原刀出现延迟/错位映像；两侧小镜复用主镜缓存。
+- 72–85：刀身向镜面运动，同一组三角拓扑的深灰裂纹从中央扩散。
+- 85–100：停止世界捕捉。完整镜面变成原位置的三角镜片，短暂停顿后翻转、扩散。
+- 100–112：原镜片向刀身螺旋聚拢并化为银白短光痕，武器回归继续交给既有流程。
 
-- Minecraft 1.20.1 and Forge 47.4.0: use the existing project dependency, `RenderTarget`,
-  `Camera`, `LevelRenderer` and Forge stage hooks; no vanilla binaries are committed.
-- [Water Shader Mod](https://github.com/MahoganyTown/Water-Shader-Mod), main branch,
-  CC0-1.0: examined its `GameRendererMixin`, framebuffer and clipping approach. It targets
-  Fabric 1.19.4, modifies shaders and player invisibility and recursively calls GameRenderer.
-  Those hooks and assets are not transplanted.
-- [Simply Mirrors 0.1.1, Forge 1.20.1](https://www.curseforge.com/minecraft/mc-mods/simply-mirrors/files/9239970):
-  inspected the published JAR (CFR 0.152) and bundled MIT license, copyright 2026 NsTut.
-  Its MirrorRenderer reuses LevelRenderer, mirrored camera and oblique clipping; it also
-  disables smart culling and restores entity dispatcher state. Its shader adaptation is
-  substantial and is not assumed compatible here. No code/assets are copied into this branch;
-  this record credits the implementation investigation. The project has no verified source
-  repository linked on the inspected listing; do not claim source-level upstream compatibility.
+每片保留破碎前的 UV 并采样同一张冻结反射纹理；没有为碎片另建世界捕捉任务。
+几何背面/侧面和边缘给镜片厚度，不使用普通蓝色三角粒子替代实体破裂。
+刀尖与镜面的视觉接触、第三方刀身长度等细节仍属于正式实机美术验收范围。
 
-## Results
+## 预算与兼容性
 
-- `./gradlew compileJava`: passed locally on Java 17 (cold setup: 20m58s).
-- Targeted `MirrorPlaneTest`: 7 tests, zero failures/errors, including conservative visibility
-  and transient non-finite projection rejection.
-- First actual client attempt: an early capture before the test world was ready hit a
-  degenerate clip plane. Capture failed closed; this was **not** accepted as a mirror pass.
-  World-readiness and visibility gating were added. A new real-client run is in progress.
-- Mesa llvmpipe / OpenGL 4.5. No shader pack or alternate terrain renderer installed.
-- Stages C–E are deliberately gated on actual prototype screenshots and state checks.
-  The ordinary Kyouka ritual has not been replaced yet. No real-time-reflection acceptance claim.
+`visuals.mirrorReflectionQuality` 是客户端配置，默认 **2**。
 
+| 等级 | 宽度 | 更新上限 | 捕捉范围 | 每个破碎镜面片数 |
+| --- | --- | --- | --- | --- |
+| 0 兼容 | 不捕捉世界 | 0 | — | 32 |
+| 1 低 | 128 px | 8 Hz | 24 格 | 32 |
+| 2 默认 | 256 px | 15 Hz | 40 格 | 72 |
+| 3 高 | 512 px | 30 Hz | 64 格 | 128 |
 
-## Prototype gate: actual result
+全客户端只保留一个反射目标，优先本地玩家，其次近邻有效会话；其他镜面使用近似材质。
+目标高度最高 1024 px。沿用最多 8 会话、距离/视锥限制；不可见、过近、退化和非有限投影
+跳过捕捉。暂停时已有图像继续复用，破碎后冻结，副镜不增加世界绘制。
+没有每帧分配 framebuffer、大型缓冲区、逐片 draw-world 或后台 GL 操作。
+以上为代码上限，**不是实测 FPS**。多个镜面及跨区块边界的渲染缓存开销仍需实际硬件测量。
 
-The opt-in scene subsequently completed in a real Forge client after the experimental-world
-confirmation was handled. All four images are original framebuffer screenshots, not simulations:
-[100](evidence/kyouka-v3/mirror-100.png), [140](evidence/kyouka-v3/mirror-140.png),
-[180](evidence/kyouka-v3/mirror-180.png), [220](evidence/kyouka-v3/mirror-220.png).
-The red/gold arch and emerald pillar are **behind the real observer** and appear inside the
-mirror. The observer's lateral movement and mirror yaw change the reflected perspective.
-Main target, camera position, projection and front winding restoration assertions did not fail.
-The scene log is retained alongside the images. This passes the minimum block/rotation/state gate;
-the cow was not sufficiently visible to call entity reflection visually accepted.
+Fabulous、Oculus/Iris、Embeddium/Rubidium/Sodium、OptiFine、Immersive Portals 和 Simply Mirrors
+自动走兼容路径。该路径没有真实世界反射，不算核心实时反射验收；没有宣称支持这些修改后的
+管线。原生 Forge 47.4.0 是已启动的测试环境，其他 47.x 和未知渲染器未穷举。
 
-The initial checkpoint's complete Build #710 succeeded, including the inherited Forge smoke jobs.
-The implementation below is a subsequent integration and requires its own build/client checks.
+## 状态与资源生命周期
 
-## Integrated architecture and budgets (validation pending)
+目标在首次有效捕捉时创建，尺寸/质量变化时重建；结束、失配、死亡、退出/更换世界、资源重载
+及捕捉失败时释放。复用原会话有效性判断，不扫描背包或持久化镜面。
+捕捉失败后本世界停止额外世界绘制，待换世界或资源重载恢复。
 
-`MirrorRitualController` derives six presentation phases on the original 120-tick clock.
-`MirrorRitualResources` selects one bounded existing session (local player first), owns one target,
-freezes captures at break tick 85 and draws after particles. Non-selected mirrors use the explicitly
-approximate metallic surface. No new packets, saved entities or server combat callbacks exist.
+创建失败时先保留目标所有权，以便释放部分分配的原生资源。销毁也在状态事务中执行，
+不会将已删除的纹理 ID 重新绑定。保存/恢复包括 framebuffer、viewport、矩阵与排序、
+front winding、深度/混合/裁剪/颜色写入、活动纹理与绑定、纹理矩阵、光照、雾和着色参数。
+水下雾的生物群系过渡历史另行保存；主视锥和实体/方块实体 dispatcher 相机重新建立。
+不修改 Minecraft 的主 Camera 对象。
 
-The renderer receives a callback for the real detached blade and its delayed images; ghosts are
-visible through the reflection camera only. The old radial ghosts, pseudo floor, atlas planes and
-magic rings are removed. The existing hand departure, native model/material adapters, mounted
-sheath, HUD/name and return lifecycle remain in charge.
+`-PmirrorRitualReview` / `-PmirrorPrototype` 打开状态恢复断言与目标计数。
+普通游戏不会注册开发测试场景的 Tick 监听器。
 
-The same deterministic triangulation supplies dark growing seams and physical shards (32/72/128
-triangles). Every shard keeps its original projective UVs and samples the single pre-break image.
-No per-shard capture or framebuffer is allocated. Thin solid backs, silver edges, tumbling and
-spiral gathering finish before the inherited weapon return ends.
+## 已执行验证
 
-Reflection quality 0/1/2/3 is compatibility / 128px at 8Hz / 256px at 15Hz / 512px at 30Hz.
-Default is 2. Target height is capped at 1024; only one target exists globally. Frustum queries in
-the render-thread capture are additionally bounded to 24/40/64 blocks. Invisible, too-close,
-out-of-range and non-finite projections skip work. These are code budgets, not FPS measurements.
+- Java 17 本地重新编译和资源处理通过；生产重映射 JAR 已生成。
+- 本地 486 项 JUnit：485 通过、0 失败、0 错误、1 项原有跳过。
+  跳过项为未提供外部审计 JAR 的 ProviderEffectBytecodeBridgeTest。
+- 新增 13 项针对性测试覆盖反射/FOV/裁剪、世界边界、不可见/非法投影、连续阶段、
+  镜片拓扑面积、相同 UV 的运动/归聚和质量更新预算。
+- [CI #713](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/actions/runs/40533395213)
+  在提交 `2af6727` 上完整通过 build、JUnit 与四项继承的 Forge smoke。
+  后续增加主相机调度限制、重播场景时钟同步和验证记录，最终提交的 Checks 独立显示，不挪用旧提交结果。
 
-Fabulous, Oculus/Iris, Embeddium/Rubidium/Sodium, OptiFine, Immersive Portals and Simply Mirrors
-use the labelled compatibility path. No support for those modified pipelines is claimed. Runtime
-capture failure quarantines captures until world change/resource reload. The test prototype is
-registered only by the explicit development launch flag, with no production tick subscriber.
+### 真实反射最小原型
 
-Resources are released on normal end, slot/weapon mismatch, death/world replacement, reload and
-capture failure using the existing ritual lifecycle. A fog mixin preserves vanilla underwater
-biome-transition history; GPU uniforms, framebuffer/viewport, projection, winding, depth/blend/cull
-and dispatcher cameras are restored separately. Alternate tilted-plane billboard orientation and
-unknown shader/portal renderers remain outside verified compatibility.
+Minecraft 1.20.1 / 项目 Forge、Tetra、SlashBlade 依赖，Mesa llvmpipe / OpenGL 4.5，
+无额外光影。原始 framebuffer 截图：
+[100](evidence/kyouka-v3/mirror-100.png)、[140](evidence/kyouka-v3/mirror-140.png)、
+[180](evidence/kyouka-v3/mirror-180.png)、[220](evidence/kyouka-v3/mirror-220.png)。
 
-Run `./gradlew runClient -PmirrorRitualReview` for the isolated native-blade replay matrix:
-first-person, third-person, FOV/window resize, compatibility, low quality/slot abort, high quality
-with resource reload, and a post-reload replay. This uses a debug-awakened actual Tetra blade and
-the existing successful-presentation service; it does not test natural first unlock progression.
+彩色拱门与绿宝石柱实际位于观察者身后；镜中随视点横移与镜面旋转改变映像与透视。
+主目标、Camera、投影与 front winding 断言未失败，场景结束日志已归档。
+这证明最小世界反射路线可运行，**不代表正式四阶段演出已通过视觉验收**。
+该轮牛的映像不够清楚，不宣称实体反射已完成视觉检查。
+
+首轮过早捕捉曾遇到退化裁剪平面；已加入世界就绪、可见性和非法矩阵门控。
+后续测试还处理了隔离世界的实验性设置确认页；没有把停在确认页视作引擎障碍。
+
+### 正式仪式的最小运行检查
+
+同一原生 Forge 环境中，第一人称、默认质量的真实刀具仪式已完整重播。
+[原始日志摘录](evidence/kyouka-v3/ritual-native.txt)记录 23 次世界反射捕捉、114 次状态恢复审计，结束时 `targets=0, ready=false`，
+未触发恢复断言。仪式截图确认主镜显示附近方块，刀身继续沿用原生模型。
+这只覆盖一轮正常结束，不表示下面的完整验收矩阵已经执行通过。
+
+首次自动重播因隔离客户端时钟落后而被既有展示包的时效校验拒绝，捕捉为零。
+测试场景现在先发送原版时间同步包，再调用原有展示服务；未更改正式网络协议或时效校验。
+
+## 正式实机验收与复现
+
+**正式仪式画面与整合包验收由作者接手，当前保持 Draft，未标记视觉验收通过。**
+手持已觉醒镜花，用 OP 命令 `/blade_tetra_ritual_preview` 重播，不改变觉醒/战斗状态。
+验收真实反射请使用原生渲染路径；兼容模式单独核对降级与稳定性。
+
+自动场景：`./gradlew runClient -PmirrorRitualReview`，隔离目录 `build/mirror-ritual-review`。
+它使用 debug 觉醒的真实 Tetra 刀和既有 S2C 服务，覆盖第一/第三人称、FOV/窗口变化、
+兼容/低/高质量、换槽中止、资源重载与再次重播；检查真实捕捉计数、兼容模式零捕捉和目标释放。
+这不是自然首次解锁流程。截图在该目录 `evidence/`，状态断言不替代画面检查。
+
+仍需正式确认：四阶段美术连贯性、刀影/真实刀身/接触点、镜片冻结映像、移动视点、
+第一/第三人称与不同刀装、死亡/跨维度/断线、多玩家/延迟、长期重复使用和真实硬件帧时。
+任意倾斜镜面的 billboard 方向、未知 shader/portal 管线不属于本轮已验证兼容范围。
+
+## 技术调研与许可
+
+- Minecraft / Forge：直接复用项目现有依赖的 Camera、RenderTarget、LevelRenderer 和事件设施，
+  不打包原版二进制，不另做世界渲染引擎。
+- [Water Shader Mod](https://github.com/MahoganyTown/Water-Shader-Mod)，
+  `b42c4997a8e39ea9418a1a4260225bf59856b0a2`，CC0-1.0：调查其 Fabric 1.19.4
+  多 pass/裁剪思路，未移植递归 GameRenderer、玩家隐藏、Shader 或资产。
+- [Simply Mirrors 0.1.1 Forge 1.20.1](https://www.curseforge.com/minecraft/mc-mods/simply-mirrors/files/9239970)：
+  实际下载 JAR 并以 CFR 0.152 调查；包内 MIT，Copyright 2026 NsTut。
+  SHA256 `5fa726cdd871f7ea550ef3c0cd6fdd88ab24924c02772455e968ed4f58c6139f`。
+  核对了重用 LevelRenderer、关闭 smart culling、相机与状态恢复的路径。
+  没有复制其源码/Shader/资源，复杂光影适配未搬运，也未声称上游兼容。

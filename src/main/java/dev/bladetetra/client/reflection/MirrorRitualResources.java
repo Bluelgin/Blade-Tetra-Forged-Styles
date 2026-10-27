@@ -45,7 +45,7 @@ public final class MirrorRitualResources {
 
     public static void beforeWorld(LevelRenderer renderer,PoseStack pose,float partial,long deadline,
             Camera camera,GameRenderer game,LightTexture light,Matrix4f projection) {
-        if(ReflectionPass.active()) return;
+        if(ReflectionPass.active()||camera!=game.getMainCamera()) return;
         if(Boolean.getBoolean("blade_tetra.mirrorPrototype")) {
             ReflectionPrototype.beforeWorld(renderer,pose,partial,deadline,camera,game,light,projection);return;
         }
