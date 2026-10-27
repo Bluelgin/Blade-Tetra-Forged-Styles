@@ -91,8 +91,19 @@ public final class SakuraCombatVisuals {
     }
 
     public static void confirm(ServerPlayer player, ItemStack blade, Entity direct, LivingEntity target) {
-        if (!SakuraEndlessFlow.eligible(blade) || !(direct instanceof EntitySlashEffect slash)) return;
-        Attack attack = SLASHES.get(slash);
+        if (!SakuraEndlessFlow.eligible(blade)) return;
+        Attack attack;
+        if (direct instanceof EntitySlashEffect slash) attack = SLASHES.get(slash);
+        else if (direct == player) {
+            attack = CURRENT.get(player.getUUID());
+            // Vanilla direct melee can kill a target before B1's delayed slash.
+            // Accept it only for the currently committed B action, never an old
+            // flurry or an unrelated projectile/secondary skill.
+            Attack current = attack;
+            if (current == null || !blade.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                    .map(state -> state.getLastActionTime() == current.at
+                        && SakuraFlowRules.stage(state.getComboSeq()) == current.stage).orElse(false)) return;
+        } else return;
         if (attack == null || attack.player != player || attack.blade != blade || attack.confirmed
                 || attack.slot != player.getInventory().selected
                 || !player.level().dimension().equals(attack.dimension)

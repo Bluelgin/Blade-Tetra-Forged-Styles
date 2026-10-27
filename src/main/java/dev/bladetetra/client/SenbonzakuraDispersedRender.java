@@ -22,10 +22,11 @@ import net.minecraftforge.fml.common.Mod;
 public final class SenbonzakuraDispersedRender {
     private static Player renderingPlayer;
     private static boolean handPass;
+    private static boolean worldPlayerPass;
     private static int retainedPartDepth;
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void playerPre(RenderPlayerEvent.Pre e) { renderingPlayer = e.getEntity(); }
+    public static void playerPre(RenderPlayerEvent.Pre e) { renderingPlayer = worldPlayerPass ? e.getEntity() : null; }
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void playerPost(RenderPlayerEvent.Post e) { renderingPlayer = null; }
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -35,6 +36,8 @@ public final class SenbonzakuraDispersedRender {
     public static void guiPre(net.minecraftforge.client.event.RenderGuiEvent.Pre e) { handPass = false; }
     @SubscribeEvent
     public static void levelStage(RenderLevelStageEvent e) {
+        if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) worldPlayerPass = true;
+        if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) worldPlayerPass = false;
         renderingPlayer = null;
         handPass = false;
     }
