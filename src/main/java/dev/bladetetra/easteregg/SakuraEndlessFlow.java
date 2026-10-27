@@ -64,7 +64,7 @@ public final class SakuraEndlessFlow {
     public static void onNextCombo(SlashBladeEvent.NextComboEvent event) {
         if (!eligible(event.getBlade())) return;
         ResourceLocation current = event.getSlashBladeState().getComboSeq();
-        if (B5.equals(current) && B6.equals(event.getNextCombo())) {
+        if (B5.equals(current) && B6.equals(event.getNextCombo()) && SakuraSixthCombo.compatible()) {
             event.setNextCombo(SakuraSixthCombo.SIXTH.getId());
         } else if (SakuraSixthCombo.SIXTH.getId().equals(current)) {
             // Preserve the upstream early-input self guard. A legitimate native

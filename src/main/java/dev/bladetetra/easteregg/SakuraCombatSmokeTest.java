@@ -51,6 +51,7 @@ public final class SakuraCombatSmokeTest {
             var input=actor.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
             input.getCommands().clear(); input.getCommands().add(InputCommand.R_CLICK);
             var rank=actor.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
+            check(SakuraSixthCombo.compatible(),"upstream callback adapter supported");
             var sixth=SakuraSixthCombo.SIXTH.get();
             var nativeSixth=ComboStateRegistry.COMBO_B6.get();
             check(sixth.getMotionLoc().equals(nativeSixth.getMotionLoc()),"same native motion");

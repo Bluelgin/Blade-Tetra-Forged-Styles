@@ -19,7 +19,9 @@
 
 `SakuraSixthCombo` 因此只在散华千本樱的 B5→B6 路由中替换 B6 的**路由节点**。它直接引用原生 B6 的 motion、帧区间、速度、优先级及 tick/hold/hit/click/release 回调，仅多给100ms输入尾窗。tick0–6全部执行后，合法原生输入才允许 tick7/8→B1。早按、无输入、无燃烧资格都返回当前节点，触发 upstream 的 self-next guard。停止输入走原生 B_END 恢复，不强行进 B7。其他 Rengeki 仍走未改动的原生B6/B7。
 
-保持原有Rengeki伤害/刀光配置对该节点的识别，避免包装ID漏掉原来的0.85倍率；不新增伤害/僵直/命中实体。可选Player Animator通过上游公开动画Map复用B6动画，无该Mod时仍用原生MMD。Rank继续存于SlashBlade能力：入口A+、起始等级决定燃烧速率、10tick扣费、禁止散华增益。路由和虚拟查询不扣费。零Rank立即禁止续连，死亡/换刀/跨维度会清除燃烧会话。
+上游Builder只有addTickAction，而且默认包含ArrowReflector；把完整原生tickAction再add一次会双重反射投射物。因此在注册该节点时只对Builder的tickAction字段做一次类型校验及反射赋值，将完整原生回调替换进去，运行期间不再反射，也不修改全局原生节点。若未来版本不兼容，禁用该加速路由并保留原生B6，绝不以重复回调降级。没有Mixin或AccessTransformer。
+
+保持原有Rengeki伤害/刀光与锈解阶段配置对该节点的识别，避免包装ID漏掉原来的0.85倍率；不新增伤害/僵直/命中实体。可选Player Animator通过上游公开动画Map复用B6动画，无该Mod时仍用原生MMD。Rank继续存于SlashBlade能力：入口A+、起始等级决定燃烧速率、10tick扣费、禁止散华增益。路由和虚拟查询不扣费。零Rank立即禁止续连，死亡/换刀/跨维度会清除燃烧会话。
 
 ## 一组碎刃，而非两套装饰
 
@@ -47,7 +49,7 @@
 
 新增：真实标准模型各镡型的坐标/UV/法线保留；未知UV回退；手持/GUI/掉落/仪式可见性策略；B6尾帧门限；碎刃索引、真实空缺、归阵、组数上限、长时间连续动作、预测合并、重复确认、失去目标、轨迹端点/曲率和±180°；协议往返与非法数据。`./gradlew build` 运行全部JUnit。
 
-`./gradlew runServer -PsakuraCombatSmoke`：独立Forge假玩家场景，通过原生progressCombo实际执行三轮B1–B6，验证B6七个原生slash、原伤害倍率、早按/无输入、虚拟查询不扣Rank、零Rank停止、散华保留、普通B6/B7不变。CI同时保留#43的四项Forge回归。
+`./gradlew runServer -PsakuraCombatSmoke`：独立Forge假玩家场景，通过原生progressCombo实际执行三轮B1–B6，验证B6七个原生slash、原伤害倍率、早按/无输入、虚拟查询不扣Rank、A/S/SS/SSS精确扣费及禁止回补、同tick不重复扣费、零Rank停止、散华保留、普通B6/B7不变。CI同时保留#43的四项Forge回归。
 
 **本轮没有完成新的Minecraft客户端录像或画面验收。** 当前工作区没有先前完整Gradle/Minecraft客户端依赖缓存，只有Java17运行时及旧录像；构建与Forge验证交给GitHub CI，不以旧#43录像冒充本次散华效果。待CI结束在PR补充真实运行结果。
 
