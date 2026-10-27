@@ -124,16 +124,18 @@ public final class AwakeningVisualController {
         if(!enabled()) {clear();return;}
         resolve();
         var iter=SESSIONS.values().iterator();
+        boolean mirrorLive=false;
         while(iter.hasNext()) {
             var s=iter.next();
             if(!s.valid(world)) {
                 if(s.owner==Minecraft.getInstance().player) AwakeningIntroClient.cancel();
                 iter.remove(); continue;
             }
+            if(s.data.soul()==2) mirrorLive=true;
             int age=(int)s.age(world,0);
             if(age==20||age==45||age==65||age==85||age==113||age==119) sound(s,age);
         }
-        if(SESSIONS.values().stream().noneMatch(s->s.data.soul()==2&&s.valid(world)))
+        if(!mirrorLive)
             dev.bladetetra.client.reflection.MirrorRitualResources.clear();
     }
     private static void sound(AwakeningSession s,int beat) {
@@ -222,8 +224,14 @@ public final class AwakeningVisualController {
             return;
         }
         if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-            for(var s:SESSIONS.values()) if(s.data.soul()==2&&s.visible&&s.valid(world))
-                dev.bladetetra.client.reflection.MirrorRitualResources.draw(s,e.getPoseStack().last().pose(),e.getCamera().getPosition(),e.getPartialTick());
+            for(var s:SESSIONS.values()) if(s.data.soul()==2&&s.visible&&s.valid(world)) {
+                try {dev.bladetetra.client.reflection.MirrorRitualResources.draw(s,e.getPoseStack().last().pose(),e.getCamera().getPosition(),e.getPartialTick());}
+                catch(RuntimeException failure) {
+                    s.fail();dev.bladetetra.client.reflection.MirrorRitualResources.clear();
+                    if(s.owner==Minecraft.getInstance().player) AwakeningIntroClient.cancel();
+                    LogUtils.getLogger().warn("Mirror surface failed; restoring native held blade",failure);
+                }
+            }
             return;
         }
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;

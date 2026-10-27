@@ -32,6 +32,7 @@
     "client.ReflectionRenderStageMixin",
     "client.ReflectionWorldPassMixin",
     "client.ReflectionDistanceMixin",
-    "client.ReflectionFogMixin"
+    "client.ReflectionFogMixin",
+    "client.ReflectionLightingAccessor"
   ]
 }

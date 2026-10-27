@@ -20,8 +20,10 @@ public final class MirrorRitualResources {
     private static long lastCapture;
     private static boolean failed, warned;
     private static Boolean modSupport;
+    public static int captureCount() {return REFLECTION.captureCount();}
+    public static int targetCount() {return REFLECTION.targetCount();}
     public static boolean hasCapture() {return REFLECTION.ready();}
-    public static String status() {return REFLECTION.status();}
+    public static String status() {return REFLECTION.status()+", stateAudits="+ReflectionRenderState.audits();}
     public static void clear() {
         if(current!=null||REFLECTION.ready()) REFLECTION.close();
         current=null;lastCapture=0;
@@ -58,6 +60,7 @@ public final class MirrorRitualResources {
             if(!warned) {warned=true;LogUtils.getLogger().info("Kyouka mirror: approximate compatibility material (requested={}, rendererSupported={}, captureFailed={})",quality.level(),supported(),failed);}
             return;
         }
+        if(mc.isPaused()&&REFLECTION.ready()) return; // Frozen world: reuse the bounded image until play resumes.
         float tick=current.age(world,partial);
         var frame=frame(current,partial,tick);
         if(!frame.live()||frame.broken()||!quality.due(System.nanoTime(),lastCapture)

@@ -20,7 +20,7 @@ import java.nio.file.Files;
 /** Reproducible real-client gate. No behavior unless explicitly launched with -PmirrorPrototype. */
 public final class MirrorPrototypeScene {
     private static boolean started,prepared;
-    private static int ticks,capture,waiting;
+    private static int ticks,capture,waiting,compatCaptures;
     private static boolean reloadStarted,reloadDone;
     private static boolean review() {return Boolean.getBoolean("blade_tetra.mirrorRitualReview");}
     private static boolean enabled() {return review()||Boolean.getBoolean("blade_tetra.mirrorPrototype");}
@@ -86,7 +86,7 @@ public final class MirrorPrototypeScene {
         if(!review()&&(ticks==100||ticks==140||ticks==180||ticks==220)) capture=ticks;
         if(review()) reviewTick(mc);
         if(ticks==(review()?980:260)) {
-            LogUtils.getLogger().info("MIRROR_PROTOTYPE_SCENE_FINISHED (requires visual review; not an automatic pass)");
+            LogUtils.getLogger().info("{} finished (visual review required)",review()?"MIRROR_RITUAL_REVIEW":"MIRROR_PROTOTYPE_SCENE");
             mc.stop();
         }
     }
@@ -120,7 +120,7 @@ public final class MirrorPrototypeScene {
             mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);mc.options.fov().set(95);
             org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().getWindow(),1000,600);
         }
-        if(ticks==365) {mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);dev.bladetetra.config.ClientVisualConfig.MIRROR_REFLECTION_QUALITY.set(0);}
+        if(ticks==365) {compatCaptures=MirrorRitualResources.captureCount();mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);dev.bladetetra.config.ClientVisualConfig.MIRROR_REFLECTION_QUALITY.set(0);}
         if(ticks==525) dev.bladetetra.config.ClientVisualConfig.MIRROR_REFLECTION_QUALITY.set(1);
         if(ticks==575) {
             mc.player.getInventory().selected=1;
@@ -128,20 +128,26 @@ public final class MirrorPrototypeScene {
             server.execute(()->{var p=server.getPlayerList().getPlayer(id);p.getInventory().selected=1;p.inventoryMenu.broadcastChanges();});
         }
         if(ticks==580) {
-            if(MirrorRitualResources.hasCapture()) throw new IllegalStateException("Target retained after slot abort");
+            if(MirrorRitualResources.hasCapture()||MirrorRitualResources.targetCount()!=0) throw new IllegalStateException("Target retained after slot abort");
             LogUtils.getLogger().info("MIRROR_REVIEW_ABORT_CLEAN {}",MirrorRitualResources.status());
         }
         if(ticks==705) dev.bladetetra.config.ClientVisualConfig.MIRROR_REFLECTION_QUALITY.set(3);
         if(ticks==760&&!reloadStarted) {
             reloadStarted=true;mc.reloadResourcePacks().thenRun(()->mc.execute(()->{
-                reloadDone=true;LogUtils.getLogger().info("MIRROR_REVIEW_RELOAD_DONE {}",MirrorRitualResources.status());
+                reloadDone=true;
+                if(MirrorRitualResources.targetCount()!=0) throw new IllegalStateException("Target retained after resource reload");
+                LogUtils.getLogger().info("MIRROR_REVIEW_RELOAD_DONE {}",MirrorRitualResources.status());
             }));
         }
         if(ticks==820&&reloadStarted&&!reloadDone) {ticks=819;return;}
         for(int start:new int[]{60,220,380,540,720,840})
             if(ticks==start+24||ticks==start+56||ticks==start+79||ticks==start+92||ticks==start+105) capture=ticks;
-        if(ticks==190||ticks==350||ticks==510||ticks==975)
+        if(ticks==190&&MirrorRitualResources.captureCount()==0) throw new IllegalStateException("No real world reflection captured during native ritual");
+        if(ticks==510&&MirrorRitualResources.captureCount()!=compatCaptures) throw new IllegalStateException("Compatibility mode performed world captures");
+        if(ticks==190||ticks==350||ticks==510||ticks==975) {
+            if(MirrorRitualResources.targetCount()!=0) throw new IllegalStateException("Target retained after normal end");
             LogUtils.getLogger().info("MIRROR_REVIEW_LIFECYCLE tick={} {}",ticks,MirrorRitualResources.status());
+        }
     }
     @SubscribeEvent public static void frame(TickEvent.RenderTickEvent e) {
         if(!enabled()||e.phase!=TickEvent.Phase.END||capture==0) return;
@@ -149,7 +155,7 @@ public final class MirrorPrototypeScene {
         try {
             var out=mc.gameDirectory.toPath().resolve("evidence");Files.createDirectories(out);
             try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())) { image.writeToFile(out.resolve((review()?"ritual-":"mirror-")+capture+".png")); }
-            LogUtils.getLogger().info("MIRROR_PROTOTYPE_CAPTURE {}",capture);capture=0;
+            LogUtils.getLogger().info("{}_CAPTURE {}",review()?"MIRROR_RITUAL_REVIEW":"MIRROR_PROTOTYPE",capture);capture=0;
         } catch(java.io.IOException ex) {throw new IllegalStateException(ex);}
     }
     private MirrorPrototypeScene() {}

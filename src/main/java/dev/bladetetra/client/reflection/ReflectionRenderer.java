@@ -1,7 +1,6 @@
 package dev.bladetetra.client.reflection;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
@@ -24,6 +23,8 @@ public final class ReflectionRenderer implements AutoCloseable {
     private final Matrix4f textureProjection=new Matrix4f();
     private boolean ready;
     private int captures,created,destroyed;
+    public int captureCount() {return captures;}
+    public int targetCount() {return created-destroyed;}
     public String status() {return "captures="+captures+", targets="+(created-destroyed)+", ready="+ready;}
     public boolean ready() { return ready; }
     public int texture() { return ready?target.getColorTextureId():-1; }
@@ -55,7 +56,9 @@ public final class ReflectionRenderer implements AutoCloseable {
         ReflectionPass.enter(reflectedEye,range);
         try {
             if(target==null||target.width!=width||target.height!=height) {
-                close(); target=new TextureTarget(width,height,true,Minecraft.ON_OSX);created++;
+                if(target!=null) {state.excludeTexture(target.getColorTextureId());state.excludeTexture(target.getDepthTextureId());}
+                close(); target=new ManagedTarget();created++;
+                target.resize(width,height,Minecraft.ON_OSX);
                 target.setFilterMode(GL11.GL_LINEAR);
             }
             reflectedCamera.prepare(mc,camera,plane,partial);
@@ -64,6 +67,7 @@ public final class ReflectionRenderer implements AutoCloseable {
             mc.smartCull=false;
             redirected=target;
             RenderSystem.depthMask(true); RenderSystem.enableDepthTest();
+            RenderSystem.setShaderColor(1,1,1,1);
             target.setClearColor(.04f,.045f,.05f,1); target.clear(Minecraft.ON_OSX); target.bindWrite(true);
             RenderSystem.setProjectionMatrix(clipped,VertexSorting.DISTANCE_TO_ORIGIN);
             RenderSystem.setInverseViewRotationMatrix(new Matrix3f(view).invert());
@@ -81,6 +85,10 @@ public final class ReflectionRenderer implements AutoCloseable {
             textureProjection.set(clipped).mul(view).mul(local);
             ready=true;captures++;
             return true;
+        } catch(RuntimeException failure) {
+            try {mc.renderBuffers().bufferSource().endBatch();}
+            catch(RuntimeException cleanup) {failure.addSuppressed(cleanup);}
+            throw failure;
         } finally {
             redirected=null;
             mc.smartCull=smartCull;
@@ -98,8 +106,16 @@ public final class ReflectionRenderer implements AutoCloseable {
     @Override public void close() {
         RenderSystem.assertOnRenderThread();
         ready=false;
-        if(target!=null) { target.destroyBuffers(); target=null;destroyed++; }
+        if(target!=null) {
+            RenderTarget retiring=target;target=null;
+            try(var state=new ReflectionRenderState()) {
+                state.excludeTexture(retiring.getColorTextureId());state.excludeTexture(retiring.getDepthTextureId());
+                retiring.destroyBuffers();destroyed++;
+            }
+        }
     }
+    /** Publish ownership before allocation so a partial framebuffer failure can still be destroyed. */
+    private static final class ManagedTarget extends RenderTarget { ManagedTarget() {super(true);} }
     private static final class ReflectedCamera extends Camera {
         void prepare(Minecraft mc, Camera source, MirrorPlane plane,float partial) {
             setup(mc.level,mc.getCameraEntity(),true,false,partial);
