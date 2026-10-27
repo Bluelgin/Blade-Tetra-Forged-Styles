@@ -122,6 +122,7 @@ public final class FloatingBladeRenderer {
                 AwakeningPresentationTimeline.progress(tick,15,25))
                 * (1-AwakeningPresentationTimeline.progress(tick,100,120));
         return hand(s,partial).lerp(altar,flight)
+                .add(s.data.soul()==2?MirrorRitualController.bladeOffset(tick,f):Vec3.ZERO)
                 .add(0, Math.sin(tick*.14)*.055*hover + Math.sin(flight*Math.PI)*.22,0);
     }
 
@@ -150,6 +151,7 @@ public final class FloatingBladeRenderer {
         pose.translate(pos.x,pos.y,pos.z);
         Vec3 f=forward(s,partial);
         pose.mulPose(Axis.YP.rotation((float)Math.atan2(-f.x,f.z)));
+        if(s.data.soul()==2) pose.mulPose(Axis.YP.rotationDegrees(MirrorRitualController.bladeYaw(tick)));
         float flight=AwakeningPresentationTimeline.flight(tick,s.data.soul());
         float angle=AwakeningVisualProfile.get(s.data.soul()).angle();
         float spin=tick<85?(float)Math.sin(tick*.045)*8:0;
@@ -177,24 +179,16 @@ public final class FloatingBladeRenderer {
             float partial, float tick) {
         Vec3 pos = position(s,partial,tick);
         if (!localHandPass(s)) renderAt(s, pose, buffers, pos, tick, partial, false);
-        // Kyouka's ghosts use the exact same snapshot/native model, in real 3D space.
-        if (s.data.soul() == 2 && tick >= 45 && tick < 91) {
-            int count = dev.bladetetra.config.ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get() == 0 ? 2 : 4;
-            for (int i=0;i<count;i++) {
-                if (tick < 46+i*5) continue;
-                double a = i*Math.PI*2/count;
-                Vec3 f = forward(s,partial), side = new Vec3(f.z,0,-f.x);
-                Vec3 ghost = pos.add(side.scale(Math.cos(a)*1.3)).add(0,-.2,0)
-                        .add(f.scale(.4+Math.sin(a)*.6));
-                renderAt(s,pose,buffers,ghost,Math.min(tick-i*6,80),partial,true);
-            }
-            // Pseudo reflection beneath the real sword, no framebuffer/shader dependency.
-            pose.pushPose();
-            try {
-                Vec3 floor = root(s,partial);
-                pose.translate(0, 2*(floor.y+.04),0); pose.scale(1,-1,1);
-                renderAt(s,pose,buffers,pos,tick,partial,true);
-            } finally { pose.popPose(); }
+    }
+    /** Actual native blade plus delayed images, rendered only through the reflected world camera. */
+    public static void renderReflected(AwakeningSession s,PoseStack pose,MultiBufferSource buffers,float partial,float tick) {
+        renderAt(s,pose,buffers,position(s,partial,tick),tick,partial,false);
+        if(tick<42||tick>=83) return;
+        for(int i=1;i<=2;i++) {
+            float delayed=Math.max(20,tick-i*7);
+            Vec3 p=position(s,partial,delayed).add(new Vec3(forward(s,partial).z,0,-forward(s,partial).x)
+                    .scale(Math.sin(delayed*.15)*i*.12));
+            renderAt(s,pose,buffers,p,delayed,partial,true);
         }
     }
     private static void renderAt(AwakeningSession s, PoseStack pose, MultiBufferSource buffers,
@@ -209,6 +203,7 @@ public final class FloatingBladeRenderer {
             pose.translate(pos.x,pos.y,pos.z);
             Vec3 f = forward(s,partial);
             pose.mulPose(Axis.YP.rotation((float)Math.atan2(-f.x,f.z)));
+        if(s.data.soul()==2) pose.mulPose(Axis.YP.rotationDegrees(MirrorRitualController.bladeYaw(tick)));
             float flight = AwakeningPresentationTimeline.flight(tick,s.data.soul());
             float angle = AwakeningVisualProfile.get(s.data.soul()).angle();
             float spin = tick < 85 ? (float)Math.sin(tick*.045)*8 : 0;
@@ -218,11 +213,11 @@ public final class FloatingBladeRenderer {
             pose.scale(.0078125F,.0078125F,.0078125F);
             // Existing SlashBlade source coordinates, grip pivot rather than an icon pivot.
             pose.translate(-20,0,0);
-            if (!ghost) s.bladePose.blend(pose, flight);
+            if (!ghost&&!dev.bladetetra.client.reflection.ReflectionPass.active()) s.bladePose.blend(pose, flight);
             if (ghost) BladeRenderState.setCol(0x559AD9FF);
             s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
             if (!ghost && tick < 100) {
-                overlayAlpha = .25F + .3F * (float)Math.pow(Math.sin(tick * .2), 2);
+                overlayAlpha = s.data.soul()==2?.14F:.25F + .3F * (float)Math.pow(Math.sin(tick * .2), 2);
                 overlayTint = energy ? 0xFFFFFF : AwakeningPresentationTimeline.tint(s.data.soul());
                 s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
                 overlayAlpha = 0;

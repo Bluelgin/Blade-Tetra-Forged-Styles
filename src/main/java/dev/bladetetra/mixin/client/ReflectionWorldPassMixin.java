@@ -1,7 +1,7 @@
 package dev.bladetetra.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.bladetetra.client.reflection.ReflectionPrototype;
+import dev.bladetetra.client.reflection.MirrorRitualResources;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -21,6 +21,6 @@ public abstract class ReflectionWorldPassMixin {
             at=@At("HEAD"),remap=false)
     private void bladeTetra$reflectionBeforeWorld(PoseStack pose,float partial,long deadline,boolean outline,
             Camera camera,GameRenderer game,LightTexture light,Matrix4f projection,CallbackInfo ci) {
-        ReflectionPrototype.beforeWorld((LevelRenderer)(Object)this,pose,partial,deadline,camera,game,light,projection);
+        MirrorRitualResources.beforeWorld((LevelRenderer)(Object)this,pose,partial,deadline,camera,game,light,projection);
     }
 }

@@ -14,7 +14,6 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
 /** Stage-B gate: opt-in development world only. Not enabled in ordinary play. */
-@Mod.EventBusSubscriber(modid="blade_tetra",value=Dist.CLIENT)
 public final class ReflectionPrototype {
     private static final ReflectionRenderer RENDERER=new ReflectionRenderer();
     private static MirrorPlane plane;
@@ -51,5 +50,6 @@ public final class ReflectionPrototype {
             RENDERER.close();plane=null;
         }
     }
+    public static void release() { RENDERER.close();plane=null;failed=false;captures=0; }
     private ReflectionPrototype() {}
 }

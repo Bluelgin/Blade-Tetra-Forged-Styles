@@ -70,3 +70,57 @@ or shader engine is outside scope.
 - Mesa llvmpipe / OpenGL 4.5. No shader pack or alternate terrain renderer installed.
 - Stages C–E are deliberately gated on actual prototype screenshots and state checks.
   The ordinary Kyouka ritual has not been replaced yet. No real-time-reflection acceptance claim.
+
+
+## Prototype gate: actual result
+
+The opt-in scene subsequently completed in a real Forge client after the experimental-world
+confirmation was handled. All four images are original framebuffer screenshots, not simulations:
+[100](evidence/kyouka-v3/mirror-100.png), [140](evidence/kyouka-v3/mirror-140.png),
+[180](evidence/kyouka-v3/mirror-180.png), [220](evidence/kyouka-v3/mirror-220.png).
+The red/gold arch and emerald pillar are **behind the real observer** and appear inside the
+mirror. The observer's lateral movement and mirror yaw change the reflected perspective.
+Main target, camera position, projection and front winding restoration assertions did not fail.
+The scene log is retained alongside the images. This passes the minimum block/rotation/state gate;
+the cow was not sufficiently visible to call entity reflection visually accepted.
+
+The initial checkpoint's complete Build #710 succeeded, including the inherited Forge smoke jobs.
+The implementation below is a subsequent integration and requires its own build/client checks.
+
+## Integrated architecture and budgets (validation pending)
+
+`MirrorRitualController` derives six presentation phases on the original 120-tick clock.
+`MirrorRitualResources` selects one bounded existing session (local player first), owns one target,
+freezes captures at break tick 85 and draws after particles. Non-selected mirrors use the explicitly
+approximate metallic surface. No new packets, saved entities or server combat callbacks exist.
+
+The renderer receives a callback for the real detached blade and its delayed images; ghosts are
+visible through the reflection camera only. The old radial ghosts, pseudo floor, atlas planes and
+magic rings are removed. The existing hand departure, native model/material adapters, mounted
+sheath, HUD/name and return lifecycle remain in charge.
+
+The same deterministic triangulation supplies dark growing seams and physical shards (32/72/128
+triangles). Every shard keeps its original projective UVs and samples the single pre-break image.
+No per-shard capture or framebuffer is allocated. Thin solid backs, silver edges, tumbling and
+spiral gathering finish before the inherited weapon return ends.
+
+Reflection quality 0/1/2/3 is compatibility / 128px at 8Hz / 256px at 15Hz / 512px at 30Hz.
+Default is 2. Target height is capped at 1024; only one target exists globally. Frustum queries in
+the render-thread capture are additionally bounded to 24/40/64 blocks. Invisible, too-close,
+out-of-range and non-finite projections skip work. These are code budgets, not FPS measurements.
+
+Fabulous, Oculus/Iris, Embeddium/Rubidium/Sodium, OptiFine, Immersive Portals and Simply Mirrors
+use the labelled compatibility path. No support for those modified pipelines is claimed. Runtime
+capture failure quarantines captures until world change/resource reload. The test prototype is
+registered only by the explicit development launch flag, with no production tick subscriber.
+
+Resources are released on normal end, slot/weapon mismatch, death/world replacement, reload and
+capture failure using the existing ritual lifecycle. A fog mixin preserves vanilla underwater
+biome-transition history; GPU uniforms, framebuffer/viewport, projection, winding, depth/blend/cull
+and dispatcher cameras are restored separately. Alternate tilted-plane billboard orientation and
+unknown shader/portal renderers remain outside verified compatibility.
+
+Run `./gradlew runClient -PmirrorRitualReview` for the isolated native-blade replay matrix:
+first-person, third-person, FOV/window resize, compatibility, low quality/slot abort, high quality
+with resource reload, and a post-reload replay. This uses a debug-awakened actual Tetra blade and
+the existing successful-presentation service; it does not test natural first unlock progression.

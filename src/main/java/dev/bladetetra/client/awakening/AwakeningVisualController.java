@@ -55,6 +55,7 @@ public final class AwakeningVisualController {
     }
 
     public static void clear() {
+        dev.bladetetra.client.reflection.MirrorRitualResources.clear();
         SESSIONS.clear(); PENDING.clear(); worldReady=false; worldEntityPass=false; renderingPlayer=null; AwakeningIntroClient.cancel();
     }
     private static boolean enabled() {
@@ -132,6 +133,8 @@ public final class AwakeningVisualController {
             int age=(int)s.age(world,0);
             if(age==20||age==45||age==65||age==85||age==113||age==119) sound(s,age);
         }
+        if(SESSIONS.values().stream().noneMatch(s->s.data.soul()==2&&s.valid(world)))
+            dev.bladetetra.client.reflection.MirrorRitualResources.clear();
     }
     private static void sound(AwakeningSession s,int beat) {
         SoundEvent sound;
@@ -154,8 +157,30 @@ public final class AwakeningVisualController {
                 beat==85?.65F:.26F,beat==85?.8F:1.1F+s.data.soul()*.07F,false);
     }
 
+    /** Existing bounded session list; local player's mirror wins the single capture budget. */
+    public static AwakeningSession mirrorCandidate(float partial) {
+        if(world==null||!enabled()) return null;
+        var mc=Minecraft.getInstance();AwakeningSession best=null;double distance=Double.MAX_VALUE;
+        for(var s:SESSIONS.values()) {
+            float age=s.age(world,partial);
+            if(s.data.soul()!=2||!s.valid(world)||age<12||age>=112) continue;
+            if(s.owner==mc.player) return s;
+            double d=s.owner.distanceToSqr(mc.gameRenderer.getMainCamera().getPosition());
+            if(d<distance&&d<48*48) {distance=d;best=s;}
+        }
+        return best;
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void hideOriginal(RenderOverrideEvent e) {
+        if(dev.bladetetra.client.reflection.ReflectionPass.active()) {
+            if(!FloatingBladeRenderer.isRendering()) for(var s:SESSIONS.values()) {
+                if(dev.bladetetra.client.reflection.MirrorRitualResources.reflecting(s)
+                        &&AwakeningVisibility.hide(true,e.getStack()==s.owner.getMainHandItem(),true,false,e.getOriginalTarget()))
+                    e.setCanceled(true);
+            }
+            return;
+        }
         if(world==null||!enabled()||FloatingBladeRenderer.isRendering()
                 || (!worldEntityPass && renderingPlayer!=null)) return;
         for(var s:SESSIONS.values()) {
@@ -194,6 +219,11 @@ public final class AwakeningVisualController {
                 s.visible=s.valid(world)&&p.distanceToSqr(e.getCamera().getPosition())<max*max
                         && e.getFrustum().isVisible(new AABB(p.x-4,p.y-4,p.z-4,p.x+4,p.y+8,p.z+4));
             }
+            return;
+        }
+        if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+            for(var s:SESSIONS.values()) if(s.data.soul()==2&&s.visible&&s.valid(world))
+                dev.bladetetra.client.reflection.MirrorRitualResources.draw(s,e.getPoseStack().last().pose(),e.getCamera().getPosition(),e.getPartialTick());
             return;
         }
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;

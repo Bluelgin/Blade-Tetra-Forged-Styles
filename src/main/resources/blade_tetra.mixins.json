@@ -30,6 +30,8 @@
   "client": [
     "client.ReflectionTargetMixin",
     "client.ReflectionRenderStageMixin",
-    "client.ReflectionWorldPassMixin"
+    "client.ReflectionWorldPassMixin",
+    "client.ReflectionDistanceMixin",
+    "client.ReflectionFogMixin"
   ]
 }

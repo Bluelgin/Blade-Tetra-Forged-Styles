@@ -23,32 +23,42 @@ public final class ReflectionRenderer implements AutoCloseable {
     private final ReflectedCamera reflectedCamera=new ReflectedCamera();
     private final Matrix4f textureProjection=new Matrix4f();
     private boolean ready;
+    private int captures,created,destroyed;
+    public String status() {return "captures="+captures+", targets="+(created-destroyed)+", ready="+ready;}
     public boolean ready() { return ready; }
     public int texture() { return ready?target.getColorTextureId():-1; }
     public Matrix4f textureProjection() { return new Matrix4f(textureProjection); }
 
-    public void capture(MirrorPlane plane, int resolution, LevelRenderer renderer, PoseStack mainPose,
+    @FunctionalInterface public interface CaptureContent { void draw(PoseStack view,Camera camera); }
+    public boolean capture(MirrorPlane plane, int resolution, LevelRenderer renderer, PoseStack mainPose,
             float partial, long deadline, Camera camera, GameRenderer game, LightTexture light,
             Matrix4f projection) {
+        return capture(plane,resolution,renderer,mainPose,partial,deadline,camera,game,light,projection,64,null);
+    }
+    public boolean capture(MirrorPlane plane,int resolution,LevelRenderer renderer,PoseStack mainPose,
+            float partial,long deadline,Camera camera,GameRenderer game,LightTexture light,
+            Matrix4f projection,int range,CaptureContent content) {
         RenderSystem.assertOnRenderThread();
-        if(ReflectionPass.active()) return;
+        if(ReflectionPass.active()) return false;
         var mc=Minecraft.getInstance();
-        if(mc.level==null||mc.getCameraEntity()==null||Math.abs(plane.distance(camera.getPosition()))<.08) return;
-        if(!plane.visible(mainPose.last().pose(),projection,camera.getPosition())) return;
+        if(mc.level==null||mc.getCameraEntity()==null||Math.abs(plane.distance(camera.getPosition()))<.08) return false;
+        if(!plane.visible(mainPose.last().pose(),projection,camera.getPosition())) return false;
         RenderTarget main=mc.getMainRenderTarget();
         boolean smartCull=mc.smartCull;
-        int width=Math.max(64,resolution),height=Math.max(64,Math.round(width*(float)main.height/main.width));
+        int width=Math.max(64,Math.min(1024,resolution)),height=Math.min(1024,Math.max(64,Math.round(width*(float)main.height/main.width)));
+        Vec3 eye=camera.getPosition(),reflectedEye=plane.reflectPoint(eye);
+        Matrix4f view=plane.reflectedView(mainPose.last().pose());
+        Matrix4f clipped;
+        try { clipped=plane.clippedProjection(projection,view,eye); }
+        catch(IllegalArgumentException transientProjection) { return false; }
         var state=new ReflectionRenderState();
-        ReflectionPass.enter();
+        ReflectionPass.enter(reflectedEye,range);
         try {
             if(target==null||target.width!=width||target.height!=height) {
-                close(); target=new TextureTarget(width,height,true,Minecraft.ON_OSX);
+                close(); target=new TextureTarget(width,height,true,Minecraft.ON_OSX);created++;
                 target.setFilterMode(GL11.GL_LINEAR);
             }
-            Vec3 eye=camera.getPosition(),reflectedEye=plane.reflectPoint(eye);
             reflectedCamera.prepare(mc,camera,plane,partial);
-            Matrix4f view=plane.reflectedView(mainPose.last().pose());
-            Matrix4f clipped=plane.clippedProjection(projection,view,eye);
             PoseStack pose=new PoseStack(); pose.mulPoseMatrix(view);
             pose.last().normal().set(new Matrix3f(view));
             mc.smartCull=false;
@@ -61,6 +71,7 @@ public final class ReflectionRenderer implements AutoCloseable {
             renderer.prepareCullFrustum(pose,reflectedEye,clipped);
             // Vanilla terrain and entities; no hand, GUI, post-process or recursive stage effects.
             renderer.renderLevel(pose,partial,deadline,false,reflectedCamera,game,light,clipped);
+            if(content!=null) content.draw(pose,reflectedCamera);
             mc.renderBuffers().bufferSource().endBatch();
             Vec3 d=plane.center().subtract(reflectedEye),r=plane.right().scale(plane.halfWidth()),u=plane.up().scale(plane.halfHeight());
             Matrix4f local=new Matrix4f(
@@ -68,7 +79,8 @@ public final class ReflectionRenderer implements AutoCloseable {
                     (float)u.x,(float)u.y,(float)u.z,0,
                     0,0,1,0,(float)d.x,(float)d.y,(float)d.z,1);
             textureProjection.set(clipped).mul(view).mul(local);
-            ready=true;
+            ready=true;captures++;
+            return true;
         } finally {
             redirected=null;
             mc.smartCull=smartCull;
@@ -77,6 +89,8 @@ public final class ReflectionRenderer implements AutoCloseable {
                 ReflectionPass.leave();
                 renderer.prepareCullFrustum(mainPose,camera.getPosition(),projection);
                 mc.getEntityRenderDispatcher().prepare(mc.level,camera,mc.crosshairPickEntity);
+                mc.getBlockEntityRenderDispatcher().prepare(mc.level,camera,mc.hitResult);
+                com.mojang.blaze3d.vertex.BufferUploader.invalidate();
             }
         }
     }
@@ -84,7 +98,7 @@ public final class ReflectionRenderer implements AutoCloseable {
     @Override public void close() {
         RenderSystem.assertOnRenderThread();
         ready=false;
-        if(target!=null) { target.destroyBuffers(); target=null; }
+        if(target!=null) { target.destroyBuffers(); target=null;destroyed++; }
     }
     private static final class ReflectedCamera extends Camera {
         void prepare(Minecraft mc, Camera source, MirrorPlane plane,float partial) {

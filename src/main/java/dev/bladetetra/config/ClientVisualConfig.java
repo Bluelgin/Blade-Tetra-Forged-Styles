@@ -5,6 +5,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 /** Client-owned controls for material and soul visual effects. */
 public final class ClientVisualConfig {
     public static final ForgeConfigSpec SPEC;
+    public static final ForgeConfigSpec.IntValue MIRROR_REFLECTION_QUALITY;
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EMISSIVE_TEXTURES;
     public static final ForgeConfigSpec.DoubleValue EMISSIVE_INTENSITY;
@@ -47,6 +48,9 @@ public final class ClientVisualConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         builder.push("visuals");
+        MIRROR_REFLECTION_QUALITY=builder.comment("Kyouka planar reflection: 0=approximate compatibility, 1=128px/8Hz, 2=256px/15Hz, 3=512px/30Hz.",
+                "Alternate terrain renderers/shader mods and Fabulous automatically use compatibility mode.")
+                .defineInRange("mirrorReflectionQuality",2,0,3);
         SWORD_AURA_DETAIL = builder
                 .comment("Lifeng sword aura detail: 0 = main layer only, 1 = balanced, 2 = full.",
                         "Balanced halves the decoration distance and per-frame budget. Damage is unchanged.")

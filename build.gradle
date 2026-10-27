@@ -34,6 +34,10 @@ minecraft {
                 property 'blade_tetra.customStyleInputReview', 'true'
                 property 'blade_tetra.customStyleDebug', 'true'
             }
+            if (project.hasProperty('mirrorRitualReview')) {
+                workingDirectory project.file('build/mirror-ritual-review')
+                property 'blade_tetra.mirrorRitualReview', 'true'
+            }
             if (project.hasProperty('mirrorPrototype')) {
                 workingDirectory project.file('build/mirror-prototype')
                 property 'blade_tetra.mirrorPrototype', 'true'
@@ -106,7 +110,7 @@ minecraft {
         }
 
         client {
-            if (project.hasProperty('mirrorPrototype')) {
+            if (project.hasProperty('mirrorPrototype') || project.hasProperty('mirrorRitualReview')) {
                 args '--width', '960', '--height', '540'
             }
             if (project.hasProperty('artPreview')) {
