@@ -102,6 +102,7 @@ public final class SakuraCombatVisuals {
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
         CURRENT.remove(e.getEntity().getUUID());
+        SLASHES.values().removeIf(attack -> attack.player.getUUID().equals(e.getEntity().getUUID()));
     }
     @SubscribeEvent public static void stop(ServerStoppedEvent e) {
         CURRENT.clear(); SLASHES.clear(); nextSequence = 0;

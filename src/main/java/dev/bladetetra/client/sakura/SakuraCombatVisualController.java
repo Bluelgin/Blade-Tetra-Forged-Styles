@@ -32,9 +32,10 @@ import java.util.UUID;
 public final class SakuraCombatVisualController {
     public static final int MAX_OWNERS = 8;
     private static final Map<UUID, View> VIEWS = new LinkedHashMap<>();
+    private static final List<View> DRAW_ORDER = new ArrayList<>(MAX_OWNERS);
     private static final List<Pending> PENDING = new ArrayList<>();
     private static ClientLevel world;
-    public static void clear() { VIEWS.clear(); PENDING.clear(); world=null; }
+    public static void clear() { VIEWS.clear(); DRAW_ORDER.clear(); PENDING.clear(); world=null; }
     private static void syncWorld() {
         var next=Minecraft.getInstance().level;
         if(world!=next) { clear(); world=next; }
@@ -110,7 +111,7 @@ public final class SakuraCombatVisualController {
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e) {
         if(e.phase!=TickEvent.Phase.END) return;
         syncWorld();
-        if(world==null||!enabled()) {VIEWS.clear();PENDING.clear();return;}
+        if(world==null||!enabled()) {VIEWS.clear();DRAW_ORDER.clear();PENDING.clear();return;}
         if(Minecraft.getInstance().isPaused()) return;
         long now=world.getGameTime();
         VIEWS.values().removeIf(v->world.getPlayerByUUID(v.owner.getUUID())!=v.owner||!eligible(v.owner));
@@ -121,7 +122,11 @@ public final class SakuraCombatVisualController {
         candidates.sort(Comparator.comparingDouble(p->local==null?0:local.distanceToSqr(p)));
         int owners=Math.min(MAX_OWNERS,candidates.size());
         VIEWS.values().removeIf(v->!candidates.subList(0,owners).contains(v.owner));
-        for(int i=0;i<owners;i++) view(candidates.get(i));
+        DRAW_ORDER.clear();
+        for(int i=0;i<owners;i++) {
+            View chosen=view(candidates.get(i));
+            if(chosen!=null) DRAW_ORDER.add(chosen);
+        }
         var pending=PENDING.iterator();
         while(pending.hasNext()) {
             Pending item=pending.next();
@@ -165,7 +170,7 @@ public final class SakuraCombatVisualController {
         if(world==null||!enabled()) return;
         int quality=ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get();
         int budget=quality==0?1024:quality==1?3072:6144;
-        for(View view:VIEWS.values()) {
+        for(View view:DRAW_ORDER) {
             if(!eligible(view.owner)||view.owner.distanceToSqr(eye)>distance()*distance()) continue;
             var bounds=view.owner.getBoundingBox().inflate(3);
             for(var group:view.pool.groups) if(group!=null)
