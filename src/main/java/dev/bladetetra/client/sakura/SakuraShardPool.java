@@ -15,6 +15,7 @@ public final class SakuraShardPool {
         public int history;
         public float visibility = 1, previousVisibility = 1;
         float initialVisibility;
+        boolean departureFromHome;
         Group group;
         double delay;
         Vec3 start, returnStart, returnVelocity;
@@ -104,6 +105,7 @@ public final class SakuraShardPool {
                     && shard.state == State.TRANSITION && shard.visibility > .6F;
             if(shard.flying() && !forming) continue;
             shard.group=group; shard.state=State.LAUNCH;
+            shard.departureFromHome=!forming;
             shard.start=shard.position; shard.delay=group.members*.28;
             shard.returnStart=null; shard.history=0;
             group.members++;
@@ -137,10 +139,20 @@ public final class SakuraShardPool {
                 recordMotion(shard);
                 continue;
             }
+            // Forming shards can join a follow-up before fully opaque. Their
+            // transition no longer ticks, so finish the fade while they attack.
+            if(stance!=null&&stance.dispersing()) shard.visibility=Math.min(1,shard.visibility+.2F);
             if(!shard.flying()) { shard.position=home; continue; }
             Group group=shard.group;
             double age=time-group.startedAt-shard.delay;
-            if(age<0) { shard.start=home; shard.position=home; continue; }
+            if(age<0) {
+                // Idle departures follow their moving home until launch. A
+                // forming departure already has a real position along the
+                // down-cleave path; snapping it home would break continuity.
+                if(shard.departureFromHome) shard.start=home;
+                shard.position=shard.start;
+                continue;
+            }
             if((group.canceled || age>=LAUNCH_TICKS+SLASH_TICKS) && shard.state!=State.RETURN) {
                 Vec3 start=group.canceled?shard.position:
                         orbit(group.center,group.forward,shard.index,group.stage,1);

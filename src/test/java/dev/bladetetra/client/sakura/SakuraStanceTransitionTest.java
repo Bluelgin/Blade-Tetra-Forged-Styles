@@ -55,4 +55,20 @@ class SakuraStanceTransitionTest {
         assertTrue(pool.launch(1,3,6,6,new Vec3(0,1,4),-1,false));
         assertEquals(48,pool.shards.length);
     }
+    @Test void delayedFormingDeparturesKeepTheirRealPositionAndFinishFading() {
+        var pool=new SakuraShardPool(48,FRAME,0);pool.hide();pool.beginStance(true,0,GRIP,TIP,1);
+        for(int t=0;t<=4;t++) pool.tick(FRAME,t,GRIP,TIP);
+        assertTrue(pool.launch(6,4,4,4,new Vec3(0,1,4),-1,false));
+        var delayed=java.util.Arrays.stream(pool.shards)
+                .filter(s->s.state==SakuraShardPool.State.LAUNCH&&s.delay>0&&s.visibility<1)
+                .findFirst().orElseThrow();
+        Vec3 departure=delayed.position;
+        assertTrue(departure.distanceToSqr(SakuraShardFormation.home(FRAME,delayed.index,48,4))>.001);
+        pool.tick(FRAME,4.01,GRIP,TIP);
+        assertEquals(departure,delayed.position,"waiting blade must not teleport to the rear formation");
+        for(int t=5;t<=35;t++) pool.tick(FRAME,t,GRIP,TIP);
+        assertEquals(1,delayed.visibility,"departed forming blade must finish its fade");
+        assertEquals(SakuraShardPool.State.IDLE,delayed.state);
+        assertEquals(SakuraShardFormation.home(FRAME,delayed.index,48,35),delayed.position);
+    }
 }
