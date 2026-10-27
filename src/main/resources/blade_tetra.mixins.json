@@ -26,5 +26,10 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "client": [
+    "client.ReflectionTargetMixin",
+    "client.ReflectionRenderStageMixin",
+    "client.ReflectionWorldPassMixin"
+  ]
 }
