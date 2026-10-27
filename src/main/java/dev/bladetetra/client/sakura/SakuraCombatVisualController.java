@@ -5,6 +5,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.client.awakening.AwakeningVisualController;
 import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.easteregg.SakuraEndlessFlow;
+import dev.bladetetra.easteregg.SakuraStanceController;
 import dev.bladetetra.easteregg.SakuraFlowRules;
 import dev.bladetetra.network.AwakenedBladeVfxPacket;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
@@ -35,7 +36,7 @@ public final class SakuraCombatVisualController {
     private static final List<View> DRAW_ORDER = new ArrayList<>(MAX_OWNERS);
     private static final List<Pending> PENDING = new ArrayList<>();
     private static ClientLevel world;
-    public static void clear() { VIEWS.clear(); DRAW_ORDER.clear(); PENDING.clear(); world=null; }
+    public static void clear() { VIEWS.clear(); DRAW_ORDER.clear(); PENDING.clear(); world=null; SakuraBladeAnchor.clear(); }
     private static void syncWorld() {
         var next=Minecraft.getInstance().level;
         if(world!=next) { clear(); world=next; }
@@ -51,9 +52,31 @@ public final class SakuraCombatVisualController {
     }
     private static boolean eligible(Player player) {
         var mc=Minecraft.getInstance();
-        return player.isAlive() && SakuraEndlessFlow.eligible(player.getMainHandItem())
+        View existing=VIEWS.get(player.getUUID());
+        boolean transition=existing!=null&&existing.bladeId.equals(bladeId(player))
+                &&existing.pool.stance()!=null&&existing.pool.stance().active(player.level().getGameTime());
+        return player.isAlive() && SakuraStanceController.supported(player.getMainHandItem())
+                && (SakuraStanceController.dispersed(player.getMainHandItem()) || transition)
                 && !AwakeningVisualController.presenting(player) && !bladeId(player).isBlank()
                 && (mc.player==null||mc.player.distanceToSqr(player)<=distance()*distance());
+    }
+    private static boolean stanceEligible(Player p) {
+        return p.isAlive()&&SakuraStanceController.supported(p.getMainHandItem())
+                &&!AwakeningVisualController.presenting(p)&&!bladeId(p).isBlank()
+                &&(Minecraft.getInstance().player==null||Minecraft.getInstance().player.distanceToSqr(p)<=distance()*distance());
+    }
+    private static float fraction(View v,double now) {
+        var t=v.pool.stance();
+        return t==null?(SakuraStanceController.dispersed(v.owner.getMainHandItem())?0:1):t.fraction(now);
+    }
+    public static float bladeFraction(Player owner,float partial) {
+        View v=VIEWS.get(owner.getUUID());
+        return v!=null&&v.bladeId.equals(bladeId(owner))?fraction(v,owner.level().getGameTime()+partial)
+                :SakuraStanceController.dispersed(owner.getMainHandItem())?0:1;
+    }
+    public static void capture(Player owner,mods.flammpfeil.slashblade.event.client.RenderOverrideEvent e,boolean firstPerson) {
+        View v=VIEWS.get(owner.getUUID());
+        if(v!=null&&v.bladeId.equals(bladeId(owner))) v.anchor.capture(owner,e,firstPerson);
     }
     private static int count() {
         return switch(ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get()) {case 0->24;case 2->72;default->48;};
@@ -82,10 +105,26 @@ public final class SakuraCombatVisualController {
     private static boolean apply(AwakenedBladeVfxPacket packet) {
         var cue=packet.sakura();
         Player owner=world.getPlayerByUUID(cue.owner());
-        if(owner==null||!eligible(owner)||!cue.matchesHeld(owner.getUUID(),bladeId(owner),
+        boolean stance=packet.type()>=AwakenedBladeVfxPacket.SAKURA_DISPERSE;
+        if(owner==null||!(stance?stanceEligible(owner):eligible(owner))||!cue.matchesHeld(owner.getUUID(),bladeId(owner),
                 owner.getInventory().selected,owner==Minecraft.getInstance().player)) return false;
+        boolean existed=VIEWS.containsKey(owner.getUUID());
         View view=view(owner);
         if(view==null) return true; // outside this client's fixed owner budget
+        if(stance) {
+            if(cue.sequence()<=view.stanceSequence) return true;
+            view.stanceSequence=cue.sequence();
+            float from=view.pool.stance()==null
+                    ?(packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE?1:0):fraction(view,world.getGameTime());
+            boolean disperse=packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE;
+            if(disperse&&view.pool.stance()==null) view.pool.hide();
+            if(!existed&&!disperse) for(var shard:view.pool.shards) shard.visibility=shard.previousVisibility=1;
+            // Start locally from current positions; never fast-forward skipped flight
+            // into a teleport when an authoritative packet arrives late.
+            view.pool.beginStance(disperse,world.getGameTime(),view.anchor.grip(owner),view.anchor.tip(owner),from);
+            java.util.Arrays.fill(view.targets,null);
+            return true;
+        }
         Vec3 target=new Vec3(packet.endX(),packet.endY(),packet.endZ());
         if(target.distanceToSqr(owner.position())>144) return true;
         long now=world.getGameTime();
@@ -150,7 +189,7 @@ public final class SakuraCombatVisualController {
                     group.canceled=true;
                 else group.goal=target.getBoundingBox().getCenter();
             }
-            v.pool.tick(frame(v.owner),now);
+            v.pool.tick(frame(v.owner),now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
         }
     }
     private static void predict(View view,long now) {
@@ -184,6 +223,8 @@ public final class SakuraCombatVisualController {
         final Player owner;
         final String bladeId;
         final int slot;
+        long stanceSequence;
+        final SakuraBladeAnchor anchor=new SakuraBladeAnchor();
         SakuraShardPool pool;
         final LivingEntity[] targets=new LivingEntity[SakuraShardPool.MAX_GROUPS];
         final SakuraShardPool.Group[] boundGroups=new SakuraShardPool.Group[SakuraShardPool.MAX_GROUPS];
@@ -193,6 +234,7 @@ public final class SakuraCombatVisualController {
         View(Player owner,String id,long time) {
             this.owner=owner; bladeId=id; slot=owner.getInventory().selected;
             lastRoot=owner.position(); pool=new SakuraShardPool(count(),frame(owner),time);
+            if(!SakuraStanceController.dispersed(owner.getMainHandItem())) pool.hide();
         }
     }
     private record Pending(AwakenedBladeVfxPacket packet,long expires) {}

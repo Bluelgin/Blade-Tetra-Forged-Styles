@@ -116,8 +116,9 @@ public final class LegacyModelPartRenderer {
     private static void renderPart(RenderOverrideEvent event,
             LegacyImprintKind kind, Part part, String target,
             ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
-        boolean dispersed = SenbonzakuraDispersedRender.hiltOnly(event.getStack(), target);
-        if (dispersed && part == Part.BLADE) return;
+        float bladeFraction=SenbonzakuraDispersedRender.bladeFraction(event.getStack(),target);
+        boolean retainedHilt=bladeFraction<.999F&&part!=Part.BLADE;
+        if (bladeFraction<=.001F && part == Part.BLADE) return;
         NamedLegacyParts installedParts = NamedLegacyParts.visualFromStack(event.getStack());
         if (part == Part.TSUKA && installedParts.tsuba() != null) return;
         if (part == Part.TSUBA && kind != null) part = Part.HILT;
@@ -155,7 +156,7 @@ public final class LegacyModelPartRenderer {
                             ordinaryEmissive, poses, event.getBuffer(), event.getPackedLightIn());
                 }
             };
-            if (dispersed) SenbonzakuraDispersedRender.retainedPart(draw); else draw.run();
+            if (retainedHilt) SenbonzakuraDispersedRender.retainedPart(draw); else draw.run();
         } finally {
             poses.popPose();
             BladeRenderState.resetCol();

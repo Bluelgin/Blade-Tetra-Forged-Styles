@@ -32,6 +32,7 @@ public final class SakuraCombatVisuals {
     private static final Map<UUID, Attack> CURRENT = new HashMap<>();
     private static final Map<EntitySlashEffect, Attack> SLASHES = new WeakHashMap<>();
     private static long nextSequence;
+    static long nextSequence() { return ++nextSequence; }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void motion(mods.flammpfeil.slashblade.event.BladeMotionEvent event) {
@@ -61,7 +62,7 @@ public final class SakuraCombatVisuals {
             return previous;
         var tag = blade.getTag();
         if (tag == null || tag.getString("id").isBlank()) return null;
-        Attack attack = new Attack(player, blade, tag.getString("id"), stage, ++nextSequence, at);
+        Attack attack = new Attack(player, blade, tag.getString("id"), stage, nextSequence(), at);
         CURRENT.put(player.getUUID(), attack);
         boolean validTarget = locked instanceof LivingEntity living && living.isAlive()
                 && player.distanceToSqr(living) <= 144;

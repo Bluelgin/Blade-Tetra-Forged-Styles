@@ -130,6 +130,7 @@ public final class SakuraCombatSmokeTest {
             tag.putBoolean("blade_tetra_awakened_v2_sakura_dispersed",false);
             state.setComboSeq(ComboStateRegistry.COMBO_B6.getId()); state.setLastActionTime(level.getGameTime()-4);
             check(state.progressCombo(actor,true).equals(ComboStateRegistry.COMBO_B7.getId()),"ordinary native B6/B7 unchanged");
+            SakuraStanceSmoke.verify(level,actor,blade);
             LogUtils.getLogger().info("SAKURA_COMBAT_SMOKE_PASS: three B1-B6 cycles, seven native B6 hits, original damage, early input guard, virtual query costs, A/S/SS/SSS exact debit and no credit, input release, Rank exhaustion, stance retained, ordinary B7 unchanged");
         } catch(Throwable failure) {
             LogUtils.getLogger().error("SAKURA_COMBAT_SMOKE_FAIL",failure);

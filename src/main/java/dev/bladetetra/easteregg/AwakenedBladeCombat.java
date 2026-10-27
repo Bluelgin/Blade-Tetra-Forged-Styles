@@ -195,14 +195,13 @@ public final class AwakenedBladeCombat {
                 || !(event.getEntityLiving() instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || soul == SoulLegacyState.Legacy.SENBONZAKURA) return;
         ServerLevel level = player.serverLevel();
         State state = state(player, blade);
         long now = level.getGameTime();
         switch (soul) {
             case AKATSUKI -> releaseAkatsuki(level, player, blade, state, now);
             case KYOUKA -> releaseKyouka(level, player, blade, state, now);
-            case SENBONZAKURA -> releaseSenbonzakura(level, player, blade, state, now);
             case RAIKIRI -> releaseRaikiri(level, player, blade, state, now);
             default -> {
             }
@@ -368,21 +367,6 @@ public final class AwakenedBladeCombat {
             }
             default -> { }
         }
-    }
-
-    private static void releaseSenbonzakura(ServerLevel level, ServerPlayer player,
-            ItemStack blade, State state, long now) {
-        // Remove standalone ring/fan/rain SA. Shift+SA only switches forms.
-        if (!player.isShiftKeyDown() || now < state.stanceUntil
-                || dev.bladetetra.combat.StyleResolver.resolve(blade)
-                        != dev.bladetetra.combat.BladeStyle.RENGEKI) return;
-        CompoundTag tag = blade.getOrCreateTag();
-        boolean dispersed = !tag.getBoolean(SAKURA_DISPERSED);
-        tag.putBoolean(SAKURA_DISPERSED, dispersed);
-        state.stanceUntil = now + 12L;
-        Vec3 pos = player.position().add(0, 1, 0);
-        visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
-                AwakenedBladeVfxPacket.STANCE, pos, pos, dispersed ? 1 : 0);
     }
 
     /**
@@ -866,7 +850,6 @@ public final class AwakenedBladeCombat {
         long lastStep;
         int stepChain;
         boolean stepConfirmed;
-        long stanceUntil;
         int lastSyncedMeter = -1;
         int lastSyncedMinimum = -1;
         int lastSyncedCost = -1;

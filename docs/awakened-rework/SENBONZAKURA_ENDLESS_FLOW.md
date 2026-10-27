@@ -4,15 +4,15 @@
 
 Stacked on **Draft PR #41**; no changes to other awakened swords or to normal Rengeki.
 
-## Player loop
+## Player loop (current 2.2)
 
 1. Earn at least **A** native SlashBlade Rank while condensed.
-2. Sneak + successful Slash Art to disperse: sword and sheath fragment; combat render leaves a hilt and a rear half-moon.
-3. Start native B1–B7 Rengeki while dispersed. Entry Rank (A/S/SS/SSS) is locked for burn rate.
-4. Continue input after the final B7 native hit frame; if Rank remains, B7 loops to B1. Rank debits in 10-tick batches.
-5. Stop or exhaust Rank: natural combo exit; the item remains dispersed with a persistent crescent. Condense voluntarily to earn Rank.
+2. Use native aerial Back+Sneak+Right Click (`slashblade:aerial_cleave`) to disperse, even on a miss. Only the real blade dissolves; the native sheath remains mounted.
+3. Native B1–B6 loops while Rank burns. Entry Rank (A/S/SS/SSS) determines burn rate. All seven B6 hit callbacks finish before re-entry.
+4. Burnout stops the loop but retains the rear crescent. Native grounded Back+Sneak+Right Click (`slashblade:upperslash`) condenses, even at zero Rank.
+5. The same pool returns its idle and attacking shards to the real blade. Slash Arts do not switch forms. No dedicated key, alternate damage, or ring/fan/rain SA.
 
-Native damage and stun callbacks are unchanged. The former standalone ring/fan/rain SA and automatic petal countercuts are retired in V2. No cosmetic fragment performs independent damage.
+See [2.2 authority, animation and testing](SAKURA_22.md) and [2.1 shard architecture](SAKURA_21.md).
 
 ## Rank rules
 
@@ -40,7 +40,7 @@ The legacy Sakura-array config key is retained for compatibility but unused in t
 
 - [ ] Visible hilt only; sheath and sword body truly absent in dispersed first- and third-person; original item icon intact.
 - [ ] Full original Tetra blade and sheath return in condensed form.
-- [ ] At A+, native B1–B7 can loop; when Rank expires, early B7 restart is blocked and form stays dispersed.
+- [ ] At A+, native B1–B6 can loop; Rank exhaustion blocks renewal and preserves dispersed form; native Upper Slash still condenses.
 - [ ] A and SSS have observably different total flow duration.
 - [ ] Native Rank never increases net while dispersed, even on repeated attacks.
 - [ ] Ordinary native stun, knockback and damage are untouched.

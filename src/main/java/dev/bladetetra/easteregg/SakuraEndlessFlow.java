@@ -67,6 +67,16 @@ public final class SakuraEndlessFlow {
         if (B5.equals(current) && B6.equals(event.getNextCombo()) && SakuraSixthCombo.compatible()) {
             event.setNextCombo(SakuraSixthCombo.SIXTH.getId());
         } else if (SakuraSixthCombo.SIXTH.getId().equals(current)) {
+            // A completed B6 may yield to an actual native stance command even
+            // after Rank burns out. Read the existing root; do not invent inputs.
+            if (SakuraFlowRules.completedB6(ComboState.getElapsed(event.getUser()))) {
+                var root = ComboStateRegistry.REGISTRY.get().getValue(event.getSlashBladeState().getComboRoot());
+                var command = root == null ? null : root.getNext(event.getUser());
+                if (SakuraStanceRules.action(command) != 0) {
+                    event.setNextCombo(command);
+                    return;
+                }
+            }
             // Preserve the upstream early-input self guard. A legitimate native
             // input call after all seven B6 hit ticks can restart B1.
             if (!SakuraFlowRules.completedB6(ComboState.getElapsed(event.getUser()))

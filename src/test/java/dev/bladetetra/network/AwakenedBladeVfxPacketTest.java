@@ -36,7 +36,7 @@ class AwakenedBladeVfxPacketTest {
         assertFalse(new AwakenedBladeVfxPacket(3,5,0,0,0,1,1,1,0).valid());
         assertFalse(new AwakenedBladeVfxPacket(3,1,Double.NaN,0,0,1,1,1,0).valid());
         assertFalse(new AwakenedBladeVfxPacket(3,1,0,0,0,Double.POSITIVE_INFINITY,1,1,0).valid());
-        for(int stage:new int[]{0,7,255}) {
+        for(int stage:new int[]{0,9,255}) {
             var cue=new AwakenedBladeVfxPacket.SakuraCue(java.util.UUID.randomUUID(), "id", 0,
                     new net.minecraft.resources.ResourceLocation("minecraft","overworld"),stage,1,0,-1);
             assertFalse(cue.valid());
@@ -54,5 +54,18 @@ class AwakenedBladeVfxPacketTest {
         assertTrue(cue.matchesHeld(owner,"actual-tetra-id",6,true));
         assertFalse(cue.matchesHeld(java.util.UUID.randomUUID(),"actual-tetra-id",6,false));
         assertFalse(cue.matchesHeld(owner,"different-tetra-id",6,false));
+    }
+    @Test void stanceCuesRequireTheMatchingActionAndNeverMasqueradeAsBHits() {
+        for(int type=7;type<=8;type++) {
+            var cue=new AwakenedBladeVfxPacket.SakuraCue(java.util.UUID.randomUUID(),"id",2,
+                    new net.minecraft.resources.ResourceLocation("minecraft","overworld"),type,123,100,-1);
+            var p=new AwakenedBladeVfxPacket(3,type,0,1,0,0,1,0,0,cue);
+            assertTrue(p.valid());
+            var buf=new FriendlyByteBuf(Unpooled.buffer());
+            try {AwakenedBladeVfxPacket.encode(p,buf);assertEquals(p,AwakenedBladeVfxPacket.decode(buf));}
+            finally {buf.release();}
+            assertFalse(new AwakenedBladeVfxPacket(3,5,0,1,0,0,1,0,0,cue).valid());
+            assertFalse(new AwakenedBladeVfxPacket(3,type==7?8:7,0,1,0,0,1,0,0,cue).valid());
+        }
     }
 }

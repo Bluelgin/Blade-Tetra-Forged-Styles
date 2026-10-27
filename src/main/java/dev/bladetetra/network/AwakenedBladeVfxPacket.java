@@ -24,7 +24,7 @@ public record AwakenedBladeVfxPacket(int soul, int type,
         }
         public boolean valid() {
             return owner != null && bladeId != null && !bladeId.isBlank() && bladeId.length() <= 128
-                    && slot >= 0 && slot < 9 && dimension != null && stage >= 1 && stage <= 6 && sequence > 0
+                    && slot >= 0 && slot < 9 && dimension != null && stage >= 1 && stage <= 8 && sequence > 0
                     && actionAt >= 0 && targetId >= -1;
         }
     }
@@ -34,11 +34,13 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     }
     public static final int SAKURA_SWING = 5;
     public static final int SAKURA_HIT = 6;
+    public static final int SAKURA_DISPERSE = 7, SAKURA_CONDENSE = 8;
     public boolean valid() {
-        return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_HIT
+        return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_CONDENSE
                 && finitePosition(x, y, z) && finitePosition(endX, endY, endZ)
                 && (type < SAKURA_SWING ? sakura == null
-                    : soul == 3 && sakura != null && sakura.valid());
+                    : soul == 3 && sakura != null && sakura.valid()
+                        && (type <= SAKURA_HIT ? sakura.stage() <= 6 : sakura.stage() == type));
     }
     private static boolean finitePosition(double x, double y, double z) {
         return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z)

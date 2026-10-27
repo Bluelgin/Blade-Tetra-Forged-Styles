@@ -13,10 +13,12 @@ public final class SakuraShardRenderer {
     private static final Vec3 UP=new Vec3(0,1,0);
     public static int draw(BufferBuilder buffer,Matrix4f matrix,Vec3 eye,SakuraShardPool pool,
             float partial,float intensity,int quality,int budget) {
-        float alpha=Math.min(1,intensity)*.84F;
+        float baseAlpha=Math.min(1,intensity)*.84F;
         boolean near=quality>0&&pool.shards[0].position.distanceToSqr(eye)<24*24;
         for(var shard:pool.shards) {
             if(budget<=0) break;
+            float alpha=baseAlpha*(shard.previousVisibility+(shard.visibility-shard.previousVisibility)*partial);
+            if(alpha<=.001F) continue;
             Vec3 center=shard.previous.lerp(shard.position,partial);
             Vec3 direction=shard.flying()?shard.direction:new Vec3(
                     Math.sin((shard.index+.5)*Math.PI/pool.shards.length-Math.PI/2)*.35,1,.10).normalize();
@@ -56,7 +58,7 @@ public final class SakuraShardRenderer {
             if(group==null||!group.confirmed) continue;
             double age=pool.time()+partial-group.confirmedAt;
             if(age<0||age>=3||budget<2) continue;
-            float a=(float)((1-age/3)*.48)*alpha;
+            float a=(float)((1-age/3)*.48)*baseAlpha;
             Vec3 x=new Vec3(.22,.14,0), y=new Vec3(-.22,.14,0), w=new Vec3(0,.012,.012);
             solid(buffer,matrix,group.hitPosition.subtract(x).add(w),group.hitPosition.add(x).add(w),
                     group.hitPosition.add(x).subtract(w),group.hitPosition.subtract(x).subtract(w),a,0xFFF6FB);

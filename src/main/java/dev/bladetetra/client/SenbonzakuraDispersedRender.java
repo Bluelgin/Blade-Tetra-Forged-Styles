@@ -36,19 +36,35 @@ public final class SenbonzakuraDispersedRender {
     public static void guiPre(net.minecraftforge.client.event.RenderGuiEvent.Pre e) { handPass = false; }
     @SubscribeEvent
     public static void levelStage(RenderLevelStageEvent e) {
-        if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) worldPlayerPass = true;
+        if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
+            worldPlayerPass = true;
+            dev.bladetetra.client.sakura.SakuraBladeAnchor.frame(e.getPoseStack().last().pose(),
+                    com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix(),e.getCamera().getPosition());
+        }
         if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) worldPlayerPass = false;
         renderingPlayer = null;
         handPass = false;
     }
 
-    static boolean hiltOnly(ItemStack stack, String target) {
-        if (!AwakeningVisibility.isBladeTarget(target) || FloatingBladeRenderer.isRendering()
-                || !SakuraEndlessFlow.eligible(stack)) return false;
-        Player owner = renderingPlayer;
-        if (owner == null && handPass) owner = Minecraft.getInstance().player;
-        return shouldClip(true, owner != null && owner.getMainHandItem() == stack,
-                owner != null && AwakeningVisualController.presenting(owner), false, target);
+    private static Player owner(ItemStack stack) {
+        Player owner=renderingPlayer;
+        if(owner==null&&handPass) owner=Minecraft.getInstance().player;
+        return owner!=null&&owner.getMainHandItem()==stack?owner:null;
+    }
+    static float bladeFraction(ItemStack stack,String target) {
+        Player owner=owner(stack);
+        if(!AwakeningVisibility.isBladeTarget(target)||FloatingBladeRenderer.isRendering()
+                ||owner==null||!dev.bladetetra.easteregg.SakuraStanceController.supported(stack)
+                ||AwakeningVisualController.presenting(owner)) return 1;
+        return dev.bladetetra.client.sakura.SakuraCombatVisualController.bladeFraction(owner,Minecraft.getInstance().getPartialTick());
+    }
+    static boolean hiltOnly(ItemStack stack, String target) { return bladeFraction(stack,target)<=.001F; }
+    @SubscribeEvent(priority=EventPriority.HIGHEST)
+    public static void capture(RenderOverrideEvent e) {
+        Player p=owner(e.getStack());
+        if(p!=null&&AwakeningVisibility.isBladeTarget(e.getOriginalTarget())
+                &&!FloatingBladeRenderer.isRendering()&&!AwakeningVisualController.presenting(p))
+            dev.bladetetra.client.sakura.SakuraCombatVisualController.capture(p,e,handPass&&renderingPlayer==null);
     }
 
     public static boolean shouldClip(boolean dispersed, boolean realHeldObject,
@@ -66,7 +82,9 @@ public final class SenbonzakuraDispersedRender {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderOverride(RenderOverrideEvent e) {
-        if (retainedPartDepth > 0 || !hiltOnly(e.getStack(), e.getOriginalTarget())) return;
+        if (retainedPartDepth > 0) return;
+        float fraction=bladeFraction(e.getStack(),e.getOriginalTarget());
+        if(fraction>=.999F) return;
         if (e.getOriginalTarget().endsWith("_luminous")
                 && dev.bladetetra.forging.NamedLegacyParts.visualFromStack(e.getStack()).present()) {
             // The assembled parts already own their material/emissive nested passes.
@@ -79,7 +97,8 @@ public final class SenbonzakuraDispersedRender {
         // OBJ layouts keep their full model; calibrated named assemblies bypass here.
         if (location == null || !BladeTetra.MOD_ID.equals(location.getNamespace())
                 || !location.getPath().startsWith("model/modular/")) return;
-        var view = DispersedBladeGeometry.hilt(e.getModel(), e.getTarget());
+        var view = fraction<=.001F?DispersedBladeGeometry.hilt(e.getModel(),e.getTarget())
+                :AwakeningBladeGeometry.remaining(e.getModel(),e.getTarget(),fraction);
         if (view == null) e.setCanceled(true); else e.setModel(view);
         // Never uncancel an earlier handler and never touch native sheath passes.
     }
