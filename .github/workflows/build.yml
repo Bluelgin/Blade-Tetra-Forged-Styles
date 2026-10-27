@@ -32,6 +32,14 @@ jobs:
             build/libs/*.jar
             build/test-results/test/*.xml
           retention-days: 14
+      - name: Sakura B1-B6 native Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sakura-combat-smoke
+          echo 'eula=true' > build/sakura-combat-smoke/eula.txt
+          ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
+          grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
@@ -64,11 +72,3 @@ jobs:
           echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
           ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
           grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
-      - name: Sakura B1-B6 native Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/sakura-combat-smoke
-          echo 'eula=true' > build/sakura-combat-smoke/eula.txt
-          ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
-          grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log

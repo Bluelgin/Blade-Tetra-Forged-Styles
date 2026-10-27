@@ -66,11 +66,11 @@ public final class SakuraCombatSmokeTest {
             check(SakuraEndlessFlow.isBurning(actor,blade),"SSS starts native Rank burn");
             for(int round=0;round<3;round++) {
                 for(int stage=1;stage<=6;stage++) {
-                    check(SakuraFlowRules.stage(state.getComboSeq())==stage,"B1..B6 order, round "+round+" stage "+stage);
+                    check(SakuraFlowRules.stage(state.getComboSeq())==stage,"B1..B6 order, round "+round+" stage "+stage+", actual "+state.getComboSeq());
                     ComboState node=ComboStateRegistry.REGISTRY.get().getValue(state.getComboSeq());
                     long at=level.getGameTime(); state.setLastActionTime(at);
                     HITS.clear();
-                    int last=stage==6?6:3;
+                    int last=stage==1?8:stage==6?6:3;
                     for(int tick=0;tick<=last;tick++) {
                         event.getServer().getWorldData().overworldData().setGameTime(at+tick);
                         node.tickAction(actor);
@@ -82,7 +82,7 @@ public final class SakuraCombatSmokeTest {
                         check(HITS.size()==7,"native B6 emits all seven authored slash callbacks, got "+HITS.size());
                         for(double damage:HITS) check(Math.abs(damage-.244*.85)<1e-5,"B6 keeps ordinary Rengeki damage multiplier");
                     }
-                    event.getServer().getWorldData().overworldData().setGameTime(at+(stage==6?7:4));
+                    event.getServer().getWorldData().overworldData().setGameTime(at+(stage==1?9:stage==6?7:4));
                     long before=rank.getRankPoint(level.getGameTime());
                     for(int query=0;query<10;query++) state.progressCombo(actor,true);
                     check(before==rank.getRankPoint(level.getGameTime()),"virtual routing never debits Rank");

@@ -34,25 +34,43 @@ public final class SakuraCombatVisuals {
     private static long nextSequence;
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void motion(mods.flammpfeil.slashblade.event.BladeMotionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        ItemStack blade = player.getMainHandItem();
+        int stage = SakuraFlowRules.stage(event.getCombo());
+        if (stage == 0 || !SakuraEndlessFlow.eligible(blade)) return;
+        var state = blade.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE).orElse(null);
+        if (state != null) begin(player, blade, stage, player.level().getGameTime(), state.getTargetEntity(player.level()));
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void slash(SlashBladeEvent.DoSlashEvent event) {
         if (!(event.getUser() instanceof ServerPlayer player) || !SakuraEndlessFlow.eligible(event.getBlade())) return;
         int stage = SakuraFlowRules.stage(event.getSlashBladeState().getComboSeq());
         if (stage == 0) return;
-        long at = event.getSlashBladeState().getLastActionTime();
+        Attack attack = begin(player, event.getBlade(), stage, event.getSlashBladeState().getLastActionTime(),
+                event.getSlashBladeState().getTargetEntity(player.level()));
+        if (attack != null) attack.nativeSlashAt = player.level().getGameTime();
+    }
+
+    private static Attack begin(ServerPlayer player, ItemStack blade, int stage, long at, Entity locked) {
         Attack previous = CURRENT.get(player.getUUID());
-        if (previous != null && previous.blade == event.getBlade()
-                && previous.stage == stage && previous.at == at) return;
-        var tag = event.getBlade().getTag();
-        if (tag == null || tag.getString("id").isBlank()) return;
-        Attack attack = new Attack(player, event.getBlade(), tag.getString("id"), stage, ++nextSequence, at);
+        if (previous != null && previous.blade == blade && previous.stage == stage && previous.at == at
+                && previous.slot == player.getInventory().selected
+                && previous.dimension.equals(player.level().dimension()))
+            return previous;
+        var tag = blade.getTag();
+        if (tag == null || tag.getString("id").isBlank()) return null;
+        Attack attack = new Attack(player, blade, tag.getString("id"), stage, ++nextSequence, at);
         CURRENT.put(player.getUUID(), attack);
-        Entity locked = event.getSlashBladeState().getTargetEntity(player.level());
-        Vec3 end = locked instanceof LivingEntity living && living.isAlive()
-                && player.distanceToSqr(living) <= 144 ? living.getBoundingBox().getCenter()
+        boolean validTarget = locked instanceof LivingEntity living && living.isAlive()
+                && player.distanceToSqr(living) <= 144;
+        Vec3 end = validTarget ? locked.getBoundingBox().getCenter()
                 : player.getEyePosition().add(player.getLookAngle().scale(3.5));
-        // Lock-on is a trajectory hint, never a confirmed hit flash.
-        send(attack, AwakenedBladeVfxPacket.SAKURA_SWING, end,
-                locked instanceof LivingEntity && player.distanceToSqr(locked) <= 144 ? locked.getId() : -1);
+        // Motion is committed by native updateComboSeq (not virtual queries).
+        // B1's first slash is six ticks later, so the rear blades must depart now.
+        send(attack, AwakenedBladeVfxPacket.SAKURA_SWING, end, validTarget ? locked.getId() : -1);
+        return attack;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -62,7 +80,8 @@ public final class SakuraCombatVisuals {
         Attack attack = CURRENT.get(player.getUUID());
         if (attack != null && attack.blade == player.getMainHandItem()
                 && player.level().dimension().equals(attack.dimension)
-                && player.level().getGameTime() - attack.at <= 7
+                && attack.nativeSlashAt == player.level().getGameTime()
+                && player.level().getGameTime() - attack.at <= 14
                 && player.getMainHandItem().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
                     .map(state -> state.getLastActionTime() == attack.at
                         && SakuraFlowRules.stage(state.getComboSeq()) == attack.stage).orElse(false)) {
@@ -115,6 +134,7 @@ public final class SakuraCombatVisuals {
         final int stage, slot;
         final long sequence, at;
         boolean confirmed;
+        long nativeSlashAt = Long.MIN_VALUE;
         Attack(ServerPlayer player, ItemStack blade, String id, int stage, long sequence, long at) {
             this.player = player; this.blade = blade; this.bladeId = id;
             this.dimension = player.level().dimension(); this.slot = player.getInventory().selected;
