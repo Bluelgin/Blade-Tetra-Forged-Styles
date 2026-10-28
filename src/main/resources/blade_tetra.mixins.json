@@ -6,6 +6,9 @@
   "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
     "ProviderEffectCompatMixin",
+    "AwakenedRankConstraintMixin",
+    "NativeBladeCommitMixin",
+    "NativeBladeAttackObserverMixin",
     "CombatBalanceBladeStateMixin",
     "CustomStyleReachMixin",
     "CombatBalanceSlashArtsMixin",

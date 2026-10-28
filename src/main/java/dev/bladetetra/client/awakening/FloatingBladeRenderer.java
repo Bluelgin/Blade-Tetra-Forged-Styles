@@ -36,6 +36,7 @@ public final class FloatingBladeRenderer {
     }
     private static final List<RendererAdapter> ADAPTERS = new ArrayList<>();
     private static int rendering;
+    private static boolean mirror;
     private static float fraction = 1;
     private static boolean energy;
     private static float overlayAlpha;
@@ -78,6 +79,11 @@ public final class FloatingBladeRenderer {
         if (AwakeningVisibility.isSheathTarget(event.getTarget())) {
             event.setCanceled(true);
             return;
+        }
+        if (mirror) {
+            event.setGetRenderType(BladeRenderState::getSlashBladeBlend);
+            event.setEnableEffect(false);
+            BladeRenderState.setCol(new java.awt.Color(170, 221, 255, 140));
         }
         if (overlayAlpha > 0) {
             event.setPackedLightIn(LightTexture.FULL_BRIGHT);
@@ -207,6 +213,20 @@ public final class FloatingBladeRenderer {
         } finally {
             fraction = oldFraction; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; rendering--;
             BladeRenderState.resetCol(); pose.popPose();
+        }
+    }
+    /** Generic detached blade appearance pass, shared by combat without ceremony state/timelines. */
+    public static void renderMirror(Prepared model, ItemStack appearance, PoseStack pose, MultiBufferSource buffers) {
+        float oldFraction = fraction, oldAlpha = overlayAlpha;
+        boolean oldMirror = mirror;
+        rendering++;
+        try {
+            fraction = 1; overlayAlpha = 0; mirror = true;
+            BladeRenderState.setCol(new java.awt.Color(170, 221, 255, 140));
+            model.render(appearance, pose, buffers, LightTexture.FULL_BRIGHT);
+        } finally {
+            fraction = oldFraction; overlayAlpha = oldAlpha; mirror = oldMirror;
+            rendering--; BladeRenderState.resetCol();
         }
     }
     private FloatingBladeRenderer() {}

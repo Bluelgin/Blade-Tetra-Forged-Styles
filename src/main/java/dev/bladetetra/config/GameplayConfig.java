@@ -15,10 +15,13 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_RANK_COSTS;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_AKATSUKI;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
     public static final ForgeConfigSpec.IntValue AWAKENED_SAKURA_BURN_POINTS_PER_SECOND;
+    public static final ForgeConfigSpec.IntValue KYOUKA_START_COST, KYOUKA_DRAIN, KYOUKA_ACTION_COST;
+    public static final ForgeConfigSpec.IntValue KYOUKA_MAX_SESSIONS, KYOUKA_WORLD_SESSIONS;
+    public static final ForgeConfigSpec.DoubleValue KYOUKA_RANGE;
+
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_DUAL_BONUS;
@@ -134,15 +137,21 @@ public final class GameplayConfig {
                 .comment("Use True Name Release combat on awakened blades.",
                         "When false, keeps original awakened combat behavior; unlocks remain saved.")
                 .define("enableAwakenedV2", true);
+
+        builder.push("kyouka3");
+        KYOUKA_START_COST = builder.defineInRange("startCost", 60, 0, 1800);
+        KYOUKA_DRAIN = builder.defineInRange("drainPerSecond", 12, 0, 600);
+        KYOUKA_ACTION_COST = builder.defineInRange("actionCost", 18, 0, 600);
+        KYOUKA_RANGE = builder.defineInRange("range", 32.0, 4.0, 64.0);
+        KYOUKA_MAX_SESSIONS = builder.defineInRange("serverSessions", 64, 1, 256);
+        KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
+        builder.pop();
         ENABLE_AWAKENED_RANK_COSTS = builder
                 .comment("Spend native SlashBlade Concentration Rank points for committed awakened skills.",
                         "Disable to retain V2 abilities without any rank spending.")
                 .define("enableAwakenedRankCosts", true);
-        AWAKENED_RANK_COST_AKATSUKI = builder
-                .comment("Akatsuki causality: requires S rank, charges this many native rank points.")
-                .defineInRange("awakenedRankCostAkatsuki", 360, 0, 1800);
         AWAKENED_RANK_COST_KYOUKA = builder
-                .comment("Kyouka mirror replay: requires A rank.")
+                .comment("Deprecated V2 replay price; ignored by Three Mirrors.")
                 .defineInRange("awakenedRankCostKyouka", 300, 0, 1800);
         AWAKENED_RANK_COST_SAKURA = builder
                 .comment("Senbonzakura full array: requires A rank. Form switching remains free.")

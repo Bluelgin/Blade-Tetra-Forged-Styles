@@ -85,14 +85,17 @@ public final class BladeDetailTooltip {
             }
         }
 
-        if (!AwakenedBladeCombat.replacesLegacy()) SoulResonance.appendTooltip(stack, lines);
+        if (!AwakenedBladeCombat.replacesLegacy()
+                || !AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack)))
+            SoulResonance.appendTooltip(stack, lines);
         appendAwakenedAbilities(stack, ordered, lines);
         return lines;
     }
 
     private static void appendAwakenedAbilities(ItemStack stack,
             List<SoulLegacyState.Legacy> souls, List<Component> lines) {
-        if (AwakenedBladeCombat.replacesLegacy()) {
+        if (AwakenedBladeCombat.replacesLegacy()
+                && AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack))) {
             SoulLegacyState.Legacy primary = SoulLegacyState.active(stack);
             if (primary != SoulLegacyState.Legacy.NONE) {
                 lines.add(Component.translatable(
@@ -106,12 +109,6 @@ public final class BladeDetailTooltip {
                                     : "tooltip.blade_tetra.awakened.v2.primary_only")
                             .withStyle(formed ? ChatFormatting.LIGHT_PURPLE
                                     : ChatFormatting.GRAY));
-                }
-                if (primary == SoulLegacyState.Legacy.AKATSUKI
-                        && ContractBladeCompat.hasAkatsuki(stack)) {
-                    lines.add(Component.translatable(
-                            "tooltip.blade_tetra.akatsuki.spirit_bound")
-                            .withStyle(ChatFormatting.DARK_RED));
                 }
             }
             return;

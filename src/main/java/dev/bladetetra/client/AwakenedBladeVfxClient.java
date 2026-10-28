@@ -83,13 +83,6 @@ public final class AwakenedBladeVfxClient {
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
                 > max * max) return;
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
-        // Release replaces persistent Akatsuki scar marks around this target.
-        if (packet.soul() == 1 && packet.type() == AwakenedBladeVfxPacket.RELEASE) {
-            EFFECTS.removeIf(fx -> fx.data.soul() == 1
-                    && fx.data.type() == AwakenedBladeVfxPacket.MARK
-                    && new Vec3(fx.data.x(), fx.data.y(), fx.data.z())
-                            .distanceToSqr(packet.x(), packet.y(), packet.z()) < 16.0D);
-        }
         EFFECTS.add(new Effect(packet));
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
     }
@@ -228,11 +221,6 @@ public final class AwakenedBladeVfxClient {
             drawAwakening(buffer, matrix, eye, pos, soul, age, alpha);
             return;
         }
-        if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) {
-            drawCausalExecution(buffer, matrix, eye, pos, age, alpha,
-                    data.variant());
-            return;
-        }
         if (soul == 3 && type == AwakenedBladeVfxPacket.MARK
                 && data.variant() >= 10) {
             drawSakuraVolley(buffer, matrix, eye, data, age, alpha);
@@ -348,17 +336,6 @@ public final class AwakenedBladeVfxClient {
                 }
                 billboardTile(buffer, matrix, eye, blade, 0.38D,
                         i % 8 == 0 ? 2 : 0, soul, alpha * 0.8F, (float) a);
-            }
-        }
-        if (soul == 1 && type == AwakenedBladeVfxPacket.RELEASE) {
-            // Each directional scar was earned by circling the target.
-            for (int sector = 0; sector < 6; sector++) {
-                if ((data.variant() & (1 << sector)) == 0) continue;
-                float phase = Mth.clamp((age - sector * 2.0F) / 5.0F, 0, 1);
-                billboardTile(buffer, matrix, eye, pos.add(0,
-                                Math.sin(sector * Math.PI / 3) * 0.25D, 0),
-                        2.7D * (1 - 0.50D * Mth.clamp((age - 24) / 10.0F, 0, 1)),
-                        sector * 3 + 1, soul, alpha * phase, 0);
             }
         }
         if (soul == 2 && type == AwakenedBladeVfxPacket.MARK) {
@@ -499,37 +476,6 @@ public final class AwakenedBladeVfxClient {
         }
     }
 
-    /** Each phase matches the real causal impact at tick 33. */
-    private static void drawCausalExecution(BufferBuilder buffer, Matrix4f matrix,
-            Vec3 eye, Vec3 pos, float age, float alpha, int directions) {
-        for (int sector = 0; sector < 6; sector++) {
-            if ((directions & (1 << sector)) == 0) continue;
-            float appear = Mth.clamp((age - sector * 2.0F) / 4.0F, 0, 1);
-            float contract = Mth.clamp((age - 24.0F) / 8.0F, 0, 1);
-            int frame = age > 40 ? sector * 3 + 2 : sector * 3 + 1;
-            billboardTile(buffer, matrix, eye,
-                    pos.add(0, Math.sin(sector * Math.PI / 3.0D) * 0.18D, 0),
-                    2.9D * (1 - contract * 0.55D), frame, 1,
-                    alpha * appear * (age > 42 ? 0.5F : 0.9F), 0);
-        }
-        if (age >= 10 && age < 43) {
-            float a = alpha * Mth.clamp((age - 10) / 8.0F, 0, 1)
-                    * Mth.clamp((43 - age) / 7.0F, 0, 1);
-            billboardTile(buffer, matrix, eye, pos, 0.9D, 18, 1, a, 0);
-        }
-        if (age >= 14 && age < 43) {
-            float a = alpha * Mth.clamp((age - 14) / 6.0F, 0, 1)
-                    * Mth.clamp((43 - age) / 7.0F, 0, 1);
-            billboardTile(buffer, matrix, eye, pos, 4.1D, 20, 1, a, 0);
-        }
-        if (age >= 32 && age < 42) {
-            float a = alpha * Mth.clamp((age - 32) / 2.0F, 0, 1)
-                    * Mth.clamp((42 - age) / 6.0F, 0, 1);
-            billboardTile(buffer, matrix, eye, pos, 4.6D,
-                    21, 1, a, 0);
-        }
-    }
-
     /**
      * Astra's compact 44-tick ceremonies: no new ritual conditions, only
      * different successive art layers after the server confirms an unlock.
@@ -647,7 +593,7 @@ public final class AwakenedBladeVfxClient {
         AwakenedBladeVfxPacket data = fx.data;
         int soul = data.soul(), type = data.type();
         boolean relevant = switch (soul) {
-            case 1 -> type == AwakenedBladeVfxPacket.MARK;
+            case 1 -> false; // Akatsuki keeps only the separate awakening ritual.
             case 2 -> type == AwakenedBladeVfxPacket.MARK
                     || type == AwakenedBladeVfxPacket.AWAKEN;
             case 3 -> type == AwakenedBladeVfxPacket.STANCE;
@@ -702,7 +648,7 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.RELEASE -> data.soul() == 3 ? 64
                         : data.soul() == 4 ? 40 : 56;
                 case AwakenedBladeVfxPacket.STEP -> 22;
-                case AwakenedBladeVfxPacket.MARK -> data.soul() == 1 ? 160 : 18;
+                case AwakenedBladeVfxPacket.MARK -> 18;
                 default -> 18;
             };
         }
