@@ -43,6 +43,8 @@ public final class NativeBladeActionObserver {
     public static void melee(LivingEntity user, float ratio, List<Entity> exclude) {
         if (!(user instanceof ServerPlayer player)) return;
         var s = KyoukaMirrorSessions.SESSIONS.get(player.getUUID());
+        if (Boolean.getBoolean("blade_tetra.kyoukaNativeSmoke")) com.mojang.logging.LogUtils.getLogger().info(
+                "KYOUKA_WINDOW_DEBUG ratio={} session={} exclude={} shot={}",ratio,s!=null,exclude!=null,s!=null&&s.shots.containsKey(exclude));
         if (s == null || !KyoukaMirrorSessions.valid(s) || !Float.isFinite(ratio) || ratio <= 0 || ratio > 16) return;
         var shot = exclude == null ? null : s.shots.get(exclude);
         // Unknown external exclusion lists have no trustworthy provenance.

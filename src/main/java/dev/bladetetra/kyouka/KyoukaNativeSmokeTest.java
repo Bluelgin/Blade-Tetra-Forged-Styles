@@ -92,7 +92,7 @@ public final class KyoukaNativeSmokeTest {
             float baseline=(float)AttackHelper.calculateTotalDamage(player,target,(float)shot.getDamage(),false);
             float health=target.getHealth(); observed=0;
             shot.tick(); shot.tick(); KyoukaMirrorDamageService.flush();
-            check(Math.abs(observed-baseline*.75F)<.001F, "one native window gives total 75 percent: observed="+observed+" base="+baseline);
+            check(Math.abs(observed-baseline*.75F)<.001F, "one native window gives total 75 percent: observed="+observed+" base="+baseline+" tick="+shot.tickCount+" alive="+shot.isAlive()+" indirect="+shot.getIndirect()+" owner="+(shot.getShooter()==player)+" valid="+KyoukaMirrorSessions.valid(session)+" windows="+session.budgets.get(session.action).windows+" points="+rank.getRawRankPoint());
             check(target.getHealth()<health, "remote native action damages bound target");
             check(rank.getRawRankPoint()==1521, "one native action pays 18; actual damage cannot earn rank");
             check(session.action==seq+1, "secondary Rank callback cannot resolve/advance native combo");

@@ -53,6 +53,10 @@ minecraft {
                 workingDirectory project.file('build/dead-thought-removal-smoke')
                 property 'blade_tetra.deadThoughtRemovalSmoke', 'true'
             }
+            if (project.hasProperty('kyoukaMotionSmoke')) {
+                workingDirectory project.file('build/kyouka-motion-smoke')
+                property 'blade_tetra.kyoukaMotionSmoke', 'true'
+            }
             if (project.hasProperty('kyoukaNativeSmoke')) {
                 workingDirectory project.file('build/kyouka-native-smoke')
                 property 'blade_tetra.kyoukaNativeSmoke', 'true'
