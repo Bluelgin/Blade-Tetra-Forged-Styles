@@ -1,6 +1,6 @@
 # 镜花：破镜归刀
 
-本地测试集成保留千本樱 PR #45 的新内容，替换镜花 PR #46 的实时反射仪式。
+本更新替换镜花 PR #46 的实时反射仪式，目标仍为 PR #43 的通用仪式分支。实机回归在同时包含千本樱 PR #45 的本地集成测试端进行；本 PR 的提交仅包含镜花更新。
 
 - 0–20 tick：原刀离手，刀鞘留身。
 - 24–54 tick：36 块镜面面片在刀所在位置逐片合拢。
@@ -16,8 +16,12 @@
 
 ## 验证
 
-`gradlew.bat build`：501 项测试，0 失败，1 跳过。新的数学测试覆盖破碎瞬间几何连续性、归刀终点、运动边界、破镜时刻可见性与归手时间。
+独立 PR #46 分支 `gradlew.bat build`：476 项测试，0 失败、0 错误，1 项跳过。
+
+本地集成测试端 `gradlew.bat build`：501 项测试，0 失败，1 跳过。新的数学测试覆盖破碎瞬间几何连续性、归刀终点、运动边界、破镜时刻可见性与归手时间。
 
 `gradlew.bat runClient -PmirrorRitualReview`：独立世界位于 `build/mirror-ritual-review`，六轮覆盖三个档位、第一/第三人称切换、中途换物品与正常结束；实机已通过六轮：6 个有效会话均建立并正常清理，无渲染回退或卡死；30 张截图在该目录的 `evidence`。首次使用独立配置时需完成 Minecraft 引导。只有显式启用此参数才运行测试场景。
 
 手动预览：手持镜花觉醒刀，执行 `/blade_tetra_ritual_preview`。
+
+实机截图：[合镜](evidence/kyouka-shatter/enclosed.png)、[破镜出刃](evidence/kyouka-shatter/burst.png)、[碎片归刀](evidence/kyouka-shatter/absorb.png)。截图与日志均来自上述集成测试端，不能据此声称独立 PR 或其他整合包已完成实机回归。
