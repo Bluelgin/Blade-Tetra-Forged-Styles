@@ -44,6 +44,14 @@ public final class RaikiriCombatSmokeTest {
     private static ServerPlayer actor;
     private static boolean cancelMotion,rewriteMotion,protect;
     private static int checks;
+    /** Forge FakePlayer's default connection intentionally NO-OPs teleport.
+     * Use vanilla teleport positioning with only socket writes suppressed. */
+    private static final class PositioningConnection extends net.minecraft.server.network.ServerGamePacketListenerImpl {
+        PositioningConnection(net.minecraft.server.MinecraftServer server,ServerPlayer player) {
+            super(server,new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),player);
+        }
+        @Override public void send(net.minecraft.network.protocol.Packet<?> packet) { }
+    }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void motion(BladeMotionEvent e) {
         if(e.getEntity()!=actor || !RaikiriRapidCombo.isThunderCombo(e.getCombo())) return;
         if(cancelMotion) e.setCanceled(true);
@@ -68,6 +76,7 @@ public final class RaikiriCombatSmokeTest {
         Zombie target=null;
         try {
             actor=FakePlayerFactory.getMinecraft(level);level.addNewPlayer(actor);
+            actor.connection=new PositioningConnection(e.getServer(),actor);
             for(int x=-6;x<24;x++) for(int z=-5;z<=5;z++) {
                 level.setBlock(new BlockPos(x,159,z),Blocks.STONE.defaultBlockState(),3);
                 for(int y=160;y<=164;y++) level.setBlock(new BlockPos(x,y,z),Blocks.AIR.defaultBlockState(),3);
@@ -82,6 +91,14 @@ public final class RaikiriCombatSmokeTest {
             var rank=actor.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
             rank.setRawRankPoint(900);rank.setLastUpdte(level.getGameTime());
             state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
+            for(BladeStyle style:BladeStyle.values()) {
+                state.setComboRoot(ModComboStates.getRoot(style));state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
+                check(RaikiriRapidCombo.isThunderCombo(state.progressCombo(actor,true)),"native grounded directional root: "+style);
+                var unrelated=new SlashBladeEvent.NextComboEvent(blade,state,actor,ComboStateRegistry.COMBO_A1.getId());
+                RaikiriRapidCombo.onNextCombo(unrelated);
+                check(unrelated.getNextCombo().equals(ComboStateRegistry.COMBO_A1.getId()),"explicit normal combo preserved: "+style);
+            }
+            state.setComboRoot(ModComboStates.getRoot(BladeStyle.STANDARD));state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
             var before=actor.position();long points=rank.getRankPoint(level.getGameTime());
             check(RaikiriRapidCombo.isThunderCombo(state.progressCombo(actor,true)),"native virtual route selects upgrade");
             check(actor.position().equals(before) && rank.getRankPoint(level.getGameTime())==points,"virtual route has no debit or motion");
@@ -96,14 +113,16 @@ public final class RaikiriCombatSmokeTest {
             check(rank.getRankPoint(level.getGameTime())==points-75,"real native rank debit once");
             check(!RaikiriStepController.free(actor),"inputs alone cannot authorize followup");
             check(RaikiriFieldService.trailCount(actor.getUUID())==1,"one trail per native transaction");
+            time(level,102);RaikiriRapidCombo.THUNDER_RAPID.get().tickAction(actor);
+            var slash=level.getEntitiesOfClass(EntitySlashEffect.class,actor.getBoundingBox().inflate(12),
+                    effect->effect.getShooter()==actor).stream().filter(effect->effect.getPersistentData()
+                            .hasUUID(RaikiriStepController.SEQUENCE)).findFirst().orElseThrow();
+            check(slash.getPersistentData().hasUUID(RaikiriStepController.BLADE_ID),"real native tick authors sequence-bound slash");
             target=new Zombie(EntityType.ZOMBIE,level);target.setNoAi(true);target.setNoGravity(true);
             target.setPos(1.5,160,0);target.getAttribute(Attributes.MAX_HEALTH).setBaseValue(200);
             target.getAttribute(Attributes.ARMOR).setBaseValue(0);target.setHealth(200);level.addFreshEntity(target);
             float health=target.getHealth();time(level,105);RaikiriFieldService.tick(e.getServer());
             check(target.getHealth()==health,"trail never falls before delay");
-            time(level,106);
-            var slash=new EntitySlashEffect(SlashBlade.RegistryEvents.SlashEffect,level);slash.setShooter(actor);
-            RaikiriStepController.tag(slash,actor);
             time(level,110);for(int t=110;t<=113;t++) { time(level,t);RaikiriFieldService.tick(e.getServer()); }
             check(target.getHealth()<health && health-target.getHealth()<=3.001,"real trail damage is capped per target");
             check(!RaikiriStepController.free(actor),"secondary lightning does not confirm native rapid");
@@ -151,6 +170,10 @@ public final class RaikiriCombatSmokeTest {
             actor.setOnGround(false);RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START,actor));
             actor.setOnGround(true);RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
             check(RaikiriFieldService.swordCount(actor.getUUID())==1,"expired raw cleave ID cannot arm an ordinary jump");
+            actor.moveTo(0,170,0,-90,0);actor.setOnGround(true);
+            RaikiriFieldService.plant(actor,RaikiriStepController.session(actor));
+            check(RaikiriFieldService.swordCount(actor.getUUID())==1,"unsupported landing cannot create floating sword");
+            actor.moveTo(0,160,0,-90,0);actor.setOnGround(true);
             for(int n=0;n<3;n++) { time(level,151+n);land(level,blade); }
             check(RaikiriFieldService.swordCount(actor.getUUID())==3,"oldest sword replaced at per-owner cap");
             // Cross our anchors with a paid native step, then observe one saturated next-round charge.
