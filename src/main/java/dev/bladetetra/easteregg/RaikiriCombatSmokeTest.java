@@ -75,11 +75,11 @@ public final class RaikiriCombatSmokeTest {
             time(level,100);
             ItemStack blade=blade();actor.setItemSlot(EquipmentSlot.MAINHAND,blade);
             actor.moveTo(0,160,0,-90,0);actor.setOnGround(true);
-            var state=blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow();
+            var state=blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
             state.setBroken(false);state.setSealed(false);state.setComboRoot(ModComboStates.getRoot(BladeStyle.STANDARD));
-            var input=actor.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow();
+            var input=actor.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
             input.getCommands().clear();input.getCommands().addAll(EnumSet.of(InputCommand.SNEAK,InputCommand.FORWARD,InputCommand.R_CLICK));
-            var rank=actor.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow();
+            var rank=actor.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
             rank.setRawRankPoint(900);rank.setLastUpdte(level.getGameTime());
             state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
             var before=actor.position();long points=rank.getRankPoint(level.getGameTime());
@@ -175,12 +175,12 @@ public final class RaikiriCombatSmokeTest {
             var other=FakePlayerFactory.get(level,new com.mojang.authlib.GameProfile(UUID.randomUUID(),"RaikiriOther"));
             level.addNewPlayer(other);var otherBlade=blade();other.setItemSlot(EquipmentSlot.MAINHAND,otherBlade);
             other.moveTo(1,160,2,0,0);other.setOnGround(true);
-            var otherState=otherBlade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow();
+            var otherState=otherBlade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
             otherState.setBroken(false);otherState.setSealed(false);
             RaikiriFieldService.plant(other,RaikiriStepController.session(other));
             check(RaikiriFieldService.swordCount(other.getUUID())==1,"second player owns independent anchor");
             land(level,blade);actor.getInventory().selected=1;
-            RaikiriStepController.tick(new TickEvent.ServerTickEvent(TickEvent.Phase.END));
+            RaikiriStepController.tick(new TickEvent.ServerTickEvent(TickEvent.Phase.END,()->true,e.getServer()));
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"slot swap removes all old anchors");
             check(RaikiriFieldService.swordCount(other.getUUID())==1,"clearing first owner leaves second owner intact");
             RaikiriStepController.logout(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(other));
@@ -194,7 +194,7 @@ public final class RaikiriCombatSmokeTest {
             RaikiriStepController.death(new net.minecraftforge.event.entity.living.LivingDeathEvent(actor,level.damageSources().generic()));
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"death callback clears session");
             land(level,blade);actor.setItemSlot(EquipmentSlot.MAINHAND,blade.copy());
-            RaikiriStepController.tick(new TickEvent.ServerTickEvent(TickEvent.Phase.END));
+            RaikiriStepController.tick(new TickEvent.ServerTickEvent(TickEvent.Phase.END,()->true,e.getServer()));
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"weapon object swap invalidates old session even with copied UUID");
             actor.setItemSlot(EquipmentSlot.MAINHAND,blade);
             GameplayConfig.ENABLE_AWAKENED_V2.set(false);
@@ -219,7 +219,7 @@ public final class RaikiriCombatSmokeTest {
         tag.putBoolean(BladeLegacyEasterEggs.TAG_RAIKIRI_UNLOCKED,true);return blade;
     }
     private static void land(ServerLevel level,ItemStack blade) {
-        var state=blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow();
+        var state=blade.getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new);
         actor.setOnGround(false);state.updateComboSeq(actor,ComboStateRegistry.AERIAL_CLEAVE.getId());
         RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START,actor));
         state.updateComboSeq(actor,ComboStateRegistry.AERIAL_CLEAVE_LOOP.getId());
