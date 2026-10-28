@@ -84,6 +84,12 @@ public final class AwakenedBladeCombat {
         return GameplayConfig.ENABLE_AWAKENED_V2.get();
     }
 
+    /** Akatsuki retains the original Final Moon and Contract Blade combat hooks. */
+    public static boolean isV2CombatSoul(SoulLegacyState.Legacy soul) {
+        return soul != null && soul != SoulLegacyState.Legacy.NONE
+                && soul != SoulLegacyState.Legacy.AKATSUKI;
+    }
+
     /** Called exclusively after the corresponding server-side ritual succeeds. */
     public static void awakening(ServerPlayer player, SoulLegacyState.Legacy soul) {
         AwakeningPresentationService.success(player, soul);
@@ -109,7 +115,7 @@ public final class AwakenedBladeCombat {
         if (player == null || !canAffect(player, event.getEntity())) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || !isV2CombatSoul(soul)) return;
         State state = state(player, blade);
         long now = level.getGameTime();
         LivingEntity target = event.getEntity();
@@ -213,7 +219,7 @@ public final class AwakenedBladeCombat {
                 || !(event.getEntityLiving() instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || !isV2CombatSoul(soul)) return;
         ServerLevel level = player.serverLevel();
         State state = state(player, blade);
         long now = level.getGameTime();
@@ -563,7 +569,7 @@ public final class AwakenedBladeCombat {
                 || !(event.player instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || !isV2CombatSoul(soul)) return;
         if (soul == SoulLegacyState.Legacy.SENBONZAKURA
                 && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED)
                 && player.tickCount % 20 == 0) {
