@@ -58,7 +58,7 @@ public final class SakuraCombatSmokeTest {
             state.setBroken(false);state.setSealed(false);state.setComboRoot(ModComboStates.getRoot(BladeStyle.RENGEKI));
             var input=actor.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
             var rank=actor.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
-            check(SakuraDanceCombos.compatible(),"typed callback adapter compatible");
+            check(SakuraDanceCombos.compatible(),"audited native timeline version supported");
             reset(level,blade);
             var originalArt=state.getSlashArtsKey();
             input.getCommands().add(InputCommand.L_DOWN);
@@ -76,6 +76,10 @@ public final class SakuraCombatSmokeTest {
                 check(state.progressCombo(actor,true).equals(new net.minecraft.resources.ResourceLocation("slashblade","combo_b"+(stage+1))),"ordinary B"+stage+" retains native next");
                 input.getCommands().remove(InputCommand.R_CLICK);
             }
+            // Prime an upstream rush at a late first tick, as happens with real
+            // inventory timing. Its shared offset must never affect our SA.
+            time(level,level.getGameTime()+30);state.setComboSeq(ComboStateRegistry.COMBO_B2.getId());
+            state.setLastActionTime(level.getGameTime()-1);ComboStateRegistry.COMBO_B2.get().tickAction(actor);
             // Native charge submission; successful commit creates exactly one controller.
             reset(level,blade);state.doChargeAction(actor,40);
             check(SakuraInfiniteDanceSA.active(actor,blade),"native SA commits controller");

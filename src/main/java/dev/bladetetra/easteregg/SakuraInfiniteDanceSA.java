@@ -90,7 +90,7 @@ public final class SakuraInfiniteDanceSA {
         if(s.lastNativeTick==now||elapsed<0||elapsed>=SakuraFlowRules.minimumAutoTick(stage)) return;
         s.lastNativeTick=now;
         if(now-s.request.at>=GameplayConfig.SAKURA_SA_MAX_TICKS.get()) s.phase=Phase.FINISHING;
-        SakuraDanceCombos.nativeNode(stage).tickAction(user);
+        SakuraDanceCombos.attackTick(user,stage,(int)elapsed);
         SakuraEndlessFlow.reconcile(p);
         boolean funded=p.getCapability(CapabilityConcentrationRank.RANK_POINT).map(r->{
             long points=r.getRankPoint(now);
@@ -102,7 +102,8 @@ public final class SakuraInfiniteDanceSA {
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void next(SlashBladeEvent.NextComboEvent e) {
         if(SakuraDanceCombos.owns(e.getSlashBladeState().getComboSeq())
-                ||e.getUser() instanceof ServerPlayer p&&active(p,e.getBlade())) e.setCanceled(true);
+                ||e.getUser() instanceof ServerPlayer p&&active(p,e.getBlade()))
+            e.setNextCombo(e.getSlashBladeState().getComboSeq()); // upstream self-next guard; event is not cancelable
     }
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void charge(SlashBladeEvent.ChargeActionEvent e) {
@@ -127,7 +128,7 @@ public final class SakuraInfiniteDanceSA {
         if(s==null) {
             removeSlow(p);
             p.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).ifPresent(b->{
-                if(SakuraDanceCombos.owns(b.getComboSeq())) {b.setComboSeq(ComboStateRegistry.NONE.getId());b.setLastActionTime(p.level().getGameTime());}
+                if(SakuraDanceCombos.owns(b.getComboSeq())||SakuraSixthCombo.SIXTH.getId().equals(b.getComboSeq())) {b.setComboSeq(ComboStateRegistry.NONE.getId());b.setLastActionTime(p.level().getGameTime());}
             });
             return;
         }

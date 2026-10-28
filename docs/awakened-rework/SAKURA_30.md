@@ -31,7 +31,7 @@
 | SakuraStanceController | 原生动作提交后的凝散验证，沿用旧 NBT |
 | SakuraEndlessFlow | 仅保留散华 Rank 非递增上限；无普通续连或扣费 |
 | SakuraInfiniteDanceSA | 候选提交、会话、动作边界、燃烧、输入锁和清理 |
-| SakuraDanceCombos | 六个本 Mod 专属节点，调用上游完整 tick/click/hold/hit 回调 |
+| SakuraDanceCombos | 六个本 Mod 专属节点，原生 AttackManager 回调时间表及 click/hold/hit/release 委托 |
 | SakuraCombatVisuals | 原生动作与真实伤害关联、每动作一次普通协奏资格 |
 | SakuraShardAttackService | 两种攻击互斥、目标校验、普通发射队列、幻影剑清理、SA 每招总伤害预算 |
 | SakuraShardPool/Choreography/Renderer | 唯一有界索引池、发射平台/六式编排、原有樱色批次渲染 |
@@ -40,7 +40,9 @@ IDLE→STARTING（候选经原生 commit 确认）→DANCING→FINISHING→IDLE�
 
 专属节点只改变本 Mod 的调度边界和输入路由，继承原生动作帧、动作资源及速度；保留原 Rengeki .85 伤害倍率和 .82 刀光尺寸，不提高原生伤害。B1 的完整晚段使一轮比旧截断续连更长，这是保留原生回调的结果。
 
-Builder 公开 API 只有 `addTickAction`，默认已装有 ArrowReflector。直接追加 `original::tickAction` 会重复执行反射。沿用 #44 已验证的**仅注册时**有类型校验的 tickAction Consumer 替换，转发上游回调一次；没有 Mixin、全局 ComboState 修改或每 tick 反射。任何适配失败禁用新 SA，普通原生攻击和凝散仍可用。保留旧 `awakened_sakura_b6` 注册 ID 处理旧存档中间动作，但不再路由普通攻击到它，也不再回接 B1。
+实际 JAR 的 `TimeLineTickAction` 在节点上共享可变 offset。若普通攻击首次 inventoryTick 到达 tick 1，会初始化 offset=1；简单转发原节点 tickAction 可能使新 SA 的 tick 0/末次攻击错位，并影响多人交错执行。因此六个专属节点用**公开 AttackManager.doSlash/genRushOffset API**执行审计后的原生 B1–B6 时间表，逐项保留 roll、offset、mute、critical、伤害比例和全部攻击次数；click/hold/hit/release 委托原节点。Builder 默认 ArrowReflector 保留一次。没有新投射物引擎，也不改上游 timeline offset、全局 ComboState 或任何字段。
+
+新 SA 只对实际审计的 **1.9.63** 开启；版本不匹配时拒绝新 SA、保留普通攻击与凝散。升级依赖时应重新审计时间表与专服回调参数。**本次不使用反射或 Mixin**；旧 #44 的反射 B6 适配已删除。旧 `awakened_sakura_b6` ID 仍注册，旧存档中间动作在下一服务器 tick 安全恢复 NONE，形态与原有 SA 配置保持不变。
 
 ### 伤害、目标和性能
 
@@ -70,7 +72,7 @@ SA 每招额外总预算默认 8：B1/B2 一次、B3/B4 两次、B5 三次、B6 
 ## 验证分层
 
 - JUnit：共享索引/原对象归阵、左右视角坐标、跳跃/转向/俯仰、并发与饱和预算、伤害上限、六式脉冲数和安全边界；保留凝散、模型及网络回归。
-- Forge 专服：`./gradlew runServer -PsakuraCombatSmoke`。使用真实能力、原生 `doChargeAction`、`progressCombo`、物品 `inventoryTick`、原生范围攻击及幻影剑真实碰撞。标记为 SAKURA_SA_SMOKE_PASS、SAKURA_CONCERTO_SMOKE_PASS、SAKURA_STANCE_SMOKE_PASS、SAKURA_COMBAT_SMOKE_PASS。显式服务端时间推进与 FakePlayer 不是实际图形客户端输入验收。
+- Forge 专服：`./gradlew runServer -PsakuraCombatSmoke`。使用真实能力、先执行迟到的上游 rush 回调再检查 SA 隔离、原生 `doChargeAction`、`progressCombo`、物品 `inventoryTick`、原生范围攻击及幻影剑真实碰撞。标记为 SAKURA_SA_SMOKE_PASS、SAKURA_CONCERTO_SMOKE_PASS、SAKURA_STANCE_SMOKE_PASS、SAKURA_COMBAT_SMOKE_PASS。显式服务端时间推进与 FakePlayer 不是实际图形客户端输入验收。
 - 客户端由作者验收：第一/第三人称及旁观者，原生鼠标按住/松开/取消蓄力，准星遮挡、移动跳跃与转向、六式节奏、剑阵层次、多人延迟/帧时、资源包重载和材质适配。没有宣称客户端手感或美术已通过。
 
 执行结果和已知限制见本次 PR；不要将旧 #45 的通过记录当作 3.0 的结果。
