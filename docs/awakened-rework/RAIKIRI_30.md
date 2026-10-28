@@ -32,6 +32,9 @@ New Raikiri abilities fail closed on an unaudited SlashBlade version; ordinary n
   0.44 damage input, powered/critical rolls and pose callbacks are preserved. Only native unrestricted
   `moveRelative` is replaced by up to 3.5 blocks of swept-AABB server-authoritative movement.
   Two alternating registered nodes avoid the native self-next rejection; the old rapid registry ID remains.
+  Native NONE/root fallback is handled on both initial input and recovery nodes. The upstream Hold callback
+  hard-codes the original rapid ID, so a minimal audited adapter preserves its area attack, reach modifier,
+  toss and Rising Star transition for these two IDs, with modifier cleanup in finally.
 * Actual accepted endpoints leave a short electric ribbon. Up to four fixed samples strike from start to
   end 6–10 ticks later. They do not follow fleeing victims, create LightningBolt, change weather/blocks,
   confirm a native rapid hit or recursively award awakened resources.
@@ -106,13 +109,19 @@ Graphical appearance/latency/FPS still require actual client acceptance.
 
 ## Verification and remaining acceptance
 
-* Standalone Java 17 JUnit: 12 RaikiriRules tests passed, 0 failed (initial implementation).
-* Full `test build` and Forge smoke are being verified; consult exact final HEAD CI, not prior #41/#47 runs.
+* Standalone Java 17 JUnit: 12 RaikiriRules tests plus 5 migrated/shared math tests passed, 0 failed.
+* Local Java 17 / Gradle 8.1.1 full `test build`: **472 tests, 0 failures/errors, 1 existing skip**.
+  The skipped `ProviderEffectBytecodeBridgeTest.auditedProviderBytecodeRoundTrips` requires optional external audit JARs.
+* Local real Forge 47.4.0 dedicated smoke: **`RAIKIRI_COMBAT_SMOKE_PASS: 74 checks`**.
+  `runServer -PraikiriCombatSmoke -x downloadAssets` skips only unnecessary graphical assets in this local server environment.
+  Read the exact final HEAD CI for all regressions; earlier #41/#47 runs are not evidence for this branch.
 * `./gradlew runServer -PraikiriCombatSmoke` uses a disposable test world (`build/raikiri-combat-smoke`, EULA required).
   Real native capabilities/ComboState routing, virtual/cancel/rewrite transactions, source-attributed hurt,
   real wall collision, native cleave-loop landing callback, field damage, saturation/expiry, late protection,
   amplification and ownership/lifecycle callbacks are asserted. Time and grounded state are controlled by
-  the test; this is not natural player input or a multiplayer network/graphical simulation.
+  the test. Forge's default FakePlayer connection ignores teleport, so the fixture uses vanilla server
+  teleport positioning with socket writes suppressed. Native slash sources are authored by real combo tick callbacks.
+  This is not natural player input or a multiplayer network/graphical simulation.
 * CI retains review JAR, JUnit XML and smoke logs. Never treat previous PR CI as this implementation's result.
 * Not accepted yet: first/third person visuals, real input/network feel, real multi-client skill isolation,
   natural physics cleave/landing observation across all five styles, GUI scaling/resource reload, frame times

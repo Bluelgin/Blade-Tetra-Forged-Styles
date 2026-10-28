@@ -26,6 +26,24 @@ For the current neutral (1.0) combat multipliers and their scope, see [Combat ba
 | `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins. |
 | `akatsukiExecutionMinimumTargetHealth` | `40.0` | Minimum target maximum health for the full execution timeline. |
 
+## Raikiri 3.0 (awakened V2)
+
+Requires `discoveries.enableAwakenedV2=true`; false keeps the original legacy handlers.
+New values live in `discoveries.raikiri3`. Full behavior and bounds: [Raikiri 3.0](docs/awakened-rework/RAIKIRI_30.md).
+
+| Settings | Defaults | Purpose |
+| --- | --- | --- |
+| `trailSamples`, `delayStart`, `delayEnd` | `4`, `6`, `10` | Fixed path samples and delayed strike ticks |
+| `globalTrailLimit`, `trailDamageBudget`, `trailTargetCap`, `strikeRadius` | `128`, `6`, `3`, `1.25` | Bounded active trails, shared damage, per-victim cap, local strike radius |
+| `swordsPerPlayer`, `globalSwordLimit`, `swordLifetime` | `3`, `256`, `120` | Owner/global anchor limits and lifetime |
+| `dischargePeriod`, `targetsPerRound`, `swordRange` | `15`, `2`, `4` | Pulse interval, target count and local search radius |
+| `roundDamageBudget`, `lifetimeDamageBudget` | `3`, `12` | Per-pulse and absolute whole-life damage caps |
+| `resonanceRadius`, `resonanceMultiplier` | `2`, `1.5` | Real step-segment trigger radius and one saturated next-pulse boost |
+
+Existing `discoveries.awakenedRankCostRaikiriStep=75` still uses native B Rank for the first step.
+`awakenedRankCostRaikiriFinisher=240` is a deprecated, ignored compatibility key; native SA has no Raikiri extra cost.
+Conductivity/legacy lightning values below retain their old meaning and are not used as Raikiri 3.0 budgets.
+
 ## Conductivity
 
 | Setting | Default | Purpose |

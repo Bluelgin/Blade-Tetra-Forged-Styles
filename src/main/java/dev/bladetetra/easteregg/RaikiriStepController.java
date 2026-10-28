@@ -97,7 +97,8 @@ public final class RaikiriStepController {
     }
     /** No movement, payment, sequence or queued damage during NextComboEvent. */
     public static boolean canRoute(ServerPlayer p, ItemStack blade) {
-        if (blade!=p.getMainHandItem() || !eligible(blade) || !p.onGround()) return false;
+        if (blade!=p.getMainHandItem() || !eligible(blade) || !p.onGround()
+                || !finite(p.position())) return false;
         Session s=SESSIONS.get(p.getUUID());
         if (s!=null && !s.valid(p)) s=null;
         if(s!=null) settle(s);
@@ -139,7 +140,7 @@ public final class RaikiriStepController {
     static Vec3 safeEnd(ServerPlayer p) {
         Vec3 look=p.getLookAngle().multiply(1,0,1);
         Vec3 from=p.position(), moved=from;
-        if (look.lengthSqr()<0.0001D) return from;
+        if (!finite(from) || !finite(look) || look.lengthSqr()<0.0001D) return from;
         Vec3 direction=look.normalize();
         // 0.125 spacing plus swept AABB prevents thin shapes between samples.
         for (int i=1;i<=28;i++) {
@@ -147,13 +148,22 @@ public final class RaikiriStepController {
             AABB box=p.getBoundingBox().move(next.subtract(from));
             AABB sweep=p.getBoundingBox().move(moved.subtract(from)).minmax(box);
             ServerLevel level=p.serverLevel();
-            if (!loaded(level,sweep) || !level.getWorldBorder().isWithinBounds(box)
+            if (!loaded(level,sweep) || !withinBorder(level,box)
                     || !level.noCollision(p,sweep)) break;
             moved=next;
         }
         return moved;
     }
+    static boolean finite(Vec3 p) { return Double.isFinite(p.x) && Double.isFinite(p.y) && Double.isFinite(p.z); }
+    static boolean withinBorder(ServerLevel level,AABB box) {
+        var border=level.getWorldBorder();
+        return box.minX>=border.getMinX() && box.maxX<=border.getMaxX()
+                && box.minZ>=border.getMinZ() && box.maxZ<=border.getMaxZ();
+    }
     static boolean loaded(ServerLevel level,AABB box) {
+        if (!Double.isFinite(box.minX) || !Double.isFinite(box.maxX)
+                || !Double.isFinite(box.minY) || !Double.isFinite(box.maxY)
+                || !Double.isFinite(box.minZ) || !Double.isFinite(box.maxZ)) return false;
         if (box.minY<level.getMinBuildHeight() || box.maxY>=level.getMaxBuildHeight()) return false;
         for (int x=BlockPos.containing(box.minX,0,0).getX()>>4;x<=BlockPos.containing(box.maxX,0,0).getX()>>4;x++)
             for (int z=BlockPos.containing(0,0,box.minZ).getZ()>>4;z<=BlockPos.containing(0,0,box.maxZ).getZ()>>4;z++)
@@ -172,6 +182,8 @@ public final class RaikiriStepController {
     public static void hit(LivingDamageEvent e) {
         if (!Float.isFinite(e.getAmount()) || e.getAmount()<=0
                 || SoulLegacyDamageGuard.isSecondary(e.getSource())
+                || dev.bladetetra.combat.BladeTechniqueHandler.isTechniqueDamage(e.getSource())
+                || dev.bladetetra.combat.InheritedCombatDamage.isInherited(e.getSource())
                 || !(e.getSource().getEntity() instanceof ServerPlayer p)
                 || !(e.getSource().getDirectEntity() instanceof EntitySlashEffect slash)
                 || slash.getShooter()!=p || !AwakenedBladeCombat.canAffect(p,e.getEntity())) return;

@@ -74,6 +74,7 @@ public final class RaikiriCombatSmokeTest {
         if(!Boolean.getBoolean("blade_tetra.raikiriCombatSmoke")) return;
         ServerLevel level=e.getServer().overworld();
         Zombie target=null;
+        java.util.List<Zombie> extraTargets=new java.util.ArrayList<>();
         try {
             actor=FakePlayerFactory.getMinecraft(level);level.addNewPlayer(actor);
             var noTeleport=actor.connection;
@@ -157,12 +158,18 @@ public final class RaikiriCombatSmokeTest {
             check(Math.abs(actor.getX()-10.5)<0.01 && rank.getRankPoint(121)==thirdBefore,"third native step completes without extra debit");
             check(!RaikiriStepController.free(actor),"three-step limit enforced");
             // Collision path checks preserve real wall/shape bounds.
-            actor.moveTo(0,160,0,-90,0);actor.setOnGround(true);
+            actor.moveTo(0,160,0.5,-90,0);actor.setOnGround(true);
+            level.setBlock(new BlockPos(1,160,0),Blocks.STONE.defaultBlockState(),3);
+            level.setBlock(new BlockPos(1,161,0),Blocks.STONE.defaultBlockState(),3);
+            check(RaikiriStepController.safeEnd(actor).x<0.7,"solid wall stops the swept player box");
+            level.setBlock(new BlockPos(1,160,0),Blocks.AIR.defaultBlockState(),3);
+            level.setBlock(new BlockPos(1,161,0),Blocks.AIR.defaultBlockState(),3);
             level.setBlock(new BlockPos(2,160,0),Blocks.IRON_BARS.defaultBlockState(),3);
             level.setBlock(new BlockPos(2,161,0),Blocks.IRON_BARS.defaultBlockState(),3);
-            check(RaikiriStepController.safeEnd(actor).x<2,"thin collider blocks swept movement");
+            check(RaikiriStepController.safeEnd(actor).x<2.2,"thin collider blocks swept movement");
             level.setBlock(new BlockPos(2,160,0),Blocks.AIR.defaultBlockState(),3);
             level.setBlock(new BlockPos(2,161,0),Blocks.AIR.defaultBlockState(),3);
+            actor.moveTo(0,160,0,-90,0);actor.setOnGround(true);
             // Actual native cleave -> loop -> landing; poll must see an airborne native node first.
             RaikiriStepController.clear(actor.getUUID(),e.getServer());time(level,150);
             land(level,blade);
@@ -192,13 +199,35 @@ public final class RaikiriCombatSmokeTest {
             protect=false;time(level,190);RaikiriFieldService.tick(e.getServer());
             check(target.getHealth()<health,"ground sword discharges into real nearby hostile");
             check(!RaikiriFieldService.charged(actor.getUUID()),"discharge consumes charge without recursive recharge");
-            time(level,400);RaikiriFieldService.tick(e.getServer());
+            health=target.getHealth();time(level,191);RaikiriFieldService.tick(e.getServer());
+            check(target.getHealth()==health,"same sword cannot repeat damage before pulse interval");
+            var near=victim(level,0.8,0);var far=victim(level,3,0);extraTargets.add(near);extraTargets.add(far);
+            time(level,205);RaikiriFieldService.tick(e.getServer());
+            check(near.getHealth()<200 && far.getHealth()==200,"each sword selects two nearest legal enemies only");
+            target.setPos(20,160,0);near.setPos(20,160,1);far.setPos(2,160,0);
+            level.setBlock(new BlockPos(1,160,0),Blocks.STONE.defaultBlockState(),3);
+            level.setBlock(new BlockPos(1,161,0),Blocks.STONE.defaultBlockState(),3);
+            time(level,220);RaikiriFieldService.tick(e.getServer());
+            check(far.getHealth()==200,"ground sword never discharges through wall");
+            level.setBlock(new BlockPos(1,160,0),Blocks.AIR.defaultBlockState(),3);
+            level.setBlock(new BlockPos(1,161,0),Blocks.AIR.defaultBlockState(),3);
+            far.setPos(20,160,2);time(level,235);RaikiriFieldService.tick(e.getServer());
+            check(far.getHealth()==200,"ground sword never tracks target beyond its own range");
+            time(level,272);RaikiriFieldService.tick(e.getServer());
+            check(RaikiriFieldService.swordCount(actor.getUUID())==1,"resonance does not refresh original expiry");
+            time(level,274);RaikiriFieldService.tick(e.getServer());
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"lifetime expires anchors");
             // Native SA remains the registered blade art; no added finisher cost/controller.
-            var nativeArt=state.getSlashArtsKey();long raw=rank.getRawRankPoint();
+            time(level,400);var nativeArt=state.getSlashArtsKey();long raw=rank.getRawRankPoint();
             state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
-            state.doChargeAction(actor,40);
-            check(state.getSlashArtsKey().equals(nativeArt) && rank.getRawRankPoint()==raw,"ordinary native SA key and extra Rank unchanged");
+            var defaultSa=state.doChargeAction(actor,40);
+            check(java.util.Objects.equals(state.getSlashArtsKey(),nativeArt) && rank.getRawRankPoint()==raw,
+                    "ordinary native SA key and extra Rank unchanged");
+            check(defaultSa.equals(ComboStateRegistry.JUDGEMENT_CUT.getId()),"native default judgement cut submits normally");
+            var drive=mods.flammpfeil.slashblade.registry.SlashArtsRegistry.DRIVE_HORIZONTAL.getId();
+            state.setSlashArtsKey(drive);state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
+            check(state.doChargeAction(actor,40).equals(ComboStateRegistry.DRIVE_HORIZONTAL.getId())
+                    && state.getSlashArtsKey().equals(drive),"customized native SlashArts key stays native");
             actor.moveTo(0,160,0,0,0);actor.setOnGround(true);target.setPos(0,160,0.25);target.invulnerableTime=0;
             state.setComboSeq(RaikiriRapidCombo.THUNDER_RAPID.getId());state.setLastActionTime(level.getGameTime());
             input.getCommands().add(InputCommand.R_DOWN);
@@ -249,10 +278,15 @@ public final class RaikiriCombatSmokeTest {
         } finally {
             protect=false;cancelMotion=false;rewriteMotion=false;
             GameplayConfig.ENABLE_AWAKENED_V2.set(true);
-            if(target!=null)target.discard();
+            if(target!=null)target.discard();extraTargets.forEach(Zombie::discard);
             if(actor!=null) { RaikiriStepController.clear(actor.getUUID(),e.getServer());actor.discard(); }
             e.getServer().halt(false);
         }
+    }
+    private static Zombie victim(ServerLevel level,double x,double z) {
+        var target=new Zombie(EntityType.ZOMBIE,level);target.setNoAi(true);target.setNoGravity(true);target.setPos(x,160,z);
+        target.getAttribute(Attributes.MAX_HEALTH).setBaseValue(200);target.getAttribute(Attributes.ARMOR).setBaseValue(0);
+        target.setHealth(200);level.addFreshEntity(target);return target;
     }
     private static ItemStack blade() {
         var blade=ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();var tag=blade.getOrCreateTag();

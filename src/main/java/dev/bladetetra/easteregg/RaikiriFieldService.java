@@ -97,12 +97,12 @@ public final class RaikiriFieldService {
                 ClipContext.Fluid.NONE,p));
         if(hit.getType()!=HitResult.Type.BLOCK || Math.abs(hit.getLocation().y-p.getY())>0.3) return null;
         Vec3 pos=new Vec3(p.getX(),hit.getLocation().y,p.getZ());
-        return p.serverLevel().getWorldBorder().isWithinBounds(BlockPos.containing(pos))?pos:null;
+        return RaikiriStepController.withinBorder(p.serverLevel(),new AABB(pos,pos))?pos:null;
     }
     static void plant(ServerPlayer p,RaikiriStepController.Session s) {
         Vec3 pos=support(p);if(pos==null || !s.valid(p)) return;
         List<Sword> owned=SWORDS.stream().filter(a->a.session.owner.equals(s.owner)).toList();
-        if(owned.size()>=RaikiriConfig.SWORDS.get()) remove(owned.get(0),p.serverLevel());
+        for(int i=0;i<owned.size()-RaikiriConfig.SWORDS.get()+1;i++) remove(owned.get(i),p.serverLevel());
         if(SWORDS.size()>=RaikiriConfig.ANCHORS.get()) return;
         Sword sword=new Sword(s,pos,p.level().getGameTime());SWORDS.add(sword);
         syncNewViewers(p.serverLevel(),sword);
