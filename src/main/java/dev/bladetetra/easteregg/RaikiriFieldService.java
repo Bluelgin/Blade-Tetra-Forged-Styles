@@ -34,24 +34,32 @@ public final class RaikiriFieldService {
     private static int nextVisualId=1;
     private record Impact(LivingEntity target,float cap) {}
     private static final ThreadLocal<Impact> IMPACT=new ThreadLocal<>();
+    private record Strike(Vec3 position,long due) {}
     private static final class Trail {
-        final RaikiriStepController.Session session;
-        final Vec3 from,to;
-        final long born;
-        final int count,start,end;
+        final RaikiriActionObserver.Session session;
+        final UUID action;
+        final long expires;
+        final List<Strike> strikes=new ArrayList<>();
         final RaikiriRules.Budget budget;
         int index;
-        Trail(RaikiriStepController.Session s,Vec3 from,Vec3 to,long now) {
-            session=s; this.from=from;this.to=to;born=now;
-            count=RaikiriRules.samples(from.distanceTo(to),RaikiriConfig.TRAIL_SAMPLES.get());
-            start=Math.min(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
-            end=Math.max(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
+        boolean sealed;
+        Vec3 last;
+        Trail(RaikiriActionObserver.Session s,UUID action,long now) {
+            session=s;this.action=action;expires=now+RaikiriConfig.MAX_OBSERVE_TICKS.get()+12;
             budget=new RaikiriRules.Budget(RaikiriConfig.TRAIL_BUDGET.get().floatValue(),
                     RaikiriConfig.TRAIL_TARGET_CAP.get().floatValue());
         }
+        void sample(Vec3 position,long tick) {
+            if(strikes.size()>=RaikiriConfig.TRAIL_SAMPLES.get()) return;
+            if(last!=null && last.distanceTo(position)<RaikiriConfig.SAMPLE_SPACING.get()) return;
+            int start=Math.min(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
+            int end=Math.max(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
+            strikes.add(new Strike(position,tick+RaikiriRules.delay(strikes.size(),RaikiriConfig.TRAIL_SAMPLES.get(),start,end)));
+            last=position;
+        }
     }
     private static final class Sword {
-        final RaikiriStepController.Session session;
+        final RaikiriActionObserver.Session session;
         final Vec3 pos;
         final int visual=nextVisualId++;
         final long born,expires;
@@ -59,7 +67,7 @@ public final class RaikiriFieldService {
         final RaikiriRules.Charge charge=new RaikiriRules.Charge();
         final Set<UUID> viewers=new HashSet<>();
         long next;
-        Sword(RaikiriStepController.Session s,Vec3 pos,long now) {
+        Sword(RaikiriActionObserver.Session s,Vec3 pos,long now) {
             session=s;this.pos=pos;born=now;expires=now+RaikiriConfig.LIFETIME.get();
             next=now+RaikiriConfig.PERIOD.get();
             float total=RaikiriConfig.LIFE_BUDGET.get().floatValue();
@@ -70,11 +78,16 @@ public final class RaikiriFieldService {
         return TRAILS.size()<RaikiriConfig.TRAILS.get()
                 && TRAILS.stream().filter(t->t.session.owner.equals(owner)).count()<3;
     }
-    static void step(ServerPlayer p,RaikiriStepController.Session s,Vec3 from,Vec3 to) {
-        if (!hasTrailCapacity(s.owner)) return;
-        TRAILS.add(new Trail(s,from,to,p.level().getGameTime()));
+    /** Only observed endpoints are scheduled; never interpolate a predicted dash. */
+    static void segment(ServerPlayer p,RaikiriActionObserver.Session s,UUID action,
+            Vec3 from,Vec3 to,long fromTick,long toTick) {
+        Trail trail=TRAILS.stream().filter(t->t.action.equals(action)).findFirst().orElse(null);
+        if(trail==null && hasTrailCapacity(s.owner)) {
+            trail=new Trail(s,action,fromTick);TRAILS.add(trail);trail.sample(from,fromTick);
+        }
+        if(trail!=null) trail.sample(to,toTick);
         AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
-                AwakenedBladeVfxPacket.STEP,from.add(0,0.1,0),to.add(0,0.1,0),s.chain);
+                AwakenedBladeVfxPacket.STEP,from.add(0,0.1,0),to.add(0,0.1,0),1);
         double radius=RaikiriConfig.RESONANCE_RADIUS.get();
         for(Sword sword:SWORDS) {
             if(sword.session!=s || !validSword(p,sword)) continue;
@@ -82,24 +95,25 @@ public final class RaikiriFieldService {
             Vec3 near=new Vec3(close.x(),close.y(),close.z());
             if(RaikiriRules.distanceSquared(point(sword.pos),point(from),point(to))<=radius*radius
                     && clearPath(p.serverLevel(),near.add(0,0.4,0),sword.pos.add(0,0.4,0),p)
-                    && sword.charge.resonate(s.sequence))
+                    && sword.charge.resonate(action))
                 AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
                         AwakenedBladeVfxPacket.RESONANCE,sword.pos,sword.pos,sword.visual);
         }
     }
+    static void finish(UUID action) { for(Trail trail:TRAILS) if(trail.action.equals(action)) trail.sealed=true; }
     private static RaikiriRules.Point point(Vec3 p) { return new RaikiriRules.Point(p.x,p.y,p.z); }
     /** Real collision-shape surface, including slabs; no unsupported or void anchors. */
     static Vec3 support(ServerPlayer p) {
         if(!p.onGround()) return null;
         Vec3 from=p.position().add(0,0.15,0),to=p.position().add(0,-0.7,0);
-        if(!RaikiriStepController.loaded(p.serverLevel(),new AABB(from,to))) return null;
+        if(!RaikiriActionObserver.loaded(p.serverLevel(),new AABB(from,to))) return null;
         HitResult hit=p.serverLevel().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE,p));
         if(hit.getType()!=HitResult.Type.BLOCK || Math.abs(hit.getLocation().y-p.getY())>0.3) return null;
         Vec3 pos=new Vec3(p.getX(),hit.getLocation().y,p.getZ());
-        return RaikiriStepController.withinBorder(p.serverLevel(),new AABB(pos,pos))?pos:null;
+        return RaikiriActionObserver.withinBorder(p.serverLevel(),new AABB(pos,pos))?pos:null;
     }
-    static void plant(ServerPlayer p,RaikiriStepController.Session s) {
+    static void plant(ServerPlayer p,RaikiriActionObserver.Session s) {
         Vec3 pos=support(p);if(pos==null || !s.valid(p)) return;
         List<Sword> owned=SWORDS.stream().filter(a->a.session.owner.equals(s.owner)).toList();
         for(int i=0;i<owned.size()-RaikiriConfig.SWORDS.get()+1;i++) remove(owned.get(i),p.serverLevel());
@@ -110,7 +124,7 @@ public final class RaikiriFieldService {
     private static boolean validSword(ServerPlayer p,Sword sword) {
         ServerLevel level=p.serverLevel();
         if(!sword.session.valid(p) || level.getGameTime()>=sword.expires
-                || !RaikiriStepController.loaded(level,new AABB(sword.pos,sword.pos.add(0,1.5,0)))) return false;
+                || !RaikiriActionObserver.loaded(level,new AABB(sword.pos,sword.pos.add(0,1.5,0)))) return false;
         HitResult hit=level.clip(new ClipContext(sword.pos.add(0,0.15,0),sword.pos.add(0,-0.2,0),
                 ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
         return hit.getType()==HitResult.Type.BLOCK && hit.getLocation().distanceToSqr(sword.pos)<0.01;
@@ -118,13 +132,13 @@ public final class RaikiriFieldService {
     static void tick(MinecraftServer server) {
         Iterator<Trail> trails=TRAILS.iterator();
         while(trails.hasNext()) {
-            Trail t=trails.next();ServerPlayer p=RaikiriStepController.owner(server,t.session);
+            Trail t=trails.next();ServerPlayer p=RaikiriActionObserver.owner(server,t.session);
             if(!t.session.valid(p)) { trails.remove();continue; }
             long now=p.level().getGameTime();
-            if(t.index<t.count && now>=t.born+RaikiriRules.delay(t.index,t.count,t.start,t.end)) {
-                Vec3 at=t.from.lerp(t.to,t.count<=1?0.5:t.index/(double)(t.count-1)).add(0,0.4,0);
+            if(t.index<t.strikes.size() && now>=t.strikes.get(t.index).due) {
+                Vec3 at=t.strikes.get(t.index).position.add(0,0.4,0);
                 t.index++;
-                if(RaikiriStepController.loaded(p.serverLevel(),new AABB(at,at).inflate(0.2))) {
+                if(RaikiriActionObserver.loaded(p.serverLevel(),new AABB(at,at).inflate(0.2))) {
                     AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
                             AwakenedBladeVfxPacket.BOLT,at.add(0,2.4,0),at,0);
                     double radius=RaikiriConfig.STRIKE_RADIUS.get();
@@ -134,11 +148,11 @@ public final class RaikiriFieldService {
                     }
                 }
             }
-            if(t.index>=t.count || now>t.born+12) trails.remove();
+            if(t.sealed && t.index>=t.strikes.size() || now>t.expires) trails.remove();
         }
         Iterator<Sword> swords=SWORDS.iterator();
         while(swords.hasNext()) {
-            Sword s=swords.next();ServerPlayer p=RaikiriStepController.owner(server,s.session);
+            Sword s=swords.next();ServerPlayer p=RaikiriActionObserver.owner(server,s.session);
             if(p==null || !validSword(p,s)) {
                 ServerLevel level=server.getLevel(s.session.dimension);
                 if(level!=null) vanish(level,s);
@@ -165,7 +179,7 @@ public final class RaikiriFieldService {
     private static List<LivingEntity> targets(ServerPlayer p,Vec3 origin,double radius,int limit) {
         ServerLevel level=p.serverLevel(); AABB box=new AABB(origin,origin).inflate(radius);
         // Never load adjacent chunks to search or ray trace.
-        if(!RaikiriStepController.loaded(level,box)) return List.of();
+        if(!RaikiriActionObserver.loaded(level,box)) return List.of();
         List<LivingEntity> candidates=new ArrayList<>();
         // Cap collection before filtering/raycasting: dense crowds cannot grow
         // a temporary list or run unbounded legal-path tests per discharge.
@@ -178,20 +192,37 @@ public final class RaikiriFieldService {
                 .limit(limit).toList();
     }
     static boolean clearPath(ServerLevel level,Vec3 from,Vec3 to,ServerPlayer p) {
-        return RaikiriStepController.loaded(level,new AABB(from,to))
+        return RaikiriActionObserver.loaded(level,new AABB(from,to))
                 && level.clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p))
                         .getType()==HitResult.Type.MISS;
     }
-    private static boolean damage(ServerPlayer p,LivingEntity target,float amount) {
+    static boolean damage(ServerPlayer p,LivingEntity target,float amount) {
         if(amount<=0 || IMPACT.get()!=null || !AwakenedBladeCombat.canAffect(p,target)) return false;
+        var bladeState=p.getMainHandItem().getCapability(dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE).orElse(null);
+        // Native RankPointHandler resolves its owner's combo during hurt. If
+        // inventory ticking has not yet retired a stale node, skip this extra
+        // impact instead of letting lightning advance a native timeout.
+        if(bladeState!=null && !mods.flammpfeil.slashblade.registry.ComboStateRegistry.NONE.getId().equals(bladeState.getComboSeq())
+                && !bladeState.getComboSeq().equals(RaikiriActionObserver.activeCombo(p,bladeState))) return false;
         int previous=target.invulnerableTime;float before=target.getHealth();target.invulnerableTime=0;
+        var rank=p.getCapability(mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank.RANK_POINT).orElse(null);
+        long raw=rank==null?0:rank.getRawRankPoint(), updated=rank==null?0:rank.getLastUpdate(), rise=rank==null?0:rank.getLastRankRise();
         IMPACT.set(new Impact(target,amount)); boolean landed=false;
         try {
             landed=InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->
                     target.hurt(p.level().damageSources().playerAttack(p),amount)));
             landed=landed && target.getHealth()<before;
             return landed;
-        } finally { IMPACT.remove();if(!landed) target.invulnerableTime=previous; }
+        } finally {
+            IMPACT.remove();if(!landed) target.invulnerableTime=previous;
+            // Native 1.9.63 RankPointHandler awards on LivingHurtEvent even
+            // for player-attributed extra damage. Restore ONLY this scoped
+            // impact's native rank side effects, preserving natural decay.
+            if(rank!=null && (rank.getRawRankPoint()!=raw || rank.getLastUpdate()!=updated || rank.getLastRankRise()!=rise)) {
+                rank.setRawRankPoint(raw);rank.setLastUpdte(updated);rank.setLastRankRise(rise);
+                rank.addRankPoint(p,0);
+            }
+        }
     }
     // Third-party amplification cannot turn an explicitly budgeted secondary
     // impact into unbounded damage. Cancelled damage remains cancelled.
@@ -227,6 +258,10 @@ public final class RaikiriFieldService {
     }
     static int swordCount(UUID owner) { return (int)SWORDS.stream().filter(s->s.session.owner.equals(owner)).count(); }
     static int trailCount(UUID owner) { return (int)TRAILS.stream().filter(t->t.session.owner.equals(owner)).count(); }
+    static List<Vec3> samples(UUID owner) {
+        return TRAILS.stream().filter(t->t.session.owner.equals(owner))
+                .flatMap(t->t.strikes.stream()).map(Strike::position).toList();
+    }
     static boolean charged(UUID owner) { return SWORDS.stream().anyMatch(s->s.session.owner.equals(owner) && s.charge.charged()); }
     static void forgetViewer(UUID viewer) { for(Sword sword:SWORDS) sword.viewers.remove(viewer); }
     static void reset() { TRAILS.clear();SWORDS.clear(); }

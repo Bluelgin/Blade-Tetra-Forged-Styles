@@ -22,18 +22,12 @@ public final class RaikiriRules {
         Point q=closest(p,a,b);
         return (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
     }
-    public static int samples(double length, int cap) {
-        return !Double.isFinite(length) || length < 0.49 ? 0
-                : Math.min(Math.max(0, Math.min(4, cap)), Math.max(1, (int)Math.ceil(length)));
+    public static boolean continuous(Point a,Point b,long before,long now,double maxDistance) {
+        return a.finite() && b.finite() && now-before==1 && maxDistance>0 && Double.isFinite(maxDistance)
+                && distanceSquared(b,a,a)<=maxDistance*maxDistance;
     }
     public static int delay(int index, int count, int start, int end) {
         return start + (count <= 1 ? 0 : index * (end-start)/(count-1));
-    }
-    public static boolean confirmed(long now, long started, UUID expected, UUID actual) {
-        return expected != null && expected.equals(actual) && now >= started && now-started <= 22;
-    }
-    public static boolean followup(int chain, boolean hit, long started, long now) {
-        return chain > 0 && chain < 3 && hit && now >= started && now-started <= 36;
     }
     public static boolean landing(boolean armed, boolean ground, boolean supported, long age) {
         return armed && ground && supported && age >= 0 && age <= 100;

@@ -5,11 +5,15 @@ import net.minecraftforge.common.ForgeConfigSpec;
 /** All field tuning belongs to the existing server GameplayConfig spec. */
 public final class RaikiriConfig {
     public static ForgeConfigSpec.IntValue TRAIL_SAMPLES, DELAY_START, DELAY_END, TRAILS,
-            SWORDS, LIFETIME, PERIOD, TARGETS, ANCHORS;
+            SWORDS, LIFETIME, PERIOD, TARGETS, ANCHORS, MAX_OBSERVE_TICKS;
     public static ForgeConfigSpec.DoubleValue TRAIL_BUDGET, TRAIL_TARGET_CAP, STRIKE_RADIUS,
-            SWORD_RANGE, ROUND_BUDGET, LIFE_BUDGET, RESONANCE_RADIUS, RESONANCE_MULTIPLIER;
+            SWORD_RANGE, ROUND_BUDGET, LIFE_BUDGET, RESONANCE_RADIUS, RESONANCE_MULTIPLIER, MAX_SEGMENT, MAX_PATH, SAMPLE_SPACING;
     public static void define(ForgeConfigSpec.Builder b) {
         b.push("raikiri3");
+        MAX_OBSERVE_TICKS=b.defineInRange("maxObservationTicks",40,8,40);
+        MAX_SEGMENT=b.defineInRange("maxObservedSegment",2.5D,0.5D,4D);
+        MAX_PATH=b.defineInRange("maxObservedPath",12D,2D,32D);
+        SAMPLE_SPACING=b.defineInRange("trailSampleSpacing",0.35D,0.05D,2D);
         TRAIL_SAMPLES=b.defineInRange("trailSamples",4,1,4);
         DELAY_START=b.defineInRange("delayStart",6,6,10);
         DELAY_END=b.defineInRange("delayEnd",10,6,10);

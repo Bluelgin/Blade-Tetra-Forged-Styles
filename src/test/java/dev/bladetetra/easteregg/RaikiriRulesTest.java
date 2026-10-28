@@ -19,28 +19,17 @@ class RaikiriRulesTest {
         assertEquals(1,RaikiriRules.distanceSquared(p(1,0,0),p(0,0,0),p(0,0,0)));
         assertEquals(Double.POSITIVE_INFINITY,RaikiriRules.distanceSquared(p(Double.NaN,0,0),p(0,0,0),p(1,0,0)));
     }
-    @Test void samplingAndLatencyAreBounded() {
-        assertEquals(4,RaikiriRules.samples(3.5,4));assertEquals(2,RaikiriRules.samples(3.5,2));
-        assertEquals(1,RaikiriRules.samples(0.5,4));assertEquals(0,RaikiriRules.samples(0.2,4));
-        assertEquals(0,RaikiriRules.samples(Double.NaN,4));assertEquals(4,RaikiriRules.samples(100,100));
-        assertArrayEquals(new int[]{6,7,8,10},new int[]{RaikiriRules.delay(0,4,6,10),
-                RaikiriRules.delay(1,4,6,10),RaikiriRules.delay(2,4,6,10),RaikiriRules.delay(3,4,6,10)});
+    @Test void observedSegmentsRejectTeleportsGapsAndInvalidValues() {
+        assertTrue(RaikiriRules.continuous(p(0,0,0),p(0.02,0,0),10,11,2.5));
+        assertFalse(RaikiriRules.continuous(p(0,0,0),p(10,0,0),10,11,2.5));
+        assertFalse(RaikiriRules.continuous(p(0,0,0),p(1,0,0),10,12,2.5));
+        assertFalse(RaikiriRules.continuous(p(0,0,0),p(Double.NaN,0,0),10,11,2.5));
     }
-    @Test void lateSlashFromPreviousStepCannotConfirmCurrentSequence() {
-        UUID first=UUID.randomUUID(),second=UUID.randomUUID();
-        assertTrue(RaikiriRules.confirmed(122,100,first,first));
-        assertFalse(RaikiriRules.confirmed(123,100,first,first));
-        assertFalse(RaikiriRules.confirmed(99,100,first,first));
-        assertFalse(RaikiriRules.confirmed(105,100,second,first));
-        assertFalse(RaikiriRules.confirmed(105,100,first,null));
-    }
-    @Test void onlyTwoConfirmedFreeFollowupsEvenAfterDemotion() {
-        assertTrue(RaikiriRules.followup(1,true,100,136));
-        assertTrue(RaikiriRules.followup(2,true,100,136));
-        assertFalse(RaikiriRules.followup(3,true,100,110));
-        assertFalse(RaikiriRules.followup(1,false,100,110));
-        assertFalse(RaikiriRules.followup(0,true,100,110));
-        assertFalse(RaikiriRules.followup(1,true,100,137));
+    @Test void delaysBelongToEachRealSample() {
+        assertEquals(6,RaikiriRules.delay(0,4,6,10));
+        assertEquals(7,RaikiriRules.delay(1,4,6,10));
+        assertEquals(8,RaikiriRules.delay(2,4,6,10));
+        assertEquals(10,RaikiriRules.delay(3,4,6,10));
     }
     @Test void trailTotalAndSameTargetCapsSurviveRepeatAttempts() {
         var budget=new RaikiriRules.Budget(6,3);UUID a=UUID.randomUUID(),b=UUID.randomUUID();

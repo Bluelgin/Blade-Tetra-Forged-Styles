@@ -147,7 +147,7 @@ public final class GameplayConfig {
                 .comment("Senbonzakura full array: requires A rank. Form switching remains free.")
                 .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
         AWAKENED_RANK_COST_STEP = builder
-                .comment("Raikiri basic lightning step: requires B rank.")
+                .comment("Deprecated compatibility key: ignored. Native rapid movement and its lightning extension have no extra Rank cost.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
         dev.bladetetra.easteregg.RaikiriConfig.define(builder);
         AWAKENED_RANK_COST_FINISH = builder
