@@ -36,7 +36,7 @@ public final class NativeBladeActionObserver {
                 || !(event.getEntity() instanceof EntitySlashEffect slash)
                 || !(slash.getShooter() instanceof ServerPlayer player)) return;
         var s = KyoukaMirrorSessions.SESSIONS.get(player.getUUID());
-        if (s != null && s.action > 0 && s.shots.size() < 64 && KyoukaMirrorSessions.valid(s)
+        if (slash.getDamage() > 0 && s != null && s.action > 0 && s.shots.size() < 64 && KyoukaMirrorSessions.valid(s)
                 && !InheritedCombatDamage.isInherited(player.damageSources().playerAttack(player)))
             s.shots.put(slash.getAlreadyHits(), new KyoukaMirrorSession.Shot(slash, s.action, new HashSet<>()));
     }

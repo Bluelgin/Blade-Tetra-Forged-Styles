@@ -32,6 +32,24 @@ jobs:
             build/libs/*.jar
             build/test-results/test/*.xml
           retention-days: 14
+      - name: Kyouka native Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/kyouka-native-smoke
+          echo 'eula=true' > build/kyouka-native-smoke/eula.txt
+          ./gradlew runServer -PkyoukaNativeSmoke 2>&1 | tee build/kyouka-native-smoke.log
+          grep -F 'KYOUKA_NATIVE_SMOKE_PASS' build/kyouka-native-smoke.log
+      - name: Upload Kyouka runtime evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyouka3-native-evidence
+          path: |
+            build/kyouka-native-smoke.log
+            build/kyouka-native-smoke/logs/**
+            build/test-results/test/*.xml
+          retention-days: 14
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8

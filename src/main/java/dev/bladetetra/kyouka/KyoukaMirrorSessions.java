@@ -51,7 +51,7 @@ public final class KyoukaMirrorSessions {
                 || !inRange(owner, target) || !owner.hasLineOfSight(target)) return;
         var rank = owner.getCapability(CapabilityConcentrationRank.RANK_POINT).orElse(null);
         // Other capability implementations may override default addRankPoint; fail closed.
-        if (!(rank instanceof mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRank)) return;
+        if (rank == null || rank.getClass() != mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRank.class) return;
         int cost = GameplayConfig.KYOUKA_START_COST.get();
         long now = owner.level().getGameTime();
         if (!KyoukaRules.canStart(rank.getRankPoint(now), rank.getUnitCapacity(), rank.getRank(now).level, cost)) return;
@@ -126,6 +126,9 @@ public final class KyoukaMirrorSessions {
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        step();
+    }
+    static void step() {
         // End old batches before accepting a replacement native cast.
         for (var s : List.copyOf(SESSIONS.values())) {
             long now = s.owner.level().getGameTime();
