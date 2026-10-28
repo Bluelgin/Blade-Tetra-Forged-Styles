@@ -42,6 +42,14 @@ public final class SakuraShardAttackService {
     }
     private record Pending(LivingEntity target,float damage,long fireAt,boolean right) {}
     private record Flight(ServerPlayer owner,Owner binding,LivingEntity target,float budget,long at) {}
+    private static final class DamageBudget {
+        final ServerPlayer owner; final LivingEntity target; float remaining;
+        DamageBudget(ServerPlayer owner,LivingEntity target,float amount) {this.owner=owner;this.target=target;remaining=amount;}
+        boolean matches(net.minecraft.world.damagesource.DamageSource source,LivingEntity victim) {
+            return source.getDirectEntity()==owner&&target==victim&&SoulLegacyDamageGuard.isSecondary(source);
+        }
+    }
+    private static final ThreadLocal<DamageBudget> SA_BUDGET=new ThreadLocal<>();
     private static final Map<UUID,Owner> OWNERS=new HashMap<>();
     private static final Map<EntityAbstractSummonedSword,Flight> FLIGHTS=new HashMap<>();
     public static boolean validTarget(ServerPlayer p,LivingEntity t) {
@@ -87,7 +95,9 @@ public final class SakuraShardAttackService {
         if(target==null||!SakuraShardAttackRules.pulse(stage,elapsed)) return;
         float damage=(float)(GameplayConfig.SAKURA_SA_STAGE_DAMAGE.get()/SakuraShardAttackRules.pulseCount(stage));
         // Fixed total per stage, never multiplied by the number of native slash entities or targets.
-        InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->target.hurt(p.damageSources().playerAttack(p),damage)));
+        DamageBudget previous=SA_BUDGET.get();SA_BUDGET.set(new DamageBudget(p,target,damage));
+        try {InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->target.hurt(p.damageSources().playerAttack(p),damage)));}
+        finally {if(previous==null) SA_BUDGET.remove();else SA_BUDGET.set(previous);}
     }
     public static void cue(ServerPlayer p,ItemStack blade,int stage,int variant,Vec3 end,int target,long at) {
         var tag=blade.getTag();if(tag==null||tag.getString("id").isBlank()) return;
@@ -148,11 +158,17 @@ public final class SakuraShardAttackService {
         if(f==null||e.getEntity()!=f.target||!f.binding.matches(f.owner)||!validTarget(f.owner,f.target)) e.setCanceled(true);
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void hurt(LivingHurtEvent e) {
+        DamageBudget budget=SA_BUDGET.get();
+        if(budget!=null&&budget.matches(e.getSource(),e.getEntity())) e.setAmount(Math.min(e.getAmount(),budget.remaining));
         if(e.getSource().getDirectEntity() instanceof EntityAbstractSummonedSword sword&&sword.getPersistentData().getBoolean(MARK)) {
             Flight f=FLIGHTS.get(sword);e.setAmount(f==null?0:Math.min(e.getAmount(),f.budget));
         }
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void damage(LivingDamageEvent e) {
+        DamageBudget budget=SA_BUDGET.get();
+        if(budget!=null&&budget.matches(e.getSource(),e.getEntity())) {
+            float accepted=Math.max(0,Math.min(e.getAmount(),budget.remaining));e.setAmount(accepted);budget.remaining-=accepted;
+        }
         if(e.getSource().getDirectEntity() instanceof EntityAbstractSummonedSword sword&&sword.getPersistentData().getBoolean(MARK)) {
             Flight f=FLIGHTS.get(sword);e.setAmount(f==null?0:Math.min(e.getAmount(),f.budget));
         }

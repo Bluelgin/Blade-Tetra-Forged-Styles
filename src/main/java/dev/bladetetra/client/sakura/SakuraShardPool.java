@@ -129,11 +129,12 @@ public final class SakuraShardPool {
         for(int i=0;i<MAX_GROUPS;i++) if(groups[i]==null) {free=i;break;}
         int index=dev.bladetetra.easteregg.SakuraShardAttackRules.index(logical,shards.length);
         Shard shard=shards[index];
-        if(free<0||shard.flying()) return false;
+        boolean forming=stance!=null&&stance.dispersing()&&shard.state==State.TRANSITION&&shard.visibility>.6F;
+        if(free<0||shard.flying()&&!forming) return false;
         Group group=new Group(1,sequence,actionAt,time,target,SakuraShardFormation.forward(frame),targetId,false);
         group.concerto=true;group.right=right;group.members=1;
         shard.group=group;shard.state=State.LAUNCH;shard.start=shard.position;
-        shard.returnStart=null;shard.history=0;shard.departureFromHome=true;
+        shard.returnStart=null;shard.history=0;shard.departureFromHome=!forming;
         groups[free]=group;return true;
     }
     public void recall(long sequence) {

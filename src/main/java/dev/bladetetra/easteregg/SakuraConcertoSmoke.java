@@ -28,6 +28,10 @@ final class SakuraConcertoSmoke {
                 &&sword.getPersistentData().getBoolean("blade_tetra_sakura_concerto")) swords.add(sword);
         if(e.getEntity() instanceof mods.flammpfeil.slashblade.entity.EntitySlashEffect slash&&slash.getOwner()==actor) slashes.add(slash);
     }
+    @SubscribeEvent(priority=EventPriority.HIGH) public void amplify(net.minecraftforge.event.entity.living.LivingHurtEvent e) {
+        // Simulate another mod multiplying secondary damage before our final budget guard.
+        if(e.getSource().getDirectEntity()==actor&&SoulLegacyDamageGuard.isSecondary(e.getSource())) e.setAmount(e.getAmount()*1000);
+    }
     @SubscribeEvent(priority=EventPriority.LOWEST) public void hit(LivingDamageEvent e) {
         if(e.getSource().getEntity()!=actor) return;
         if(e.getSource().getDirectEntity() instanceof EntityAbstractSummonedSword) swordDamage+=e.getAmount();
@@ -42,6 +46,12 @@ final class SakuraConcertoSmoke {
         var damage=actor.getAttribute(Attributes.ATTACK_DAMAGE);double before=damage.getBaseValue();damage.setBaseValue(20);
         try {
             var state=blade.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
+            target.moveTo(0,100,30,0,0);check(!SakuraShardAttackService.validTarget(actor,target),"out-of-range target rejected");
+            target.moveTo(0,100,3,0,0);
+            var wall=new net.minecraft.core.BlockPos(0,101,1);var original=level.getBlockState(wall);
+            try {level.setBlockAndUpdate(wall,net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+                check(!SakuraShardAttackService.validTarget(actor,target),"wall blocks targeting");}
+            finally {level.setBlockAndUpdate(wall,original);}
             long at=level.getGameTime()+30;time(level,at);
             state.setComboSeq(ComboStateRegistry.COMBO_B1.getId());state.setLastActionTime(at);
             AttackManager.doMeleeAttack(actor,target,true,false,.244F);
