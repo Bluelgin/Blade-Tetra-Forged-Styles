@@ -1,5 +1,7 @@
 # 镜花觉醒仪式 3.0：实现、维护与验收边界
 
+> 历史记录：实时反射实现已被破镜归刀方案替代，以下类、着色器和配置已移除。当前行为见 [KYOUKA_SHATTER_RITUAL.md](KYOUKA_SHATTER_RITUAL.md)。
+
 ## 基线与分支
 
 基于 PR #43 的 `codex/true-name-release-ritual`，提交

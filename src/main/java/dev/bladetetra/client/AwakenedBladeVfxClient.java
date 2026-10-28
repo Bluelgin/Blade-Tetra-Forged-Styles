@@ -153,6 +153,11 @@ public final class AwakenedBladeVfxClient {
         dev.bladetetra.client.awakening.AwakeningVisualController.drawBackdrop(
                 ritualBackdrop,matrix,eye,event.getPartialTick(),intensity);
         Tesselator.getInstance().end();
+        RenderSystem.setShaderTexture(0,new ResourceLocation("blade_tetra","textures/effect/awakened/ritual/white_energy.png"));
+        ritualBackdrop.begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_TEX_COLOR);
+        dev.bladetetra.client.awakening.AwakeningVisualController.drawMirrors(
+                ritualBackdrop,matrix,eye,event.getPartialTick(),intensity);
+        Tesselator.getInstance().end();
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();

@@ -38,10 +38,6 @@ minecraft {
                 workingDirectory project.file('build/mirror-ritual-review')
                 property 'blade_tetra.mirrorRitualReview', 'true'
             }
-            if (project.hasProperty('mirrorPrototype')) {
-                workingDirectory project.file('build/mirror-prototype')
-                property 'blade_tetra.mirrorPrototype', 'true'
-            }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'
@@ -110,7 +106,7 @@ minecraft {
         }
 
         client {
-            if (project.hasProperty('mirrorPrototype') || project.hasProperty('mirrorRitualReview')) {
+            if (project.hasProperty('mirrorRitualReview')) {
                 args '--width', '960', '--height', '540'
             }
             if (project.hasProperty('artPreview')) {

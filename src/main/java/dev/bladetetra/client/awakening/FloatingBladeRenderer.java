@@ -36,7 +36,6 @@ public final class FloatingBladeRenderer {
     }
     private static final List<RendererAdapter> ADAPTERS = new ArrayList<>();
     private static int rendering;
-    private static boolean ghostPass;
     private static float fraction = 1;
     private static boolean energy;
     private static float overlayAlpha;
@@ -79,10 +78,6 @@ public final class FloatingBladeRenderer {
         if (AwakeningVisibility.isSheathTarget(event.getTarget())) {
             event.setCanceled(true);
             return;
-        }
-        if (ghostPass && overlayAlpha <= 0) {
-            event.setEnableEffect(false);
-            BladeRenderState.setCol(0x559AD9FF);
         }
         if (overlayAlpha > 0) {
             event.setPackedLightIn(LightTexture.FULL_BRIGHT);
@@ -139,6 +134,7 @@ public final class FloatingBladeRenderer {
         if (!"blade".equals(target) && !"blade_damaged".equals(target)) return;
         var mc=Minecraft.getInstance(); float partial=mc.getPartialTick();
         float tick=s.age(mc.level,partial);
+        if(s.data.soul()==2&&!MirrorRitualController.bladeVisible(tick)) return;
         var capture=s.bladePose;
         capture.capture(event.getPoseStack().last().pose());
         PoseStack pose=new PoseStack();
@@ -177,27 +173,16 @@ public final class FloatingBladeRenderer {
 
     public static void render(AwakeningSession s, PoseStack pose, MultiBufferSource buffers,
             float partial, float tick) {
+        if(s.data.soul()==2&&!MirrorRitualController.bladeVisible(tick)) return;
         Vec3 pos = position(s,partial,tick);
-        if (!localHandPass(s)) renderAt(s, pose, buffers, pos, tick, partial, false);
-    }
-    /** Actual native blade plus delayed images, rendered only through the reflected world camera. */
-    public static void renderReflected(AwakeningSession s,PoseStack pose,MultiBufferSource buffers,float partial,float tick) {
-        renderAt(s,pose,buffers,position(s,partial,tick),tick,partial,false);
-        if(tick<42||tick>=83) return;
-        for(int i=1;i<=2;i++) {
-            float delayed=Math.max(20,tick-i*7);
-            Vec3 p=position(s,partial,delayed).add(new Vec3(forward(s,partial).z,0,-forward(s,partial).x)
-                    .scale(Math.sin(delayed*.15)*i*.12));
-            renderAt(s,pose,buffers,p,delayed,partial,true);
-        }
+        if (!localHandPass(s)) renderAt(s, pose, buffers, pos, tick, partial);
     }
     private static void renderAt(AwakeningSession s, PoseStack pose, MultiBufferSource buffers,
-            Vec3 pos, float tick, float partial, boolean ghost) {
+            Vec3 pos, float tick, float partial) {
         pose.pushPose(); rendering++;
         float oldFraction = fraction, oldAlpha = overlayAlpha; boolean oldEnergy = energy;
-        int oldTint = overlayTint; boolean oldGhost = ghostPass;
+        int oldTint = overlayTint;
         try {
-            ghostPass = ghost;
             fraction = AwakeningPresentationTimeline.bladeFraction(tick,s.data.soul());
             energy = tick >= 85 && tick < 89;
             pose.translate(pos.x,pos.y,pos.z);
@@ -208,22 +193,19 @@ public final class FloatingBladeRenderer {
             float angle = AwakeningVisualProfile.get(s.data.soul()).angle();
             float spin = tick < 85 ? (float)Math.sin(tick*.045)*8 : 0;
             pose.mulPose(Axis.ZP.rotationDegrees(-25+(angle+25+spin)*flight));
-            if (ghost) pose.mulPose(Axis.ZP.rotationDegrees(-30F*(float)Math.sin(
-                    AwakeningPresentationTimeline.progress(tick,52,58)*Math.PI)));
             pose.scale(.0078125F,.0078125F,.0078125F);
             // Existing SlashBlade source coordinates, grip pivot rather than an icon pivot.
             pose.translate(-20,0,0);
-            if (!ghost&&!dev.bladetetra.client.reflection.ReflectionPass.active()) s.bladePose.blend(pose, flight);
-            if (ghost) BladeRenderState.setCol(0x559AD9FF);
+            s.bladePose.blend(pose, flight);
             s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
-            if (!ghost && tick < 100) {
+            if (tick < 100) {
                 overlayAlpha = s.data.soul()==2?.14F:.25F + .3F * (float)Math.pow(Math.sin(tick * .2), 2);
                 overlayTint = energy ? 0xFFFFFF : AwakeningPresentationTimeline.tint(s.data.soul());
                 s.model.render(s.appearance,pose,buffers,LightTexture.FULL_BRIGHT);
                 overlayAlpha = 0;
             }
         } finally {
-            fraction = oldFraction; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; ghostPass = oldGhost; rendering--;
+            fraction = oldFraction; energy = oldEnergy; overlayAlpha = oldAlpha; overlayTint = oldTint; rendering--;
             BladeRenderState.resetCol(); pose.popPose();
         }
     }

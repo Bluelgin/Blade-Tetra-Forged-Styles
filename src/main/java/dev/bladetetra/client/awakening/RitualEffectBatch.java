@@ -34,6 +34,23 @@ public final class RitualEffectBatch {
     public Vec3 local(double x,double y,double z) {
         return center.add(right.scale(x)).add(0,y,0).add(forward.scale(z));
     }
+    public Vec3 mirrorOrigin() {
+        return root.add(forward.scale(2.05)).add(0,2.35,0);
+    }
+    public Vec3 mirrorWorld(Vec3 p) {
+        return mirrorOrigin().add(right.scale(p.x)).add(0,p.y,0).add(forward.scale(p.z));
+    }
+    /** White-texture pass only. Degenerate fourth vertex packs a triangle in the shared quad batch. */
+    public void solidTriangle(Vec3 a,Vec3 b,Vec3 c,int tint,float opacity) {
+        if(!reserve()) return;
+        VfxPrimitives.texturedQuad(buffer,matrix,a,b,c,c,0,0,1,1,alpha*opacity,tint);
+    }
+    public void solidLine(Vec3 a,Vec3 b,double width,int tint,float opacity) {
+        if(!reserve()) return;
+        Vec3 side=b.subtract(a).cross(eye.subtract(a)).normalize().scale(width);
+        VfxPrimitives.texturedQuad(buffer,matrix,a.subtract(side),b.subtract(side),
+                b.add(side),a.add(side),0,0,1,1,alpha*opacity,tint);
+    }
     private boolean reserve() { if (remaining[0]<=0) return false; --remaining[0]; return true; }
     public void tile(Vec3 at,double size,int tile,float opacity,float rotation) {
         if (!reserve()) return;

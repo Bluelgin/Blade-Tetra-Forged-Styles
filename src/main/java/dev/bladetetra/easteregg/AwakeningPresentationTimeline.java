@@ -46,7 +46,7 @@ public final class AwakeningPresentationTimeline {
             return soul == 4 ? easeOut(t) : smooth(t);
         }
         // Thunder holds its breath before an extremely fast, continuous return.
-        float start = soul == 4 ? 113 : RELEASE_END;
+        float start = soul == 4 ? 113 : soul == 2 ? 112 : RELEASE_END;
         return 1 - easeIn(progress(tick, start, WORLD_END));
     }
 
