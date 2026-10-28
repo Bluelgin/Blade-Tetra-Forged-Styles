@@ -14,6 +14,11 @@ public abstract class AwakenedRankConstraintMixin implements IConcentrationRank 
         if (!AwakenedRankConstraintService.reject(this, user, point))
             IConcentrationRank.super.addRankPoint(user, point);
     }
+    @Override public void addRankPoint(net.minecraft.world.damagesource.DamageSource source) {
+        // The native DamageSource overload resolves timeout combos BEFORE calling the long overload.
+        // Locked hits must return here, so secondary damage cannot advance the owner's combo.
+        if (!AwakenedRankConstraintService.locked(this)) IConcentrationRank.super.addRankPoint(source);
+    }
     @Inject(method = "setRawRankPoint", at = @At("HEAD"), cancellable = true)
     private void bladeTetra$rejectRawGain(long point, CallbackInfo ci) {
         if (AwakenedRankConstraintService.locked(this) && point > getRawRankPoint()) ci.cancel();

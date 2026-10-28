@@ -124,7 +124,8 @@ public final class BladeDetailTooltip {
         }
         if (souls.contains(SoulLegacyState.Legacy.KYOUKA)
                 && KyoukaAwakening.isActive(stack)) {
-            lines.add(Component.translatable("tooltip.blade_tetra.kyouka.awakened")
+            lines.add(Component.translatable(AwakenedBladeCombat.replacesLegacy()
+                    ? "tooltip.blade_tetra.awakened.v2.kyouka" : "tooltip.blade_tetra.kyouka.awakened")
                     .withStyle(ChatFormatting.AQUA));
         }
         if (souls.contains(SoulLegacyState.Legacy.SENBONZAKURA)

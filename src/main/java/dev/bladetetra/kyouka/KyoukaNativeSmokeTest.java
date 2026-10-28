@@ -61,12 +61,12 @@ public final class KyoukaNativeSmokeTest {
             check(KyoukaAwakening.unlockForDebug(blade), "real Kyouka inscription unlock");
             blade.setHoverName(Component.literal("Kyouka smoke")); blade.enchant(Enchantments.POWER_ARROWS,1);
             player.setItemSlot(EquipmentSlot.MAINHAND,blade);
-            var state = blade.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow();
+            var state = blade.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
             state.setBroken(false); state.setSealed(false); state.setProudSoulCount(10000);
             target = new Zombie(level); target.setNoAi(true); target.setNoGravity(true); target.setPos(17,200,1);
             target.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000); target.setHealth(1000);
             level.addFreshEntity(target); state.setTargetEntityId(target.getId());
-            var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow();
+            var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
             long now = level.getGameTime(); rank.setLastUpdte(now); rank.setRawRankPoint(1600);
             KyoukaMirrorSessions.step();
             check(KyoukaMirrorSessions.SESSIONS.isEmpty(), "lock/rank alone do not activate");
@@ -95,6 +95,7 @@ public final class KyoukaNativeSmokeTest {
             check(Math.abs(observed-baseline*.75F)<.001F, "one native window gives total 75 percent: observed="+observed+" base="+baseline);
             check(target.getHealth()<health, "remote native action damages bound target");
             check(rank.getRawRankPoint()==1521, "one native action pays 18; actual damage cannot earn rank");
+            check(session.action==seq+1, "secondary Rank callback cannot resolve/advance native combo");
             observed=0; shot.tick(); shot.tick(); KyoukaMirrorDamageService.flush();
             check(observed==0 && rank.getRawRankPoint()==1521, "non-cycle slash later frames cannot inflate budget/fee");
             // A distinct real native action can pay once again; protection sees the secondary hit.
@@ -124,7 +125,7 @@ public final class KyoukaNativeSmokeTest {
         }
     }
     private static void cast(ServerPlayer player, boolean held, boolean storm) {
-        var input=player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow();
+        var input=player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);
         input.getCommands().clear();
         if(held)input.getCommands().add(InputCommand.M_DOWN);
         if(storm){input.getCommands().add(InputCommand.SNEAK);input.getCommands().add(InputCommand.BACK);}

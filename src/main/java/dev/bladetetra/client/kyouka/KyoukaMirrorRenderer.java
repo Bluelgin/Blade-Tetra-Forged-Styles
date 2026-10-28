@@ -49,10 +49,10 @@ public final class KyoukaMirrorRenderer {
         if (level == null || world != level) return;
         SESSIONS.values().removeIf(v -> level.getGameTime() - v.received > 240);
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
-        if (ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get() <= 0) return;
         Vec3 eye = e.getCamera().getPosition();
         double distance = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         PoseStack pose = e.getPoseStack(); var buffers = mc.renderBuffers().bufferSource();
+        int rendered = 0;
         for (Visual v : SESSIONS.values()) {
             var data = v.packet;
             var entity = level.getEntity(data.targetId());
@@ -63,6 +63,7 @@ public final class KyoukaMirrorRenderer {
                 v.model = FloatingBladeRenderer.prepare(v.appearance); v.unsupported = v.model == null;
             }
             if (v.model == null) continue;
+            if (++rendered > Math.max(1, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get()/3)) break;
             double clock = level.getGameTime() + e.getPartialTick();
             // Exactly one native sample for this action/frame, shared unchanged by all three blades.
             var motion = data.action() > 0 ? SAMPLER.sample(data.combo(), clock - data.started()) : null;
