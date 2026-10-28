@@ -55,7 +55,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * V2 awakened combat. Validated real damage builds the four distinct resources;
+ * V2 awakened combat for Kyouka, Senbonzakura and Raikiri.
  * an actual successful native Slash Art spends them. No client-supplied hit or
  * position can cause damage. Single-soul and first-inscribed dual-soul blades
  * choose one primary ability; old save/unlock tags remain authoritative.
@@ -69,11 +69,9 @@ public final class AwakenedBladeCombat {
     private static final String SAKURA_DISPERSED = "blade_tetra_awakened_v2_sakura_dispersed";
     private static final int EXPIRE_TICKS = 160;
     private static final String VISUAL_CUT = "blade_tetra_v2_mirror_visual";
-    private static final int CAUSAL_LIMIT = 64;
     private static final int STATE_LIMIT = 512;
     private static final Map<Key, State> STATES = new HashMap<>();
     private static final List<PendingReplay> REPLAYS = new ArrayList<>();
-    private static final List<PendingCausal> CAUSAL = new ArrayList<>();
     private static final List<PendingPetal> PETALS = new ArrayList<>();
     private static final List<PendingSakuraWave> SAKURA_WAVES = new ArrayList<>();
     private static int ticks;
@@ -121,8 +119,6 @@ public final class AwakenedBladeCombat {
         LivingEntity target = event.getEntity();
         if (!target.getUUID().equals(state.targetId) || now - state.lastHit > EXPIRE_TICKS) {
             state.targetId = target.getUUID();
-            state.scarDirections = 0;
-            state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
@@ -135,19 +131,6 @@ public final class AwakenedBladeCombat {
         state.lastDamage = Math.max(0.0F, Math.min(32.0F, event.getAmount()));
         Vec3 center = target.getBoundingBox().getCenter();
         switch (soul) {
-            case AKATSUKI -> {
-                // Relative angle forces the player to reposition rather than spam one slash.
-                int direction = AwakenedCombatMath.scarSector(
-                        player.getX() - target.getX(), player.getZ() - target.getZ());
-                int bit = 1 << direction;
-                if ((state.scarDirections & bit) == 0) {
-                    state.scarDirections |= bit;
-                    state.scarMagnitude = Math.min(32.0F,
-                            state.scarMagnitude + state.lastDamage * 0.32F);
-                    visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            center, center, direction);
-                }
-            }
             case KYOUKA -> {
                 // Record validated real hits, not raw client inputs or phantom entities.
                 ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
@@ -224,7 +207,6 @@ public final class AwakenedBladeCombat {
         State state = state(player, blade);
         long now = level.getGameTime();
         switch (soul) {
-            case AKATSUKI -> releaseAkatsuki(level, player, blade, state, now);
             case KYOUKA -> releaseKyouka(level, player, blade, state, now);
             case SENBONZAKURA -> releaseSenbonzakura(level, player, blade, state, now);
             case RAIKIRI -> releaseRaikiri(level, player, blade, state, now);
@@ -232,93 +214,6 @@ public final class AwakenedBladeCombat {
             }
         }
         syncHud(player, soul, blade, state, false);
-    }
-
-    private static void releaseAkatsuki(ServerLevel level, ServerPlayer player,
-            ItemStack blade, State state, long now) {
-        if (now < state.cooldownUntil || now - state.lastHit > EXPIRE_TICKS) return;
-        int marks = Integer.bitCount(state.scarDirections);
-        if (!AwakenedCombatMath.hasCausalCross(state.scarDirections)
-                || CAUSAL.size() >= CAUSAL_LIMIT) return;
-        LivingEntity target = target(level, player, state, 24.0D);
-        if (target == null) return;
-        // The causal hit is delayed; swapping blades, losing sight or escaping
-        // the marked area breaks fate instead of granting guaranteed bonus damage.
-        float damage = Math.min(30.0F,
-                AwakenedCombatMath.causalCut(state.lastDamage, marks)
-                        + state.scarMagnitude * 0.25F);
-        if (damage <= 0 || !AwakenedRankCost.trySpend(player, blade,
-                AwakenedRankCost.Cast.AKATSUKI)) return;
-        Vec3 center = target.getBoundingBox().getCenter();
-        CAUSAL.add(new PendingCausal(level.dimension(), player.getUUID(),
-                id(blade), target.getUUID(), center, now + 33L, damage));
-        state.cooldownUntil = now + 100L;
-        int directions = state.scarDirections;
-        state.scarDirections = 0;
-        state.scarMagnitude = 0;
-        visual(level, SoulLegacyState.Legacy.AKATSUKI,
-                AwakenedBladeVfxPacket.RELEASE, center, center, directions);
-        releaseAkatsukiFusion(level, player, blade, target, center, now, damage);
-    }
-
-    /** Three genuinely different follow-ups share the *same* one Rank debit. */
-    private static void releaseAkatsukiFusion(ServerLevel level, ServerPlayer player,
-            ItemStack blade, LivingEntity target, Vec3 anchor, long now, float budget) {
-        SoulResonance.Resonance fusion = SoulResonance.resolve(blade);
-        if (!SoulResonance.isFormed(blade, fusion)) return;
-        switch (fusion) {
-            case MIRROR_MOON -> {
-                if (REPLAYS.size() >= 96) return;
-                ResourceLocation combo = blade.getCapability(ModularSlashBladeItem.BLADESTATE)
-                        .map(b -> b.getComboSeq()).orElse(null);
-                if (combo == null) return;
-                // A second cut is reflected from the original causal crossing,
-                // and misses if the target escapes the recorded location.
-                REPLAYS.add(new PendingReplay(level.dimension(), player.getUUID(),
-                        id(blade), target.getUUID(), now + 39L,
-                        Math.min(5.0F, budget * 0.15F), player.getYRot(),
-                        player.getXRot(), combo, player.position(), anchor, -1));
-                visual(level, SoulLegacyState.Legacy.KYOUKA,
-                        AwakenedBladeVfxPacket.RELEASE, anchor, anchor, 1);
-            }
-            case FUNERAL_BLOSSOM -> {
-                if (SAKURA_WAVES.size() >= 94) return;
-                List<LivingEntity> bystanders = level.getEntitiesOfClass(
-                                LivingEntity.class, new AABB(anchor, anchor).inflate(4.0D),
-                                entity -> entity != target && canAffect(player, entity))
-                        .stream().sorted(Comparator.comparingDouble(
-                                entity -> entity.distanceToSqr(anchor))).limit(2).toList();
-                int i = 0;
-                for (LivingEntity victim : bystanders) {
-                    SAKURA_WAVES.add(new PendingSakuraWave(level.dimension(),
-                            player.getUUID(), id(blade), victim.getUUID(),
-                            victim.getBoundingBox().getCenter(), now + 36L + i++ * 3L,
-                            Math.min(3.0F, budget * 0.10F),
-                            SoulResonance.Resonance.FUNERAL_BLOSSOM));
-                }
-                if (!bystanders.isEmpty()) {
-                    visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
-                            AwakenedBladeVfxPacket.RELEASE, anchor, anchor, 0);
-                }
-            }
-            case CRIMSON_THUNDER -> {
-                // A safe positioning lunge for the player, without another hit.
-                Vec3 from = player.position();
-                Vec3 to = anchor.subtract(from).multiply(1, 0, 1);
-                if (to.lengthSqr() > 4.0D && to.lengthSqr() < 64.0D) {
-                    Vec3 moved = collisionCheckedStep(level, player, from,
-                            to.normalize(), Math.min(3.5D, to.length() - 1.3D));
-                    if (moved.distanceToSqr(from) > 0.24D) {
-                        player.connection.teleport(moved.x, moved.y, moved.z,
-                                player.getYRot(), player.getXRot());
-                        visual(level, SoulLegacyState.Legacy.RAIKIRI,
-                                AwakenedBladeVfxPacket.STEP,
-                                from.add(0, 1, 0), moved.add(0, 1, 0), 1);
-                    }
-                }
-            }
-            default -> { }
-        }
     }
 
     private static void releaseKyouka(ServerLevel level, ServerPlayer player,
@@ -586,8 +481,6 @@ public final class AwakenedBladeCombat {
         if (now - state.lastHit > EXPIRE_TICKS) {
             state.targetId = null;
             state.lastDamage = 0;
-            state.scarDirections = 0;
-            state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
             state.raikiriCharge = 0;
@@ -607,7 +500,6 @@ public final class AwakenedBladeCombat {
         if (event.phase != TickEvent.Phase.END) return;
         if (!replacesLegacy()) {
             REPLAYS.clear();
-            CAUSAL.clear();
             PETALS.clear();
             SAKURA_WAVES.clear();
             STATES.clear();
@@ -625,11 +517,9 @@ public final class AwakenedBladeCombat {
             if (player == null || player.level() != level
                     || !pending.blade.equals(readId(player.getMainHandItem()))
                     || !SoulLegacyState.isActive(player.getMainHandItem(),
-                            pending.fusion == SoulResonance.Resonance.FUNERAL_BLOSSOM
-                                    ? SoulLegacyState.Legacy.AKATSUKI
-                                    : pending.fusion == SoulResonance.Resonance.MIRROR_BLOSSOM
-                                            ? SoulLegacyState.Legacy.KYOUKA
-                                            : SoulLegacyState.Legacy.SENBONZAKURA)
+                            pending.fusion == SoulResonance.Resonance.MIRROR_BLOSSOM
+                                    ? SoulLegacyState.Legacy.KYOUKA
+                                    : SoulLegacyState.Legacy.SENBONZAKURA)
                     || (pending.fusion == SoulResonance.Resonance.NONE
                             ? !player.getMainHandItem().getOrCreateTag()
                                     .getBoolean(SAKURA_DISPERSED)
@@ -676,25 +566,6 @@ public final class AwakenedBladeCombat {
                 visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
                         AwakenedBladeVfxPacket.MARK, center, center, 0);
             }
-        }
-        Iterator<PendingCausal> causes = CAUSAL.iterator();
-        while (causes.hasNext()) {
-            PendingCausal pending = causes.next();
-            ServerLevel level = server.getLevel(pending.dimension);
-            if (level == null) { causes.remove(); continue; }
-            if (level.getGameTime() < pending.when) continue;
-            causes.remove();
-            ServerPlayer player = server.getPlayerList().getPlayer(pending.player);
-            if (player == null || player.level() != level
-                    || !pending.blade.equals(readId(player.getMainHandItem()))
-                    || !SoulLegacyState.isActive(player.getMainHandItem(),
-                            SoulLegacyState.Legacy.AKATSUKI)) continue;
-            Entity found = level.getEntity(pending.target);
-            if (!(found instanceof LivingEntity target)
-                    || target.getBoundingBox().getCenter().distanceToSqr(pending.anchor) > 25.0D
-                    || !canAffect(player, target) || player.distanceToSqr(target) > 576.0D
-                    || !player.hasLineOfSight(target)) continue;
-            secondaryHit(level, player, target, pending.damage);
         }
         Iterator<PendingReplay> it = REPLAYS.iterator();
         while (it.hasNext()) {
@@ -745,7 +616,6 @@ public final class AwakenedBladeCombat {
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         REPLAYS.removeIf(entry -> entry.dimension.equals(level.dimension()));
-        CAUSAL.removeIf(entry -> entry.dimension.equals(level.dimension()));
         PETALS.removeIf(entry -> entry.dimension.equals(level.dimension()));
         SAKURA_WAVES.removeIf(entry -> entry.dimension.equals(level.dimension()));
         STATES.entrySet().removeIf(entry -> level.dimension().equals(entry.getValue().dimension));
@@ -754,7 +624,6 @@ public final class AwakenedBladeCombat {
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         REPLAYS.clear();
-        CAUSAL.clear();
         PETALS.clear();
         SAKURA_WAVES.clear();
         STATES.clear();
@@ -869,14 +738,13 @@ public final class AwakenedBladeCombat {
     private static void syncHud(ServerPlayer player, SoulLegacyState.Legacy soul,
             ItemStack blade, State state, boolean force) {
         int meter = switch (soul) {
-            case AKATSUKI -> Integer.bitCount(state.scarDirections);
             case KYOUKA -> state.mirror.size();
             case SENBONZAKURA -> state.sakuraCharge;
             case RAIKIRI -> state.raikiriCharge;
             default -> 0;
         };
         int maximum = switch (soul) {
-            case AKATSUKI, SENBONZAKURA -> 6;
+            case SENBONZAKURA -> 6;
             case KYOUKA -> 3;
             case RAIKIRI -> 4;
             default -> 1;
@@ -884,7 +752,6 @@ public final class AwakenedBladeCombat {
         boolean dispersed = soul == SoulLegacyState.Legacy.SENBONZAKURA
                 && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED);
         AwakenedRankCost.Cast cast = switch (soul) {
-            case AKATSUKI -> AwakenedRankCost.Cast.AKATSUKI;
             case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
             case SENBONZAKURA -> dispersed
                     ? AwakenedRankCost.Cast.SAKURA_ARRAY : null;
@@ -945,8 +812,6 @@ public final class AwakenedBladeCombat {
             UUID player, UUID blade, UUID target, long when, float damage, float yaw,
             float pitch, ResourceLocation combo, Vec3 origin, Vec3 targetAnchor,
             int cutId) { }
-    private record PendingCausal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
-            UUID player, UUID blade, UUID target, Vec3 anchor, long when, float damage) { }
     private record PendingPetal(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
             UUID player, UUID blade, UUID target, long when, float damage) { }
     private record PendingSakuraWave(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
@@ -957,8 +822,6 @@ public final class AwakenedBladeCombat {
         net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         UUID targetId;
         float lastDamage;
-        int scarDirections;
-        float scarMagnitude;
         int sakuraCharge;
         long petalUntil;
         long lastMirrorCapture = -100L;
