@@ -147,6 +147,10 @@ public final class RaikiriCombatSmokeTest {
             state.setComboSeq(ComboStateRegistry.NONE.getId());
             RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
             check(RaikiriFieldService.swordCount(actor.getUUID())==1,"ordinary grounded player cannot plant");
+            state.setComboSeq(ComboStateRegistry.AERIAL_CLEAVE_LOOP.getId());state.setLastActionTime(0);
+            actor.setOnGround(false);RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START,actor));
+            actor.setOnGround(true);RaikiriStepController.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+            check(RaikiriFieldService.swordCount(actor.getUUID())==1,"expired raw cleave ID cannot arm an ordinary jump");
             for(int n=0;n<3;n++) { time(level,151+n);land(level,blade); }
             check(RaikiriFieldService.swordCount(actor.getUUID())==3,"oldest sword replaced at per-owner cap");
             // Cross our anchors with a paid native step, then observe one saturated next-round charge.

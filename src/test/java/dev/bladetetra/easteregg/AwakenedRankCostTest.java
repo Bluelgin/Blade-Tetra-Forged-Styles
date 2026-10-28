@@ -35,10 +35,10 @@ class AwakenedRankCostTest {
         // Only the initial step in a three-step sequence is a paid cast.
         assertTrue(AwakenedRankCost.canPay(900, 300, 3, 3, 75));
         assertFalse(AwakenedRankCost.canPay(825, 300, 2, 3, 75));
-        assertTrue(AwakenedCombatMath.isThunderFollowup(1, true, 10, 15));
-        assertTrue(AwakenedCombatMath.isThunderFollowup(2, true, 15, 20));
-        assertFalse(AwakenedCombatMath.isThunderFollowup(3, true, 20, 25));
-        assertFalse(AwakenedCombatMath.isThunderFollowup(2, false, 15, 20));
+        assertTrue(RaikiriRules.followup(1, true, 10, 15));
+        assertTrue(RaikiriRules.followup(2, true, 15, 20));
+        assertFalse(RaikiriRules.followup(3, true, 20, 25));
+        assertFalse(RaikiriRules.followup(2, false, 15, 20));
     }
 
     @Test void slashbladeGradeBoundsAreUsedRatherThanIndependentMeter() {

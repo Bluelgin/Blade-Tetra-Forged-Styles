@@ -109,7 +109,7 @@ public final class AwakenedBladeCombat {
         if (player == null || !canAffect(player, event.getEntity())) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || soul == SoulLegacyState.Legacy.RAIKIRI) return;
         State state = state(player, blade);
         long now = level.getGameTime();
         LivingEntity target = event.getEntity();
@@ -119,9 +119,7 @@ public final class AwakenedBladeCombat {
             state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
-            // Step confirmation must survive the first hit on a new target:
-            // before the dash lands, targetId may legitimately be null. Reset
-            // the chain on timeout/failed input instead, never here.
+
         }
         state.dimension = level.dimension();
         state.lastHit = now;
@@ -179,7 +177,6 @@ public final class AwakenedBladeCombat {
                     }
                 }
             }
-            case RAIKIRI -> { /* Dedicated sequence-bound native hit controller owns confirmation. */ }
             default -> {
             }
         }
@@ -192,7 +189,7 @@ public final class AwakenedBladeCombat {
                 || !(event.getEntityLiving() instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || soul == SoulLegacyState.Legacy.RAIKIRI) return;
         ServerLevel level = player.serverLevel();
         State state = state(player, blade);
         long now = level.getGameTime();
@@ -200,7 +197,6 @@ public final class AwakenedBladeCombat {
             case AKATSUKI -> releaseAkatsuki(level, player, blade, state, now);
             case KYOUKA -> releaseKyouka(level, player, blade, state, now);
             case SENBONZAKURA -> releaseSenbonzakura(level, player, blade, state, now);
-            case RAIKIRI -> { /* Ordinary native Slash Arts remains untouched. */ }
             default -> {
             }
         }
@@ -422,7 +418,7 @@ public final class AwakenedBladeCombat {
                 AwakenedBladeVfxPacket.RELEASE, origin, targetCenter, formation);
     }
 
-    /** Identical continuous AABB collision checks for manual steps and finishers. */
+    /** Existing positioning-only dual-soul lunges retain their original collision checks. */
     private static Vec3 collisionCheckedStep(ServerLevel level, ServerPlayer player,
             Vec3 from, Vec3 horizontalDirection, double maxTravel) {
         if (!Double.isFinite(maxTravel) || maxTravel <= 0
@@ -451,7 +447,7 @@ public final class AwakenedBladeCombat {
                 || !(event.player instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul)) return;
+        if (!SoulLegacyState.isActive(blade, soul) || soul == SoulLegacyState.Legacy.RAIKIRI) return;
         if (soul == SoulLegacyState.Legacy.SENBONZAKURA
                 && blade.getOrCreateTag().getBoolean(SAKURA_DISPERSED)
                 && player.tickCount % 20 == 0) {
@@ -461,7 +457,7 @@ public final class AwakenedBladeCombat {
             visual(player.serverLevel(), soul, AwakenedBladeVfxPacket.MARK,
                     center, center, 9);
         }
-        if (player.tickCount % (soul == SoulLegacyState.Legacy.RAIKIRI ? 10 : 80) != 0)
+        if (player.tickCount % 80 != 0)
             return;
         State state = state(player, blade);
         long now = player.level().getGameTime();
@@ -746,13 +742,11 @@ public final class AwakenedBladeCombat {
             case AKATSUKI -> Integer.bitCount(state.scarDirections);
             case KYOUKA -> state.mirror.size();
             case SENBONZAKURA -> state.sakuraCharge;
-            case RAIKIRI -> 0;
             default -> 0;
         };
         int maximum = switch (soul) {
             case AKATSUKI, SENBONZAKURA -> 6;
             case KYOUKA -> 3;
-            case RAIKIRI -> 4;
             default -> 1;
         };
         boolean dispersed = soul == SoulLegacyState.Legacy.SENBONZAKURA
@@ -762,12 +756,9 @@ public final class AwakenedBladeCombat {
             case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
             case SENBONZAKURA -> dispersed
                     ? AwakenedRankCost.Cast.SAKURA_ARRAY : null;
-            case RAIKIRI -> AwakenedRankCost.Cast.RAIKIRI_STEP;
             default -> null;
         };
-        boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null
-                && !(cast == AwakenedRankCost.Cast.RAIKIRI_STEP
-                        && RaikiriStepController.free(player));
+        boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null;
         int minimum = charge ? AwakenedRankCost.requiredLevel(blade, cast) : 0;
         int price = charge ? AwakenedRankCost.cost(blade, cast) : 0;
         if (!force && state.lastSyncedMeter == meter

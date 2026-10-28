@@ -62,11 +62,23 @@ public final class RaikiriRapidCombo {
     public static void onNextCombo(SlashBladeEvent.NextComboEvent event) {
         if (!(event.getUser() instanceof ServerPlayer player)
                 || !AwakenedBladeCombat.replacesLegacy()
-                || !ComboStateRegistry.RAPID_SLASH.getId().equals(event.getNextCombo())
                 || !directionalIntent(player)
                 || !SoulLegacyState.isActive(event.getBlade(), SoulLegacyState.Legacy.RAIKIRI)
                 || SoulLegacyState.active(event.getBlade()) != SoulLegacyState.Legacy.RAIKIRI)
             return;
+        ResourceLocation candidate=event.getNextCombo();
+        if (!ComboStateRegistry.RAPID_SLASH.getId().equals(candidate)) {
+            // On the very first input 1.9.63 posts NONE.next == NONE, then
+            // resolves the weapon root AFTER this event. Upgrade only when
+            // that exact native fallback is Rapid Slash; preserve explicit
+            // style nodes and native self-next locks.
+            if (!ComboStateRegistry.NONE.getId().equals(candidate)
+                    || !ComboStateRegistry.NONE.getId().equals(
+                            event.getSlashBladeState().resolvCurrentComboState(player))) return;
+            ComboState root=ComboStateRegistry.REGISTRY.get().getValue(
+                    event.getSlashBladeState().getComboRoot());
+            if (root==null || !ComboStateRegistry.RAPID_SLASH.getId().equals(root.getNext(player))) return;
+        }
         // Virtual progression and rejected/mutated transitions have no side effects.
         if (RaikiriStepController.canRoute(player, event.getBlade())) {
             ResourceLocation current = event.getBlade().getCapability(

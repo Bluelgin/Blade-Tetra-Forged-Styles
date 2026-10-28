@@ -186,7 +186,7 @@ public final class RaikiriStepController {
         Session s=session(p); if (s==null) return;
         settle(s);
         ResourceLocation combo=p.getMainHandItem().getCapability(ModularSlashBladeItem.BLADESTATE)
-                .map(b->b.getComboSeq()).orElse(null);
+                .map(b->b.resolvCurrentComboState(p)).orElse(null);
         boolean air=ComboStateRegistry.AERIAL_CLEAVE.getId().equals(combo)
                 || ComboStateRegistry.AERIAL_CLEAVE_LOOP.getId().equals(combo);
         long now=p.level().getGameTime();
@@ -216,8 +216,8 @@ public final class RaikiriStepController {
     static void clear(UUID owner,MinecraftServer server) {
         SESSIONS.remove(owner); RaikiriFieldService.clear(owner,server);
     }
-    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); }
-    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); }
+    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); RaikiriFieldService.forgetViewer(e.getEntity().getUUID()); }
+    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); RaikiriFieldService.forgetViewer(e.getEntity().getUUID()); }
     @SubscribeEvent public static void death(LivingDeathEvent e) { if(e.getEntity() instanceof ServerPlayer p) clear(p.getUUID(),p.getServer()); }
     @SubscribeEvent public static void unload(LevelEvent.Unload e) {
         if(e.getLevel() instanceof ServerLevel l)

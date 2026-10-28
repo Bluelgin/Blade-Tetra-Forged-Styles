@@ -228,6 +228,7 @@ public final class RaikiriFieldService {
     static int swordCount(UUID owner) { return (int)SWORDS.stream().filter(s->s.session.owner.equals(owner)).count(); }
     static int trailCount(UUID owner) { return (int)TRAILS.stream().filter(t->t.session.owner.equals(owner)).count(); }
     static boolean charged(UUID owner) { return SWORDS.stream().anyMatch(s->s.session.owner.equals(owner) && s.charge.charged()); }
+    static void forgetViewer(UUID viewer) { for(Sword sword:SWORDS) sword.viewers.remove(viewer); }
     static void reset() { TRAILS.clear();SWORDS.clear(); }
     private RaikiriFieldService() {}
 }
