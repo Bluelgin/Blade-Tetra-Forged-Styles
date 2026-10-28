@@ -110,12 +110,6 @@ public final class BladeDetailTooltip {
                             .withStyle(formed ? ChatFormatting.LIGHT_PURPLE
                                     : ChatFormatting.GRAY));
                 }
-                if (primary == SoulLegacyState.Legacy.AKATSUKI
-                        && ContractBladeCompat.hasAkatsuki(stack)) {
-                    lines.add(Component.translatable(
-                            "tooltip.blade_tetra.akatsuki.spirit_bound")
-                            .withStyle(ChatFormatting.DARK_RED));
-                }
             }
             return;
         }
