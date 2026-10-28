@@ -35,9 +35,10 @@ public final class KyoukaNativeSmokeTest {
     private static int checks;
     private static Zombie target;
     private static boolean protect, cancelMotion;
-    private static float observed;
+    private static float observed, normalObserved;
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void attack(LivingAttackEvent e) {
+        if (target == e.getEntity() && !InheritedCombatDamage.isInherited(e.getSource())) normalObserved += e.getAmount();
         if (target == e.getEntity() && InheritedCombatDamage.isInherited(e.getSource())) {
             observed += e.getAmount();
             if (protect) e.setCanceled(true);
@@ -119,11 +120,21 @@ public final class KyoukaNativeSmokeTest {
             health=target.getHealth(); protect=true; nativeTick(next);nativeTick(next);KyoukaMirrorDamageService.flush();protect=false;
             check(target.getHealth()==health, "Forge protection cancels remote damage");
             check(rank.getRawRankPoint()==1503, "repeated same-tick committed combo is distinct, not virtual");
+            // Native body damage remains present when the target is also in the owner's melee range.
+            target.setPos(2,200,1);normalObserved=0;observed=0;
+            state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
+            var local=session.shots.values().stream().filter(v -> v.action()==session.action).findFirst().orElseThrow().entity();
+            nativeTick(local);nativeTick(local);int nativeImmunity=target.invulnerableTime;
+            KyoukaMirrorDamageService.flush();
+            check(normalObserved>0 && Math.abs(observed-normalObserved*.75F)<.001F,
+                    "native body damage remains unchanged with one additional 75-percent budget");
+            check(target.invulnerableTime==nativeImmunity,"extra window restores native immunity rather than stripping it");
+            target.setPos(17,200,1);
             var swords=List.copyOf(session.ring); swords.get(0).doFire();
             check(KyoukaMirrorSessions.valid(session), "partial batch loss keeps remaining ring");
             for(var sword:swords)sword.doFire(); KyoukaMirrorSessions.step();
             check(KyoukaMirrorSessions.SESSIONS.isEmpty(), "last native ring firing ends session");
-            rank.addRankPoint(player,10); check(rank.getRawRankPoint()==1513, "rank unlocked after session cleanup");
+            rank.addRankPoint(player,10); check(rank.getRawRankPoint()==1495, "rank unlocked after session cleanup");
             for(var sword:swords)sword.discard();
             rank.setRawRankPoint(1199); cast(player,true,false);KyoukaMirrorSessions.step();
             check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1199, "below A native summon has no extra fee");

@@ -48,7 +48,8 @@ public final class NativeBladeMotionSampler {
             pose.mulPose(Axis.ZP.rotationDegrees(180));
             pose.scale(-1, 1, 1); pose.mulPoseMatrix(VectorHelper.matrix4fFromArray(matrix)); pose.scale(-1, 1, 1);
             pose.scale(.0625F, .0625F, .0625F);
-            return new Matrix4f(pose.last().pose());
+            var result = new Matrix4f(pose.last().pose());
+            return result.isFinite() ? result : null;
         } catch (Exception unsupported) { return null; }
     }
 }
