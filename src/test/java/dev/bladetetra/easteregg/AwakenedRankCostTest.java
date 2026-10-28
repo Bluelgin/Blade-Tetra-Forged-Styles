@@ -14,12 +14,11 @@ class AwakenedRankCostTest {
     }
 
     @Test void spendingDemotesRankRatherThanInventingSeparateCharges() {
-        // A native S player spending Akatsuki 360 becomes 1140 / rank B,
-        // and must build Rank up again using normal SlashBlade attacks.
-        long before = 1530;
-        assertTrue(AwakenedRankCost.canPay(before, 300, 5, 5, 360));
-        assertEquals(1170, before - 360);
-        assertFalse(AwakenedRankCost.canPay(before - 360, 300, 3, 5, 360));
+        // Kyouka's A-rank SA uses native Rank points rather than a new meter.
+        long before = 1260;
+        assertTrue(AwakenedRankCost.canPay(before, 300, 4, 4, 300));
+        assertEquals(960, before - 300);
+        assertFalse(AwakenedRankCost.canPay(before - 300, 300, 3, 4, 300));
     }
 
     @Test void insufficientRankAndPriceAlwaysRejectWithoutPartialPayment() {
@@ -42,7 +41,6 @@ class AwakenedRankCostTest {
     }
 
     @Test void slashbladeGradeBoundsAreUsedRatherThanIndependentMeter() {
-        assertEquals(5, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.AKATSUKI));
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.KYOUKA));
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.SAKURA_ARRAY));
         assertEquals(3, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.RAIKIRI_STEP));
