@@ -91,17 +91,17 @@ public final class KyoukaNativeSmokeTest {
             var shot=session.shots.values().iterator().next().entity();
             float baseline=(float)AttackHelper.calculateTotalDamage(player,target,(float)shot.getDamage(),false);
             float health=target.getHealth(); observed=0;
-            shot.tick(); shot.tick(); KyoukaMirrorDamageService.flush();
+            nativeTick(shot); nativeTick(shot); KyoukaMirrorDamageService.flush();
             check(Math.abs(observed-baseline*.75F)<.001F, "one native window gives total 75 percent: observed="+observed+" base="+baseline+" tick="+shot.tickCount+" alive="+shot.isAlive()+" indirect="+shot.getIndirect()+" owner="+(shot.getShooter()==player)+" valid="+KyoukaMirrorSessions.valid(session)+" windows="+session.budgets.get(session.action).windows+" points="+rank.getRawRankPoint());
             check(target.getHealth()<health, "remote native action damages bound target");
             check(rank.getRawRankPoint()==1521, "one native action pays 18; actual damage cannot earn rank");
             check(session.action==seq+1, "secondary Rank callback cannot resolve/advance native combo");
-            observed=0; shot.tick(); shot.tick(); KyoukaMirrorDamageService.flush();
+            observed=0; nativeTick(shot); nativeTick(shot); KyoukaMirrorDamageService.flush();
             check(observed==0 && rank.getRawRankPoint()==1521, "non-cycle slash later frames cannot inflate budget/fee");
             // A distinct real native action can pay once again; protection sees the secondary hit.
             state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
             var next=session.shots.values().stream().filter(s -> s.entity()!=shot).findFirst().orElseThrow().entity();
-            health=target.getHealth(); protect=true; next.tick();next.tick();KyoukaMirrorDamageService.flush();protect=false;
+            health=target.getHealth(); protect=true; nativeTick(next);nativeTick(next);KyoukaMirrorDamageService.flush();protect=false;
             check(target.getHealth()==health, "Forge protection cancels remote damage");
             check(rank.getRawRankPoint()==1503, "repeated same-tick committed combo is distinct, not virtual");
             var swords=List.copyOf(session.ring); swords.get(0).doFire();
@@ -123,6 +123,10 @@ public final class KyoukaNativeSmokeTest {
             for(var s:List.copyOf(KyoukaMirrorSessions.SESSIONS.values()))KyoukaMirrorSessions.stop(s);
             if(target!=null)target.discard();target=null; player.discard();server.halt(false);
         }
+    }
+    private static void nativeTick(mods.flammpfeil.slashblade.entity.EntitySlashEffect slash) {
+        // ServerLevel increments this outside Entity.tick; isolated smoke must do the same.
+        slash.tickCount++; slash.tick();
     }
     private static void cast(ServerPlayer player, boolean held, boolean storm) {
         var input=player.getCapability(CapabilityInputState.INPUT_STATE).orElseThrow(IllegalStateException::new);

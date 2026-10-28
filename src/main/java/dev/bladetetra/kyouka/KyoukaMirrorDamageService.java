@@ -3,7 +3,8 @@ package dev.bladetetra.kyouka;
 import dev.bladetetra.combat.*;
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import java.util.*;
 
 /** A single extra hit per legitimate native window: never one hit per rendered blade. */
@@ -22,7 +23,11 @@ public final class KyoukaMirrorDamageService {
             if (KyoukaMirrorSessions.SESSIONS.get(s.owner.getUUID()) != s || !KyoukaMirrorSessions.valid(s)
                     || !s.owner.hasLineOfSight(s.target)) continue;
             // Both player attack protection and the ordinary LivingAttack/Hurt/Damage pipeline remain active.
-            if (!ForgeHooks.onPlayerAttackTarget(s.owner, s.target) || s.target.skipAttackInteraction(s.owner)) continue;
+            // ForgeHooks.onPlayerAttackTarget also invokes ItemSlashBlade.onLeftClickEntity,
+            // which synthesizes L_CLICK/progressCombo unless native onClick is set. Post only
+            // the protection event here: a mirror impact must never masquerade as player input.
+            if (MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(s.owner, s.target))
+                    || s.target.skipAttackInteraction(s.owner)) continue;
             int immunity = s.target.invulnerableTime;
             var motion = s.target.getDeltaMovement();
             boolean marked = s.target.hurtMarked;
