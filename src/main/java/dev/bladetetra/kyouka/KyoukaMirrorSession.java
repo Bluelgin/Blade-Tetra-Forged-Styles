@@ -32,5 +32,5 @@ final class KyoukaMirrorSession {
         int windows;
         final Set<String> keys = new HashSet<>();
     }
-    record Shot(EntitySlashEffect entity, long action, Set<Integer> windows) {}
+    record Shot(EntitySlashEffect entity, long action) {}
 }

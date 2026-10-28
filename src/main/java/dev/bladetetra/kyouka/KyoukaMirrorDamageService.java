@@ -2,19 +2,18 @@ package dev.bladetetra.kyouka;
 
 import dev.bladetetra.combat.*;
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import java.util.*;
 
 /** A single extra hit per legitimate native window: never one hit per rendered blade. */
 public final class KyoukaMirrorDamageService {
-    private record Hit(KyoukaMirrorSession session, DamageSource source, float amount,
+    private record Hit(KyoukaMirrorSession session, float amount,
             CombatBalanceRules.AttackKind kind, BladeStyle style) {}
     private static final List<Hit> PENDING = new ArrayList<>();
-    static void enqueue(KyoukaMirrorSession s, DamageSource source, float amount,
+    static void enqueue(KyoukaMirrorSession s, float amount,
             CombatBalanceRules.AttackKind kind) {
-        if (PENDING.size() < 4096) PENDING.add(new Hit(s, source, amount, kind, StyleResolver.resolve(s.blade)));
+        if (PENDING.size() < 4096) PENDING.add(new Hit(s, amount, kind, StyleResolver.resolve(s.blade)));
     }
     static void flush() {
         var hits = List.copyOf(PENDING); PENDING.clear();

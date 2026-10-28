@@ -38,7 +38,7 @@ public final class NativeBladeActionObserver {
         var s = KyoukaMirrorSessions.SESSIONS.get(player.getUUID());
         if (slash.getDamage() > 0 && s != null && s.action > 0 && s.shots.size() < 64 && KyoukaMirrorSessions.valid(s)
                 && !InheritedCombatDamage.isInherited(player.damageSources().playerAttack(player)))
-            s.shots.put(slash.getAlreadyHits(), new KyoukaMirrorSession.Shot(slash, s.action, new HashSet<>()));
+            s.shots.put(slash.getAlreadyHits(), new KyoukaMirrorSession.Shot(slash, s.action));
     }
     public static void melee(LivingEntity user, float ratio, List<Entity> exclude) {
         if (!(user instanceof ServerPlayer player)) return;
@@ -51,6 +51,14 @@ public final class NativeBladeActionObserver {
         if (exclude != null && shot == null) return;
         if (shot != null && (shot.entity().getIndirect() || !shot.entity().isAlive()
                 || player.serverLevel().getEntity(shot.entity().getId()) != shot.entity())) return;
+        if (shot == null) {
+            var state = user.getMainHandItem().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE).orElse(null);
+            var combo = mods.flammpfeil.slashblade.registry.ComboStateRegistry.REGISTRY.get().getValue(s.combo);
+            long elapsed = user.level().getGameTime()-s.started;
+            if (state == null || combo == null || !state.getComboSeq().equals(s.combo)
+                    || s.action == 0 || elapsed < 0 || elapsed*50 > combo.getTimeoutMS()
+                    || s.combo.getPath().equals("none") || s.combo.getPath().equals("standby")) return;
+        }
         long action = shot == null ? s.action : shot.action();
         String key = shot == null ? "direct/" + player.level().getGameTime() + "/" + Float.floatToIntBits(ratio)
                 : "slash/" + shot.entity().getUUID() + "/" + (shot.entity().doCycleHit() ? shot.entity().tickCount : 0);
@@ -88,7 +96,7 @@ public final class NativeBladeActionObserver {
             budget.paid = true;
         }
         if (!KyoukaMirrorSessions.valid(s)) { KyoukaMirrorSessions.stop(s); return; }
-        KyoukaMirrorDamageService.enqueue(s, source, KyoukaRules.budget(baseline) * CombatBalanceRuntime.secondaryPhaseScale(s.owner, slash),
+        KyoukaMirrorDamageService.enqueue(s, KyoukaRules.budget(baseline) * CombatBalanceRuntime.secondaryPhaseScale(s.owner, slash),
                 CombatBalanceRuntime.kind(s.owner, slash));
     }
     private NativeBladeActionObserver() {}
