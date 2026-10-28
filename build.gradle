@@ -371,3 +371,25 @@ tasks.named('jar', Jar).configure {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// Review the actual resolved/remapped 1.9.63 binary, rather than assuming upstream source matches.
+tasks.register('kyoukaNativeApiAudit') {
+    doLast {
+        def out = file('build/kyouka-native-api.txt')
+        out.parentFile.mkdirs()
+        out.withOutputStream { stream ->
+            exec {
+                commandLine 'javap', '-classpath', sourceSets.main.compileClasspath.asPath, '-c', '-p',
+                        'mods.flammpfeil.slashblade.registry.combo.ComboState',
+                        'mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState',
+                        'mods.flammpfeil.slashblade.entity.EntitySlashEffect',
+                        'mods.flammpfeil.slashblade.entity.EntitySpiralSwords',
+                        'mods.flammpfeil.slashblade.util.AttackManager',
+                        'mods.flammpfeil.slashblade.util.AttackHelper',
+                        'mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank',
+                        'mods.flammpfeil.slashblade.client.renderer.layers.LayerMainBlade'
+                standardOutput = stream
+            }
+        }
+    }
+}

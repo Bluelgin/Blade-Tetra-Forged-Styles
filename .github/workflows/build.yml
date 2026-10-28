@@ -22,7 +22,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew build kyoukaNativeApiAudit
       - name: Upload review JAR and JUnit evidence
         if: success() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -31,6 +31,7 @@ jobs:
           path: |
             build/libs/*.jar
             build/test-results/test/*.xml
+            build/kyouka-native-api.txt
           retention-days: 14
       - name: Kyouka independent native VMD client smoke
         if: github.event_name == 'pull_request'
@@ -52,7 +53,7 @@ jobs:
             build/kyouka-motion-smoke/logs/**
           retention-days: 14
       - name: Kyouka native Forge smoke
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         timeout-minutes: 8
         run: |
           mkdir -p build/kyouka-native-smoke
@@ -68,6 +69,7 @@ jobs:
             build/kyouka-native-smoke.log
             build/kyouka-native-smoke/logs/**
             build/test-results/test/*.xml
+            build/kyouka-native-api.txt
           retention-days: 14
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'

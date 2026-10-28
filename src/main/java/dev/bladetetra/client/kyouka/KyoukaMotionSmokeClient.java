@@ -37,6 +37,10 @@ public final class KyoukaMotionSmokeClient {
         int frames, checks;
         Review() { super(Component.literal("Independent VMD sampler smoke")); }
         @Override protected void init() {
+            // This off-world test has no synced SERVER config; use defaults in memory only.
+            var config = com.electronwill.nightconfig.core.CommentedConfig.inMemory();
+            dev.bladetetra.config.GameplayConfig.SPEC.correct(config);
+            dev.bladetetra.config.GameplayConfig.SPEC.setConfig(config);
             model = FloatingBladeRenderer.prepare(blade);
             require(model != null, "real Tetra native OBJ appearance prepares");
             for (String name : new String[]{"combo_a1","combo_a2","combo_a3","combo_b1","combo_b2",
