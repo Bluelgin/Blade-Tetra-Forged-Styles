@@ -33,6 +33,14 @@ jobs:
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
           retention-days: 14
+      - name: Sword aura hotfix hit smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sword-aura-hit-smoke
+          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
+          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
+          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
       - name: Kyouka independent native VMD client smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
@@ -95,11 +103,3 @@ jobs:
           echo 'eula=true' > build/lifeng-smoke/eula.txt
           ./gradlew runServer -PlifengSmoke 2>&1 | tee build/lifeng-smoke.log
           grep -F 'LIFENG_CUSTOM_SMOKE_PASS' build/lifeng-smoke.log
-      - name: Sword aura hotfix hit smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/sword-aura-hit-smoke
-          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
-          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
-          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log

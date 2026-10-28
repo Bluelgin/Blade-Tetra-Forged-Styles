@@ -62,3 +62,5 @@ xvfb-run -a ./gradlew runClient -PkyoukaMotionSmoke
 4. A门槛及不同unit capacity，启动/秒费/动作费，正向原生与直接setter增益拒绝、负向/自然衰减保留，跌B终止，换千本樱不污染其Rank约束。
 5. 环剑提前发射、部分/全部删除、重复施法、换刀、刀损坏、死亡、离线、跨维度、目标死亡/卸载/移除/超距。确认不重锁其他目标、不加载区块。
 6. 八名玩家分别不同目标/同目标，旁观者先进入/后加入/退出96格、玩家不在目标实体跟踪范围、延迟、目标ID复用。资源重载，第一/第三/旁观视角，特殊OBJ与Tetra材质刀装；低中高画质逐帧及FPS记录。镜花破镜出刃/原刀归刃完整回归。
+
+既有 SwordAuraHitSmoke 曾在若干轮次失败于 `one physical aura for STANDARD`（也有完整通过轮次）。该夹具原先在 ServerStarted / 首tick前枚举固定区块的跟踪实体；本PR将其放到正常区块票据循环准备20tick之后执行，并仅在该 opt-in 测试世界临时保活测试区块，结束恢复。全部原伤害/数量断言保留，不修改 SwordAuraSpawner 或生产剑气/镜花区块行为。结果仍以最终CI为准。

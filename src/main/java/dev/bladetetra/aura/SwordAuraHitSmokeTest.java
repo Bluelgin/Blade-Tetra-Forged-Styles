@@ -21,6 +21,9 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import java.util.ArrayList;
@@ -30,16 +33,34 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SwordAuraHitSmokeTest {
     private static int checks;
+    private static MinecraftServer pending;
+    private static int readyTicks;
+    private static boolean wasForced;
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("blade_tetra.swordAuraHitSmoke")) return;
-        ServerLevel level = event.getServer().overworld();
+        pending = event.getServer(); readyTicks = 0;
+        var level = pending.overworld();
+        wasForced = level.getForcedChunks().contains(new ChunkPos(0,0).toLong());
+        level.setChunkForced(0,0,true);
+        level.getChunk(0,0);
+    }
+    @SubscribeEvent public static void ready(TickEvent.ServerTickEvent event) {
+        if (pending == null || event.phase != TickEvent.Phase.END || event.getServer() != pending) return;
+        // Entity visibility/ticking status is installed by the normal chunk-ticket loop.
+        // A pre-first-tick getEntities query can miss an accepted projectile in a hidden chunk.
+        if (++readyTicks < 20) return;
+        var server = pending; pending = null;
+        run(server);
+    }
+    private static void run(MinecraftServer server) {
+        ServerLevel level = server.overworld();
         var owner = FakePlayerFactory.getMinecraft(level);
         var victim = new Zombie(EntityType.ZOMBIE, level);
         List<Entity> spawned = new ArrayList<>();
         var cancel = new Cancel(victim);
         try {
-            // ServerStarted runs before the first tick. Existing combat windows use
-            // zero as their unset timestamp, so test contacts after that boundary.
+            // Existing combat windows use zero as their unset timestamp.
+            // Keep a deterministic positive clock after chunk tracking is ready.
             var clock = (ServerLevelData) level.getLevelData();
             clock.setGameTime(Math.max(100L, clock.getGameTime()));
             level.getChunk(0, 0);
@@ -121,7 +142,9 @@ public final class SwordAuraHitSmokeTest {
             throw new IllegalStateException("Sword aura hit diagnostic failed", failure);
         } finally {
             MinecraftForge.EVENT_BUS.unregister(cancel);
-            spawned.forEach(Entity::discard); owner.discard(); event.getServer().halt(false);
+            spawned.forEach(Entity::discard); owner.discard();
+            if (!wasForced) level.setChunkForced(0,0,false);
+            server.halt(false);
         }
     }
     private static SwordAuraDriveEntity shot(ServerLevel level, net.minecraft.world.entity.LivingEntity owner, List<Entity> spawned) {
