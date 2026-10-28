@@ -174,3 +174,7 @@ categories are accepted automatically; no Blade Tetra setting is required.
 The pre-1.3.0 third-party metal definitions remain hidden so existing weapons
 continue to resolve their original material keys. They are not offered as new
 workbench outcomes.
+
+## 千本樱 3.0
+
+旧 `awakenedSakuraFlowDrainPerSecond` 键保留，仅用于散华无限连舞 SA；普通散华攻击不额外燃烧 Rank。新增 `sakuraSaMaxTicks=1200`、`sakuraConcertoInterval=8`、`sakuraConcertoDamageFraction=0.25`、`sakuraConcertoDamageCap=6.0`、`sakuraSaStageDamage=8.0`。详细作用和上下限见 [千本樱维护说明](docs/awakened-rework/SAKURA_30.md)。

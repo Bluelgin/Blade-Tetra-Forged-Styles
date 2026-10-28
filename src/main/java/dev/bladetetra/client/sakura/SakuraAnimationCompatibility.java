@@ -20,6 +20,12 @@ public final class SakuraAnimationCompatibility {
                     .getInstance().getAnimation();
             var original=animations.get(mods.flammpfeil.slashblade.registry.ComboStateRegistry.COMBO_B6.getId());
             if(original!=null) animations.put(SakuraSixthCombo.SIXTH.getId(),original);
+            for(int stage=1;stage<=6;stage++) {
+                var nativeId=mods.flammpfeil.slashblade.registry.combo.ComboState.getRegistryKey(
+                        dev.bladetetra.easteregg.SakuraDanceCombos.nativeNode(stage));
+                var animation=animations.get(nativeId);
+                if(animation!=null) animations.put(dev.bladetetra.easteregg.SakuraDanceCombos.id(stage),animation);
+            }
         }
     }
     private SakuraAnimationCompatibility() {}

@@ -57,6 +57,7 @@ public final class BladeTetra {
         ModComboStates.registerHeldDangaku();
         dev.bladetetra.easteregg.RaikiriRapidCombo.register();
         dev.bladetetra.easteregg.SakuraSixthCombo.register();
+        dev.bladetetra.easteregg.SakuraDanceCombos.register();
         ModComboStates.COMBOS.register(modBus);
         ModSlashBladeAbilities.SLASH_ARTS.register(modBus);
         ModSlashBladeAbilities.SPECIAL_EFFECTS.register(modBus);

@@ -19,6 +19,8 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
     public static final ForgeConfigSpec.IntValue AWAKENED_SAKURA_BURN_POINTS_PER_SECOND;
+    public static final ForgeConfigSpec.IntValue SAKURA_SA_MAX_TICKS, SAKURA_CONCERTO_INTERVAL;
+    public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_DUAL_BONUS;
@@ -148,9 +150,17 @@ public final class GameplayConfig {
                 .comment("Senbonzakura full array: requires A rank. Form switching remains free.")
                 .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
         AWAKENED_SAKURA_BURN_POINTS_PER_SECOND = builder
-                .comment("Base native Rank points spent per second of dispersed Senbonzakura B-combo.",
-                        "A pays 100%, S 88%, SS 80%, SSS 67%. Only actual attacks burn Rank.")
+                .comment("Base native Rank points spent per second of Senbonzakura infinite dance SA.",
+                        "A pays 100%, S 88%, SS 80%, SSS 67%. Ordinary attacks do not burn Rank.")
                 .defineInRange("awakenedSakuraFlowDrainPerSecond", 120, 1, 600);
+        SAKURA_SA_MAX_TICKS = builder.comment("Maximum infinite dance SA duration; finishes the current native action.")
+                .defineInRange("sakuraSaMaxTicks", 1200, 40, 6000);
+        SAKURA_CONCERTO_INTERVAL = builder.comment("Minimum server ticks between ordinary shard concerto launches.")
+                .defineInRange("sakuraConcertoInterval", 8, 6, 40);
+        SAKURA_CONCERTO_FRACTION = builder.defineInRange("sakuraConcertoDamageFraction", .25, 0., .5);
+        SAKURA_CONCERTO_CAP = builder.defineInRange("sakuraConcertoDamageCap", 6., 0., 20.);
+        SAKURA_SA_STAGE_DAMAGE = builder.comment("Total additional damage budget per SA stage, split across its pulses.")
+                .defineInRange("sakuraSaStageDamage", 8., 0., 32.);
         AWAKENED_RANK_COST_STEP = builder
                 .comment("Raikiri basic lightning step: requires B rank.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);

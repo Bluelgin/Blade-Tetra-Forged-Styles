@@ -18,6 +18,8 @@ public final class SakuraShardRenderer {
         for(var shard:pool.shards) {
             if(budget<=0) break;
             float alpha=baseAlpha*(shard.previousVisibility+(shard.visibility-shard.previousVisibility)*partial);
+            if(shard.group!=null&&shard.group.concerto&&shard.state==SakuraShardPool.State.SLASH)
+                alpha=Math.min(1,alpha*1.2F);
             if(alpha<=.001F) continue;
             Vec3 center=shard.previous.lerp(shard.position,partial);
             Vec3 direction=shard.flying()?shard.direction:new Vec3(

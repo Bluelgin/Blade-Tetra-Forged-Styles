@@ -4,10 +4,11 @@ import net.minecraft.world.phys.Vec3;
 
 /** Stable indexed homes in a body-relative crescent, never camera billboards. */
 public final class SakuraShardFormation {
-    public record Frame(Vec3 root, double yaw, double height) {
+    public record Frame(Vec3 root, double yaw, double height, double pitch) {
+        public Frame(Vec3 root,double yaw,double height) {this(root,yaw,height,0);}
         public Frame interpolate(Frame to, double t) {
             return new Frame(root.lerp(to.root, t), yaw + wrap(to.yaw - yaw) * t,
-                    height + (to.height - height) * t);
+                    height + (to.height - height) * t, pitch+(to.pitch-pitch)*t);
         }
     }
     public static double wrap(double radians) {

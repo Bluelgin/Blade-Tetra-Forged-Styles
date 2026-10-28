@@ -5,10 +5,8 @@ import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import net.minecraftforge.registries.RegistryObject;
 
-/** Same native B6 animation and callbacks, with a forgiving input tail.
- * Upstream permits early next-input at tick 4 but authors hits through tick 6;
- * its 333ms timeout otherwise expires before a safe tick-7 re-entry. Only the
- * dispersed Sakura B5 route uses this node. No global native registry mutation.
+/** Legacy mid-combo save ID only. New ordinary attacks use upstream B6/B7;
+ * new infinite dance uses SakuraDanceCombos. Never routes back to B1.
  */
 public final class SakuraSixthCombo {
     public static final int INPUT_TAIL_MS = 500;
@@ -23,7 +21,7 @@ public final class SakuraSixthCombo {
                 .startAndEnd(original.getStartFrame(), original.getEndFrame())
                 .motionLoc(original.getMotionLoc()).speed(original.getSpeed())
                 .priority(original.getPriority()).timeout(original.timeout + INPUT_TAIL_MS)
-                .next(user -> SIXTH.getId()) // NextComboEvent supplies the authorized B1 route
+                .next(original::getNext) // legacy saved node recovers into ordinary B7
                 .nextOfTimeout(original::getNextOfTimeout)
                 .addHoldAction(original::holdAction)
                 .addHitEffect(original::hitEffect)

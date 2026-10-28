@@ -161,7 +161,7 @@ public final class AwakenedBladeCombat {
                         Math.round(player.getYRot()));
             }
             case SENBONZAKURA -> SakuraCombatVisuals.confirm(player, blade,
-                    event.getSource().getDirectEntity(), target);
+                    event.getSource().getDirectEntity(), target, event.getAmount());
             case RAIKIRI -> {
                 // Only slash effects created by our upgraded native rapid
                 // combo authorize another free Thunder Step. This remains

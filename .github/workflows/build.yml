@@ -41,7 +41,8 @@ jobs:
           ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
           grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log
           grep -F 'SAKURA_STANCE_SMOKE_PASS' build/sakura-combat-smoke.log
-          grep -F 'SAKURA_FLOW_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_SA_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_CONCERTO_SMOKE_PASS' build/sakura-combat-smoke.log
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8

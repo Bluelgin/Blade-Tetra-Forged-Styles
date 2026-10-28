@@ -33,6 +33,7 @@ public final class SakuraShardPool {
         public final Vec3 forward;
         public int targetId;
         public boolean predicted, canceled, confirmed;
+        public boolean concerto, right;
         public double confirmedAt = -100;
         int members;
         Group(int stage, long sequence, long actionAt, double startedAt,
@@ -45,6 +46,7 @@ public final class SakuraShardPool {
     public final Shard[] shards;
     public final Group[] groups = new Group[MAX_GROUPS];
     private long lastSequence;
+    private double danceUntil, deployment;
     private SakuraStanceTransition stance;
     public SakuraStanceTransition stance() { return stance; }
     public void hide() {
@@ -97,6 +99,8 @@ public final class SakuraShardPool {
         Vec3 forward=SakuraShardFormation.forward(frame);
         Vec3 delta=target.subtract(frame.root());
         if(delta.lengthSqr()>144) target=frame.root().add(0,frame.height()*.8,0).add(forward.scale(3.5));
+        danceUntil=time+24;
+        for(Group old:groups) if(old!=null&&old.concerto) old.canceled=true;
         Group group=new Group(stage,sequence,actionAt,time,target,forward,targetId,predicted);
         int wanted=SakuraShardChoreography.wanted(stage,shards.length);
         for(int j=0;j<shards.length&&group.members<wanted;j++) {
@@ -115,6 +119,56 @@ public final class SakuraShardPool {
         if(group.members==0) return false;
         groups[free]=group; return true;
     }
+    /** One stable shared index, never a decorative duplicate outside the pool. */
+    public boolean concerto(int logical, boolean right, long sequence, long actionAt, double time,
+            Vec3 target,int targetId) {
+        if(logical<0||logical>=24||sequence<=lastSequence) return false;
+        lastSequence=sequence;
+        int free=-1;
+        for(int i=0;i<MAX_GROUPS;i++) if(groups[i]==null) {free=i;break;}
+        int index=dev.bladetetra.easteregg.SakuraShardAttackRules.index(logical,shards.length);
+        Shard shard=shards[index];
+        if(free<0||shard.flying()) return false;
+        Group group=new Group(1,sequence,actionAt,time,target,SakuraShardFormation.forward(frame),targetId,false);
+        group.concerto=true;group.right=right;group.members=1;
+        shard.group=group;shard.state=State.LAUNCH;shard.start=shard.position;
+        shard.returnStart=null;shard.history=0;shard.departureFromHome=true;
+        groups[free]=group;return true;
+    }
+    public void recall(long sequence) {
+        if(sequence<=lastSequence) return;
+        lastSequence=sequence;recall();
+    }
+    public void recall() {
+        danceUntil=0;
+        for(Group group:groups) if(group!=null) group.canceled=true;
+    }
+    private Vec3 home(int index,double time) {
+        Vec3 home=SakuraShardFormation.home(frame,index,shards.length,time);
+        return home.add(SakuraShardFormation.forward(frame).scale(-deployment*(index%3)*.27))
+                .add(0,deployment*(index%3)*.32,0);
+    }
+    private Vec3 platform(boolean right) {
+        Vec3 forward=SakuraShardFormation.forward(frame);
+        Vec3 look=forward.scale(Math.cos(frame.pitch())).add(0,-Math.sin(frame.pitch()),0);
+        return dev.bladetetra.easteregg.SakuraShardAttackRules.platform(
+                frame.root().add(0,frame.height(),0),look,right);
+    }
+    private void tickConcerto(Shard s,Group g,Vec3 home,double time) {
+        double age=time-g.startedAt;
+        Vec3 platform=platform(g.right);
+        if((g.canceled||age>=6)&&s.state!=State.RETURN)
+            beginReturn(s,time,s.position,s.position.subtract(s.previous));
+        if(s.state==State.RETURN) {
+            double u=(time-s.returningAt)/6;
+            s.position=cubic(s.returnStart,s.returnStart.add(s.returnVelocity.scale(2)),home,home,u);
+            if(u>=1) {s.position=home;s.state=State.IDLE;s.group=null;s.history=0;g.members--;}
+        } else if(age<4) {
+            s.position=cubic(s.start,s.start.add(0,.45,0),platform.add(0,.15,0),platform,age/4);
+        } else {s.state=State.SLASH;s.position=platform;}
+        recordMotion(s);
+        if(s.state==State.SLASH) s.direction=g.goal.subtract(platform).normalize();
+    }
     public boolean confirm(long sequence, Vec3 target, int targetId, double time) {
         for(Group group:groups) if(group!=null&&group.sequence==sequence&&!group.confirmed) {
             group.confirmed=true; group.goal=target; group.hitPosition=target;
@@ -129,12 +183,13 @@ public final class SakuraShardPool {
     }
     public void tick(SakuraShardFormation.Frame next, double time, Vec3 grip, Vec3 tip) {
         frame=next; now=time;
+        deployment=Math.max(0,Math.min(1,deployment+(time<danceUntil?.12:-.12)));
         for(Group group:groups) if(group!=null)
             group.center=approach(group.center,group.goal,.55);
         for(Shard shard:shards) {
             shard.previous=shard.position;
             shard.previousVisibility=shard.visibility;
-            Vec3 home=SakuraShardFormation.home(frame,shard.index,shards.length,time);
+            Vec3 home=home(shard.index,time);
             if(shard.state==State.TRANSITION) {
                 tickStance(shard,time,home,grip,tip);
                 recordMotion(shard);
@@ -145,6 +200,7 @@ public final class SakuraShardPool {
             if(stance!=null&&stance.dispersing()) shard.visibility=Math.min(1,shard.visibility+.2F);
             if(!shard.flying()) { shard.position=home; continue; }
             Group group=shard.group;
+            if(group.concerto) {tickConcerto(shard,group,home,time);continue;}
             double age=time-group.startedAt-shard.delay;
             if(age<0) {
                 // Idle departures follow their moving home until launch. A

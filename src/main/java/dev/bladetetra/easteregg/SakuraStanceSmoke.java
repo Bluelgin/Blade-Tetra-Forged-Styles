@@ -69,10 +69,8 @@ public final class SakuraStanceSmoke {
             }
             tag.putBoolean(SakuraStanceRules.DISPERSED,true);
             actor.getCapability(CapabilityConcentrationRank.RANK_POINT).ifPresent(rank->{rank.setRawRankPoint(0);rank.setLastUpdte(level.getGameTime());});
-            advance(level,20);state.setComboSeq(SakuraSixthCombo.SIXTH.getId());state.setLastActionTime(level.getGameTime()-4);
-            check(state.progressCombo(actor,true).equals(ComboStateRegistry.NONE.getId()),"upper cannot truncate B6 tail");
-            state.setLastActionTime(level.getGameTime()-7);
-            check(state.progressCombo(actor).equals(ComboStateRegistry.UPPERSLASH.getId()),"zero Rank still permits native upper after B6 completes");
+            advance(level,20);state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(level.getGameTime());
+            check(state.progressCombo(actor).equals(ComboStateRegistry.UPPERSLASH.getId()),"zero Rank native upper remains available");
             end(actor);check(!SakuraStanceController.dispersed(blade),"zero Rank upper condenses");
             probe.slashes.clear();long upper=level.getGameTime();
             for(int t=0;t<=4;t++) {advanceTo(level,upper+t);ComboStateRegistry.UPPERSLASH.get().tickAction(actor);end(actor);}

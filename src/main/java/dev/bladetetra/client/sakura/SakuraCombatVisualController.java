@@ -82,7 +82,7 @@ public final class SakuraCombatVisualController {
         return switch(ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get()) {case 0->24;case 2->72;default->48;};
     }
     private static SakuraShardFormation.Frame frame(Player p) {
-        return new SakuraShardFormation.Frame(p.position(),Math.toRadians(p.getYRot()),p.getEyeHeight());
+        return new SakuraShardFormation.Frame(p.position(),Math.toRadians(p.getYRot()),p.getEyeHeight(),Math.toRadians(p.getXRot()));
     }
     private static View view(Player p) {
         View view=VIEWS.get(p.getUUID());
@@ -130,7 +130,12 @@ public final class SakuraCombatVisualController {
         if(target.distanceToSqr(owner.position())>144) return true;
         long now=world.getGameTime();
         if(packet.type()==AwakenedBladeVfxPacket.SAKURA_SWING) {
-            if(now-cue.actionAt()<=12) view.pool.launch(cue.stage(),cue.sequence(),cue.actionAt(),now,
+            if(packet.variant()==-1) view.pool.recall(cue.sequence());
+            else if(packet.variant()>=dev.bladetetra.easteregg.SakuraShardAttackRules.CONCERTO_VARIANT) {
+                int value=packet.variant()-dev.bladetetra.easteregg.SakuraShardAttackRules.CONCERTO_VARIANT;
+                if(now-cue.actionAt()<=12) view.pool.concerto(value/2,(value&1)!=0,cue.sequence(),cue.actionAt(),now,
+                        target,cue.targetId());
+            } else if(now-cue.actionAt()<=12) view.pool.launch(cue.stage(),cue.sequence(),cue.actionAt(),now,
                     target,cue.targetId(),false);
         } else view.pool.confirm(cue.sequence(),target,cue.targetId(),now);
         bindTargets(view);
@@ -179,7 +184,7 @@ public final class SakuraCombatVisualController {
                 java.util.Arrays.fill(v.targets,null);
             }
             v.lastRoot=v.owner.position();
-            if(v.owner==local) predict(v,now);
+
             for(int i=0;i<v.pool.groups.length;i++) {
                 var group=v.pool.groups[i];
                 var target=v.targets[i];
@@ -197,18 +202,6 @@ public final class SakuraCombatVisualController {
             }
             v.pool.tick(frame(v.owner),now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
         }
-    }
-    private static void predict(View view,long now) {
-        var state=view.owner.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
-        if(state==null) return;
-        int stage=SakuraFlowRules.stage(state.getComboSeq());
-        long at=state.getLastActionTime();
-        if(stage==0||now-at<0||now-at>2||at==view.predictedAt&&stage==view.predictedStage) return;
-        view.predictedAt=at; view.predictedStage=stage;
-        // A real locally committed native action is immediate, even on a miss.
-        // This is prediction only; damage and hit confirmation remain server owned.
-        view.pool.launch(stage,-1,at,now,
-                view.owner.getEyePosition().add(view.owner.getLookAngle().scale(3.5)),-1,true);
     }
     public static void draw(BufferBuilder buffer,Matrix4f matrix,Vec3 eye,float partial,
             float intensity,Frustum frustum) {

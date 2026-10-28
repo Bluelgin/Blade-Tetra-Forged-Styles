@@ -19,6 +19,8 @@ public final class SakuraFlowRules {
         if ("blade_tetra".equals(combo.getNamespace())
                 && "awakened_sakura_b6".equals(combo.getPath())) return 6;
         String path = combo.getPath();
+        if ("blade_tetra".equals(combo.getNamespace()) && path.matches("sakura_dance_b[1-6]"))
+            return path.charAt(path.length()-1)-'0';
         return "slashblade".equals(combo.getNamespace()) && path.length() == 8
                 && path.startsWith("combo_b") && path.charAt(7) >= '1' && path.charAt(7) <= '6'
                 ? path.charAt(7) - '0' : 0;
@@ -30,7 +32,7 @@ public final class SakuraFlowRules {
     public static boolean completedB6(long elapsed) { return elapsed >= 7; }
 
     /** Respect the upstream B1 opener and preserve every rush hit for held input. */
-    static int minimumAutoTick(int stage) { return stage == 1 ? 9 : stage == 6 ? 7 : 6; }
+    static int minimumAutoTick(int stage) { return stage == 1 ? 15 : 7; }
 
     private SakuraFlowRules() {}
 }
