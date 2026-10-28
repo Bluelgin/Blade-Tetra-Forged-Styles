@@ -12,6 +12,7 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.animal.*;
+import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.*;
@@ -32,7 +33,7 @@ public final class SakuraShardAttackService {
     private static final String MARK="blade_tetra_sakura_concerto";
     private static final int MAX_PROJECTILES=256, PER_PLAYER=4, PROJECTILE_TTL=30;
     private static final class Owner {
-        final ItemStack blade; final int slot; final Object dimension;
+        final ItemStack blade; final int slot; final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         long nextAt, blockedUntil; int cursor; boolean right;
         Pending pending; LivingEntity lastTarget; long targetAt;
         Owner(ServerPlayer p,ItemStack b) {blade=b;slot=p.getInventory().selected;dimension=p.level().dimension();}

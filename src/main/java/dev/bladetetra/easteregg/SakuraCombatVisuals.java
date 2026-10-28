@@ -23,7 +23,7 @@ public final class SakuraCombatVisuals {
     private static long sequence;
     static long nextSequence() {return ++sequence;}
     private static final class Attack {
-        final ServerPlayer player;final ItemStack blade;final int slot;final Object dimension;
+        final ServerPlayer player;final ItemStack blade;final int slot;final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         final ResourceLocation combo;final long at;
         long slashAt=Long.MIN_VALUE;boolean confirmed;
         Attack(ServerPlayer p,ItemStack b,ResourceLocation c,long at) {
@@ -37,7 +37,7 @@ public final class SakuraCombatVisuals {
     }
     private static Attack action(ServerPlayer p,ItemStack b) {
         var state=b.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
-        if(state==null||SakuraDanceCombos.owns(state.getComboSeq())||state.getComboSeq().getPath().contains("end")
+        if(state==null||SakuraDanceCombos.owns(state.getComboSeq())
                 ||state.getComboSeq().getPath().equals("none")) return null;
         Attack a=CURRENT.get(p.getUUID());
         if(a==null||!a.matches(p,b)||!a.combo.equals(state.getComboSeq())||a.at!=state.getLastActionTime()) {

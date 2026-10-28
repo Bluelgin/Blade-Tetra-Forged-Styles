@@ -24,7 +24,7 @@ import java.util.*;
 @Mod.EventBusSubscriber(modid=BladeTetra.MOD_ID)
 public final class SakuraInfiniteDanceSA {
     public enum Phase { IDLE, STARTING, DANCING, FINISHING }
-    private record Request(ItemStack blade, int slot, Object dimension, long at, int rank) {}
+    private record Request(ItemStack blade, int slot, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, long at, int rank) {}
     private static final Map<UUID,Request> REQUESTS=new HashMap<>();
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
     private static final UUID SLOW=UUID.fromString("7bfc53b0-5f14-4b17-b7b1-33c26abe3c30");
@@ -54,6 +54,7 @@ public final class SakuraInfiniteDanceSA {
         if(!(e.getEntityLiving() instanceof ServerPlayer p)||!SakuraEndlessFlow.eligible(p.getMainHandItem())) return;
         if(SESSIONS.containsKey(p.getUUID())) {e.setComboState(ComboStateRegistry.NONE.getId());return;}
         if(e.getType()==null||e.getType()==SlashArts.ArtsType.Fail) return;
+        SakuraEndlessFlow.reconcile(p);
         int grade=p.getCapability(CapabilityConcentrationRank.RANK_POINT)
                 .map(r->r.getRank(p.level().getGameTime()).level).orElse(0);
         if(grade<4||!SakuraDanceCombos.compatible()||!p.isAlive()||p.isSpectator()||p.isPassenger()) {
@@ -88,6 +89,7 @@ public final class SakuraInfiniteDanceSA {
         if(s.lastNativeTick==now||elapsed<0||elapsed>=SakuraFlowRules.minimumAutoTick(stage)) return;
         s.lastNativeTick=now;
         SakuraDanceCombos.nativeNode(stage).tickAction(user);
+        SakuraEndlessFlow.reconcile(p);
         boolean funded=p.getCapability(CapabilityConcentrationRank.RANK_POINT).map(r->{
             long points=r.getRankPoint(now);
             return points>0&&(now<s.nextCharge||!GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get()
@@ -134,6 +136,7 @@ public final class SakuraInfiniteDanceSA {
         if(!matches(p,s.request)||state==null||!SakuraDanceCombos.id(s.stage).equals(state.getComboSeq())
                 ||state.getLastActionTime()!=s.actionAt||now<s.actionAt||controlled) {end(p);return;}
         if(p.isUsingItem()) p.stopUsingItem();
+        SakuraEndlessFlow.reconcile(p);
         if(now-s.request.at>=GameplayConfig.SAKURA_SA_MAX_TICKS.get()) s.phase=Phase.FINISHING;
         p.getCapability(CapabilityConcentrationRank.RANK_POINT).ifPresent(rank->{
             long points=Math.max(0,rank.getRankPoint(now));
@@ -147,6 +150,7 @@ public final class SakuraInfiniteDanceSA {
                 }
             }
         });
+        SakuraEndlessFlow.reconcile(p);
         nativeTick(p,s.stage);
         if(now-s.actionAt>=SakuraFlowRules.minimumAutoTick(s.stage)) {
             if(s.phase==Phase.FINISHING) {end(p);return;}

@@ -40,9 +40,7 @@ public final class SakuraCombatSmokeTest {
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void motion(BladeMotionEvent e) {
         if(e.getEntity()==actor&&cancel) e.setCanceled(true);
-    }
-    @SubscribeEvent(priority=EventPriority.LOWEST) public static void art(SlashBladeEvent.PerformSlashArtEvent e) {
-        if(e.getEntityLiving()==actor&&rewrite) e.setComboState(ComboStateRegistry.COMBO_A1.getId());
+        if(e.getEntity()==actor&&rewrite&&SakuraDanceCombos.owns(e.getCombo())) e.setCombo(ComboStateRegistry.COMBO_A1.getId());
     }
     @SubscribeEvent public static void started(ServerStartedEvent e) {
         if(!Boolean.getBoolean("blade_tetra.sakuraCombatSmoke")) return;

@@ -15,7 +15,7 @@ import java.util.*;
 /** Dispersed Rank anti-credit guard only. Ordinary combos never start or pay for an SA. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SakuraEndlessFlow {
-    private record Ceiling(ItemStack blade, int slot, Object dimension, long points) {}
+    private record Ceiling(ItemStack blade, int slot, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, long points) {}
     private static final Map<UUID, Ceiling> CEILINGS = new HashMap<>();
     public static boolean eligible(ItemStack blade) {
         return SakuraStanceController.supported(blade) && SakuraStanceController.dispersed(blade);
@@ -28,6 +28,10 @@ public final class SakuraEndlessFlow {
     }
     @SubscribeEvent public static void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (!(e.player instanceof ServerPlayer player)) return;
+        reconcile(player);
+    }
+    /** Also called before SA admission/payment so same-tick native credits cannot fund it. */
+    public static void reconcile(ServerPlayer player) {
         ItemStack blade = player.getMainHandItem();
         if (!player.isAlive() || !eligible(blade)) { CEILINGS.remove(player.getUUID()); return; }
         player.getCapability(CapabilityConcentrationRank.RANK_POINT).ifPresent(rank -> {
