@@ -57,13 +57,13 @@ public final class RaikiriStepController {
                     && blade.equals(id(stack)) && eligible(stack);
         }
     }
-    private record HitProof(LivingDamageEvent event, float before, UUID sequence) {}
+    private record HitProof(LivingDamageEvent event, float before, UUID sequence, long tick) {}
     private static void settle(Session s) {
         for (HitProof proof:s.proofs) {
             LivingDamageEvent e=proof.event;
             if (!e.isCanceled() && Float.isFinite(e.getAmount()) && e.getAmount()>0
                     && e.getEntity().getHealth()<proof.before
-                    && RaikiriRules.confirmed(e.getEntity().level().getGameTime(),s.started,s.sequence,proof.sequence))
+                    && RaikiriRules.confirmed(proof.tick,s.started,s.sequence,proof.sequence))
                 s.confirmed=true;
         }
         s.proofs.clear();
@@ -124,11 +124,17 @@ public final class RaikiriStepController {
         Vec3 from=p.position(), end=safeEnd(p);
         boolean free=RaikiriRules.followup(s.chain,s.confirmed,s.started,now);
         if (!free && !AwakenedRankCost.trySpend(p,blade,AwakenedRankCost.Cast.RAIKIRI_STEP)) return;
+        p.connection.teleport(end.x,end.y,end.z,p.getYRot(),p.getXRot());
+        Vec3 actual=p.position();
+        // A server adapter/protection mod may reject or redirect relocation.
+        // Do not authorize a path, sequence or payment for an unexecuted step.
+        if (actual.distanceToSqr(end)>0.0001D) {
+            if (!free) AwakenedRankCost.refund(p,blade,AwakenedRankCost.Cast.RAIKIRI_STEP);
+            return;
+        }
         s.chain=free?s.chain+1:1; s.confirmed=false; s.started=now;
         s.nextStep=now+(s.chain>1?6:10); s.sequence=UUID.randomUUID(); s.proofs.clear();
-        p.connection.teleport(end.x,end.y,end.z,p.getYRot(),p.getXRot());
-        // Capture the actual server endpoint after teleport, never a predicted target position.
-        RaikiriFieldService.step(p,s,from,p.position());
+        RaikiriFieldService.step(p,s,from,actual);
     }
     static Vec3 safeEnd(ServerPlayer p) {
         Vec3 look=p.getLookAngle().multiply(1,0,1);
@@ -173,7 +179,7 @@ public final class RaikiriStepController {
         if (s!=null && s.valid(p) && tag.hasUUID(SEQUENCE) && tag.hasUUID(BLADE_ID)
                 && s.proofs.size()<16 && s.blade.equals(tag.getUUID(BLADE_ID))
                 && RaikiriRules.confirmed(p.level().getGameTime(),s.started,s.sequence,tag.getUUID(SEQUENCE)))
-            s.proofs.add(new HitProof(e,e.getEntity().getHealth(),tag.getUUID(SEQUENCE)));
+            s.proofs.add(new HitProof(e,e.getEntity().getHealth(),tag.getUUID(SEQUENCE),p.level().getGameTime()));
     }
     public static boolean free(ServerPlayer p) {
         Session s=SESSIONS.get(p.getUUID());
@@ -205,8 +211,11 @@ public final class RaikiriStepController {
         if (e.phase!=TickEvent.Phase.END) return;
         MinecraftServer server=net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server==null) return;
-        for (UUID owner:java.util.List.copyOf(SESSIONS.keySet()))
-            if (!SESSIONS.get(owner).valid(owner(server,SESSIONS.get(owner)))) clear(owner,server);
+        for (UUID owner:java.util.List.copyOf(SESSIONS.keySet())) {
+            Session session=SESSIONS.get(owner);
+            if (!session.valid(owner(server,session))) clear(owner,server);
+            else settle(session);
+        }
         RaikiriFieldService.tick(server);
     }
     static ServerPlayer owner(MinecraftServer server,Session s) {

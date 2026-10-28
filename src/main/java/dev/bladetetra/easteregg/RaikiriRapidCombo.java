@@ -34,9 +34,6 @@ import java.util.EnumSet;
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RaikiriRapidCombo {
-    /** Marks only native slashes actually authored by this specialized combo. */
-    public static final String THUNDER_HIT = "blade_tetra_raikiri_rapid_hit";
-
     public static final RegistryObject<ComboState> THUNDER_RAPID =
             ModComboStates.COMBOS.register("awakened_raikiri_rapid", RaikiriRapidCombo::create);
 
@@ -68,13 +65,11 @@ public final class RaikiriRapidCombo {
             return;
         ResourceLocation candidate=event.getNextCombo();
         if (!ComboStateRegistry.RAPID_SLASH.getId().equals(candidate)) {
-            // On the very first input 1.9.63 posts NONE.next == NONE, then
+            // On initial input and native recovery nodes 1.9.63 posts NONE, then
             // resolves the weapon root AFTER this event. Upgrade only when
             // that exact native fallback is Rapid Slash; preserve explicit
             // style nodes and native self-next locks.
-            if (!ComboStateRegistry.NONE.getId().equals(candidate)
-                    || !ComboStateRegistry.NONE.getId().equals(
-                            event.getSlashBladeState().resolvCurrentComboState(player))) return;
+            if (!ComboStateRegistry.NONE.getId().equals(candidate)) return;
             ComboState root=ComboStateRegistry.REGISTRY.get().getValue(
                     event.getSlashBladeState().getComboRoot());
             if (root==null || !ComboStateRegistry.RAPID_SLASH.getId().equals(root.getNext(player))) return;
@@ -100,7 +95,7 @@ public final class RaikiriRapidCombo {
                 .motionLoc(original.getMotionLoc())
                 .next(entity -> ComboStateRegistry.RAPID_SLASH.getId())
                 .nextOfTimeout(entity -> ComboStateRegistry.RAPID_SLASH_END.getId())
-                .addHoldAction(original::holdAction)
+                .addHoldAction(user -> hold(user,user.getTicksUsingItem()))
                 .addHitEffect(original::hitEffect)
                 .clickAction(entity -> {
                     original.clickAction(entity);
@@ -133,5 +128,33 @@ public final class RaikiriRapidCombo {
                 .build();
     }
 
+    /** 1.9.63 hold adapter: the upstream callback hard-codes rapid_slash's ID.
+     * Preserve its reach/area damage/toss/advancement, accepting our two IDs
+     * for its Rising Star transition. No duplicate native callback or attack. */
+    static void hold(LivingEntity user,int elapsed) {
+        if (elapsed<2) return;
+        var reach=user.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
+        var modifier=new net.minecraft.world.entity.ai.attributes.AttributeModifier("RapidSlashReach",-3,
+                net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION);
+        if(reach!=null) reach.addTransientModifier(modifier);
+        try {
+            AttackManager.areaAttack(user,target->{
+                boolean down=user.getCapability(CapabilityInputState.INPUT_STATE)
+                        .map(input->input.getCommands().contains(InputCommand.R_DOWN)).orElse(false);
+                if(!down) return;
+                user.getMainHandItem().getCapability(dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE)
+                        .ifPresent(state->{
+                            if(!isThunderCombo(state.getComboSeq())) return;
+                            var hits=AttackManager.areaAttack(user,mods.flammpfeil.slashblade.util.KnockBacks.toss.action,
+                                    0.44F,true,true,true);
+                            if(!hits.isEmpty()) {
+                                state.updateComboSeq(user,ComboStateRegistry.RISING_STAR.getId());
+                                mods.flammpfeil.slashblade.util.AdvancementHelper.grantCriterion(user,
+                                        mods.flammpfeil.slashblade.util.AdvancementHelper.ADVANCEMENT_RISING_STAR);
+                            }
+                        });
+            },0.44F,true,false,true);
+        } finally { if(reach!=null) reach.removeModifier(modifier); }
+    }
     private RaikiriRapidCombo() {}
 }

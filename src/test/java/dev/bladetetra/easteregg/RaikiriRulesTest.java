@@ -64,6 +64,7 @@ class RaikiriRulesTest {
         assertTrue(charge.resonate(step));assertFalse(charge.resonate(step));
         assertTrue(charge.consume());assertFalse(charge.consume());
         assertFalse(charge.resonate(step));assertTrue(charge.resonate(UUID.randomUUID()));
+        assertFalse(charge.resonate(step));
         assertTrue(charge.resonate(UUID.randomUUID()));assertTrue(charge.consume());assertFalse(charge.consume());
     }
     @Test void swordsAndPlayersHaveIndependentChargeAndDamage() {

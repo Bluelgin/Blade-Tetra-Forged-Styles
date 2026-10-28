@@ -76,7 +76,8 @@ public final class RaikiriCombatSmokeTest {
         Zombie target=null;
         try {
             actor=FakePlayerFactory.getMinecraft(level);level.addNewPlayer(actor);
-            actor.connection=new PositioningConnection(e.getServer(),actor);
+            var noTeleport=actor.connection;
+            var positioning=new PositioningConnection(e.getServer(),actor);actor.connection=positioning;
             for(int x=-6;x<24;x++) for(int z=-5;z<=5;z++) {
                 level.setBlock(new BlockPos(x,159,z),Blocks.STONE.defaultBlockState(),3);
                 for(int y=160;y<=164;y++) level.setBlock(new BlockPos(x,y,z),Blocks.AIR.defaultBlockState(),3);
@@ -106,6 +107,11 @@ public final class RaikiriCombatSmokeTest {
             check(actor.position().equals(before) && rank.getRankPoint(level.getGameTime())==points,"cancelled native commit is free");
             rewriteMotion=true;state.progressCombo(actor);rewriteMotion=false;
             check(actor.position().equals(before) && rank.getRankPoint(level.getGameTime())==points,"rewritten native commit is free");
+            actor.connection=noTeleport;state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
+            state.progressCombo(actor);
+            check(actor.position().equals(before) && rank.getRankPoint(level.getGameTime())==points
+                    && RaikiriFieldService.trailCount(actor.getUUID())==0,"rejected server relocation refunds and creates no trail");
+            actor.connection=positioning;
             state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
             state.progressCombo(actor);
             check(RaikiriRapidCombo.isThunderCombo(state.getComboSeq()),"real native combo committed");
@@ -193,6 +199,15 @@ public final class RaikiriCombatSmokeTest {
             state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(0);
             state.doChargeAction(actor,40);
             check(state.getSlashArtsKey().equals(nativeArt) && rank.getRawRankPoint()==raw,"ordinary native SA key and extra Rank unchanged");
+            actor.moveTo(0,160,0,0,0);actor.setOnGround(true);target.setPos(0,160,0.25);target.invulnerableTime=0;
+            state.setComboSeq(RaikiriRapidCombo.THUNDER_RAPID.getId());state.setLastActionTime(level.getGameTime());
+            input.getCommands().add(InputCommand.R_DOWN);
+            var reach=actor.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
+            double reachBefore=reach==null?0:reach.getValue();
+            RaikiriRapidCombo.hold(actor,2);
+            check(state.getComboSeq().equals(ComboStateRegistry.RISING_STAR.getId()),"native hold adapter preserves Rising Star transition");
+            check(reach==null || reach.getValue()==reachBefore,"native hold reach modifier restored");
+            input.getCommands().remove(InputCommand.R_DOWN);actor.setOnGround(true);actor.moveTo(0,160,0,-90,0);
             // Secondary Raikiri inscription never turns a legal primary into this controller.
             var dual=blade.copy();dual.getOrCreateTag().putString(ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE+"_material","awakened_soul_inscription/akatsuki_raikiri");
             check(!RaikiriStepController.eligible(dual),"unformed dormant primary cannot promote secondary Raikiri");
