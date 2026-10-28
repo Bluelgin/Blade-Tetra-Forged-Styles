@@ -586,7 +586,7 @@ public final class KyoukaAwakening {
         return null;
     }
 
-    private static DamageSource mirrorDamage(ServerLevel level, ServerPlayer attacker) {
+    public static DamageSource mirrorDamage(ServerLevel level, ServerPlayer attacker) {
         return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                 .getHolderOrThrow(MIRROR_DAMAGE), null, attacker);
     }

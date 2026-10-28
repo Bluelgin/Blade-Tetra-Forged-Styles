@@ -88,7 +88,7 @@ public final class NativeBladeActionObserver {
             budget.paid = true;
         }
         if (!KyoukaMirrorSessions.valid(s)) { KyoukaMirrorSessions.stop(s); return; }
-        KyoukaMirrorDamageService.enqueue(s, source, KyoukaRules.budget(baseline),
+        KyoukaMirrorDamageService.enqueue(s, source, KyoukaRules.budget(baseline) * CombatBalanceRuntime.secondaryPhaseScale(s.owner, slash),
                 CombatBalanceRuntime.kind(s.owner, slash));
     }
     private NativeBladeActionObserver() {}

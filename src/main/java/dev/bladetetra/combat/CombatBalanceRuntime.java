@@ -122,6 +122,11 @@ public final class CombatBalanceRuntime {
         return InheritedCombatDamage.apply(() -> target.hurt(source, balanced));
     }
 
+    /** Snapshot the existing composed-SA phase for independent secondary budgets. */
+    public static float secondaryPhaseScale(ServerPlayer player, Entity origin) {
+        return ForgedSlashArtDamageBalance.secondaryPhaseScale(player, origin);
+    }
+
     private static boolean nativeAttack(Entity entity) {
         return entity instanceof EntitySlashEffect || entity instanceof EntityJudgementCut
                 || entity instanceof EntityAbstractSummonedSword;

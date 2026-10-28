@@ -28,13 +28,16 @@ public final class KyoukaMirrorDamageService {
             // the protection event here: a mirror impact must never masquerade as player input.
             if (MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(s.owner, s.target))
                     || s.target.skipAttackInteraction(s.owner)) continue;
+            double balanced = h.amount * dev.bladetetra.config.CombatBalanceConfig.multiplier(h.style, h.kind);
+            if (!Double.isFinite(balanced) || balanced <= 0 || balanced > 768) continue;
             int immunity = s.target.invulnerableTime;
             var motion = s.target.getDeltaMovement();
             boolean marked = s.target.hurtMarked;
             try {
                 s.target.invulnerableTime = 0;
                 SoulLegacyDamageGuard.apply(() -> CombatBalanceRuntime.authoredDamage(
-                        s.target, h.source, h.amount, h.style, h.kind));
+                        s.target, dev.bladetetra.easteregg.KyoukaAwakening.mirrorDamage(s.owner.serverLevel(), s.owner),
+                        h.amount, h.style, h.kind));
             } finally {
                 // Only this native-authorized window bypasses hurt cooldown. No permanent immunity stripping or knockback.
                 s.target.invulnerableTime = immunity;
