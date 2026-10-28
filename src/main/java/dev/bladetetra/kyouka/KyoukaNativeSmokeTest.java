@@ -164,6 +164,10 @@ public final class KyoukaNativeSmokeTest {
                     "shared copied weapon identity never merges owner sessions");
             check(!KyoukaMirrorSessions.legal(player,peers.get(0)),"PVP/friendly players are never valid mirror targets");
             peers.get(0).setItemSlot(EquipmentSlot.MAINHAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STICK));
+            var swappedRank=peers.get(0).getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
+            swappedRank.addRankPoint(peers.get(0),10);
+            check(swappedRank.getRawRankPoint()==1550,"same-tick new weapon gain is not blocked by the old mirror lock");
+            check(KyoukaMirrorSessions.SESSIONS.size()==7,"weapon swap clears the old lock at the gain entrance, before tick end");
             KyoukaMirrorSessions.step();
             check(KyoukaMirrorSessions.SESSIONS.size()==7,"one weapon swap cleans only that owner's session");
             var demoted=peers.get(1).getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);

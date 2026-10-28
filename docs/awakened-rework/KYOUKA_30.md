@@ -33,7 +33,7 @@ NativeBladeMotionSampler 独立读取 BladeMotionManager/VMD、bladeholder.pmd�
 
 A及以上激活，原生unit capacity与grade双重核对，启动费支付后也必须至少能维持B级；无法维持的配置/小unit实现不先扣启动费。默认启动60、每秒12、每合法攻击动作一次18；低于B停止。3.0始终有真实Rank代价，不使用旧V2的可关闭Rank收费开关或旧replay价格，不额外收双魂附加费。
 
-只对会话登记的原生ConcentrationRank capability启用增益封锁：Mixin覆盖其原生addRankPoint(user,long)，正数在写入/同步前拒绝，负数继续原生处理；DamageSource增益重载在解析连招前直接返回，避免二次伤害的Rank回调推进原生Combo；setRawRankPoint直接正向写入也拒绝。自然衰减不写回，不每tick覆盖余额。不注册Sakura锁，不改变其现有tick ceiling，武器切换后解除镜花锁。替代capability实现未审计，故拒绝激活，避免宣称未知实现零瞬时增益。第三方直接改字段/绕过setter不在兼容保证内。
+只对会话登记的原生ConcentrationRank capability启用增益封锁：Mixin覆盖其原生addRankPoint(user,long)，正数在写入/同步前拒绝，负数继续原生处理；DamageSource增益重载在解析连招前直接返回，避免二次伤害的Rank回调推进原生Combo；setRawRankPoint直接正向写入也拒绝。自然衰减不写回，不每tick覆盖余额。不注册Sakura锁，不改变其现有tick ceiling，每次访问锁时核对原生环剑、持刀和会话有效性，武器切换后的同tick增益也先解除镜花锁，再交给原生Rank处理。替代capability实现未审计，故拒绝激活，避免宣称未知实现零瞬时增益。第三方直接改字段/绕过setter不在兼容保证内。
 
 魂铭、双魂组合与觉醒存档/仪式保持；旧的镜花V2历史记录SA及其依赖的历史锚点追加不再是3.0的触发来源。赤月为主魂的旧终月协奏仍走#41保留的旧接口。
 
