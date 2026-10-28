@@ -40,8 +40,11 @@ New values live in `discoveries.raikiri3`. Full behavior and bounds: [Raikiri 3.
 | `roundDamageBudget`, `lifetimeDamageBudget` | `3`, `12` | Per-pulse and absolute whole-life damage caps |
 | `resonanceRadius`, `resonanceMultiplier` | `2`, `1.5` | Real step-segment trigger radius and one saturated next-pulse boost |
 
-Existing `discoveries.awakenedRankCostRaikiriStep=75` still uses native B Rank for the first step.
+Native Rapid Slash and its lightning extension have no additional Rank gate or payment.
+`discoveries.awakenedRankCostRaikiriStep=75` is also a deprecated, ignored compatibility key.
 `awakenedRankCostRaikiriFinisher=240` is a deprecated, ignored compatibility key; native SA has no Raikiri extra cost.
+Observation limits: `maxObservationTicks=40`, `maxObservedSegment=2.5`, `maxObservedPath=12`, `trailSampleSpacing=0.35`.
+They limit recording only, never native movement.
 Conductivity/legacy lightning values below retain their old meaning and are not used as Raikiri 3.0 budgets.
 
 ## Conductivity

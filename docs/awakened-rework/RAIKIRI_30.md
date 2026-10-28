@@ -1,138 +1,120 @@
-# Raikiri 3.0 — native rapid extensions and grounded fields
+# Raikiri 3.0 — observe native motion, leave lightning behind
 
-## Baseline and scope
+## Baseline and correction
 
-Branch is forked directly from #41 HEAD `2c4eb4821d182421f11abe1c6e6bd406d1d60047`.
-PR base must remain `codex/awakened-blades-v2-runtime`. No merge/cherry-pick of #43, #46 or #47.
-The art already inherited through #41/#40 is reused unchanged.
+PR #48 stays on `codex/raikiri-3-thunder-resonance`, based directly on #41
+`2c4eb4821d182421f11abe1c6e6bd406d1d60047`. No merge/cherry-pick or retarget of #43/#46/#47.
 
-Investigated #43 `6e2e344`: true-name presentation and renderer lifecycle are independent of these combat sessions.
-#46 `10e5ace`: its extra `AwakenedBladeVfxClient` mirror pass must survive future manual integration.
-#47 `ca012313`: its native timeline audit, native source attribution and bounded secondary damage are relevant;
-its Sakura runtime, SA controller, packet definitions and stance changes are NOT imported.
-Main was inspected at `72331eb` and is not the combat baseline.
+The first implementation cloned Rapid Slash and teleported the player. That design is removed.
+**SlashBlade exclusively owns input, routing, ComboState, animation, movement, attacks, Hold/Hit callbacks,
+recovery and repeat actions.** BladeTetra never executes or edits any of those operations.
+No extra Rank payment, three-step counter, free-followup window or native-hit authentication remains.
 
-Actual dependency: `gradle.properties` Curse file **8018222**; production `META-INF/mods.toml` reports
-**SlashBlade Resharped 1.9.63**. Public bytecode (`javap -c -p`) of `ISlashBladeState`,
-`ComboStateRegistry`, `SummonedSwordRenderer` was checked, together with the available upstream source.
-No Mixin, reflection, bytecode modification, new input binding or external rendering dependency was added.
-New Raikiri abilities fail closed on an unaudited SlashBlade version; ordinary native attacks/SA remain available.
+Removed: `RaikiriRapidCombo`, both `awakened_raikiri_rapid*` registrations, registration bootstrap,
+`RaikiriStepController`, copied native timeline/Hold adapter, teleport/safe-end calculation,
+step Rank cast/refund, step-chain state and slash-tag authentication. Old saved transient combo IDs
+fall through SlashBlade's normal unknown-registry-ID handling; unlock/inscription/weapon identity NBT is kept.
+No replacement/tombstone ComboState is registered. The earlier 74-check teleported-step smoke is superseded.
 
-## Gameplay
+Actual dependency remains Curse file **8018222**, SlashBlade Resharped **1.9.63**. Production bytecode
+was inspected with `javap` for `ISlashBladeState`, native Rapid Slash, `AttackManager`, and `RankPointHandler`.
+No reflection, Mixin, native bytecode patch, new key binding or second combat executor.
 
-* Native grounded SNEAK+FORWARD+R_CLICK Rapid Slash candidate upgrades to a registered rapid node.
-  NextComboEvent only preflights. Payment/teleport occur from clickAction, after updateComboSeq sets
-  the actual node and after BladeMotionEvent has accepted it. Virtual, cancelled or rewritten transitions
-  cannot spend Rank or move the owner.
-* First step uses the existing native B / 75-point transaction. A confirmed native rapid hit within
-  22 ticks authorizes the next step within 36 ticks. Steps two/three are free even below B; the fourth
-  requires a fresh payment. Sequences have UUIDs; a delayed slash from step one cannot authorize step two.
-  Actual post-event health loss is required, including late LOWEST damage cancellation checks.
-* The audited native rapid frames, hold/hit/click/release callbacks, 2/3/4/5/7-tick slash cadence,
-  0.44 damage input, powered/critical rolls and pose callbacks are preserved. Only native unrestricted
-  `moveRelative` is replaced by up to 3.5 blocks of swept-AABB server-authoritative movement.
-  Two alternating registered nodes avoid the native self-next rejection; the old rapid registry ID remains.
-  Native NONE/root fallback is handled on both initial input and recovery nodes. The upstream Hold callback
-  hard-codes the original rapid ID, so a minimal audited adapter preserves its area attack, reach modifier,
-  toss and Rising Star transition for these two IDs, with modifier cleanup in finally.
-* Actual accepted endpoints leave a short electric ribbon. Up to four fixed samples strike from start to
-  end 6–10 ticks later. They do not follow fleeing victims, create LightningBolt, change weather/blocks,
-  confirm a native rapid hit or recursively award awakened resources.
-* Observe the server's committed `aerial_cleave`/`aerial_cleave_loop` while airborne, then native landing
-  on a real collision-shape support. Plant one lightweight sword anchor without requiring a hit or Rank.
-  Ordinary jumping/landing cannot arm it. The airborne observation has a 100-tick ceiling.
-* Up to three owner swords remain 120 ticks. Every 15 ticks each selects at most two nearby hostiles
-  with legal block ray paths. No chaining was added: all targets are in the sword's own four-block sphere.
-* A real accepted step segment within two blocks of its own sword grants one saturated next-round
-  1.5x charge. It neither refreshes lifetime nor creates a sword. UUID de-duplication rejects repeat
-  resonance for the same step. Discharge/trail damage has no route back into step/resonance creation.
-* V2 Raikiri SA finisher, charge resource and charge HUD are removed. The blade's native SlashArts key,
-  native charge submission and native SA damage are untouched. Other souls' signatures/fusions and
-  `enableAwakenedV2=false` legacy handlers remain intact. Existing unlock NBT is retained.
-* The baseline chooses primary souls in inscription enum order. New abilities additionally require
-  that legal primary, preventing a dormant primary from accidentally promoting a Raikiri secondary.
-  Existing Crimson Thunder / Mirror Thunder / Thunder Blossom fusion paths remain in their own primaries.
+## Passive native action observation
 
-## Responsibilities and bounded state
+`RaikiriActionObserver` listens to public `BladeMotionEvent` without altering it. This event precedes
+`updateComboSeq` writing the state, so it stores only a bounded candidate (event reference, tick, actual position).
+At server tick END it rechecks final cancellation/rewrite, held item/slot/UUID/dimension, actual native
+`RAPID_SLASH` ID and native `lastActionTime`. Virtual progress cannot authorize a candidate.
 
-| Module | Responsibility |
-|---|---|
-| `RaikiriRapidCombo` | Final native RAPID_SLASH candidate routing and audited native action adapter |
-| `RaikiriStepController` | Post-commit Rank/step transaction, sequence-bound hit proofs, cleave observation and lifecycle |
-| `RaikiriFieldService` | One scheduler for fixed trails, grounded swords, nearest legal targets, resonance and capped damage |
-| `RaikiriRules` | Pure segment geometry, timing, saturated charge/de-duplication and conservative budgets |
-| `RaikiriConfig` | Tuning in existing server GameplayConfig spec |
-| `RaikiriVisualClient` | Stateless drawing helpers within existing AwakenedBladeVfxClient atlas scheduler |
+A deferred Forge `EntityJoinLevelEvent` for a native `EntitySlashEffect` from this owner supplies execution proof.
+It must remain uncancelled and actually be present in the server level. Positions recorded before the first
+native slash remain provisional: no field/VFX/resonance is emitted until this proof exists. No native entity
+is spawned, tagged or modified by the observer. A cancelled/rewritten/uncommitted motion or blocked slash
+spawn cannot authorize lightning.
 
-Sessions bind owner UUID, stable blade UUID, held stack identity, selected slot, dimension and random session nonce;
-trails retain that exact session; native hit effects retain the exact step UUID and blade UUID. No temporary
-fields/swords are written to permanent NBT. Death, logout, dimension transition, world unload, V2 disable,
-invalid weapon/slot and server stop release state. Polling validates on both player-tick phases and server END;
-there is no C2S ability packet or location authority. Lifecycle callback coverage is distinct from real network QA.
+The observer reads only raw state, registered timeout and `lastActionTime`. It deliberately does **not** call
+`resolvCurrentComboState`, because 1.9.63's resolver may call `updateComboSeq` and native click callbacks.
+Native QUICK-to-RAPID transitions and consecutive real commits are identified by their own motion event and
+native timestamp. Repeated polls/attacks in the same action cannot create another run. A new committed
+native action seals the preceding run; native recovery, Hold transitions, interruption and expiry stop collection.
 
-Hard bounds: 512 sessions, three trails per owner, configurable 128 global trails (max 256), four strikes per trail,
-three swords per owner, configurable 256 global swords (max 512), two victims per pulse, 32 collected candidates
-per bounded AABB, at most 16 pending native hit proofs per session, 64 remembered resonance IDs per sword.
-Selection is nearest legal among the bounded candidate collection; extremely dense (>32 entities) boxes may
-exclude a nearer entity outside that collection to preserve server work limits. No full-world entity scan.
-No chunk is force-loaded. Sweeps, searches, supports and ray paths require already loaded chunks and legal heights.
+## Actual movement and limits
 
-Default trail total extra budget **6**, per-target cumulative **3** per step. Default sword round budget **3**,
-charged round **4.5**, whole-life budget **12** regardless of charges. Damage attempts reserve budget before
-calling hurt, so protection cancellation cannot create unbounded retries. Scoped inherited/secondary guards
-prevent resource/skill recursion; LOWEST Hurt and Damage caps constrain third-party amplification.
-Rejected/no-health-loss secondary impacts restore prior hurt immunity. No added knockback/stun customization.
+Server tick END reads actual player positions. Each accepted consecutive sample is at most one tick apart;
+non-finite positions, excessive displacement, unloaded chunks, illegal height/border and collision-obstructed
+segments fail closed. There is no look-vector endpoint, fixed dash length, position write or simulated movement
+in production. The native sword can travel farther or shorter than the former 3.5-block custom step.
 
-## Configuration and protocol
+Defaults: at most **32 observed positions / 40 ticks / 12 blocks total**, at most **2.5 blocks between observations**.
+These limits stop only this extension; they never clamp native movement. Forge teleport events, large
+unannounced jumps, dimension changes, weapon/slot changes, death/logout/world unload/server stop clear state.
+Damage interruption ends the active recording without changing the native action. Small third-party direct
+position writes without a Forge teleport event cannot always be distinguished from ordinary movement;
+all retained segments must still satisfy continuity, distance, loaded-area and collision checks.
 
-All new configurable values are under `discoveries.raikiri3` in the existing server config:
-`trailSamples`, `delayStart`, `delayEnd`, `globalTrailLimit`, `trailDamageBudget`, `trailTargetCap`, `strikeRadius`,
-`swordsPerPlayer`, `globalSwordLimit`, `swordLifetime`, `dischargePeriod`, `targetsPerRound`, `swordRange`,
-`roundDamageBudget`, `lifetimeDamageBudget`, `resonanceRadius`, `resonanceMultiplier`.
-Reversed configured delay endpoints are normalized. Bounds/defaults are defined together in `RaikiriConfig`.
-Existing `awakenedRankCostRaikiriStep` and the shared native Rank settings retain their meaning.
-`awakenedRankCostRaikiriFinisher` is a deprecated compatibility tombstone, explicitly ignored; it is never
-reinterpreted as a trail or sword budget. Old fallback lightning configuration keeps its original meaning.
+`RaikiriFieldService` remains the **single** scheduler. It receives only verified, observed endpoint segments,
+shares one budget per native action, and schedules at most four **actual recorded positions**. It never
+interpolates fictional strike locations along a start/end shortcut. Consecutive points use 6/7/8/10-tick delays
+relative to their own observation time (configured range normalized), with sample spacing 0.35 blocks.
+A very short native move produces a short/single-point trace; a stationary action produces none.
+The stream remains open until native exit so an already-fired early strike cannot reset its action budget.
 
-Existing S2C `AwakenedBladeVfxPacket` gains types 5–8: anchor create, remove, bolt, resonance. No new packet ID.
-Protocol is **`raikiri3-1`**, deliberately distinct from other unmerged branches' protocol integers; client/server
-must match. Integration must choose a fresh shared protocol after combining packet semantics.
-Anchor create is sent once per nearby viewer; a 20-tick viewer check permits later arrivals without resending
-static locations. Lifetime is remaining ticks, not a client guess. Remove is keyed by a server visual ID.
+Hard bounds remain 512 owner sessions, 128 global trails by default (max 256), three streams per owner,
+four scheduled strikes per stream, eight provisional native-spawn proofs per run, 256 global swords
+(max 512), three swords per owner, two victims and 32 collected local candidates per pulse.
+Nearest legal victims are selected within that bounded candidate collection; exceptionally crowded boxes
+can omit a nearer entity outside the collection to preserve work/memory limits. No world entity scan,
+chunk forcing, C2S location request or decorative AI entity.
 
-Client reuses native `slashblade:model/util/ss.obj` / `ss.png`, public BladeModelManager/BladeRenderState,
-white-blue translucent luminous `ss` group. The native model tip (+Z=300) is rotated downward and buried 0.05
-blocks in the supported surface. No summoned sword entity/AI/collision is spawned for this display.
-Existing Atlas tiles/step_flicker remain the VFX source. Quality 0/1/2 changes arc counts; existing effect cap,
-distance and intensity apply, sword models also use frustum culling. World replacement clears the cache.
-Graphical appearance/latency/FPS still require actual client acceptance.
+## Preserved fields, resonance, damage and Rank
 
-## Verification and remaining acceptance
+* Native `aerial_cleave` / loop observed airborne, then real supported landing: one grounded sword,
+  no hit or extra Rank requirement. Repeated landing events and expired raw state cannot plant twice.
+* Three swords per owner, oldest replacement, **120 ticks** of life, pulse every **15 ticks**, sphere radius **4**,
+  at most two legal hostiles per pulse. Native `ss.obj` / `ss.png` renderer remains unchanged.
+* Verified actual Rapid Slash movement segments within **2 blocks** of an owned sword grant one saturated
+  **1.5x next-pulse** charge. Same native-run UUID cannot charge that sword twice; lifetime never refreshes.
+  No charge/field damage can author another run or resonance.
+* Trail extra budget **6 total / 3 cumulative per victim per native action**. Sword budget **3 per round /
+  12 for its whole life**, including resonance. Existing hostile/ally/ray/protection checks, conservative budget
+  reservations, Hurt/Damage amplification caps and secondary/inherited recursion guards are retained.
+* 1.9.63's native `RankPointHandler` awards Rank on player-attributed `LivingHurtEvent`. Scoped extra impacts
+  restore only the owner's native Rank side effects and resync through the native capability, preserving
+  natural decay. They do not impose a fee or erase Rank from independent native attacks. If native inventory
+  ticking has not retired a stale combo, the extra impact is skipped rather than allowing the native Rank
+  callback to advance that timeout. Protection cancellation restores prior hurt immunity.
+* Native Slash Arts and other souls/fusions remain intact. V2-off selects the existing legacy handlers;
+  temporary new fields are cleared, saved awakenings are retained. Secondary Raikiri never promotes itself
+  over a dormant or other legal primary soul.
 
-* Standalone Java 17 JUnit: 12 RaikiriRules tests plus 5 migrated/shared math tests passed, 0 failed.
-* Local Java 17 / Gradle 8.1.1 full `test build`: **472 tests, 0 failures/errors, 1 existing skip**.
-  The skipped `ProviderEffectBytecodeBridgeTest.auditedProviderBytecodeRoundTrips` requires optional external audit JARs.
-* Local real Forge 47.4.0 dedicated smoke: **`RAIKIRI_COMBAT_SMOKE_PASS: 74 checks`**.
-  `runServer -PraikiriCombatSmoke -x downloadAssets` skips only unnecessary graphical assets in this local server environment.
-  Read the exact final HEAD CI for all regressions; earlier #41/#47 runs are not evidence for this branch.
-* `./gradlew runServer -PraikiriCombatSmoke` uses a disposable test world (`build/raikiri-combat-smoke`, EULA required).
-  Real native capabilities/ComboState routing, virtual/cancel/rewrite transactions, source-attributed hurt,
-  real wall collision, native cleave-loop landing callback, field damage, saturation/expiry, late protection,
-  amplification and ownership/lifecycle callbacks are asserted. Time and grounded state are controlled by
-  the test. Forge's default FakePlayer connection ignores teleport, so the fixture uses vanilla server
-  teleport positioning with socket writes suppressed. Native slash sources are authored by real combo tick callbacks.
-  This is not natural player input or a multiplayer network/graphical simulation.
-* CI retains review JAR, JUnit XML and smoke logs. Never treat previous PR CI as this implementation's result.
-* Not accepted yet: first/third person visuals, real input/network feel, real multi-client skill isolation,
-  natural physics cleave/landing observation across all five styles, GUI scaling/resource reload, frame times
-  at low/medium/high quality, protection-mod combinations and third-party renderers.
+## Configuration, visuals and integration
 
-## Future integration conflicts
+Existing server spec, `discoveries.raikiri3`: field budgets/radii/lifetime/limits plus
+`maxObservationTicks=40`, `maxObservedSegment=2.5`, `maxObservedPath=12`, `trailSampleSpacing=0.35`.
+`discoveries.awakenedRankCostRaikiriStep` and `awakenedRankCostRaikiriFinisher` are explicitly deprecated,
+ignored compatibility keys. They are not reinterpreted as lightning damage or sampling values.
+Other souls' Rank settings and legacy conductivity settings keep their meaning.
 
-Do not retarget/merge another PR automatically. #43/#46 extract/add common Atlas passes and instrument rituals;
-preserve their passes while inserting Raikiri draw helpers. This branch does not edit ritual classes.
-#47 edits `AwakenedBladeCombat`, `GameplayConfig`, `ModNetwork`, build/CI and removes its Sakura legacy queues;
-resolve by keeping its Sakura-specific blocks and this branch's Raikiri-only removal. Never restore the removed
-Raikiri charge/finisher or use Sakura's SA damage provenance for Raikiri confirmation. Packet ID is unchanged,
-but new VFX type semantics and protocol string need explicit review. Re-run all native/style smoke profiles
-and graphical QA after integration.
+Existing S2C VFX packet types 5–8 and Atlas/model drawing helpers are reused. Anchor create is once per viewer,
+remove is keyed by visual ID; later viewers get remaining lifetime. No per-tick static-anchor resync.
+Protocol **`raikiri3-native-2`** requires matched client/server. Existing quality/distance/effect budgets apply.
+
+#43 has independent ritual/session/model passes; #46 adds mirror passes in the shared VFX renderer.
+Keep those passes during manual integration. #47 overlaps AwakenedBladeCombat/GameplayConfig/ModNetwork,
+build/CI and documentation; preserve its Sakura-only logic and this branch's removal of Raikiri SA charge.
+Do not restore Rapid Slash replacement, teleports, copied native callbacks or Raikiri Rank fees. Choose a fresh
+combined protocol and rerun native/style regression after integration. No other PR is merged or retargeted here.
+
+## Verification and acceptance boundary
+
+The updated tests compare registered **native** Rapid Slash callbacks on two server actors (ordinary and awakened),
+including attack count/parameters, native velocity and actual vanilla collision movement. Controlled clock,
+gravity and friction make this deterministic; this is not a claim of natural client physics or network acceptance.
+They also cover rejected/rewritten/virtual commits, real endpoint samples, local damage/Rank non-recursion,
+grounded swords/resonance, cancellation, lifecycle cleanup and ownership. See exact current HEAD CI results.
+Old cloned-node/3.5-block teleport/free-three-step assertions are removed.
+
+Still requires real client acceptance: first/third-person motion and lightning lag, natural mouse/input/airborne
+landing timing, real multi-client latency/observer rendering, resource reload and low/medium/high frame times.
+Dedicated FakePlayer smoke and JUnit are not substitutes. No fabricated gameplay video or FPS result.

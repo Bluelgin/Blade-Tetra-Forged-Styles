@@ -119,6 +119,8 @@ public final class RaikiriCombatSmokeTest {
             check(ComboStateRegistry.RAPID_SLASH.get()==nativeRapid,"native node identity unchanged");
             var samples=RaikiriFieldService.samples(actor.getUUID());
             check(!samples.isEmpty() && samples.size()<=4 && actual.containsAll(samples),"only bounded actually observed positions scheduled");
+            tick();check(RaikiriFieldService.samples(actor.getUUID()).equals(samples)
+                    && RaikiriFieldService.trailCount(actor.getUUID())==1,"repeated observation does not duplicate native run");
             check(RaikiriFieldService.trailCount(plain.getUUID())==0,"other swords have no lightning");
             check(RaikiriFieldService.charged(actor.getUUID()),"real native swept movement resonates with sword");
             check(rank(actor).getRankPoint(now())==rank(plain).getRankPoint(now()),"no supplemental rank payment");
@@ -132,15 +134,31 @@ public final class RaikiriCombatSmokeTest {
             hp=victim.getHealth();protect=true;victim.invulnerableTime=17;before=rank(actor).getRankPoint(130);advanceTo(130);protect=false;
             check(victim.getHealth()==hp && victim.invulnerableTime==17 && rank(actor).getRankPoint(now())==before,"protection cancellation preserves rank and immunity");
             advanceTo(221);check(RaikiriFieldService.swordCount(actor.getUUID())==0,"resonance did not refresh sword lifetime");
+            // A later native release owns a distinct stream, still with zero extension routing.
+            actor.moveTo(0,160,0,0,0);actor.setOnGround(true);actor.setDeltaMovement(Vec3.ZERO);
+            long secondStamp=now();state.progressCombo(actor);
+            check(state.getComboSeq().equals(ComboStateRegistry.RAPID_SLASH.getId()) && state.getLastActionTime()==secondStamp,
+                    "consecutive native release commits its own native timestamp");
+            for(int t=0;t<4;t++) {
+                if(t>0) time(now()+1);nativeRapid.tickAction(actor);
+                actor.move(MoverType.SELF,actor.getDeltaMovement().add(0,-.08,0));
+                actor.setDeltaMovement(actor.getDeltaMovement().scale(.6));tick();
+            }
+            check(RaikiriFieldService.trailCount(actor.getUUID())==1,"later native release has exactly one independent stream");
             // Native landing observer remains independent of rapid observation.
             RaikiriActionObserver.clear(actor.getUUID(),e.getServer());actor.moveTo(0,160,0,0,0);actor.setOnGround(true);
             land();land();land();land();
             check(RaikiriFieldService.swordCount(actor.getUUID())==3,"native cleave one-per-landing and oldest replacement");
             RaikiriActionObserver.playerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
             check(RaikiriFieldService.swordCount(actor.getUUID())==3,"duplicate landing event cannot plant again");
+            plain.setItemSlot(EquipmentSlot.MAINHAND,blade(true));plain.moveTo(3,160,0,0,0);plain.setOnGround(true);
+            RaikiriFieldService.plant(plain,RaikiriActionObserver.session(plain));
+            check(RaikiriFieldService.swordCount(plain.getUUID())==1,"second awakened owner has isolated fields");
             // A fresh native action with a discontinuous external position change must fail closed.
             reset(state);state.progressCombo(actor);tick();time(now()+1);actor.setPos(0,160,20);tick();
             check(RaikiriFieldService.swordCount(actor.getUUID())==0 && RaikiriFieldService.trailCount(actor.getUUID())==0,"abnormal teleport clears anchors and observation");
+            check(RaikiriFieldService.swordCount(plain.getUUID())==1,"clearing teleported owner preserves other owner");
+            RaikiriActionObserver.logout(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(plain));
             actor.moveTo(0,160,0,0,0);actor.setOnGround(true);land();actor.getInventory().selected=1;tick();
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"slot swap cleanup");actor.getInventory().selected=0;
             land();RaikiriActionObserver.dimension(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent(actor,net.minecraft.world.level.Level.OVERWORLD,net.minecraft.world.level.Level.NETHER));
