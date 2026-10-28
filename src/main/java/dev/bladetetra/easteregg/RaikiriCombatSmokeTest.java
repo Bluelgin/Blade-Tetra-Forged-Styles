@@ -40,12 +40,13 @@ import java.util.*;
 public final class RaikiriCombatSmokeTest {
     private static ServerPlayer actor,plain;
     private static ServerLevel level;
-    private static boolean cancel,rewrite,protect;
+    private static boolean cancel,rewrite,protect,rewriteInto;
     private static int checks,actorSlashes,plainSlashes,motions;
     private static double actorDamage,plainDamage;
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void motion(BladeMotionEvent e) {
         if(e.getEntity()!=actor) return;
         motions++;
+        if(rewriteInto) e.setCombo(ComboStateRegistry.RAPID_SLASH.getId());
         if(cancel) e.setCanceled(true);
         if(rewrite && e.getCombo().equals(ComboStateRegistry.RAPID_SLASH.getId())) e.setCombo(ComboStateRegistry.COMBO_A1.getId());
     }
@@ -95,6 +96,11 @@ public final class RaikiriCombatSmokeTest {
             reset(state);net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new BladeMotionEvent(actor,ComboStateRegistry.RAPID_SLASH.getId()));tick();
             check(RaikiriFieldService.trailCount(actor.getUUID())==0,"uncommitted motion event emits nothing");
             RaikiriActionObserver.clear(actor.getUUID(),e.getServer());
+            rewriteInto=true;state.updateComboSeq(actor,ComboStateRegistry.COMBO_A1.getId());rewriteInto=false;
+            nativeRapid.tickAction(actor);actor.move(MoverType.SELF,actor.getDeltaMovement().add(0,-.08,0));tick();
+            check(state.getComboSeq().equals(ComboStateRegistry.RAPID_SLASH.getId())
+                    && RaikiriFieldService.trailCount(actor.getUUID())==1,"third-party rewrite into native rapid stays observable without rerouting");
+            RaikiriActionObserver.clear(actor.getUUID(),e.getServer());actor.moveTo(0,160,0,0,0);actor.setDeltaMovement(Vec3.ZERO);actor.setOnGround(true);
             var session=RaikiriActionObserver.session(actor);
             actor.setPos(0,160,4);RaikiriFieldService.plant(actor,session);actor.setPos(0,160,0);
             check(RaikiriFieldService.swordCount(actor.getUUID())==1,"ground sword fixture owned by observer session");

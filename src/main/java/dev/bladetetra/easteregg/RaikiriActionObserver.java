@@ -110,9 +110,9 @@ public final class RaikiriActionObserver {
     /** BladeMotionEvent is before the native state write. This is only a candidate. */
     @SubscribeEvent(priority=EventPriority.LOWEST)
     public static void motion(BladeMotionEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer p)
-                || !ComboStateRegistry.RAPID_SLASH.getId().equals(event.getCombo())
-                || !eligible(p.getMainHandItem())) return;
+        if (!(event.getEntity() instanceof ServerPlayer p) || !eligible(p.getMainHandItem())) return;
+        // Retain the mutable event until post-commit validation, including
+        // later same-priority third-party rewrites INTO the native rapid ID.
         Session s=session(p);
         if(s!=null) s.pending=new Pending(event,p.level().getGameTime(),p.position());
     }
