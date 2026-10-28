@@ -15,7 +15,6 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_RANK_COSTS;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_AKATSUKI;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
     public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
@@ -137,9 +136,6 @@ public final class GameplayConfig {
                 .comment("Spend native SlashBlade Concentration Rank points for committed awakened skills.",
                         "Disable to retain V2 abilities without any rank spending.")
                 .define("enableAwakenedRankCosts", true);
-        AWAKENED_RANK_COST_AKATSUKI = builder
-                .comment("Akatsuki causality: requires S rank, charges this many native rank points.")
-                .defineInRange("awakenedRankCostAkatsuki", 360, 0, 1800);
         AWAKENED_RANK_COST_KYOUKA = builder
                 .comment("Kyouka mirror replay: requires A rank.")
                 .defineInRange("awakenedRankCostKyouka", 300, 0, 1800);
