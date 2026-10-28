@@ -27,11 +27,10 @@ No reflection, Mixin, native bytecode patch, new key binding or second combat ex
 At server tick END it rechecks final cancellation/rewrite, held item/slot/UUID/dimension, actual native
 `RAPID_SLASH` ID and native `lastActionTime`. Virtual progress cannot authorize a candidate.
 
-A deferred Forge `EntityJoinLevelEvent` for a native `EntitySlashEffect` from this owner supplies execution proof.
-It must remain uncancelled and actually be present in the server level. Positions recorded before the first
-native slash remain provisional: no field/VFX/resonance is emitted until this proof exists. No native entity
-is spawned, tagged or modified by the observer. A cancelled/rewritten/uncommitted motion or blocked slash
-spawn cannot authorize lightning.
+A committed state plus a positive, continuous server-observed displacement during its native lifetime
+creates the trail. It does not depend on attack hits or projectile authentication. The sampling phase is server
+tick END, after normal player/item processing. Cancelled/rewritten/uncommitted motion cannot meet the
+post-commit check. A stationary action produces no path. No native entity is spawned, tagged or modified.
 
 The observer reads only raw state, registered timeout and `lastActionTime`. It deliberately does **not** call
 `resolvCurrentComboState`, because 1.9.63's resolver may call `updateComboSeq` and native click callbacks.
@@ -53,7 +52,7 @@ Damage interruption ends the active recording without changing the native action
 position writes without a Forge teleport event cannot always be distinguished from ordinary movement;
 all retained segments must still satisfy continuity, distance, loaded-area and collision checks.
 
-`RaikiriFieldService` remains the **single** scheduler. It receives only verified, observed endpoint segments,
+`RaikiriFieldService` remains the **single** scheduler. It receives only committed, observed endpoint segments,
 shares one budget per native action, and schedules at most four **actual recorded positions**. It never
 interpolates fictional strike locations along a start/end shortcut. Consecutive points use 6/7/8/10-tick delays
 relative to their own observation time (configured range normalized), with sample spacing 0.35 blocks.
@@ -61,7 +60,7 @@ A very short native move produces a short/single-point trace; a stationary actio
 The stream remains open until native exit so an already-fired early strike cannot reset its action budget.
 
 Hard bounds remain 512 owner sessions, 128 global trails by default (max 256), three streams per owner,
-four scheduled strikes per stream, eight provisional native-spawn proofs per run, 256 global swords
+four scheduled strikes per stream, 256 global swords
 (max 512), three swords per owner, two victims and 32 collected local candidates per pulse.
 Nearest legal victims are selected within that bounded candidate collection; exceptionally crowded boxes
 can omit a nearer entity outside the collection to preserve work/memory limits. No world entity scan,
@@ -73,7 +72,7 @@ chunk forcing, C2S location request or decorative AI entity.
   no hit or extra Rank requirement. Repeated landing events and expired raw state cannot plant twice.
 * Three swords per owner, oldest replacement, **120 ticks** of life, pulse every **15 ticks**, sphere radius **4**,
   at most two legal hostiles per pulse. Native `ss.obj` / `ss.png` renderer remains unchanged.
-* Verified actual Rapid Slash movement segments within **2 blocks** of an owned sword grant one saturated
+* Actual committed Rapid Slash movement segments within **2 blocks** of an owned sword grant one saturated
   **1.5x next-pulse** charge. Same native-run UUID cannot charge that sword twice; lifetime never refreshes.
   No charge/field damage can author another run or resonance.
 * Trail extra budget **6 total / 3 cumulative per victim per native action**. Sword budget **3 per round /

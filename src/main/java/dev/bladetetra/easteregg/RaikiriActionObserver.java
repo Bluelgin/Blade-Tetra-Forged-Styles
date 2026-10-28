@@ -4,7 +4,6 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
-import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +16,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.BlockPos;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -57,18 +55,14 @@ public final class RaikiriActionObserver {
         }
     }
     private record Pending(BladeMotionEvent event,long tick,Vec3 position) {}
-    private record Sample(Vec3 position,long tick) {}
     private static final class Run {
         final UUID id=UUID.randomUUID();
         final long stamp;
-        final List<Sample> samples=new ArrayList<>();
-        final List<EntityJoinLevelEvent> proofs=new ArrayList<>();
         Vec3 last;
         long lastTick;
         double length;
-        int flushed=1;
-        boolean verified;
-        Run(Pending p) { stamp=p.tick;last=p.position;lastTick=p.tick;samples.add(new Sample(last,lastTick)); }
+        int positions=1;
+        Run(Pending p) { stamp=p.tick;last=p.position;lastTick=p.tick; }
     }
     static UUID id(ItemStack stack) {
         var tag=stack.getOrCreateTag();
@@ -135,18 +129,6 @@ public final class RaikiriActionObserver {
         }
         s.pending=null;
     }
-    /** Actual native slash spawn is a proof of execution, not an input or hit confirmation. */
-    @SubscribeEvent(priority=EventPriority.LOWEST)
-    public static void slash(EntityJoinLevelEvent event) {
-        if(!(event.getEntity() instanceof EntitySlashEffect slash)
-                || !(slash.getShooter() instanceof ServerPlayer p)) return;
-        Session s=SESSIONS.get(p.getUUID());if(s==null || !s.valid(p)) return;
-        committed(p,s);
-        var state=p.getMainHandItem().getCapability(ModularSlashBladeItem.BLADESTATE).orElse(null);
-        if(s.rapid!=null && state!=null && state.getLastActionTime()==s.rapid.stamp
-                && ComboStateRegistry.RAPID_SLASH.getId().equals(activeCombo(p,state))
-                && s.rapid.proofs.size()<8) s.rapid.proofs.add(event);
-    }
     /** Read raw state and public timing only. resolvCurrentComboState can WRITE native state. */
     static ResourceLocation activeCombo(ServerPlayer p,ISlashBladeState state) {
         ResourceLocation raw=state.getComboSeq();
@@ -157,39 +139,33 @@ public final class RaikiriActionObserver {
     }
     static void observe(ServerPlayer p,Session s) {
         long now=p.level().getGameTime();
-        if(now!=s.observedTick && !RaikiriRules.continuous(point(s.observedPosition),point(p.position()),
-                s.observedTick,now,RaikiriConfig.MAX_SEGMENT.get())) {
+        double maximum=RaikiriConfig.MAX_SEGMENT.get();
+        boolean continuous=now==s.observedTick
+                ? finite(p.position()) && p.position().distanceToSqr(s.observedPosition)<=maximum*maximum
+                : RaikiriRules.continuous(point(s.observedPosition),point(p.position()),s.observedTick,now,maximum);
+        if(!continuous) {
             clear(p.getUUID(),p.getServer());return;
         }
         s.observedPosition=p.position();s.observedTick=now;
         committed(p,s);Run r=s.rapid;if(r==null) return;
-        for(var proof:r.proofs) if(!proof.isCanceled() && !proof.getEntity().isRemoved()
-                && p.serverLevel().getEntity(proof.getEntity().getId())==proof.getEntity()) r.verified=true;
-        r.proofs.clear();
         var state=p.getMainHandItem().getCapability(ModularSlashBladeItem.BLADESTATE).orElse(null);
         if(state==null || state.getLastActionTime()!=r.stamp
                 || !ComboStateRegistry.RAPID_SLASH.getId().equals(activeCombo(p,state))) { finish(s);return; }
-        flush(p,s,r);
         Vec3 at=p.position();
-        if(now==r.lastTick && (r.samples.size()>1 || at.distanceToSqr(r.last)<0.000001D)) return;
+        if(now==r.lastTick && (r.positions>1 || at.distanceToSqr(r.last)<0.000001D)) return;
         double distance=at.distanceTo(r.last);
         if(!RaikiriRules.continuous(point(r.last),point(at),now==r.lastTick?now-1:r.lastTick,now,
                 RaikiriConfig.MAX_SEGMENT.get()) || !legalSegment(p,r.last,at)) {
             clear(p.getUUID(),p.getServer());return;
         }
         if(now-r.stamp>RaikiriConfig.MAX_OBSERVE_TICKS.get()
-                || r.samples.size()>=32 || r.length+distance>RaikiriConfig.MAX_PATH.get()) { finish(s);return; }
+                || r.positions>=32 || r.length+distance>RaikiriConfig.MAX_PATH.get()) { finish(s);return; }
         r.length+=distance;
-        if(distance>0.001D) r.samples.add(new Sample(at,now));
-        r.last=at;r.lastTick=now;
-        flush(p,s,r);
-    }
-    private static void flush(ServerPlayer p,Session s,Run r) {
-        if(!r.verified) return;
-        while(r.flushed<r.samples.size()) {
-            Sample a=r.samples.get(r.flushed-1),b=r.samples.get(r.flushed++);
-            RaikiriFieldService.segment(p,s,r.id,a.position,b.position,a.tick,b.tick);
+        if(distance>0.001D) {
+            r.positions++;
+            RaikiriFieldService.segment(p,s,r.id,r.last,at,r.lastTick,now);
         }
+        r.last=at;r.lastTick=now;
     }
     private static RaikiriRules.Point point(Vec3 p) { return new RaikiriRules.Point(p.x,p.y,p.z); }
     private static boolean legalSegment(ServerPlayer p,Vec3 from,Vec3 to) {

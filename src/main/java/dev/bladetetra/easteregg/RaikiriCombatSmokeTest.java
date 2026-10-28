@@ -112,7 +112,7 @@ public final class RaikiriCombatSmokeTest {
                 actual.add(actor.position());
                 actor.setDeltaMovement(actor.getDeltaMovement().scale(.6));plain.setDeltaMovement(plain.getDeltaMovement().scale(.6));
                 tick();
-                if(t<2) check(RaikiriFieldService.trailCount(actor.getUUID())==0,"no field before native execution proof");
+                if(t<2) check(RaikiriFieldService.trailCount(actor.getUUID())==1,"committed actual native movement needs no hit or copied attack callback");
             }
             check(actorSlashes==5 && actorSlashes==plainSlashes && actorDamage==plainDamage,"native five attacks, parameters and cadence retained");
             check(actor.getZ()>3.5,"native movement is not clamped to former custom distance");
@@ -135,6 +135,7 @@ public final class RaikiriCombatSmokeTest {
             check(victim.getHealth()==hp && victim.invulnerableTime==17 && rank(actor).getRankPoint(now())==before,"protection cancellation preserves rank and immunity");
             advanceTo(221);check(RaikiriFieldService.swordCount(actor.getUUID())==0,"resonance did not refresh sword lifetime");
             // A later native release owns a distinct stream, still with zero extension routing.
+            RaikiriActionObserver.clear(actor.getUUID(),e.getServer());
             actor.moveTo(0,160,0,0,0);actor.setOnGround(true);actor.setDeltaMovement(Vec3.ZERO);
             long secondStamp=now();state.progressCombo(actor);
             check(state.getComboSeq().equals(ComboStateRegistry.RAPID_SLASH.getId()) && state.getLastActionTime()==secondStamp,
