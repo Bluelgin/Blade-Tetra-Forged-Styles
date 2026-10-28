@@ -49,7 +49,7 @@ public final class AwakenedBladeHud {
     public static void render(RenderGuiEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || mc.level != level
-                || active == null || mc.options.hideGui || mc.screen != null
+                || active == null || active.soul() == 4 || mc.options.hideGui || mc.screen != null
                 || mc.level.getGameTime() - lastMessage > 160) return;
         ItemStack blade = mc.player.getMainHandItem();
         CompoundTag tag = blade.getTag();

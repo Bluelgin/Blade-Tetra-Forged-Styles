@@ -3,6 +3,7 @@ package dev.bladetetra.easteregg;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.ModComboStates;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
+import mods.flammpfeil.slashblade.event.client.UserPoseOverrider;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -39,10 +40,13 @@ public final class RaikiriRapidCombo {
     public static final RegistryObject<ComboState> THUNDER_RAPID =
             ModComboStates.COMBOS.register("awakened_raikiri_rapid", RaikiriRapidCombo::create);
 
+    public static final RegistryObject<ComboState> THUNDER_RAPID_SECOND =
+            ModComboStates.COMBOS.register("awakened_raikiri_rapid_second", RaikiriRapidCombo::create);
+
     public static void register() { /* Force deferred registration before mod bus attaches. */ }
 
     public static boolean isThunderCombo(ResourceLocation combo) {
-        return THUNDER_RAPID.getId().equals(combo);
+        return THUNDER_RAPID.getId().equals(combo) || THUNDER_RAPID_SECOND.getId().equals(combo);
     }
 
     public static boolean directionalIntent(LivingEntity user) {
@@ -63,10 +67,15 @@ public final class RaikiriRapidCombo {
                 || !SoulLegacyState.isActive(event.getBlade(), SoulLegacyState.Legacy.RAIKIRI)
                 || SoulLegacyState.active(event.getBlade()) != SoulLegacyState.Legacy.RAIKIRI)
             return;
-        // Method performs validation, native Rank debit, collision-safe movement
-        // and step VFX once, before the combo state is committed.
-        if (AwakenedBladeCombat.beginRaikiriRapid(player, event.getBlade()))
-            event.setNextCombo(THUNDER_RAPID.getId());
+        // Virtual progression and rejected/mutated transitions have no side effects.
+        if (RaikiriStepController.canRoute(player, event.getBlade())) {
+            ResourceLocation current = event.getBlade().getCapability(
+                    dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE)
+                    .map(state -> state.getComboSeq()).orElse(null);
+            // Respect the native self-next guard while allowing real second/third steps.
+            event.setNextCombo(THUNDER_RAPID.getId().equals(current)
+                    ? THUNDER_RAPID_SECOND.getId() : THUNDER_RAPID.getId());
+        }
     }
 
     private static ComboState create() {
@@ -81,7 +90,10 @@ public final class RaikiriRapidCombo {
                 .nextOfTimeout(entity -> ComboStateRegistry.RAPID_SLASH_END.getId())
                 .addHoldAction(original::holdAction)
                 .addHitEffect(original::hitEffect)
-                .clickAction(original::clickAction)
+                .clickAction(entity -> {
+                    original.clickAction(entity);
+                    if (entity instanceof ServerPlayer player) RaikiriStepController.committed(player);
+                })
                 .releaseAction(original::releaseAction)
                 .addTickAction(entity -> {
                     long elapsed = ComboState.getElapsed(entity);
@@ -89,24 +101,22 @@ public final class RaikiriRapidCombo {
                         entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                                 SoundEvents.ARMOR_EQUIP_IRON, SoundSource.PLAYERS, 0.8F, 1.3F);
                     }
-                    // Identical native attack cadence, without the native 0-3t
-                    // uncontrolled moveRelative dash. The server already moved
-                    // once in beginRaikiriRapid before entering this node.
+                    // Audited 1.9.63 native cadence; only unrestricted movement is replaced.
                     if (2 <= elapsed && elapsed < 6) {
                         float roll = -45 + 90 * entity.getRandom().nextFloat();
                         if (elapsed % 2 == 0) roll += 180;
                         EntitySlashEffect slash = AttackManager.doSlash(entity, roll,
                                 AttackManager.genRushOffset(entity),
                                 false, AttackManager.isPowered(entity), 0.44F);
-                        if (slash != null) slash.getPersistentData()
-                                .putBoolean(THUNDER_HIT, true);
+                        if (entity instanceof ServerPlayer player) RaikiriStepController.tag(slash, player);
                     }
                     if (elapsed == 7) {
                         EntitySlashEffect slash = AttackManager.doSlash(entity, -30,
                                 AttackManager.genRushOffset(entity), false, true, 0.44F);
-                        if (slash != null) slash.getPersistentData()
-                                .putBoolean(THUNDER_HIT, true);
+                        if (entity instanceof ServerPlayer player) RaikiriStepController.tag(slash, player);
                     }
+                    if (7 <= elapsed && elapsed <= 10) UserPoseOverrider.setRot(entity, 90, true);
+                    if (elapsed > 10) UserPoseOverrider.setRot(entity, 0, false);
                 })
                 .build();
     }

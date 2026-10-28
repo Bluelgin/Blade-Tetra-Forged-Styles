@@ -46,6 +46,5 @@ class AwakenedRankCostTest {
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.KYOUKA));
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.SAKURA_ARRAY));
         assertEquals(3, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.RAIKIRI_STEP));
-        assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.RAIKIRI_FINISH));
     }
 }

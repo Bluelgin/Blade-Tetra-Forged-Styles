@@ -119,7 +119,6 @@ public final class AwakenedBladeCombat {
             state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
-            state.raikiriCharge = 0;
             // Step confirmation must survive the first hit on a new target:
             // before the dash lands, targetId may legitimately be null. Reset
             // the chain on timeout/failed input instead, never here.
@@ -180,27 +179,7 @@ public final class AwakenedBladeCombat {
                     }
                 }
             }
-            case RAIKIRI -> {
-                // Only slash effects created by our upgraded native rapid
-                // combo authorize another free Thunder Step. This remains
-                // valid even when the attack entity hits AFTER the ComboState
-                // changed, and rejects unrelated SA and ordinary melee hits.
-                Entity direct = event.getSource().getDirectEntity();
-                boolean thunderHit = direct instanceof EntitySlashEffect slash
-                        && slash.getPersistentData().getBoolean(RaikiriRapidCombo.THUNDER_HIT);
-                boolean flashFollowup = thunderHit && state.stepChain > 0
-                        && !state.stepConfirmed
-                        && now >= state.lastStep && now - state.lastStep <= 22;
-                if (flashFollowup) {
-                    state.stepConfirmed = true;
-                    state.raikiriCharge = Math.min(4,
-                            state.raikiriCharge + Math.min(2, state.stepChain));
-                    visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            center, center, state.stepChain);
-                } else {
-                    state.raikiriCharge = Math.min(4, state.raikiriCharge + 1);
-                }
-            }
+            case RAIKIRI -> { /* Dedicated sequence-bound native hit controller owns confirmation. */ }
             default -> {
             }
         }
@@ -221,7 +200,7 @@ public final class AwakenedBladeCombat {
             case AKATSUKI -> releaseAkatsuki(level, player, blade, state, now);
             case KYOUKA -> releaseKyouka(level, player, blade, state, now);
             case SENBONZAKURA -> releaseSenbonzakura(level, player, blade, state, now);
-            case RAIKIRI -> releaseRaikiri(level, player, blade, state, now);
+            case RAIKIRI -> { /* Ordinary native Slash Arts remains untouched. */ }
             default -> {
             }
         }
@@ -443,97 +422,6 @@ public final class AwakenedBladeCombat {
                 AwakenedBladeVfxPacket.RELEASE, origin, targetCenter, formation);
     }
 
-    /**
-     * One Shift+W native Rapid Slash activation, never a Slash Art fallback.
-     * Execute once per accepted NextComboEvent before entering the cloned
-     * native animation node. Native rapid slash alone owns melee hit effects.
-     */
-    public static boolean beginRaikiriRapid(ServerPlayer player, ItemStack blade) {
-        if (!replacesLegacy() || blade != player.getMainHandItem()
-                || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.RAIKIRI
-                || !SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.RAIKIRI))
-            return false;
-        ServerLevel level = player.serverLevel();
-        State state = state(player, blade);
-        long now = level.getGameTime();
-        if (now < state.stepUntil) return false;
-        Vec3 from = player.position();
-        Vec3 look = player.getLookAngle();
-        Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
-        if (horizontal.lengthSqr() < 0.0001D) return false;
-        Vec3 moved = collisionCheckedStep(level, player, from,
-                horizontal.normalize(), 3.5D);
-        if (moved.distanceToSqr(from) < 0.24D) return false;
-        boolean continuing = AwakenedCombatMath.isThunderFollowup(
-                state.stepChain, state.stepConfirmed, state.lastStep, now);
-        if (!continuing && !AwakenedRankCost.trySpend(player, blade,
-                AwakenedRankCost.Cast.RAIKIRI_STEP)) return false;
-        state.stepChain = AwakenedCombatMath.nextThunderChain(
-                state.stepChain, state.stepConfirmed, state.lastStep, now);
-        state.stepConfirmed = false;
-        state.lastStep = now;
-        state.stepUntil = now + (state.stepChain > 1 ? 6L : 10L);
-        player.connection.teleport(moved.x, moved.y, moved.z,
-                player.getYRot(), player.getXRot());
-        visual(level, SoulLegacyState.Legacy.RAIKIRI,
-                AwakenedBladeVfxPacket.STEP,
-                from.add(0, 1, 0), moved.add(0, 1, 0), state.stepChain);
-        syncHud(player, SoulLegacyState.Legacy.RAIKIRI, blade, state, false);
-        return true;
-    }
-
-    private static void releaseRaikiri(ServerLevel level, ServerPlayer player,
-            ItemStack blade, State state, long now) {
-        if (state.raikiriCharge < 2 || now < state.cooldownUntil
-                || now - state.lastHit > EXPIRE_TICKS) return;
-        LivingEntity primary = target(level, player, state, 8.0D);
-        if (primary == null || !player.hasLineOfSight(primary)) return;
-        float damage = AwakenedCombatMath.thunderFinisher(
-                state.lastDamage, state.raikiriCharge);
-        if (damage <= 0) return;
-        Vec3 from = player.position();
-        Vec3 delta = primary.position().subtract(from).multiply(1, 0, 1);
-        Vec3 moved = from;
-        if (delta.lengthSqr() > 1.44D) {
-            double travel = Math.min(3.5D, delta.length() - 1.15D);
-            moved = collisionCheckedStep(level, player, from, delta.normalize(), travel);
-        }
-        // A visible enemy 8 blocks away is targetable, but a real melee
-        // thrust must REACH it after the collision-checked lunge. No
-        // wall-blocked remote hit and no Rank debit on an unreachable cast.
-        if (!AwakenedCombatMath.thunderFinisherCanReach(
-                moved, primary.getBoundingBox())) return;
-        if (!AwakenedRankCost.trySpend(player, blade,
-                AwakenedRankCost.Cast.RAIKIRI_FINISH)) return;
-        // Apply damage from the REAL post-lunge position, so protection mods
-        // that validate attack distance see the correct server coordinates.
-        // If damage is rejected, roll back the movement and exactly our Rank
-        // charge: the player cannot farm free teleports from protected mobs.
-        boolean relocated = moved.distanceToSqr(from) > 0.24D;
-        if (relocated) {
-            player.connection.teleport(moved.x, moved.y, moved.z,
-                    player.getYRot(), player.getXRot());
-        }
-        if (!secondaryHit(level, player, primary, damage)) {
-            if (relocated) {
-                player.connection.teleport(from.x, from.y, from.z,
-                        player.getYRot(), player.getXRot());
-            }
-            AwakenedRankCost.refund(player, blade, AwakenedRankCost.Cast.RAIKIRI_FINISH);
-            return;
-        }
-        int chain = state.stepChain;
-        state.raikiriCharge = 0;
-        state.stepChain = 0;
-        state.stepConfirmed = false;
-        state.cooldownUntil = now + 75L;
-        Vec3 trailEnd = moved.distanceToSqr(from) > 0.24D
-                ? moved.add(0, 1, 0) : primary.getBoundingBox().getCenter();
-        visual(level, SoulLegacyState.Legacy.RAIKIRI,
-                AwakenedBladeVfxPacket.RELEASE,
-                from.add(0, 1, 0), trailEnd, chain);
-    }
-
     /** Identical continuous AABB collision checks for manual steps and finishers. */
     private static Vec3 collisionCheckedStep(ServerLevel level, ServerPlayer player,
             Vec3 from, Vec3 horizontalDirection, double maxTravel) {
@@ -584,14 +472,6 @@ public final class AwakenedBladeCombat {
             state.scarMagnitude = 0;
             state.mirror.clear();
             state.sakuraCharge = 0;
-            state.raikiriCharge = 0;
-        }
-        // A first lightning step may begin after minutes without any hit.
-        // Only its own step timestamp, never stale lastHit, expires the chain.
-        if (soul == SoulLegacyState.Legacy.RAIKIRI
-                && AwakenedCombatMath.thunderChainExpired(state.lastStep, now)) {
-            state.stepChain = 0;
-            state.stepConfirmed = false;
         }
         syncHud(player, soul, blade, state, player.tickCount % 80 == 0);
     }
@@ -812,7 +692,7 @@ public final class AwakenedBladeCombat {
         return landed;
     }
 
-    private static boolean canAffect(ServerPlayer player, LivingEntity target) {
+    static boolean canAffect(ServerPlayer player, LivingEntity target) {
         if (player == target || !target.isAlive() || target instanceof Player
                 || player.isAlliedTo(target) || target.isAlliedTo(player)
                 || target instanceof TamableAnimal || target instanceof AbstractVillager
@@ -866,7 +746,7 @@ public final class AwakenedBladeCombat {
             case AKATSUKI -> Integer.bitCount(state.scarDirections);
             case KYOUKA -> state.mirror.size();
             case SENBONZAKURA -> state.sakuraCharge;
-            case RAIKIRI -> state.raikiriCharge;
+            case RAIKIRI -> 0;
             default -> 0;
         };
         int maximum = switch (soul) {
@@ -882,16 +762,12 @@ public final class AwakenedBladeCombat {
             case KYOUKA -> AwakenedRankCost.Cast.KYOUKA;
             case SENBONZAKURA -> dispersed
                     ? AwakenedRankCost.Cast.SAKURA_ARRAY : null;
-            case RAIKIRI -> RaikiriRapidCombo.directionalIntent(player)
-                    ? AwakenedRankCost.Cast.RAIKIRI_STEP
-                    : AwakenedRankCost.Cast.RAIKIRI_FINISH;
+            case RAIKIRI -> AwakenedRankCost.Cast.RAIKIRI_STEP;
             default -> null;
         };
         boolean charge = GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.get() && cast != null
                 && !(cast == AwakenedRankCost.Cast.RAIKIRI_STEP
-                        && AwakenedCombatMath.isThunderFollowup(
-                                state.stepChain, state.stepConfirmed, state.lastStep,
-                                player.serverLevel().getGameTime()));
+                        && RaikiriStepController.free(player));
         int minimum = charge ? AwakenedRankCost.requiredLevel(blade, cast) : 0;
         int price = charge ? AwakenedRankCost.cost(blade, cast) : 0;
         if (!force && state.lastSyncedMeter == meter
@@ -920,7 +796,7 @@ public final class AwakenedBladeCombat {
         }
     }
 
-    private static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
+    static void visual(ServerLevel level, SoulLegacyState.Legacy soul,
             int type, Vec3 pos, Vec3 end, int variant) {
         AwakenedBladeVfxPacket packet = new AwakenedBladeVfxPacket(
                 soul.ordinal(), type, pos.x, pos.y, pos.z,
@@ -930,6 +806,12 @@ public final class AwakenedBladeCombat {
                 ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer), packet);
             }
         }
+    }
+
+    static void visualTo(ServerPlayer viewer, int type, Vec3 pos, Vec3 end, int variant) {
+        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
+                new AwakenedBladeVfxPacket(SoulLegacyState.Legacy.RAIKIRI.ordinal(), type,
+                        pos.x,pos.y,pos.z,end.x,end.y,end.z,variant));
     }
 
     private record Key(UUID player, UUID blade) { }
@@ -956,13 +838,8 @@ public final class AwakenedBladeCombat {
         int sakuraCharge;
         long petalUntil;
         long lastMirrorCapture = -100L;
-        int raikiriCharge;
         long lastHit;
         long cooldownUntil;
-        long stepUntil;
-        long lastStep;
-        int stepChain;
-        boolean stepConfirmed;
         long stanceUntil;
         int lastSyncedMeter = -1;
         int lastSyncedMinimum = -1;

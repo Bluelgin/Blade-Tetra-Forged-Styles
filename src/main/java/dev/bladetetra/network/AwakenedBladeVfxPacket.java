@@ -17,6 +17,10 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     public static final int RELEASE = 2;
     public static final int STEP = 3;
     public static final int STANCE = 4;
+    public static final int GROUND_SWORD = 5;
+    public static final int REMOVE_SWORD = 6;
+    public static final int BOLT = 7;
+    public static final int RESONANCE = 8;
 
     public static void encode(AwakenedBladeVfxPacket value, FriendlyByteBuf buf) {
         buf.writeByte(value.soul);

@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('raikiriCombatSmoke')) {
+                workingDirectory project.file('build/raikiri-combat-smoke')
+                property 'blade_tetra.raikiriCombatSmoke', 'true'
+            }
             if (project.hasProperty('swordAuraHitSmoke')) {
                 workingDirectory project.file('build/sword-aura-hit-smoke')
                 property 'blade_tetra.swordAuraHitSmoke', 'true'

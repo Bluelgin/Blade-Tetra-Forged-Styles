@@ -149,8 +149,9 @@ public final class GameplayConfig {
         AWAKENED_RANK_COST_STEP = builder
                 .comment("Raikiri basic lightning step: requires B rank.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
+        dev.bladetetra.easteregg.RaikiriConfig.define(builder);
         AWAKENED_RANK_COST_FINISH = builder
-                .comment("Raikiri charged dash finisher: requires A rank.")
+                .comment("Deprecated compatibility key: ignored by Raikiri V2/3. Native SA has no extra finisher cost.")
                 .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
         AWAKENED_RANK_COST_DUAL_BONUS = builder
                 .comment("Extra native Rank points charged for the six awakened dual-soul signatures.",

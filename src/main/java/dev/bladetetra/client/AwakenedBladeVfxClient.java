@@ -66,7 +66,7 @@ public final class AwakenedBladeVfxClient {
     public static void spawn(AwakenedBladeVfxPacket packet) {
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
                 || packet.soul() < 1 || packet.soul() > 4
-                || packet.type() < 0 || packet.type() > 4) return;
+                || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.RESONANCE) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
         if (currentLevel != minecraft.level) {
@@ -84,6 +84,11 @@ public final class AwakenedBladeVfxClient {
                     && fx.data.type() == AwakenedBladeVfxPacket.MARK
                     && new Vec3(fx.data.x(), fx.data.y(), fx.data.z())
                             .distanceToSqr(packet.x(), packet.y(), packet.z()) < 16.0D);
+        }
+        if (packet.type() == AwakenedBladeVfxPacket.REMOVE_SWORD) {
+            EFFECTS.removeIf(fx -> fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD
+                    && fx.data.variant() == packet.variant());
+            return;
         }
         EFFECTS.add(new Effect(packet));
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
@@ -143,6 +148,11 @@ public final class AwakenedBladeVfxClient {
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableBlend();
+        for (Effect fx : EFFECTS) {
+            if (fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD)
+                RaikiriVisualClient.sword(event, poses, eye, fx.data,
+                        fx.age + event.getPartialTick(), fx.duration, intensity);
+        }
         drawTrueNames(event, poses, camera);
         poses.popPose();
     }
@@ -202,6 +212,10 @@ public final class AwakenedBladeVfxClient {
                 * Mth.clamp((fx.duration - age) / 8.0F, 0, 1)
                 * Mth.clamp(intensity, 0, 1);
         if (alpha <= 0) return;
+        if (data.soul() == 4 && data.type() >= AwakenedBladeVfxPacket.GROUND_SWORD) {
+            RaikiriVisualClient.atlas(buffer, matrix, eye, data, age, fx.duration, alpha);
+            return;
+        }
         Vec3 pos = new Vec3(data.x(), data.y(), data.z());
         int soul = data.soul();
         int type = data.type();
@@ -576,7 +590,7 @@ public final class AwakenedBladeVfxClient {
                 center.add(right).add(up), u0, v0, u1, v1, alpha, 0xFFFFFF);
     }
 
-    private static void segment(BufferBuilder buffer, Matrix4f matrix, Vec3 eye,
+    static void segment(BufferBuilder buffer, Matrix4f matrix, Vec3 eye,
             Vec3 from, Vec3 to, double width, int tile, int soul, float alpha) {
         Vec3 axis = to.subtract(from);
         if (axis.lengthSqr() < 0.001D || axis.lengthSqr() > 64.0D) return;
@@ -588,7 +602,7 @@ public final class AwakenedBladeVfxClient {
                 to.subtract(side), to.add(side), tile, soul, alpha);
     }
 
-    private static void billboardTile(BufferBuilder buffer, Matrix4f matrix,
+    static void billboardTile(BufferBuilder buffer, Matrix4f matrix,
             Vec3 eye, Vec3 center, double size, int tile, int soul,
             float alpha, float rotation) {
         Vec3 look = eye.subtract(center);
@@ -633,7 +647,10 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.AWAKEN -> AwakeningPresentationTimeline.WORLD_END;
                 case AwakenedBladeVfxPacket.RELEASE -> data.soul() == 3 ? 64
                         : data.soul() == 4 ? 40 : 56;
-                case AwakenedBladeVfxPacket.STEP -> 22;
+                case AwakenedBladeVfxPacket.GROUND_SWORD -> (int)Math.max(1,Math.min(200,data.endX()));
+                case AwakenedBladeVfxPacket.BOLT -> 8;
+                case AwakenedBladeVfxPacket.RESONANCE -> 12;
+                case AwakenedBladeVfxPacket.STEP -> 12;
                 case AwakenedBladeVfxPacket.MARK -> data.soul() == 1 ? 160 : 18;
                 default -> 18;
             };

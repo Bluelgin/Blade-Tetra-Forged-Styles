@@ -23,6 +23,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Build
         run: ./gradlew build
+      - name: Raikiri 3 native Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 10
+        run: |
+          mkdir -p build/raikiri-combat-smoke
+          echo 'eula=true' > build/raikiri-combat-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PraikiriCombatSmoke 2>&1 | tee build/raikiri-combat-smoke.log
+          grep -F 'RAIKIRI_COMBAT_SMOKE_PASS' build/raikiri-combat-smoke.log
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
@@ -55,3 +64,14 @@ jobs:
           echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
           ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
           grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
+
+      - name: Review jar and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raikiri3-review
+          path: |
+            build/libs/*.jar
+            build/test-results/test/*.xml
+            build/*smoke.log
+          retention-days: 14

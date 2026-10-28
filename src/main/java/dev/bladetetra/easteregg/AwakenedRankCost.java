@@ -18,7 +18,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class AwakenedRankCost {
     public enum Cast {
-        AKATSUKI, KYOUKA, SAKURA_ARRAY, RAIKIRI_STEP, RAIKIRI_FINISH
+        AKATSUKI, KYOUKA, SAKURA_ARRAY, RAIKIRI_STEP
     }
 
     public static boolean trySpend(ServerPlayer player, ItemStack blade, Cast cast) {
@@ -89,14 +89,13 @@ public final class AwakenedRankCost {
             case KYOUKA -> GameplayConfig.AWAKENED_RANK_COST_KYOUKA.get();
             case SAKURA_ARRAY -> GameplayConfig.AWAKENED_RANK_COST_SAKURA.get();
             case RAIKIRI_STEP -> GameplayConfig.AWAKENED_RANK_COST_STEP.get();
-            case RAIKIRI_FINISH -> GameplayConfig.AWAKENED_RANK_COST_FINISH.get();
         };
     }
 
     public static int requiredLevel(Cast cast) {
         return switch (cast) {
             case AKATSUKI -> 5; // S
-            case KYOUKA, SAKURA_ARRAY, RAIKIRI_FINISH -> 4; // A
+            case KYOUKA, SAKURA_ARRAY -> 4; // A
             case RAIKIRI_STEP -> 3; // B
         };
     }
