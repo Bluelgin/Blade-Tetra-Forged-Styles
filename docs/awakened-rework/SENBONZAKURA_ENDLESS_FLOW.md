@@ -1,4 +1,4 @@
-> 本文保留 PR #42 的历史设计。当前千本樱2.1已改为B1–B6与实时碎刃池，见 [SAKURA_21.md](SAKURA_21.md)。
+> 本文保留早期设计。最新长按左键、一次缓存、14tick有费宽限和六式碎刃接力见 [续连说明](SAKURA_FLOW_CONTINUITY.md)；凝散入口见 [SAKURA_22.md](SAKURA_22.md)。
 
 # Senbonzakura 2.0 — dispersed endless Rengeki
 

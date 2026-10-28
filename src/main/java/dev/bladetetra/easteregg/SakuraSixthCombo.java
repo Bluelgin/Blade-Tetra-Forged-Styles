@@ -5,12 +5,13 @@ import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import net.minecraftforge.registries.RegistryObject;
 
-/** Same native B6 animation and callbacks, with a two-tick input tail.
+/** Same native B6 animation and callbacks, with a forgiving input tail.
  * Upstream permits early next-input at tick 4 but authors hits through tick 6;
  * its 333ms timeout otherwise expires before a safe tick-7 re-entry. Only the
  * dispersed Sakura B5 route uses this node. No global native registry mutation.
  */
 public final class SakuraSixthCombo {
+    public static final int INPUT_TAIL_MS = 500;
     public static final RegistryObject<ComboState> SIXTH = ModComboStates.COMBOS.register(
             "awakened_sakura_b6", SakuraSixthCombo::create);
     private static boolean compatible;
@@ -21,7 +22,7 @@ public final class SakuraSixthCombo {
         var builder = ComboState.Builder.newInstance()
                 .startAndEnd(original.getStartFrame(), original.getEndFrame())
                 .motionLoc(original.getMotionLoc()).speed(original.getSpeed())
-                .priority(original.getPriority()).timeout(original.timeout + 100)
+                .priority(original.getPriority()).timeout(original.timeout + INPUT_TAIL_MS)
                 .next(user -> SIXTH.getId()) // NextComboEvent supplies the authorized B1 route
                 .nextOfTimeout(original::getNextOfTimeout)
                 .addHoldAction(original::holdAction)

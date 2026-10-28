@@ -20,6 +20,7 @@ public final class SakuraShardPool {
         double delay;
         Vec3 start, returnStart, returnVelocity;
         double returningAt;
+        int member;
         Shard(int index) { this.index = index; }
         public boolean flying() { return state != State.IDLE; }
     }
@@ -97,16 +98,16 @@ public final class SakuraShardPool {
         Vec3 delta=target.subtract(frame.root());
         if(delta.lengthSqr()>144) target=frame.root().add(0,frame.height()*.8,0).add(forward.scale(3.5));
         Group group=new Group(stage,sequence,actionAt,time,target,forward,targetId,predicted);
-        int wanted=Math.max(3,(stage+4)*shards.length/72);
-        int start=stage%2==0?shards.length/2:0;
+        int wanted=SakuraShardChoreography.wanted(stage,shards.length);
         for(int j=0;j<shards.length&&group.members<wanted;j++) {
-            Shard shard=shards[(start+cursor+j)%shards.length];
+            Shard shard=shards[SakuraShardChoreography.candidate(stage,j,shards.length,cursor)];
             boolean forming = stance != null && stance.dispersing()
                     && shard.state == State.TRANSITION && shard.visibility > .6F;
             if(shard.flying() && !forming) continue;
             shard.group=group; shard.state=State.LAUNCH;
             shard.departureFromHome=!forming;
-            shard.start=shard.position; shard.delay=group.members*.28;
+            shard.start=shard.position; shard.member=group.members;
+            shard.delay=SakuraShardChoreography.delay(stage,group.members,wanted);
             shard.returnStart=null; shard.history=0;
             group.members++;
         }
@@ -153,26 +154,29 @@ public final class SakuraShardPool {
                 shard.position=shard.start;
                 continue;
             }
-            if((group.canceled || age>=LAUNCH_TICKS+SLASH_TICKS) && shard.state!=State.RETURN) {
+            double launchTicks=SakuraShardChoreography.launchTicks(group.stage);
+            double cutTicks=SakuraShardChoreography.cutTicks(group.stage);
+            if((group.canceled || age>=launchTicks+cutTicks) && shard.state!=State.RETURN) {
                 Vec3 start=group.canceled?shard.position:
-                        orbit(group.center,group.forward,shard.index,group.stage,1);
+                        SakuraShardChoreography.cut(group.center,group.forward,shard.member,group.stage,1);
                 Vec3 velocity=group.canceled ? start.subtract(shard.history>0?shard.trail[0]:shard.previous)
                         : start.subtract(shard.previous);
                 beginReturn(shard,time,start,velocity);
             }
             if(shard.state==State.RETURN) {
-                double u=(time-shard.returningAt)/RETURN_TICKS;
-                shard.position=returning(shard.returnStart,shard.returnVelocity,home,u);
+                double duration=SakuraShardChoreography.returnTicks(group.stage);
+                double u=(time-shard.returningAt)/duration;
+                shard.position=cubic(shard.returnStart,shard.returnStart.add(shard.returnVelocity.scale(duration/3)),home,home,u);
                 if(u>=1) {
                     shard.position=home; shard.state=State.IDLE; shard.group=null;
                     shard.history=0; group.members--;
                 }
-            } else if(age<LAUNCH_TICKS) {
-                shard.position=SakuraShardTrajectory.launch(shard.start,group.center,group.forward,shard.index,group.stage,age/LAUNCH_TICKS);
+            } else if(age<launchTicks) {
+                shard.position=SakuraShardChoreography.launch(shard.start,group.center,group.forward,shard.member,group.stage,age/launchTicks);
             } else {
                 shard.state=State.SLASH;
-                shard.position=orbit(group.center,group.forward,shard.index,group.stage,
-                        (age-LAUNCH_TICKS)/SLASH_TICKS);
+                shard.position=SakuraShardChoreography.cut(group.center,group.forward,shard.member,group.stage,
+                        (age-launchTicks)/cutTicks);
             }
             recordMotion(shard);
         }

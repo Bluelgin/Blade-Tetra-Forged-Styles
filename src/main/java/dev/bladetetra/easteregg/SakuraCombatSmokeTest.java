@@ -56,7 +56,7 @@ public final class SakuraCombatSmokeTest {
             var nativeSixth=ComboStateRegistry.COMBO_B6.get();
             check(sixth.getMotionLoc().equals(nativeSixth.getMotionLoc()),"same native motion");
             check(sixth.getStartFrame()==nativeSixth.getStartFrame()&&sixth.getEndFrame()==nativeSixth.getEndFrame(),"same native B6 frames");
-            check(sixth.getTimeoutMS()==nativeSixth.getTimeoutMS()+100,"two tick input tail only");
+            check(sixth.getTimeoutMS()==nativeSixth.getTimeoutMS()+SakuraSixthCombo.INPUT_TAIL_MS,"forgiving input tail with native animation intact");
             check(SakuraEndlessFlow.eligible(blade),"real awakened dispersed Tetra weapon");
             long now=Math.max(1000,level.getGameTime());
             event.getServer().getWorldData().overworldData().setGameTime(now);
@@ -130,6 +130,7 @@ public final class SakuraCombatSmokeTest {
             tag.putBoolean("blade_tetra_awakened_v2_sakura_dispersed",false);
             state.setComboSeq(ComboStateRegistry.COMBO_B6.getId()); state.setLastActionTime(level.getGameTime()-4);
             check(state.progressCombo(actor,true).equals(ComboStateRegistry.COMBO_B7.getId()),"ordinary native B6/B7 unchanged");
+            SakuraFlowSmoke.verify(level,actor,blade);
             SakuraStanceSmoke.verify(level,actor,blade);
             LogUtils.getLogger().info("SAKURA_COMBAT_SMOKE_PASS: three B1-B6 cycles, seven native B6 hits, original damage, early input guard, virtual query costs, A/S/SS/SSS exact debit and no credit, input release, Rank exhaustion, stance retained, ordinary B7 unchanged");
         } catch(Throwable failure) {

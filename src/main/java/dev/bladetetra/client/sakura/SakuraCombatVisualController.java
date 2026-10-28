@@ -186,8 +186,13 @@ public final class SakuraCombatVisualController {
                 if(group==null) {v.targets[i]=null;continue;}
                 if(group.targetId<0) continue;
                 if(target==null||target.getId()!=group.targetId||!target.isAlive()||target.isRemoved()
-                        ||world.getEntity(target.getId())!=target||target.distanceToSqr(v.owner)>144)
-                    group.canceled=true;
+                        ||world.getEntity(target.getId())!=target||target.distanceToSqr(v.owner)>144) {
+                    // Finish the committed sweep at its last anchor. The next
+                    // attack may acquire a new target; flying shards never snap to it.
+                    group.targetId=-1;
+                    v.targets[i]=null;
+                    group.goal=group.center;
+                }
                 else group.goal=target.getBoundingBox().getCenter();
             }
             v.pool.tick(frame(v.owner),now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));

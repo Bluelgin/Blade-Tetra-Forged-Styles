@@ -30,6 +30,9 @@ import java.util.WeakHashMap;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SakuraCombatVisuals {
     private static final Map<UUID, Attack> CURRENT = new HashMap<>();
+    private record PendingMotion(ItemStack blade, int slot, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            int stage, long at) {}
+    private static final Map<UUID, PendingMotion> PENDING = new HashMap<>();
     private static final Map<EntitySlashEffect, Attack> SLASHES = new WeakHashMap<>();
     private static long nextSequence;
     static long nextSequence() { return ++nextSequence; }
@@ -39,9 +42,14 @@ public final class SakuraCombatVisuals {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         ItemStack blade = player.getMainHandItem();
         int stage = SakuraFlowRules.stage(event.getCombo());
-        if (stage == 0 || !SakuraEndlessFlow.eligible(blade)) return;
-        var state = blade.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE).orElse(null);
-        if (state != null) begin(player, blade, stage, player.level().getGameTime(), state.getTargetEntity(player.level()));
+        if (stage == 0 || !SakuraEndlessFlow.eligible(blade)) {
+            PENDING.remove(player.getUUID());
+            return;
+        }
+        // Motion events precede the native state write and can still be canceled.
+        // DoSlash handles immediate tick-zero attacks; delayed B1 is checked at END.
+        PENDING.put(player.getUUID(), new PendingMotion(blade, player.getInventory().selected,
+                player.level().dimension(), stage, player.level().getGameTime()));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -125,6 +133,15 @@ public final class SakuraCombatVisuals {
 
     @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer player)) return;
+        PendingMotion pending = PENDING.remove(player.getUUID());
+        if (pending != null && player.isAlive() && player.getMainHandItem() == pending.blade
+                && player.getInventory().selected == pending.slot && player.level().dimension().equals(pending.dimension)
+                && SakuraEndlessFlow.eligible(pending.blade) && player.level().getGameTime() - pending.at <= 2) {
+            pending.blade.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE).ifPresent(state -> {
+                if (state.getLastActionTime() == pending.at && SakuraFlowRules.stage(state.getComboSeq()) == pending.stage)
+                    begin(player, pending.blade, pending.stage, pending.at, state.getTargetEntity(player.level()));
+            });
+        }
         Attack attack = CURRENT.get(player.getUUID());
         if (attack != null && (attack.blade != player.getMainHandItem() || attack.slot != player.getInventory().selected
                 || !SakuraEndlessFlow.eligible(attack.blade) || !player.isAlive()
@@ -133,10 +150,11 @@ public final class SakuraCombatVisuals {
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
         CURRENT.remove(e.getEntity().getUUID());
+        PENDING.remove(e.getEntity().getUUID());
         SLASHES.values().removeIf(attack -> attack.player.getUUID().equals(e.getEntity().getUUID()));
     }
     @SubscribeEvent public static void stop(ServerStoppedEvent e) {
-        CURRENT.clear(); SLASHES.clear(); nextSequence = 0;
+        CURRENT.clear(); PENDING.clear(); SLASHES.clear(); nextSequence = 0;
     }
     private static final class Attack {
         final ServerPlayer player;

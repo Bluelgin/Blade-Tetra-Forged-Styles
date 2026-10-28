@@ -29,5 +29,8 @@ public final class SakuraFlowRules {
     /** Native B6 authors hits at ticks 0..6. Never replace it before tick 7. */
     public static boolean completedB6(long elapsed) { return elapsed >= 7; }
 
+    /** Respect the upstream B1 opener and preserve every rush hit for held input. */
+    static int minimumAutoTick(int stage) { return stage == 1 ? 9 : stage == 6 ? 7 : 6; }
+
     private SakuraFlowRules() {}
 }

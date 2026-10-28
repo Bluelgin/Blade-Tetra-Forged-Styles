@@ -1214,7 +1214,7 @@
   "hud.blade_tetra.awakened.dispersed": "散华",
   "tooltip.blade_tetra.awakened.v2.akatsuki": "觉醒·因果斩线：绕目标从不同方向造成真实伤害，3道斩线后成功SA触发命断。",
   "tooltip.blade_tetra.awakened.v2.kyouka": "觉醒·镜影重演：记录最多3次有效攻击，至少2次后成功SA释放延迟虚斩。",
-  "tooltip.blade_tetra.awakened.v2.senbonzakura": "觉醒·无尽连舞：原生下劈散华，上挑凝刃（空挥亦可）；SA不切换形态。凝刃积攒Rank；散华从A级起燃烧原生Rank，驱动B1–B6无限连舞。评分耗尽后保持半月刃阵，上挑凝刃后可重新积攒。",
+  "tooltip.blade_tetra.awakened.v2.senbonzakura": "觉醒·无尽连舞：下劈散华，上挑凝刃（空挥亦可）。凝刃积攒Rank；散华从A级起燃烧原生Rank。长按左键续接B1–B6，点按可缓存一次接招；短暂停顿保留0.7秒续连资格，期间仍消耗Rank。右键长按仍为SA。评分耗尽后保持半月刃阵，上挑凝刃后可重新积攒。",
   "tooltip.blade_tetra.awakened.v2.raikiri": "觉醒·雷步：地面潜行+前进+右键将迅冲斩强化为连续雷步；命中后可续段，普通SA释放神鸣终击。",
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",
   "message.blade_tetra.awakened.rank_insufficient": "觉醒技需要 %s 评级与 %s 评分点数",
