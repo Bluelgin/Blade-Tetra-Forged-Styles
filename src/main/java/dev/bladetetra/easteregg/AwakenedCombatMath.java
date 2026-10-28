@@ -3,30 +3,8 @@ package dev.bladetetra.easteregg;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-/** Pure deterministic combat predicates for four awakened souls. */
+/** Pure deterministic V2 combat predicates for three awakened souls. */
 public final class AwakenedCombatMath {
-    public static int scarSector(double deltaX, double deltaZ) {
-        double angle = Math.atan2(deltaZ, deltaX);
-        return Math.floorMod((int) Math.floor((angle + Math.PI) * 3.0D / Math.PI), 6);
-    }
-
-    /**
-     * A real crossing requires distinct attack bearings rather than three
-     * adjacent wedges obtained by walking a quarter-circle.
-     * This is a pure geometry gate: each of the six bits is a 60-degree sector.
-     */
-    public static boolean hasCausalCross(int mask) {
-        if (Integer.bitCount(mask & 0b111111) < 3) return false;
-        for (int i = 0; i < 6; i++) {
-            if ((mask & (1 << i)) == 0) continue;
-            for (int j = i + 1; j < 6; j++) {
-                int gap = j - i;
-                if ((mask & (1 << j)) != 0 && gap >= 2 && gap <= 4) return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * After collision-checked movement, a thunder finisher must actually be in
      * melee reach of the target's volume. Target acquisition can be 8 blocks,
@@ -61,11 +39,6 @@ public final class AwakenedCombatMath {
     /** One committed event chooses the same formation on server and clients. */
     public static int sakuraFormation(boolean airborne, boolean sprinting) {
         return airborne ? 2 : sprinting ? 1 : 0;
-    }
-
-    public static float causalCut(float actualDamage, int directions) {
-        if (directions < 3) return 0;
-        return bounded(actualDamage, 32.0F, 0.6F + Math.min(6, directions) * 0.26F, 30.0F);
     }
 
     public static float mirrorCut(float actualDamage) {
