@@ -54,6 +54,7 @@ public final class SakuraShardPool {
     }
     public void beginStance(boolean dispersing, double time, Vec3 grip, Vec3 tip, float fromFraction) {
         stance = new SakuraStanceTransition(dispersing, time, fromFraction);
+        danceUntil=0;deployment=0;
         java.util.Arrays.fill(groups, null);
         for (Shard s : shards) {
             s.group = null;

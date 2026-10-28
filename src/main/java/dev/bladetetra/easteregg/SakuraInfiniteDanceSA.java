@@ -85,9 +85,11 @@ public final class SakuraInfiniteDanceSA {
         if(!(user instanceof ServerPlayer p)) return;
         Session s=SESSIONS.get(p.getUUID());
         if(s==null||!matches(p,s.request)||s.stage!=stage) return;
+        if(controlled(p)) {end(p);return;}
         long now=p.level().getGameTime(),elapsed=now-s.actionAt;
         if(s.lastNativeTick==now||elapsed<0||elapsed>=SakuraFlowRules.minimumAutoTick(stage)) return;
         s.lastNativeTick=now;
+        if(now-s.request.at>=GameplayConfig.SAKURA_SA_MAX_TICKS.get()) s.phase=Phase.FINISHING;
         SakuraDanceCombos.nativeNode(stage).tickAction(user);
         SakuraEndlessFlow.reconcile(p);
         boolean funded=p.getCapability(CapabilityConcentrationRank.RANK_POINT).map(r->{
@@ -131,10 +133,8 @@ public final class SakuraInfiniteDanceSA {
         }
         var state=s.request.blade.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
         long now=p.level().getGameTime();
-        boolean controlled=p.isSleeping()||p.isFullyFrozen()||p.getCapability(CapabilityMobEffect.MOB_EFFECT)
-                .map(m->m.isStun(now)).orElse(false);
         if(!matches(p,s.request)||state==null||!SakuraDanceCombos.id(s.stage).equals(state.getComboSeq())
-                ||state.getLastActionTime()!=s.actionAt||now<s.actionAt||controlled) {end(p);return;}
+                ||state.getLastActionTime()!=s.actionAt||now<s.actionAt||controlled(p)) {end(p);return;}
         if(p.isUsingItem()) p.stopUsingItem();
         SakuraEndlessFlow.reconcile(p);
         if(now-s.request.at>=GameplayConfig.SAKURA_SA_MAX_TICKS.get()) s.phase=Phase.FINISHING;
@@ -171,6 +171,10 @@ public final class SakuraInfiniteDanceSA {
                 state.setComboSeq(ComboStateRegistry.NONE.getId());state.setLastActionTime(p.level().getGameTime());
             }
         });
+    }
+    private static boolean controlled(ServerPlayer p) {
+        return p.isSleeping()||p.isFullyFrozen()||p.getCapability(CapabilityMobEffect.MOB_EFFECT)
+                .map(m->m.isStun(p.level().getGameTime())).orElse(false);
     }
     private static void removeSlow(ServerPlayer p) {var speed=p.getAttribute(Attributes.MOVEMENT_SPEED);if(speed!=null) speed.removeModifier(SLOW);}
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void hurt(LivingDamageEvent e) {

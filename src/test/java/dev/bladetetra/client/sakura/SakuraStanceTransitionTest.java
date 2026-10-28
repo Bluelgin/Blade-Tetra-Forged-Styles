@@ -66,9 +66,10 @@ class SakuraStanceTransitionTest {
         assertTrue(departure.distanceToSqr(SakuraShardFormation.home(FRAME,delayed.index,48,4))>.001);
         pool.tick(FRAME,4.01,GRIP,TIP);
         assertEquals(departure,delayed.position,"waiting blade must not teleport to the rear formation");
-        for(int t=5;t<=35;t++) pool.tick(FRAME,t,GRIP,TIP);
+        // The SA's layered formation also eases back after the final cue.
+        for(int t=5;t<=45;t++) pool.tick(FRAME,t,GRIP,TIP);
         assertEquals(1,delayed.visibility,"departed forming blade must finish its fade");
         assertEquals(SakuraShardPool.State.IDLE,delayed.state);
-        assertEquals(SakuraShardFormation.home(FRAME,delayed.index,48,35),delayed.position);
+        assertEquals(SakuraShardFormation.home(FRAME,delayed.index,48,45),delayed.position);
     }
 }

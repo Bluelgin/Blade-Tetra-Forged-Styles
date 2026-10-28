@@ -115,6 +115,15 @@ public final class SakuraCombatSmokeTest {
                 long after=rank.getRankPoint(now+10);rank.addRankPoint(actor,100);SakuraEndlessFlow.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
                 check(rank.getRankPoint(now+10)<=after,"secondary attacks cannot fund SA");
             }
+            reset(level,blade);state.doChargeAction(actor,state.getFullChargeTicks(actor));
+            check(SakuraInfiniteDanceSA.active(actor,blade),"native Jackpot starts the same SA once");
+            int maxTicks=dev.bladetetra.config.GameplayConfig.SAKURA_SA_MAX_TICKS.get();
+            try {
+                dev.bladetetra.config.GameplayConfig.SAKURA_SA_MAX_TICKS.set(40);
+                reset(level,blade);state.doChargeAction(actor,40);long began=level.getGameTime();
+                for(int t=0;t<=55;t++) step(level,blade,began+t);
+                check(SakuraInfiniteDanceSA.phase(actor)==SakuraInfiniteDanceSA.Phase.IDLE,"maximum runtime safely unlocks");
+            } finally {dev.bladetetra.config.GameplayConfig.SAKURA_SA_MAX_TICKS.set(maxTicks);}
             for(int scenario=0;scenario<7;scenario++) {
                 reset(level,blade);state.doChargeAction(actor,40);check(SakuraInfiniteDanceSA.active(actor,blade),"start lifecycle scenario");
                 switch(scenario) {
