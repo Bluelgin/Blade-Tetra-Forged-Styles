@@ -8,7 +8,8 @@ public final class KyoukaRules {
                 ? (float) (nativeDamage * .75) : 0;
     }
     public static boolean canStart(long points, long unit, int grade, int cost) {
-        return unit > 0 && grade >= 4 && points / (double) unit >= 4 && points >= cost && cost >= 0;
+        return unit > 0 && grade >= 4 && points / (double) unit >= 4 && points >= cost && cost >= 0
+                && (points-cost) / (double) unit >= 3;
     }
     public static boolean sustain(long points, long unit, int grade) {
         return unit > 0 && grade >= 3 && points / (double) unit >= 3;

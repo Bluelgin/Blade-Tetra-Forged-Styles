@@ -21,6 +21,8 @@ class KyoukaRulesTest {
         assertFalse(KyoukaRules.canStart(1200,1000,4,60));
         assertFalse(KyoukaRules.canStart(4000,0,4,60));
         assertFalse(KyoukaRules.canStart(1200,300,4,1201));
+        assertFalse(KyoukaRules.canStart(1200,300,4,301));
+        assertTrue(KyoukaRules.canStart(1200,300,4,300));
         assertTrue(KyoukaRules.sustain(900,300,3));
         assertFalse(KyoukaRules.sustain(899,300,3));
         assertTrue(KyoukaRules.sustain(3000,1000,3));

@@ -41,7 +41,8 @@ public final class KyoukaMirrorSessions {
                 && (target instanceof Enemy || target instanceof Mob mob && mob.getTarget() == owner);
     }
     static void activate(ServerPlayer owner, Set<EntitySpiralSwords> ring) {
-        if (!eligible(owner.getMainHandItem()) || SESSIONS.containsKey(owner.getUUID())
+        if (!owner.isAlive() || owner.isRemoved() || owner.isSpectator()
+                || !eligible(owner.getMainHandItem()) || SESSIONS.containsKey(owner.getUUID())
                 || SESSIONS.size() >= GameplayConfig.KYOUKA_MAX_SESSIONS.get()
                 || SESSIONS.values().stream().filter(s -> s.owner.level() == owner.level()).count()
                         >= GameplayConfig.KYOUKA_WORLD_SESSIONS.get()) return;

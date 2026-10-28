@@ -5,9 +5,9 @@
 主基线 #46 `10e5aced2e74da408537390faa98b61334505bd1`，继承 #43 `6e2e3444538ebf34fb5c9d4d67a1b9a3215bfb06`。
 补入 #41 `a60b4ab834f56ff4883336746e53f15ce0057570` 的赤月 V2 回退，冲突保留 #46 已有 SakuraEndlessFlow，不恢复赤月因果队列。#47 `ca0123131f6173fbd95bebbc7862a08f805d5c81`、#48 `344adeb4026f6bdb54d4491f834420c183e047a1` 未合入。#46 自身依赖旧千本樱2.x栈，该既有依赖未删除。
 
-实际 Gradle 依赖为 CurseForge file 8018222（SlashBlade 1.9.63），Tetra file 5236744、Forge 47.4.0、Java17。已调查上游 1.9.63 源码提交 `0c1034e886ca1e76421ead8d82704bde739edd2e`。本地没有依赖 JAR/Gradle 缓存；实际二进制链接与 Mixin 验证必须以本 PR 的 CI/Forge smoke 为准，不能把上游源码审计写成 JAR 验证通过。
+实际 Gradle 依赖为 CurseForge file 8018222（SlashBlade 1.9.63），Tetra file 5236744、Forge 47.4.0、Java17。已调查上游 1.9.63 源码提交 `0c1034e886ca1e76421ead8d82704bde739edd2e`。本地初始没有依赖 JAR/Gradle 缓存。随后在 CI 用 `kyoukaNativeApiAudit` 对实际解析的 8018222 JAR 运行 javap，核对 updateComboSeq 的取消/提交顺序、areaAttack 两种最终重载、EntitySlashEffect 非cycle/cycle窗口、Rank的两个入口及 LayerMainBlade 的真实采样时钟；审计文本随 CI artifact 提供。
 
-`NextComboEvent` 是候选/虚拟路由；`BladeMotionEvent` 可取消/改写；`PerformSlashArtEvent` 不是提交事实。对 `ISlashBladeState.updateComboSeq` 中最终 `setLastActionTime` 完成处只读注入，位于原生 clickAction 之前。没有调用、复制或注册 ComboState，没有替换输入、移动、tickAction/clickAction/hitEffect。
+`NextComboEvent` 是候选/虚拟路由；`BladeMotionEvent` 可取消/改写；`PerformSlashArtEvent` 不是提交事实。对 `ISlashBladeState.updateComboSeq` 中最终 `setLastActionTime` 完成处只读注入，位于原生 clickAction 之前。Mixin 0.8.5 不支持接口默认方法 @Inject，故使用一个空标记 Mixin + 既有插件的窄 ASM post-apply bridge，校验该方法中唯一的时间戳写入后插入一次观察调用，不移除或重排原生指令；找不到或出现歧义时拒绝加载，避免默默失去权威观察。没有调用、复制或注册 ComboState，没有替换输入、移动、tickAction/clickAction/hitEffect。
 
 ## 状态、动作与渲染
 
@@ -23,23 +23,37 @@ NativeBladeMotionSampler 独立读取 BladeMotionManager/VMD、bladeholder.pmd�
 
 ## 75%预算和边界
 
-观察真实 AttackManager.areaAttack 返回，而非已有 LivingDamage。已登记原生 EntitySlashEffect 以原生 alreadyHits 列表身份关联其已提交动作：非cycle剑气每实体一次，cycle剑气每真实tick窗口一次。原生多段的不同实体/时间各有预算；同一窗口重复调用去重，每动作最多64窗口、保留32动作、每会话最多64剑气、全服待结算4096。
+观察真实 AttackManager.areaAttack 返回，而非已有 LivingDamage。已登记原生 EntitySlashEffect 以原生 alreadyHits 列表身份关联其已提交动作：非cycle剑气每实体一次，cycle剑气每真实tick窗口一次。原生多段的不同实体/时间各有预算；直接areaAttack只接受当前已提交、未超时且非待机的动作；同一tick同ratio直接窗口保守去重，无法区分的第三方同tick同ratio多段可能少结算而不会膨胀。同一窗口重复调用去重，每动作最多64窗口、保留32动作、每会话最多64剑气、全服待结算4096。
 
-近战使用原生 AttackHelper.calculateTotalDamage(owner,target,ratio,isCriticalHit)，包含原生剑技ratio、附魔、Rank/refine、暴击和服务端SlashBlade伤害设置；间接原生剑气用审计后的原生公式 `(getDamage*ATTACK_DAMAGE+rankBonus)*ratio*SlashBladeScale*global`。每窗口形成**一份** `nativeBaseline*0.75`，20→15，不按三把刀再乘三。拒绝NaN、非正及超过1024的异常基准。通过既有 CombatBalanceRuntime.authoredDamage/InheritedCombatDamage 与 SoulLegacyDamageGuard 结算，保留项目倍率和Forge伤害保护，限制PVP/友方/驯服动物，追加伤害不再生成技能或Rank。只在合法窗口临时绕过hurt cooldown，finally恢复原值和目标速度。
+近战使用原生 AttackHelper.calculateTotalDamage(owner,target,ratio,isCriticalHit)，包含原生剑技ratio、附魔、Rank/refine、暴击和服务端SlashBlade伤害设置；间接原生剑气用审计后的原生公式 `(getDamage*ATTACK_DAMAGE+rankBonus)*ratio*SlashBladeScale*global`。每窗口形成**一份** `nativeBaseline*0.75`，20→15，不按三把刀再乘三。拒绝NaN、非正及超过1024的异常基准。通过既有 CombatBalanceRuntime.authoredDamage/InheritedCombatDamage、SoulLegacyDamageGuard 和既有 kyouka_mirror 二次伤害源结算，复用锻造SA的源阶段倍率快照，不重复触发居合进攻回调或二次套用SA阶段倍率。保留项目倍率和Forge伤害保护，限制PVP/友方/驯服动物，追加伤害不再生成技能或Rank。最终平衡预算超过768或非有限值时跳过。攻击保护直接发布可取消的 AttackEntityEvent；不调用 ForgeHooks.onPlayerAttackTarget，因为它会执行 ItemSlashBlade.onLeftClickEntity 并合成一次原生输入。只在合法窗口临时绕过hurt cooldown，finally恢复原值和目标速度。
 
 支持使用审计过areaAttack入口的原生A/B、居合、上挑、下坠与项目自定义流派。特殊SA（例如JudgementCut自己hurt的攻击）、自定义剑气子类、未知排除列表、绕过areaAttack的第三方攻击只同步可用VMD，不追加伤害。不能宣称所有第三方SA都支持。native calculateTotalDamage 会发CriticalHitEvent，仅计算阶段事件，不重放攻击/移动/击中回调；第三方在该事件中的非纯副作用需实机兼容测试。
 
 ## Rank
 
-A及以上激活，原生unit capacity与grade双重核对。默认启动60、每秒12、每合法攻击动作一次18；低于B停止。3.0始终有真实Rank代价，不使用旧V2的可关闭Rank收费开关或旧replay价格，不额外收双魂附加费。
+A及以上激活，原生unit capacity与grade双重核对，启动费支付后也必须至少能维持B级；无法维持的配置/小unit实现不先扣启动费。默认启动60、每秒12、每合法攻击动作一次18；低于B停止。3.0始终有真实Rank代价，不使用旧V2的可关闭Rank收费开关或旧replay价格，不额外收双魂附加费。
 
-只对会话登记的原生ConcentrationRank capability启用增益封锁：Mixin覆盖其原生addRankPoint(user,long)，正数在写入/同步前拒绝，负数继续原生处理；setRawRankPoint直接正向写入也拒绝。自然衰减不写回，不每tick覆盖余额。不注册Sakura锁，不改变其现有tick ceiling，武器切换后解除镜花锁。替代capability实现未审计，故拒绝激活，避免宣称未知实现零瞬时增益。第三方直接改字段/绕过setter不在兼容保证内。
+只对会话登记的原生ConcentrationRank capability启用增益封锁：Mixin覆盖其原生addRankPoint(user,long)，正数在写入/同步前拒绝，负数继续原生处理；DamageSource增益重载在解析连招前直接返回，避免二次伤害的Rank回调推进原生Combo；setRawRankPoint直接正向写入也拒绝。自然衰减不写回，不每tick覆盖余额。不注册Sakura锁，不改变其现有tick ceiling，武器切换后解除镜花锁。替代capability实现未审计，故拒绝激活，避免宣称未知实现零瞬时增益。第三方直接改字段/绕过setter不在兼容保证内。
 
 魂铭、双魂组合与觉醒存档/仪式保持；旧的镜花V2历史记录SA及其依赖的历史锚点追加不再是3.0的触发来源。赤月为主魂的旧终月协奏仍走#41保留的旧接口。
 
 ## 验证
 
-本地网络无法下载Gradle发行包，且仅有Java运行时；本地未完成Gradle编译。CI与专服smoke待本PR执行，状态以确切HEAD记录为准。没有图形客户端、真人多人或FPS验证。
+本地网络无法下载Gradle发行包，且仅有Java运行时；本地未完成Gradle编译。CI已实际完成构建/JUnit，并运行独立的图形客户端VMD/OBJ smoke（53项）及原生专服24项基础检查（后续提交扩展八owner、其他幻影剑技、快照、本体伤害和无敌帧检查，最终数量与结论以确切HEAD日志为准）。自动化可以执行如下：
+
+```sh
+./gradlew build kyoukaNativeApiAudit
+mkdir -p build/kyouka-native-smoke
+printf 'eula=true\n' > build/kyouka-native-smoke/eula.txt
+./gradlew runServer -PkyoukaNativeSmoke
+xvfb-run -a ./gradlew runClient -PkyoukaMotionSmoke
+```
+
+客户端 smoke 真实加载原生PMD/VMD与Tetra外观，在无世界、无玩家实体的测试屏幕上，从同一矩阵绘制三把刀；覆盖A1–A3、B1–B7与未知动作降级、采样器重建。下面是它生成的实际帧，不是设计图或世界内实机验收：
+
+![原生VMD一次采样和三把Tetra无鞘刀身](previews/kyouka-three-mirrors-native.png)
+
+没有完成世界内真人游玩、八人真实联网、第一/第三人称全流程、完整资源重载与FPS验收；专服八owner使用FakePlayer测试隔离，生产功能本身不创建FakePlayer。CI还运行既有Mikage、自定义流派、Lifeng和Sword Aura回归；仅以最新HEAD各步骤的实际结论为准。
 
 实机验收流程（全部待执行）：
 1. 已觉醒镜花/A级/锁定僵尸，原生Spiral产生6把，检查周身原生环剑+目标三镜同时存在，付60且只激活一次。普通中键、Storm、HeavyRain、耀魂不足、无锁定、非主魂/未觉醒/坏刀不得激活或额外付费。

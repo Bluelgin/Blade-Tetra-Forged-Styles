@@ -59,33 +59,39 @@ public final class KyoukaMirrorRenderer {
             if (!(entity instanceof LivingEntity target) || !target.isAlive() || !data.target().equals(target.getUUID())
                     || eye.distanceToSqr(target.position()) > distance*distance
                     || !e.getFrustum().isVisible(target.getBoundingBox().inflate(4))) continue;
-            if (v.model == null && !v.unsupported) {
-                v.model = FloatingBladeRenderer.prepare(v.appearance); v.unsupported = v.model == null;
-            }
-            if (v.model == null) continue;
-            if (++rendered > Math.max(1, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get()/3)) break;
-            double clock = level.getGameTime() + e.getPartialTick();
-            // Exactly one native sample for this action/frame, shared unchanged by all three blades.
-            var motion = data.action() > 0 ? SAMPLER.sample(data.combo(), clock - data.started()) : null;
-            Vec3 center = target.getPosition(e.getPartialTick());
-            for (int i=0; i<3; i++) {
-                double angle = Math.toRadians(data.yaw()) + i * Math.PI * 2 / 3;
-                double radius = Math.max(1.2, target.getBbWidth()*.5 + .8);
-                pose.pushPose();
-                try {
-                    pose.translate(center.x-eye.x+Math.cos(angle)*radius,
-                            center.y-eye.y+.1+Math.sin(clock*.06)*.06,
-                            center.z-eye.z+Math.sin(angle)*radius);
-                    pose.mulPose(Axis.YP.rotation((float)(-angle-Math.PI*.5)));
-                    if (motion != null) {
-                        pose.mulPoseMatrix(motion);
-                        pose.last().normal().set(pose.last().pose()).invert().transpose();
-                    } else {
-                        pose.translate(0, 1.6, 0); pose.mulPose(Axis.ZP.rotationDegrees(-90));
-                        pose.scale(.0078125F, .0078125F, .0078125F); pose.translate(-20, 0, 0);
-                    }
-                    FloatingBladeRenderer.renderMirror(v.model, v.appearance, pose, buffers);
-                } finally { pose.popPose(); }
+            try {
+                if (v.model == null && !v.unsupported) {
+                    v.model = FloatingBladeRenderer.prepare(v.appearance); v.unsupported = v.model == null;
+                }
+                if (v.model == null) continue;
+                if (++rendered > Math.max(1, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get()/3)) break;
+                double clock = level.getGameTime() + e.getPartialTick();
+                // Exactly one native sample for this action/frame, shared unchanged by all three blades.
+                var motion = data.action() > 0 ? SAMPLER.sample(data.combo(), clock - data.started()) : null;
+                Vec3 center = target.getPosition(e.getPartialTick());
+                for (int i=0; i<3; i++) {
+                    double angle = Math.toRadians(data.yaw()) + i * Math.PI * 2 / 3;
+                    double radius = Math.max(1.2, target.getBbWidth()*.5 + .8);
+                    pose.pushPose();
+                    try {
+                        pose.translate(center.x-eye.x+Math.cos(angle)*radius,
+                                center.y-eye.y+.1+Math.sin(clock*.06)*.06,
+                                center.z-eye.z+Math.sin(angle)*radius);
+                        pose.mulPose(Axis.YP.rotation((float)(-angle-Math.PI*.5)));
+                        if (motion != null) {
+                            pose.mulPoseMatrix(motion);
+                            pose.last().normal().set(pose.last().pose()).invert().transpose();
+                        } else {
+                            pose.translate(0, Math.max(2.2, target.getBbHeight()+.25), 0);
+                            pose.mulPose(Axis.ZP.rotationDegrees(90));
+                            pose.scale(.0078125F, .0078125F, .0078125F); pose.translate(-20, 0, 0);
+                        }
+                        FloatingBladeRenderer.renderMirror(v.model, v.appearance, pose, buffers);
+                    } finally { pose.popPose(); }
+                }
+            } catch (RuntimeException unsupportedAdapter) {
+                v.unsupported = true; v.model = null;
+                com.mojang.logging.LogUtils.getLogger().warn("Kyouka mirror appearance declined until resource reload", unsupportedAdapter);
             }
         }
     }
