@@ -120,7 +120,11 @@ public final class SwordAuraHitSmokeTest {
                 slash.setPos(5, 80, 5);
                 SwordAuraSpawner.emit(owner, slash, style);
                 var emitted = level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> aura.getOwner() == owner);
-                check(emitted.size() == before + 1, "one physical aura for " + style);
+                check(emitted.size() == before + 1, "one physical aura for " + style
+                        + " before=" + before + " after=" + emitted.size()
+                        + " damage=" + SwordAuraDamage.snapshot(owner)
+                        + " ownerRegistered=" + (level.getEntity(owner.getId())==owner)
+                        + " total=" + level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> true).size());
                 // Entity iteration order is not a creation-order contract.
                 var latest = emitted.stream().filter(aura -> aura.position().distanceToSqr(5, 80, 5) < 1).findFirst().orElseThrow();
                 check(latest.getDamage() > 0, "damage projectile retained for " + style);
