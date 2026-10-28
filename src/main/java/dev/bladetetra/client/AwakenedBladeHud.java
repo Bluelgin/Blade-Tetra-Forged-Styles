@@ -35,7 +35,7 @@ public final class AwakenedBladeHud {
 
     public static void accept(AwakenedBladeStatePacket packet) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || packet.soul() < 1 || packet.soul() > 4
+        if (mc.level == null || packet.soul() < 2 || packet.soul() > 4
                 || packet.maximum() < 1 || packet.maximum() > 6
                 || packet.meter() < 0 || packet.meter() > packet.maximum()
                 || packet.minimumRank() < 0 || packet.minimumRank() > 7
