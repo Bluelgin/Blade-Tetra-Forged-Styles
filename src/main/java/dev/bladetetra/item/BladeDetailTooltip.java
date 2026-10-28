@@ -85,14 +85,17 @@ public final class BladeDetailTooltip {
             }
         }
 
-        if (!AwakenedBladeCombat.replacesLegacy()) SoulResonance.appendTooltip(stack, lines);
+        if (!AwakenedBladeCombat.replacesLegacy()
+                || !AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack)))
+            SoulResonance.appendTooltip(stack, lines);
         appendAwakenedAbilities(stack, ordered, lines);
         return lines;
     }
 
     private static void appendAwakenedAbilities(ItemStack stack,
             List<SoulLegacyState.Legacy> souls, List<Component> lines) {
-        if (AwakenedBladeCombat.replacesLegacy()) {
+        if (AwakenedBladeCombat.replacesLegacy()
+                && AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack))) {
             SoulLegacyState.Legacy primary = SoulLegacyState.active(stack);
             if (primary != SoulLegacyState.Legacy.NONE) {
                 lines.add(Component.translatable(
