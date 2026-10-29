@@ -80,6 +80,17 @@ jobs:
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
           retention-days: 14
+      - name: Sakura 3.0 ordinary combat, SA and native stance Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sakura-combat-smoke
+          echo 'eula=true' > build/sakura-combat-smoke/eula.txt
+          ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
+          grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_STANCE_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_SA_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_CONCERTO_SMOKE_PASS' build/sakura-combat-smoke.log
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8

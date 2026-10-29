@@ -125,17 +125,8 @@ public final class AwakenedBladeCombat {
         state.lastDamage = Math.max(0.0F, Math.min(32.0F, event.getAmount()));
         Vec3 center = target.getBoundingBox().getCenter();
         switch (soul) {
-            case KYOUKA -> { /* Three Mirrors observes committed native actions separately. */ }
-            case SENBONZAKURA -> {
-                // Native sword hits authorize only a cosmetic swarm volley.
-                // No independent attack entity or secondary damage is spawned.
-                if (SakuraEndlessFlow.isBurning(player, blade)
-                        && SakuraEndlessFlow.shouldShowVolley(player, blade, now)) {
-                    visual(level, soul, AwakenedBladeVfxPacket.MARK,
-                            player.position().add(0, 1.0D, 0), center,
-                            10 + SakuraEndlessFlow.initialRank(player, blade));
-                }
-            }
+            case SENBONZAKURA -> SakuraCombatVisuals.confirm(player, blade,
+                    event.getSource().getDirectEntity(), target, event.getAmount());
             case RAIKIRI -> {
                 // Only slash effects created by our upgraded native rapid
                 // combo authorize another free Thunder Step. This remains
@@ -170,13 +161,12 @@ public final class AwakenedBladeCombat {
         ItemStack blade = player.getMainHandItem();
         SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
         if (!SoulLegacyState.isActive(blade, soul) || !isV2CombatSoul(soul)
-                || soul == SoulLegacyState.Legacy.KYOUKA) return;
+                || soul == SoulLegacyState.Legacy.KYOUKA
+                || soul == SoulLegacyState.Legacy.SENBONZAKURA) return;
         ServerLevel level = player.serverLevel();
         State state = state(player, blade);
         long now = level.getGameTime();
         switch (soul) {
-            case KYOUKA -> { /* Native Spiral Swords owns activation; SA remains native. */ }
-            case SENBONZAKURA -> releaseSenbonzakura(level, player, blade, state, now);
             case RAIKIRI -> releaseRaikiri(level, player, blade, state, now);
             default -> {
             }
@@ -184,20 +174,6 @@ public final class AwakenedBladeCombat {
         syncHud(player, soul, blade, state, false);
     }
 
-    private static void releaseSenbonzakura(ServerLevel level, ServerPlayer player,
-            ItemStack blade, State state, long now) {
-        // Remove standalone ring/fan/rain SA. Shift+SA only switches forms.
-        if (!player.isShiftKeyDown() || now < state.stanceUntil
-                || dev.bladetetra.combat.StyleResolver.resolve(blade)
-                        != dev.bladetetra.combat.BladeStyle.RENGEKI) return;
-        CompoundTag tag = blade.getOrCreateTag();
-        boolean dispersed = !tag.getBoolean(SAKURA_DISPERSED);
-        tag.putBoolean(SAKURA_DISPERSED, dispersed);
-        state.stanceUntil = now + 12L;
-        Vec3 pos = player.position().add(0, 1, 0);
-        visual(level, SoulLegacyState.Legacy.SENBONZAKURA,
-                AwakenedBladeVfxPacket.STANCE, pos, pos, dispersed ? 1 : 0);
-    }
 
     /**
      * One Shift+W native Rapid Slash activation, never a Slash Art fallback.
@@ -518,7 +494,6 @@ public final class AwakenedBladeCombat {
         long lastStep;
         int stepChain;
         boolean stepConfirmed;
-        long stanceUntil;
         int lastSyncedMeter = -1;
         int lastSyncedMinimum = -1;
         int lastSyncedCost = -1;

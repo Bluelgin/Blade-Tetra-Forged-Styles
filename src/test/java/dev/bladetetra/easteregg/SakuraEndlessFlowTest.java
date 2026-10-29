@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SakuraEndlessFlowTest {
-    @Test void bSeriesIsOnlyTheSevenActualAttackNodes() {
-        for (int i = 1; i <= 7; i++) {
+    @Test void bSeriesStopsAtSixAndRecognizesTheNativeSixthAdapter() {
+        for (int i = 1; i <= 6; i++) {
             assertTrue(SakuraFlowRules.isNativeBAttack(
                     new ResourceLocation("slashblade", "combo_b" + i)));
         }
@@ -17,6 +17,14 @@ class SakuraEndlessFlowTest {
         assertFalse(SakuraFlowRules.isNativeBAttack(
                 new ResourceLocation("slashblade", "combo_a1")));
         assertFalse(SakuraFlowRules.isNativeBAttack(null));
+        assertFalse(SakuraFlowRules.isNativeBAttack(new ResourceLocation("slashblade", "combo_b7")));
+        assertEquals(6, SakuraFlowRules.stage(new ResourceLocation("blade_tetra", "awakened_sakura_b6")));
+    }
+
+    @Test void sixthCannotLeaveBeforeItsFinalNativeDamageTick() {
+        for (int tick=0; tick<=6; tick++) assertFalse(SakuraFlowRules.completedB6(tick));
+        assertTrue(SakuraFlowRules.completedB6(7));
+        assertTrue(SakuraFlowRules.completedB6(8));
     }
 
     @Test void higherEntryRankAlwaysBurnsSlower() {

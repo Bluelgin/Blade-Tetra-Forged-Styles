@@ -180,3 +180,7 @@ workbench outcomes.
 服务器旧 `[kyouka3]` 名称保留用于配置迁移。`startCost`、`drainPerSecond`、`actionCost` 已弃用且忽略；`range`（默认32格）、`serverSessions`（64）、`worldSessions`（32）继续限制状态/结算。SSS追忆：60刻历史、10刻延迟、600刻冷却、总75%。水镜衣：原版airSupply；水斩14刻/40%、最多8份预约、每动作首个成功窗口；卸力最高30%、60刻间隔、200刻内最多6HP、成功另耗20空气。参数目前固定在有界运行时中，不复用弃用Rank价格。
 
 客户端与服务端必须同时更新到 `kyouka4-water-2` 协议。原版氧气、Buff和呼吸增强负责续航，没有新增能量条。详见 `docs/awakened-rework/KYOUKA_40.md`。
+
+## 千本樱 3.0
+
+旧 `awakenedSakuraFlowDrainPerSecond` 键保留，仅用于散华无限连舞 SA；普通散华攻击不额外燃烧 Rank。新增 `sakuraSaMaxTicks=1200`、`sakuraConcertoInterval=8`、`sakuraConcertoDamageFraction=0.25`、`sakuraConcertoDamageCap=6.0`、`sakuraSaStageDamage=8.0`。详细作用和上下限见 [千本樱维护说明](docs/awakened-rework/SAKURA_30.md)。

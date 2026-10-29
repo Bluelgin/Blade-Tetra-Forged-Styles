@@ -105,6 +105,7 @@ final class RustReleaseFusionHandler {
                 || same(combo, ComboStateRegistry.COMBO_B4.getId())
                 || same(combo, ComboStateRegistry.COMBO_B5.getId())
                 || same(combo, ComboStateRegistry.COMBO_B6.getId())
+                || same(combo, dev.bladetetra.easteregg.SakuraSixthCombo.SIXTH.getId())
                 || same(combo, ComboStateRegistry.AERIAL_RAVE_A2.getId())
                 || same(combo, ComboStateRegistry.AERIAL_RAVE_B3.getId())
                 || same(combo, ModComboStates.IAIDO_RETURN.getId())
