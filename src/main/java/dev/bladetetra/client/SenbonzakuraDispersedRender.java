@@ -1,43 +1,56 @@
 package dev.bladetetra.client;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.easteregg.SoulLegacyState;
+import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Real Tetra/SlashBlade body transformation using SlashBlade's own render
- * override hook. The native sheath and item inventory icon remain visible.
- * Only the sword blade geometry is suppressed in dispersed combat stance;
- * its detached petals are rendered by AwakenedBladeVfxClient.
- *
- * This works with custom blade materials and the original OBJ model: no
- * global replacement texture and no fixed third-party model assumptions.
+ * The original Tetra sword and sheath are never destroyed or changed in NBT.
+ * Only their combat render groups are replaced by a small neutral hilt mesh.
+ * Native item icons, durability overlays and all other render targets survive.
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class SenbonzakuraDispersedRender {
     private static final String STANCE = "blade_tetra_awakened_v2_sakura_dispersed";
+    private static final ResourceLocation HILT = new ResourceLocation(
+            BladeTetra.MOD_ID, "model/sakura_hilt.obj");
 
     @SubscribeEvent
     public static void onRenderOverride(RenderOverrideEvent event) {
-        if (!GameplayConfig.ENABLE_AWAKENED_V2.get()) return;
+        if (!GameplayConfig.ENABLE_AWAKENED_V2.get()
+                || dev.bladetetra.client.awakening.FloatingBladeRenderer.isRendering()) return;
+        // A ritual owns only the detached blade. Preserve the native mounted sheath
+        // even when the operator previews an already-dispersed Sakura weapon.
+        if (dev.bladetetra.client.awakening.AwakeningVisibility.isSheathTarget(event.getOriginalTarget())
+                && dev.bladetetra.client.awakening.AwakeningVisualController.keepMountedSheath(event.getStack()))
+            return;
         ItemStack blade = event.getStack();
         CompoundTag tag = blade.getTag();
         if (tag == null || !tag.getBoolean(STANCE)
+                || StyleResolver.resolve(blade) != BladeStyle.RENGEKI
+                || SoulLegacyState.active(blade) != SoulLegacyState.Legacy.SENBONZAKURA
                 || !SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.SENBONZAKURA))
             return;
         String target = event.getTarget();
-        // Do not hide a blade's item icon, sheath, broken/durability overlay
-        // or special GUI model. Only suppress combat body and luminous group.
-        if ("blade".equals(target) || "blade_luminous".equals(target)
-                || "blade_damaged".equals(target)
-                || "blade_damaged_luminous".equals(target)) {
+        if ("blade".equals(target) || "blade_damaged".equals(target)) {
+            // Render a physical handle instead of hiding the entire sword;
+            // the native model/texture return automatically in condensed form.
+            event.setModel(BladeModelManager.getInstance().getModel(HILT));
+            event.setTarget("blade");
+        } else if ("blade_luminous".equals(target)
+                || "blade_damaged_luminous".equals(target)
+                || "sheath".equals(target) || "sheath_luminous".equals(target)) {
             event.setCanceled(true);
         }
     }

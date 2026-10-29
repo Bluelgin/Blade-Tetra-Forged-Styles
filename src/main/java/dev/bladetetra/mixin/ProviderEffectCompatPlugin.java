@@ -23,6 +23,10 @@ public final class ProviderEffectCompatPlugin implements IMixinConfigPlugin {
 
     @Override
     public void postApply(String target, ClassNode node, String mixin, IMixinInfo info) {
+        if (mixin.endsWith(".NativeBladeCommitMixin")) {
+            dev.bladetetra.kyouka.NativeBladeCommitBridge.install(node);
+            return;
+        }
         if (!mixin.endsWith(".ProviderEffectCompatMixin")) return;
         var result = ProviderEffectBytecodeBridge.adapt(node);
         if (result.adapted() > 0) LOGGER.info("Adapted {} effect methods in {}", result.adapted(), target);

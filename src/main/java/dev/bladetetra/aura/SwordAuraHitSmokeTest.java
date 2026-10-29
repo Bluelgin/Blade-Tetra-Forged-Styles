@@ -20,6 +20,8 @@ import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -30,6 +32,13 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SwordAuraHitSmokeTest {
     private static int checks;
+    private static boolean observingEmission;
+    private static final List<SwordAuraDriveEntity> EMISSIONS = new ArrayList<>();
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void joined(EntityJoinLevelEvent event) {
+        if (observingEmission && !event.getLevel().isClientSide()
+                && event.getEntity() instanceof SwordAuraDriveEntity aura) EMISSIONS.add(aura);
+    }
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("blade_tetra.swordAuraHitSmoke")) return;
         ServerLevel level = event.getServer().overworld();
@@ -94,12 +103,20 @@ public final class SwordAuraHitSmokeTest {
             check(!victim.hurt(level.damageSources().mobAttack(owner), 1), "normal attacks still obey their own hurt cooldown");
             // A visual-heavy profile must still emit exactly one physical damage projectile.
             for (BladeStyle style : BladeStyle.values()) {
-                int before = level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> aura.getOwner() == owner).size();
+                EMISSIONS.clear();
                 var slash = new EntitySlashEffect(SlashBlade.RegistryEvents.SlashEffect, level);
                 slash.setPos(5, 80, 5);
-                SwordAuraSpawner.emit(owner, slash, style);
-                var emitted = level.getEntities(ModEntities.SWORD_AURA_DRIVE.get(), aura -> aura.getOwner() == owner);
-                check(emitted.size() == before + 1, "one physical aura for " + style);
+                observingEmission = true;
+                try { SwordAuraSpawner.emit(owner, slash, style); }
+                finally { observingEmission = false; }
+                // Global typed iteration can lag accepted additions before the first server tick.
+                // Capture this factory invocation, then require actual world admission: cancelled
+                // join events and removed/decorative stand-ins cannot satisfy the assertion.
+                var emitted = EMISSIONS.stream().filter(aura -> aura.isAddedToWorld() && !aura.isRemoved()
+                        && aura.getOwner() == owner && aura.getType() == ModEntities.SWORD_AURA_DRIVE.get()).toList();
+                check(emitted.size() == 1 && EMISSIONS.size() == 1, "one accepted physical aura for " + style
+                        + " joins=" + EMISSIONS.size() + " accepted=" + emitted.size()
+                        + " snapshot=" + SwordAuraDamage.snapshot(owner));
                 // Entity iteration order is not a creation-order contract.
                 var latest = emitted.stream().filter(aura -> aura.position().distanceToSqr(5, 80, 5) < 1).findFirst().orElseThrow();
                 check(latest.getDamage() > 0, "damage projectile retained for " + style);
@@ -120,6 +137,7 @@ public final class SwordAuraHitSmokeTest {
             LogUtils.getLogger().error("SWORD_AURA_HIT_SMOKE_FAIL", failure);
             throw new IllegalStateException("Sword aura hit diagnostic failed", failure);
         } finally {
+            observingEmission = false; EMISSIONS.clear();
             MinecraftForge.EVENT_BUS.unregister(cancel);
             spawned.forEach(Entity::discard); owner.discard(); event.getServer().halt(false);
         }

@@ -127,13 +127,19 @@ public final class SenbonzakuraAwakening {
 
     public static void appendTooltip(ItemStack stack, List<Component> tooltip) {
         if (isActive(stack)) {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.awakened")
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.marks",
-                            petalMarks(stack), MAX_MARKS)
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+            if (AwakenedBladeCombat.replacesLegacy()) {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.awakened.v2.senbonzakura")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            } else {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.senbonzakura.awakened")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.senbonzakura.marks",
+                                petalMarks(stack), MAX_MARKS)
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
         } else if (isUnlocked(stack)) {
             tooltip.add(Component.translatable(
                             "tooltip.blade_tetra.senbonzakura.dormant")
@@ -346,14 +352,16 @@ public final class SenbonzakuraAwakening {
         blade.getOrCreateTag().putInt(TAG_PETAL_MARKS, 0);
         blade.getOrCreateTag().remove(TAG_MARKS_EXPIRE);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(
-                ParticleTypes.CHERRY_LEAVES,
-                player.getX(), player.getY() + 1.1D, player.getZ(),
-                72, 1.15D, 0.9D, 1.15D, 0.035D);
-        level.sendParticles(
-                ParticleTypes.END_ROD,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                24, 0.75D, 0.75D, 0.75D, 0.025D);
+        if (!AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(
+                    ParticleTypes.CHERRY_LEAVES,
+                    player.getX(), player.getY() + 1.1D, player.getZ(),
+                    72, 1.15D, 0.9D, 1.15D, 0.035D);
+            level.sendParticles(
+                    ParticleTypes.END_ROD,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    24, 0.75D, 0.75D, 0.75D, 0.025D);
+        }
         level.playSound(
                 null,
                 player.blockPosition(),

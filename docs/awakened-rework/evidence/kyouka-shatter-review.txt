@@ -1,0 +1,62 @@
+[12:32:16] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=55 quality=0
+[12:32:16] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=56d0fa9a-9576-4ad6-9440-8406c312e44e time=76
+[12:32:16] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:16] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:18] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 88
+[12:32:20] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 132
+[12:32:20] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 143
+[12:32:21] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 150
+[12:32:21] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 160
+[12:32:23] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=0 clean=true
+[12:32:24] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=3b79586f-013b-4698-b9d0-a802c9144228 time=236
+[12:32:24] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=215 quality=1
+[12:32:24] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:24] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:26] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 248
+[12:32:28] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 292
+[12:32:28] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 303
+[12:32:29] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 310
+[12:32:29] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 320
+[12:32:31] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=1 clean=true
+[12:32:32] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=375 quality=2
+[12:32:32] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=3809f756-6cf2-4d8f-8660-5bb23c49cbd8 time=396
+[12:32:32] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:32] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:34] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 408
+[12:32:36] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 452
+[12:32:36] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 463
+[12:32:37] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 470
+[12:32:37] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 480
+[12:32:39] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=2 clean=true
+[12:32:40] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=535 quality=0
+[12:32:40] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=7e8b4fe9-deaa-467d-ab3c-57bbf2481e9d time=556
+[12:32:40] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:40] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:42] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 568
+[12:32:44] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 612
+[12:32:44] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 623
+[12:32:45] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 630
+[12:32:45] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 640
+[12:32:47] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=3 clean=true
+[12:32:48] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=695 quality=1
+[12:32:48] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=9be47e6c-47b7-4cb2-9ab8-f1c1cbfeaa39 time=716
+[12:32:48] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:48] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:50] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 728
+[12:32:52] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 772
+[12:32:52] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 783
+[12:32:53] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 790
+[12:32:53] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 800
+[12:32:55] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=4 clean=true
+[12:32:56] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_RITUAL_REVIEW_START tick=855 quality=2
+[12:32:56] [Server thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_SERVER soul=KYOUKA id=286c1e60-d219-4687-9f32-866d45a8ea7e time=876
+[12:32:56] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_PACKET age=0 valid=true soul=2
+[12:32:56] [Render thread/INFO] [de.bl.cl.aw.AwakeningVisualController/]: MIRROR_REVIEW_SESSION_READY age=0 valid=true
+[12:32:58] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 888
+[12:33:00] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 932
+[12:33:00] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 943
+[12:33:01] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 950
+[12:33:01] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_CAPTURE 960
+[12:33:03] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_REVIEW_LIFECYCLE cycle=5 clean=true
+[12:33:04] [Render thread/INFO] [de.bl.cl.aw.MirrorRitualReviewScene/]: MIRROR_SHATTER_REVIEW_PASS cycles=6 firstThirdSwitches=true
+BUILD SUCCESSFUL in 1m 26s

@@ -36,7 +36,7 @@ public final class AwakenedBladeHud {
     public static void accept(AwakenedBladeStatePacket packet) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || packet.soul() < 2 || packet.soul() > 4
-                || packet.maximum() < 1 || packet.maximum() > 6
+                || packet.maximum() < 1 || packet.maximum() > 7
                 || packet.meter() < 0 || packet.meter() > packet.maximum()
                 || packet.minimumRank() < 0 || packet.minimumRank() > 7
                 || packet.rankCost() < 0 || packet.rankCost() > 1800) return;
@@ -79,7 +79,13 @@ public final class AwakenedBladeHud {
             default -> "raikiri";
         };
         Component label = Component.translatable("hud.blade_tetra.awakened." + suffix);
-        String number = active.meter() + "/" + active.maximum();
+        String number = soul == 3 ? switch (active.meter()) {
+            case 4 -> "A · Flow";
+            case 5 -> "S · Flow";
+            case 6 -> "SS · Flow";
+            case 7 -> "SSS · Flow";
+            default -> "—";
+        } : active.meter() + "/" + active.maximum();
         graphics.drawString(mc.font, label, x + 27, y + 1, 0xF0E8F5);
         graphics.drawString(mc.font, number, x + 27, y + 13, 0xDAD6EB);
         if (soul == 3 && active.dispersed()) {

@@ -34,6 +34,10 @@ minecraft {
                 property 'blade_tetra.customStyleInputReview', 'true'
                 property 'blade_tetra.customStyleDebug', 'true'
             }
+            if (project.hasProperty('mirrorRitualReview')) {
+                workingDirectory project.file('build/mirror-ritual-review')
+                property 'blade_tetra.mirrorRitualReview', 'true'
+            }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'
@@ -48,6 +52,14 @@ minecraft {
             if (project.hasProperty('deadThoughtRemovalSmoke')) {
                 workingDirectory project.file('build/dead-thought-removal-smoke')
                 property 'blade_tetra.deadThoughtRemovalSmoke', 'true'
+            }
+            if (project.hasProperty('kyoukaMotionSmoke')) {
+                workingDirectory project.file('build/kyouka-motion-smoke')
+                property 'blade_tetra.kyoukaMotionSmoke', 'true'
+            }
+            if (project.hasProperty('kyoukaNativeSmoke')) {
+                workingDirectory project.file('build/kyouka-native-smoke')
+                property 'blade_tetra.kyoukaNativeSmoke', 'true'
             }
             if (project.hasProperty('mikageNativeSmoke')) {
                 workingDirectory project.file('build/mikage-native-smoke')
@@ -102,6 +114,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('mirrorRitualReview')) {
+                args '--width', '960', '--height', '540'
+            }
             if (project.hasProperty('artPreview')) {
                 args '--width', '1600', '--height', '1000'
             }
@@ -355,4 +370,26 @@ tasks.named('jar', Jar).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// Review the actual resolved/remapped 1.9.63 binary, rather than assuming upstream source matches.
+tasks.register('kyoukaNativeApiAudit') {
+    doLast {
+        def out = file('build/kyouka-native-api.txt')
+        out.parentFile.mkdirs()
+        out.withOutputStream { stream ->
+            exec {
+                commandLine 'javap', '-classpath', sourceSets.main.compileClasspath.asPath, '-c', '-p',
+                        'mods.flammpfeil.slashblade.registry.combo.ComboState',
+                        'mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState',
+                        'mods.flammpfeil.slashblade.entity.EntitySlashEffect',
+                        'mods.flammpfeil.slashblade.entity.EntitySpiralSwords',
+                        'mods.flammpfeil.slashblade.util.AttackManager',
+                        'mods.flammpfeil.slashblade.util.AttackHelper',
+                        'mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank',
+                        'mods.flammpfeil.slashblade.client.renderer.layers.LayerMainBlade'
+                standardOutput = stream
+            }
+        }
+    }
 }

@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "18";
+    private static final String PROTOCOL = "kyouka4-water-2";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -17,6 +17,8 @@ public final class ModNetwork {
             PROTOCOL::equals);
 
     public static void register() {
+        CHANNEL.registerMessage(25, KyoukaMirrorPacket.class, KyoukaMirrorPacket::encode,
+                KyoukaMirrorPacket::decode, KyoukaMirrorPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(24, AwakeningPresentationPacket.class,
                 AwakeningPresentationPacket::encode, AwakeningPresentationPacket::decode,
                 AwakeningPresentationPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));

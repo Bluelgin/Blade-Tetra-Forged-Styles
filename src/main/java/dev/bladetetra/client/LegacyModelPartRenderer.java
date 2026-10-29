@@ -370,6 +370,16 @@ public final class LegacyModelPartRenderer {
         return output;
     }
 
+    static List<Face> retainFromX(List<Face> faces, float cutoff) {
+        List<Face> result = new ArrayList<>();
+        for (Face source : faces) {
+            var polygon = clipPlane(polygon(source), cutoff, true);
+            for (int i=1; i+1<polygon.size(); i++)
+                result.add(face(polygon.get(0),polygon.get(i),polygon.get(i+1)));
+        }
+        return result;
+    }
+
     private static List<ClipVertex> polygon(Face face) {
         if (face.vertices == null) return List.of();
         List<ClipVertex> result = new ArrayList<>(face.vertices.length);
