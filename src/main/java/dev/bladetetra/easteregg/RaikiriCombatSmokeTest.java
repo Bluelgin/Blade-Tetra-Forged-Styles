@@ -130,16 +130,51 @@ public final class RaikiriCombatSmokeTest {
             check(RaikiriFieldService.trailCount(plain.getUUID())==0,"other swords have no lightning");
             check(RaikiriFieldService.charged(actor.getUUID()),"real native swept movement resonates with sword");
             check(rank(actor).getRankPoint(now())==rank(plain).getRankPoint(now()),"no supplemental rank payment");
-            advanceTo(114);
-            Zombie victim=victim(0,4.5);victims.add(victim);
-            float hp=victim.getHealth();long before=rank(actor).getRankPoint(115);int beforeMotions=motions;
-            advanceTo(115);
+            advanceTo(119);
+            Zombie victim=victim(1.5,4.5);victims.add(victim);
+            float hp=victim.getHealth();long before=rank(actor).getRankPoint(120);int beforeMotions=motions;
+            Vec3 moving=new Vec3(.12,.2,.07);victim.setOnGround(true);victim.setDeltaMovement(moving);
+            advanceTo(120);
+            check(victim.getDeltaMovement().equals(moving),"real discharge hurt preserves existing velocity without its own knockback");
             check(hp-victim.getHealth()>0 && hp-victim.getHealth()<=4.501,"charged sword retains 1.5x bounded pulse despite amplification");
             check(rank(actor).getRankPoint(now())==before && motions==beforeMotions,"extra lightning grants no rank or native combo");
             check(!RaikiriFieldService.charged(actor.getUUID()),"discharge cannot recursively charge");
-            hp=victim.getHealth();protect=true;victim.invulnerableTime=17;before=rank(actor).getRankPoint(130);advanceTo(130);protect=false;
+            hp=victim.getHealth();protect=true;victim.invulnerableTime=17;before=rank(actor).getRankPoint(140);advanceTo(140);protect=false;
             check(victim.getHealth()==hp && victim.invulnerableTime==17 && rank(actor).getRankPoint(now())==before,"protection cancellation preserves rank and immunity");
-            advanceTo(221);check(RaikiriFieldService.swordCount(actor.getUUID())==0,"resonance did not refresh sword lifetime");
+            advanceTo(299);check(RaikiriFieldService.swordCount(actor.getUUID())==1,"sword still present before 200 ticks");
+            advanceTo(300);check(RaikiriFieldService.swordCount(actor.getUUID())==0,"resonance did not refresh sword lifetime");
+            // Real hurt pipeline: only discharge cancels knockback, never trail or ordinary hurt.
+            reset(state);victim.invulnerableTime=0;victim.setDeltaMovement(Vec3.ZERO);
+            check(RaikiriFieldService.damage(actor,victim,1,RaikiriFieldService.DamageKind.TRAIL_STRIKE)
+                    && victim.getDeltaMovement().lengthSqr()>0,"trail strike retains vanilla knockback");
+            victim.invulnerableTime=0;victim.setDeltaMovement(Vec3.ZERO);
+            check(victim.hurt(level.damageSources().playerAttack(actor),1)
+                    && victim.getDeltaMovement().lengthSqr()>0,"ordinary attack knockback survives discharge scope cleanup");
+            victim.discard();
+            // Late sample at maximum observation time must survive the old +12 expiry.
+            RaikiriActionObserver.clear(actor.getUUID(),e.getServer());
+            var lateSession=RaikiriActionObserver.session(actor);UUID lateAction=UUID.randomUUID();long start=now();
+            Vec3 origin=actor.position();
+            RaikiriFieldService.segment(actor,lateSession,lateAction,origin,origin.add(.4,0,0),start,start);
+            advanceTo(start+20);
+            RaikiriFieldService.segment(actor,lateSession,lateAction,origin.add(.4,0,0),origin.add(.8,0,0),start+19,start+20);
+            advanceTo(start+40);
+            Zombie tail=victim(actor.getX()+1.2,actor.getZ());victims.add(tail);
+            RaikiriFieldService.segment(actor,lateSession,lateAction,origin.add(.8,0,0),origin.add(1.2,0,0),start+39,start+40);
+            RaikiriFieldService.finish(lateAction);float tailHp=tail.getHealth();
+            advanceTo(start+61);
+            check(tail.getHealth()==tailHp && RaikiriFieldService.trailCount(actor.getUUID())==1,"last sample waits 22 ticks and survives old expiry");
+            advanceTo(start+62);
+            check(tail.getHealth()<tailHp && RaikiriFieldService.trailCount(actor.getUUID())==0,"last real sample settles before cleanup");tail.discard();
+            // Longer residence keeps the original whole-life budget, including empty later rounds.
+            RaikiriActionObserver.clear(actor.getUUID(),e.getServer());actor.moveTo(0,160,0,0,0);actor.setOnGround(true);
+            long born=now();RaikiriFieldService.plant(actor,RaikiriActionObserver.session(actor));
+            Zombie resident=victim(0,1);victims.add(resident);float initial=resident.getHealth();
+            advanceTo(born+19);check(resident.getHealth()==initial,"no discharge before 20 ticks");
+            advanceTo(born+20);check(Math.abs(initial-resident.getHealth()-3)<.001,"20 tick discharge budget unchanged");
+            advanceTo(born+199);check(Math.abs(initial-resident.getHealth()-12)<.001
+                    && RaikiriFieldService.swordCount(actor.getUUID())==1,"200 tick visual residence cannot exceed lifetime damage 12");
+            advanceTo(born+200);check(RaikiriFieldService.swordCount(actor.getUUID())==0,"natural 200 tick expiry");resident.discard();
             // A later native release owns a distinct stream, still with zero extension routing.
             RaikiriActionObserver.clear(actor.getUUID(),e.getServer());
             actor.moveTo(0,160,0,0,0);actor.setOnGround(true);actor.setDeltaMovement(Vec3.ZERO);

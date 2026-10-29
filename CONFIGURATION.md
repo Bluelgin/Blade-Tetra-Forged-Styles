@@ -195,3 +195,12 @@ categories are accepted automatically; no Blade Tetra setting is required.
 The pre-1.3.0 third-party metal definitions remain hidden so existing weapons
 continue to resolve their original material keys. They are not offered as new
 workbench outcomes.
+
+### Raikiri 3.1 pacing
+
+Under `discoveries.raikiri3`, defaults are `delayStart=14`, `delayEnd=22` (each 1–80 ticks),
+`swordLifetime=200` and `dischargePeriod=20`. Existing TOML values are preserved; edit these four keys
+or remove them to regenerate the new defaults. Delays belong to each actual server path sample;
+reversed delay endpoints normalize. Trail/sword budgets remain 6 total / 3 per trail victim and
+3 per sword round / 12 per sword lifetime; exhausted swords remain visible but cannot exceed that budget.
+Sword discharges suppress only their scoped knockback. Native attacks and path strikes retain theirs.

@@ -1,4 +1,4 @@
-# Raikiri 3.0 — observe native motion, leave lightning behind
+# Raikiri 3.1 — observe native motion, leave lightning behind
 
 ## Baseline and correction
 
@@ -54,7 +54,7 @@ all retained segments must still satisfy continuity, distance, loaded-area and c
 
 `RaikiriFieldService` remains the **single** scheduler. It receives only committed, observed endpoint segments,
 shares one budget per native action, and schedules at most four **actual recorded positions**. It never
-interpolates fictional strike locations along a start/end shortcut. Consecutive points use 6/7/8/10-tick delays
+interpolates fictional strike locations along a start/end shortcut. Consecutive points use 14/16/19/22-tick delays
 relative to their own observation time (configured range normalized), with sample spacing 0.35 blocks.
 A very short native move produces a short/single-point trace; a stationary action produces none.
 The stream remains open until native exit so an already-fired early strike cannot reset its action budget.
@@ -70,7 +70,7 @@ chunk forcing, C2S location request or decorative AI entity.
 
 * Native `aerial_cleave` / loop observed airborne, then real supported landing: one grounded sword,
   no hit or extra Rank requirement. Repeated landing events and expired raw state cannot plant twice.
-* Three swords per owner, oldest replacement, **120 ticks** of life, pulse every **15 ticks**, sphere radius **4**,
+* Three swords per owner, oldest replacement, **200 ticks** of life, pulse every **20 ticks**, sphere radius **4**,
   at most two legal hostiles per pulse. Native `ss.obj` / `ss.png` renderer remains unchanged.
 * Actual committed Rapid Slash movement segments within **2 blocks** of an owned sword grant one saturated
   **1.5x next-pulse** charge. Same native-run UUID cannot charge that sword twice; lifetime never refreshes.
@@ -117,3 +117,34 @@ Old cloned-node/3.5-block teleport/free-three-step assertions are removed.
 Still requires real client acceptance: first/third-person motion and lightning lag, natural mouse/input/airborne
 landing timing, real multi-client latency/observer rendering, resource reload and low/medium/high frame times.
 Dedicated FakePlayer smoke and JUnit are not substitutes. No fabricated gameplay video or FPS result.
+
+## 3.1 pacing and stable residence
+
+Default delays are 14–22 ticks (both configurable 1–80; reversed bounds normalize).
+Each endpoint retains its own observation timestamp. Trail expiry includes maximum observation time,
+maximum configured delay and two ticks of margin; every new sample also extends the deadline through
+its due tick plus margin. Four samples and the shared 6/3 damage budgets are unchanged.
+Existing server TOML values remain authoritative: update existing delayStart/delayEnd and
+swordLifetime/dischargePeriod explicitly to adopt new defaults, or remove those keys to regenerate.
+
+Ground swords now reside for 200 ticks and discharge every 20. Their round/lifetime budgets stay 3/12;
+spent swords remain visible until natural expiry. ss.obj/ss.png, native cleave and 1.5x nonstacking resonance
+are unchanged. The model already fades at birth/expiry and the atlas supplies subtle resident arcs;
+Rapid STEP ribbons last 26 cosmetic ticks to bridge the default charge wait, without extra packets.
+
+Vanilla player-attributed hurt synchronously calls LivingEntity.knockback. Forge 47.4.0's public
+LivingKnockBackEvent fires before velocity writes. The existing scoped Impact now classifies TRAIL_STRIKE
+and SWORD_DISCHARGE. Only the latter cancels that event on its own target, only during its hurt call;
+finally removes the scope even on exceptions. No velocity overwrite, AI freeze, attribute changes or Mixin.
+Trail and independent/native attack knockback are untouched. Protection/Rank/recursion guards are retained.
+
+AwakenedEffectQueue keeps bounded independent admission for ordinary effects and server-owned anchors.
+Transient saturation evicts only transient effects. Anchors deduplicate by visual ID and have a hard cap of
+512 (the server maximum), retain tick expiry, removal and world-reset handling. Removal packets are handled
+before optional-effect/distance filtering, including an out-of-range observer. No tick-by-tick anchor sync.
+This is storage policy in the existing VFX renderer, not a second effect engine. Protocol payload is unchanged.
+
+Incremental tests cover delayed final settlement after the former +12 deadline, 20-tick real discharges,
+200-tick expiry/whole-life budget, real hurt velocity behavior (sword versus trail/ordinary), and saturated
+client queue admission/removal. Existing native action/landing/resonance and cleanup smoke remains.
+Graphical readability, fade, natural input/movement and multi-client timing still require manual client QA.

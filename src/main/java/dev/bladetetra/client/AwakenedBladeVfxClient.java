@@ -27,9 +27,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import static dev.bladetetra.client.vfx.render.VfxPrimitives.texturedQuad;
 
@@ -60,12 +58,11 @@ public final class AwakenedBladeVfxClient {
             ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID,
                     "textures/effect/awakened/raikiri/step_flicker.png")
     };
-    private static final List<Effect> EFFECTS = new ArrayList<>();
+    private static final AwakenedEffectQueue<Effect> EFFECTS = new AwakenedEffectQueue<>();
     private static ClientLevel currentLevel;
 
     public static void spawn(AwakenedBladeVfxPacket packet) {
-        if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
-                || packet.soul() < 1 || packet.soul() > 4
+        if (packet.soul() < 1 || packet.soul() > 4
                 || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.RESONANCE) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
@@ -73,6 +70,12 @@ public final class AwakenedBladeVfxClient {
             EFFECTS.clear();
             currentLevel = minecraft.level;
         }
+        if (packet.soul() == 4 && packet.type() == AwakenedBladeVfxPacket.REMOVE_SWORD) {
+            EFFECTS.removeIf(fx -> fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD
+                    && fx.data.variant() == packet.variant());
+            return;
+        }
+        if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         if (minecraft.player != null
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
@@ -85,23 +88,19 @@ public final class AwakenedBladeVfxClient {
                     && new Vec3(fx.data.x(), fx.data.y(), fx.data.z())
                             .distanceToSqr(packet.x(), packet.y(), packet.z()) < 16.0D);
         }
-        if (packet.type() == AwakenedBladeVfxPacket.REMOVE_SWORD) {
-            EFFECTS.removeIf(fx -> fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD
-                    && fx.data.variant() == packet.variant());
-            return;
-        }
-        EFFECTS.add(new Effect(packet));
-        while (EFFECTS.size() > cap) EFFECTS.remove(0);
+        EFFECTS.offer(new Effect(packet),packet.soul() == 4
+                && packet.type() == AwakenedBladeVfxPacket.GROUND_SWORD ? packet.variant() : null,cap);
     }
 
     @SubscribeEvent
     public static void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || Minecraft.getInstance().isPaused()) return;
+        if (event.phase != TickEvent.Phase.END) return;
         ClientLevel level = Minecraft.getInstance().level;
         if (level != currentLevel) {
             EFFECTS.clear();
             currentLevel = level;
         }
+        if (Minecraft.getInstance().isPaused()) return;
         Iterator<Effect> iter = EFFECTS.iterator();
         while (iter.hasNext()) {
             Effect fx = iter.next();
@@ -650,7 +649,7 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.GROUND_SWORD -> (int)Math.max(1,Math.min(200,data.endX()));
                 case AwakenedBladeVfxPacket.BOLT -> 8;
                 case AwakenedBladeVfxPacket.RESONANCE -> 12;
-                case AwakenedBladeVfxPacket.STEP -> 12;
+                case AwakenedBladeVfxPacket.STEP -> data.soul() == 4 ? 26 : 12;
                 case AwakenedBladeVfxPacket.MARK -> data.soul() == 1 ? 160 : 18;
                 default -> 18;
             };

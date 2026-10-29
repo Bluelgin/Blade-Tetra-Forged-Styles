@@ -29,6 +29,10 @@ public final class RaikiriRules {
     public static int delay(int index, int count, int start, int end) {
         return start + (count <= 1 ? 0 : index * (end-start)/(count-1));
     }
+    /** Includes the last observation's delay and a small scheduler margin. */
+    public static long trailExpiry(long started,int observationTicks,int delayStart,int delayEnd) {
+        return started + observationTicks + Math.max(delayStart,delayEnd) + 2L;
+    }
     public static boolean landing(boolean armed, boolean ground, boolean supported, long age) {
         return armed && ground && supported && age >= 0 && age <= 100;
     }

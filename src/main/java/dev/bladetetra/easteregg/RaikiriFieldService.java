@@ -13,6 +13,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingKnockBackEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -32,20 +33,22 @@ public final class RaikiriFieldService {
     private static final List<Trail> TRAILS=new ArrayList<>();
     private static final List<Sword> SWORDS=new ArrayList<>();
     private static int nextVisualId=1;
-    private record Impact(LivingEntity target,float cap) {}
+    enum DamageKind { TRAIL_STRIKE, SWORD_DISCHARGE }
+    private record Impact(LivingEntity target,float cap,DamageKind kind) {}
     private static final ThreadLocal<Impact> IMPACT=new ThreadLocal<>();
     private record Strike(Vec3 position,long due) {}
     private static final class Trail {
         final RaikiriActionObserver.Session session;
         final UUID action;
-        final long expires;
+        long expires;
         final List<Strike> strikes=new ArrayList<>();
         final RaikiriRules.Budget budget;
         int index;
         boolean sealed;
         Vec3 last;
         Trail(RaikiriActionObserver.Session s,UUID action,long now) {
-            session=s;this.action=action;expires=now+RaikiriConfig.MAX_OBSERVE_TICKS.get()+12;
+            session=s;this.action=action;expires=RaikiriRules.trailExpiry(now,RaikiriConfig.MAX_OBSERVE_TICKS.get(),
+                    RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
             budget=new RaikiriRules.Budget(RaikiriConfig.TRAIL_BUDGET.get().floatValue(),
                     RaikiriConfig.TRAIL_TARGET_CAP.get().floatValue());
         }
@@ -54,7 +57,9 @@ public final class RaikiriFieldService {
             if(last!=null && last.distanceTo(position)<RaikiriConfig.SAMPLE_SPACING.get()) return;
             int start=Math.min(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
             int end=Math.max(RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
-            strikes.add(new Strike(position,tick+RaikiriRules.delay(strikes.size(),RaikiriConfig.TRAIL_SAMPLES.get(),start,end)));
+            long due=tick+RaikiriRules.delay(strikes.size(),RaikiriConfig.TRAIL_SAMPLES.get(),start,end);
+            strikes.add(new Strike(position,due));
+            expires=Math.max(expires,due+2); // Also safe if config changes during an action.
             last=position;
         }
     }
@@ -144,7 +149,7 @@ public final class RaikiriFieldService {
                     double radius=RaikiriConfig.STRIKE_RADIUS.get();
                     for(LivingEntity target:targets(p,at,radius,2)) {
                         float amount=t.budget.reserve(target.getUUID(),RaikiriConfig.TRAIL_TARGET_CAP.get().floatValue());
-                        damage(p,target,amount);
+                        damage(p,target,amount,DamageKind.TRAIL_STRIKE);
                     }
                 }
             }
@@ -170,7 +175,7 @@ public final class RaikiriFieldService {
             for(LivingEntity target:targets) {
                 float amount=s.budget.reserve(target.getUUID(),round/targets.size());
                 if(amount<=0) break;
-                if(damage(p,target,amount))
+                if(damage(p,target,amount,DamageKind.SWORD_DISCHARGE))
                     AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
                             AwakenedBladeVfxPacket.BOLT,s.pos.add(0,0.8,0),target.getBoundingBox().getCenter(),charged?1:0);
             }
@@ -196,7 +201,7 @@ public final class RaikiriFieldService {
                 && level.clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p))
                         .getType()==HitResult.Type.MISS;
     }
-    static boolean damage(ServerPlayer p,LivingEntity target,float amount) {
+    static boolean damage(ServerPlayer p,LivingEntity target,float amount,DamageKind kind) {
         if(amount<=0 || IMPACT.get()!=null || !AwakenedBladeCombat.canAffect(p,target)) return false;
         var bladeState=p.getMainHandItem().getCapability(dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE).orElse(null);
         // Native RankPointHandler resolves its owner's combo during hurt. If
@@ -207,7 +212,7 @@ public final class RaikiriFieldService {
         int previous=target.invulnerableTime;float before=target.getHealth();target.invulnerableTime=0;
         var rank=p.getCapability(mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank.RANK_POINT).orElse(null);
         long raw=rank==null?0:rank.getRawRankPoint(), updated=rank==null?0:rank.getLastUpdate(), rise=rank==null?0:rank.getLastRankRise();
-        IMPACT.set(new Impact(target,amount)); boolean landed=false;
+        IMPACT.set(new Impact(target,amount,kind)); boolean landed=false;
         try {
             landed=InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->
                     target.hurt(p.level().damageSources().playerAttack(p),amount)));
@@ -223,6 +228,14 @@ public final class RaikiriFieldService {
                 rank.addRankPoint(p,0);
             }
         }
+    }
+    // Forge fires this synchronously inside LivingEntity.hurt -> knockback,
+    // before velocity is changed. Only this discharge's target is suppressed.
+    @SubscribeEvent(priority=EventPriority.LOWEST)
+    public static void dischargeKnockback(LivingKnockBackEvent e) {
+        Impact impact=IMPACT.get();
+        if(impact!=null && impact.kind==DamageKind.SWORD_DISCHARGE && e.getEntity()==impact.target)
+            e.setCanceled(true);
     }
     // Third-party amplification cannot turn an explicitly budgeted secondary
     // impact into unbounded damage. Cancelled damage remains cancelled.

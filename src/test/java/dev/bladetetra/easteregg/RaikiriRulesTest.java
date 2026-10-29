@@ -26,10 +26,15 @@ class RaikiriRulesTest {
         assertFalse(RaikiriRules.continuous(p(0,0,0),p(Double.NaN,0,0),10,11,2.5));
     }
     @Test void delaysBelongToEachRealSample() {
-        assertEquals(6,RaikiriRules.delay(0,4,6,10));
-        assertEquals(7,RaikiriRules.delay(1,4,6,10));
-        assertEquals(8,RaikiriRules.delay(2,4,6,10));
-        assertEquals(10,RaikiriRules.delay(3,4,6,10));
+        assertEquals(14,RaikiriRules.delay(0,4,14,22));
+        assertEquals(16,RaikiriRules.delay(1,4,14,22));
+        assertEquals(19,RaikiriRules.delay(2,4,14,22));
+        assertEquals(22,RaikiriRules.delay(3,4,14,22));
+    }
+    @Test void expiryCoversLatestPossibleSampleAndReversedDelayConfig() {
+        assertEquals(164,RaikiriRules.trailExpiry(100,40,14,22));
+        assertEquals(164,RaikiriRules.trailExpiry(100,40,22,14));
+        assertTrue(RaikiriRules.trailExpiry(100,40,1,80)>140+80);
     }
     @Test void trailTotalAndSameTargetCapsSurviveRepeatAttempts() {
         var budget=new RaikiriRules.Budget(6,3);UUID a=UUID.randomUUID(),b=UUID.randomUUID();

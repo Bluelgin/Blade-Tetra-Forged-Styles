@@ -71,3 +71,13 @@
 ## 发布阻断
 
 目前尚无本清单全项的游戏内验收记录。尤其是**玩家模型六帧回放、真实Tetra OBJ渲染取消、多人下Rank评分同步和新机制平衡**需真实客户端操作。若任一环节导致致命崩溃、穿墙或重复伤害，应保持PR Draft，并优先修复，不要自动合并。
+
+### Raikiri 3.1 manual acceptance
+
+- Confirm the default 14–22 tick sequential aftershock follows the observed native path, including short moves.
+- Confirm grounded ss.obj/ss.png remains visible for 200 ticks under transient VFX spam and fades at expiry.
+- Confirm 20-tick discharges hurt without pushing enemies; native melee and trail knockback still work.
+- Check late observer remaining-life sync, distance changes, effect toggle, remove packet and world switch.
+- Confirm exhausted swords remain cosmetic, resonance does not extend life, and all visual quality tiers render acceptably.
+
+Dedicated smoke and headless queue tests do not establish client visual or network acceptance.
