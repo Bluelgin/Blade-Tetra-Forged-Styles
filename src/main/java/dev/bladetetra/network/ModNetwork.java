@@ -16,6 +16,7 @@ public final class ModNetwork {
             PROTOCOL::equals,
             PROTOCOL::equals);
 
+    // Retired wire IDs 22 (V2 HUD) and 23 (old pose replay) stay reserved.
     public static void register() {
         CHANNEL.registerMessage(25, KyoukaMirrorPacket.class, KyoukaMirrorPacket::encode,
                 KyoukaMirrorPacket::decode, KyoukaMirrorPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
@@ -146,12 +147,6 @@ public final class ModNetwork {
         CHANNEL.registerMessage(19, CustomStyleExchangePacket.Request.class,
                 CustomStyleExchangePacket.Request::encode, CustomStyleExchangePacket.Request::decode,
                 CustomStyleExchangePacket.Request::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        CHANNEL.registerMessage(23, AwakenedMirrorEchoPacket.class,
-                AwakenedMirrorEchoPacket::encode, AwakenedMirrorEchoPacket::decode,
-                AwakenedMirrorEchoPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(22, AwakenedBladeStatePacket.class,
-                AwakenedBladeStatePacket::encode, AwakenedBladeStatePacket::decode,
-                AwakenedBladeStatePacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(21, AwakenedBladeVfxPacket.class,
                 AwakenedBladeVfxPacket::encode, AwakenedBladeVfxPacket::decode,
                 AwakenedBladeVfxPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));

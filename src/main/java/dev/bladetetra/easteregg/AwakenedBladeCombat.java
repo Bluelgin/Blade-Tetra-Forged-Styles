@@ -63,9 +63,6 @@ public final class AwakenedBladeCombat {
         }
     }
 
-    /** Kept for the native stance smoke: SA never switches stance here. */
-    public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) { }
-
     private static ServerPlayer attacker(LivingDamageEvent event) {
         Entity direct = event.getSource().getDirectEntity();
         Entity source = event.getSource().getEntity();

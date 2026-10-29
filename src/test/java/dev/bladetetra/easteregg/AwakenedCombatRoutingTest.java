@@ -3,7 +3,7 @@ package dev.bladetetra.easteregg;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-class AwakenedCombatMathTest {
+class AwakenedCombatRoutingTest {
     @Test void akatsukiStillUsesLegacyCombatWhileOtherSoulsUseV2() {
         assertFalse(AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.Legacy.AKATSUKI));
         assertFalse(AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.Legacy.NONE));

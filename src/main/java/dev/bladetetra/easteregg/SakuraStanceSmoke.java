@@ -63,7 +63,7 @@ public final class SakuraStanceSmoke {
             actor.setShiftKeyDown(true);
             for(boolean dispersed:new boolean[]{true,false}) {
                 tag.putBoolean(SakuraStanceRules.DISPERSED,dispersed);
-                AwakenedBladeCombat.onSlashArt(new SlashBladeEvent.PerformSlashArtEvent(actor,40,state,
+                MinecraftForge.EVENT_BUS.post(new SlashBladeEvent.PerformSlashArtEvent(actor,40,state,
                         ComboStateRegistry.SAKURA_END_LEFT.getId(),SlashArts.ArtsType.Success));
                 check(SakuraStanceController.dispersed(blade)==dispersed,"Shift+successful SA never toggles");
             }

@@ -56,6 +56,13 @@ class AwakenedBladeVfxPacketTest {
         assertFalse(cue.matchesHeld(java.util.UUID.randomUUID(),"actual-tetra-id",6,false));
         assertFalse(cue.matchesHeld(owner,"different-tetra-id",6,false));
     }
+    @Test void thunderTypesCannotEnterSakuraOrOtherSoulHandlers() {
+        for (int type = AwakenedBladeVfxPacket.GROUND_SWORD; type <= AwakenedBladeVfxPacket.RESONANCE; type++) {
+            assertTrue(new AwakenedBladeVfxPacket(4,type,0,1,0,0,1,0,0).valid());
+            for (int soul = 1; soul <= 3; soul++)
+                assertFalse(new AwakenedBladeVfxPacket(soul,type,0,1,0,0,1,0,0).valid());
+        }
+    }
     @Test void stanceCuesRequireTheMatchingActionAndNeverMasqueradeAsBHits() {
         for(int type=7;type<=8;type++) {
             var cue=new AwakenedBladeVfxPacket.SakuraCue(java.util.UUID.randomUUID(),"id",2,

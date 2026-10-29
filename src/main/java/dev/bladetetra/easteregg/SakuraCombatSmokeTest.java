@@ -153,6 +153,7 @@ public final class SakuraCombatSmokeTest {
             var nativeArt=state.getSlashArts().doArts(SlashArts.ArtsType.Success,actor);
             var condensed=new SlashBladeEvent.PerformSlashArtEvent(actor,40,state,nativeArt,SlashArts.ArtsType.Success);
             SakuraInfiniteDanceSA.art(condensed);check(condensed.getComboState().equals(nativeArt),"condensed configured SA unchanged");
+            AwakenedIntegrationSmoke.verify(level, actor);
             LogUtils.getLogger().info("SAKURA_SA_SMOKE_PASS: native charge commit, three full rounds, B1 ten/B6 seven hits, exact Rank tiers, no repeat debit, manual lock, exhaustion, seven lifecycle paths, cancel/rewrite/fail, configured SA unchanged");
             reset(level,blade);SakuraConcertoSmoke.verify(level,actor,blade);
             SakuraStanceSmoke.verify(level,actor,blade);

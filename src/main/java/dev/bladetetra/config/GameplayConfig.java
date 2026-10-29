@@ -15,8 +15,6 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_RANK_COSTS;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_KYOUKA;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_SAKURA;
     public static final ForgeConfigSpec.IntValue AWAKENED_SAKURA_BURN_POINTS_PER_SECOND;
     public static final ForgeConfigSpec.IntValue KYOUKA_START_COST, KYOUKA_DRAIN, KYOUKA_ACTION_COST;
     public static final ForgeConfigSpec.IntValue KYOUKA_MAX_SESSIONS, KYOUKA_WORLD_SESSIONS;
@@ -24,9 +22,6 @@ public final class GameplayConfig {
 
     public static final ForgeConfigSpec.IntValue SAKURA_SA_MAX_TICKS, SAKURA_CONCERTO_INTERVAL;
     public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_STEP;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_FINISH;
-    public static final ForgeConfigSpec.IntValue AWAKENED_RANK_COST_DUAL_BONUS;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -149,14 +144,14 @@ public final class GameplayConfig {
         KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
         builder.pop();
         ENABLE_AWAKENED_RANK_COSTS = builder
-                .comment("Spend native SlashBlade Concentration Rank points for committed awakened skills.",
-                        "Disable to retain V2 abilities without any rank spending.")
+                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA only.",
+                        "Kyouka 4 and Raikiri 3.1 never use extra Rank payments.")
                 .define("enableAwakenedRankCosts", true);
-        AWAKENED_RANK_COST_KYOUKA = builder
+        builder
                 .comment("Deprecated V2 replay price; ignored by Three Mirrors.")
                 .defineInRange("awakenedRankCostKyouka", 300, 0, 1800);
-        AWAKENED_RANK_COST_SAKURA = builder
-                .comment("Senbonzakura full array: requires A rank. Form switching remains free.")
+        builder
+                .comment("Deprecated compatibility key: ignored by Senbonzakura 3.0; SA uses its dedicated drain setting.")
                 .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
         AWAKENED_SAKURA_BURN_POINTS_PER_SECOND = builder
                 .comment("Base native Rank points spent per second of Senbonzakura infinite dance SA.",
@@ -170,16 +165,15 @@ public final class GameplayConfig {
         SAKURA_CONCERTO_CAP = builder.defineInRange("sakuraConcertoDamageCap", 6., 0., 20.);
         SAKURA_SA_STAGE_DAMAGE = builder.comment("Total additional damage budget per SA stage, split across its pulses.")
                 .defineInRange("sakuraSaStageDamage", 8., 0., 32.);
-        AWAKENED_RANK_COST_STEP = builder
+        builder
                 .comment("Deprecated compatibility key: ignored. Native rapid movement and its lightning extension have no extra Rank cost.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
         dev.bladetetra.easteregg.RaikiriConfig.define(builder);
-        AWAKENED_RANK_COST_FINISH = builder
+        builder
                 .comment("Deprecated compatibility key: ignored by Raikiri V2/3. Native SA has no extra finisher cost.")
                 .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
-        AWAKENED_RANK_COST_DUAL_BONUS = builder
-                .comment("Extra native Rank points charged for the six awakened dual-soul signatures.",
-                        "Formed dual souls require S rank and one shared payment (never two independent payments).")
+        builder
+                .comment("Deprecated compatibility key: ignored by integrated awakened combat.")
                 .defineInRange("awakenedRankCostDualSurcharge", 120, 0, 1800);
         SMITHY_CLUE_CHANCE = builder
                 .comment(

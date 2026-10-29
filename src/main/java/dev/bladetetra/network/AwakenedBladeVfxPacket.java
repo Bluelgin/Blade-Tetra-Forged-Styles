@@ -38,7 +38,7 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     public boolean valid() {
         return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_CONDENSE
                 && finitePosition(x, y, z) && finitePosition(endX, endY, endZ)
-                && (type < SAKURA_SWING ? sakura == null
+                && (type < SAKURA_SWING ? sakura == null && (type < GROUND_SWORD || soul == 4)
                     : soul == 3 && sakura != null && sakura.valid()
                         && (type <= SAKURA_HIT ? sakura.stage() <= 6 : sakura.stage() == type - 4));
     }

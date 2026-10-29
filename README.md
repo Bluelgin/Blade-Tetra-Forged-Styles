@@ -1,5 +1,7 @@
 # 拔刀剑：百构流派
 
+觉醒刀联合版本的实际玩法、维护入口、协议和验收边界见 [当前觉醒刀架构](docs/awakened-rework/CURRENT_ARCHITECTURE.md)。
+
 <p align="center">
   <img src=".github/assets/cover.png" width="280" alt="Blade Tetra: Forged Styles logo">
 </p>

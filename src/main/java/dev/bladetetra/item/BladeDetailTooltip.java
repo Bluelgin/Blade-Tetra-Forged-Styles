@@ -103,12 +103,8 @@ public final class BladeDetailTooltip {
                                 + primary.name().toLowerCase(java.util.Locale.ROOT))
                         .withStyle(ChatFormatting.GOLD));
                 if (souls.size() == 2) {
-                    boolean formed = dev.bladetetra.easteregg.AwakenedRankCost.fused(stack);
-                    lines.add(Component.translatable(formed
-                                    ? "tooltip.blade_tetra.awakened.v2.dual_active"
-                                    : "tooltip.blade_tetra.awakened.v2.primary_only")
-                            .withStyle(formed ? ChatFormatting.LIGHT_PURPLE
-                                    : ChatFormatting.GRAY));
+                    lines.add(Component.translatable("tooltip.blade_tetra.awakened.v2.primary_only")
+                            .withStyle(ChatFormatting.GRAY));
                 }
             }
             return;
