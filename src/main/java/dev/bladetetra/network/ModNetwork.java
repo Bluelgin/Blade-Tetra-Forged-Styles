@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "15";
+    private static final String PROTOCOL = "18";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -17,6 +17,9 @@ public final class ModNetwork {
             PROTOCOL::equals);
 
     public static void register() {
+        CHANNEL.registerMessage(24, AwakeningPresentationPacket.class,
+                AwakeningPresentationPacket::encode, AwakeningPresentationPacket::decode,
+                AwakeningPresentationPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(16, DivineSupportStatePacket.class, DivineSupportStatePacket::encode,
                 DivineSupportStatePacket::decode, DivineSupportStatePacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
@@ -141,6 +144,15 @@ public final class ModNetwork {
         CHANNEL.registerMessage(19, CustomStyleExchangePacket.Request.class,
                 CustomStyleExchangePacket.Request::encode, CustomStyleExchangePacket.Request::decode,
                 CustomStyleExchangePacket.Request::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(23, AwakenedMirrorEchoPacket.class,
+                AwakenedMirrorEchoPacket::encode, AwakenedMirrorEchoPacket::decode,
+                AwakenedMirrorEchoPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(22, AwakenedBladeStatePacket.class,
+                AwakenedBladeStatePacket::encode, AwakenedBladeStatePacket::decode,
+                AwakenedBladeStatePacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(21, AwakenedBladeVfxPacket.class,
+                AwakenedBladeVfxPacket::encode, AwakenedBladeVfxPacket::decode,
+                AwakenedBladeVfxPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(20, CustomStyleExchangePacket.Reply.class,
                 CustomStyleExchangePacket.Reply::encode, CustomStyleExchangePacket.Reply::decode,
                 CustomStyleExchangePacket.Reply::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));

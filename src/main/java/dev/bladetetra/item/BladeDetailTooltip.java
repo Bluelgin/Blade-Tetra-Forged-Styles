@@ -7,6 +7,7 @@ import dev.bladetetra.combat.ConductiveBladeHandler;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.compat.ContractBladeCompat;
 import dev.bladetetra.easteregg.AkatsukiAwakening;
+import dev.bladetetra.easteregg.AwakenedBladeCombat;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.KyoukaAwakening;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
@@ -84,13 +85,34 @@ public final class BladeDetailTooltip {
             }
         }
 
-        SoulResonance.appendTooltip(stack, lines);
+        if (!AwakenedBladeCombat.replacesLegacy()
+                || !AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack)))
+            SoulResonance.appendTooltip(stack, lines);
         appendAwakenedAbilities(stack, ordered, lines);
         return lines;
     }
 
     private static void appendAwakenedAbilities(ItemStack stack,
             List<SoulLegacyState.Legacy> souls, List<Component> lines) {
+        if (AwakenedBladeCombat.replacesLegacy()
+                && AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack))) {
+            SoulLegacyState.Legacy primary = SoulLegacyState.active(stack);
+            if (primary != SoulLegacyState.Legacy.NONE) {
+                lines.add(Component.translatable(
+                        "tooltip.blade_tetra.awakened.v2."
+                                + primary.name().toLowerCase(java.util.Locale.ROOT))
+                        .withStyle(ChatFormatting.GOLD));
+                if (souls.size() == 2) {
+                    boolean formed = dev.bladetetra.easteregg.AwakenedRankCost.fused(stack);
+                    lines.add(Component.translatable(formed
+                                    ? "tooltip.blade_tetra.awakened.v2.dual_active"
+                                    : "tooltip.blade_tetra.awakened.v2.primary_only")
+                            .withStyle(formed ? ChatFormatting.LIGHT_PURPLE
+                                    : ChatFormatting.GRAY));
+                }
+            }
+            return;
+        }
         if (souls.contains(SoulLegacyState.Legacy.AKATSUKI)
                 && AkatsukiAwakening.isActive(stack)) {
             lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution")

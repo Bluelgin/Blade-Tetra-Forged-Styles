@@ -147,6 +147,7 @@ public final class AkatsukiAwakening {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         blade.getOrCreateTag().remove(TAG_LAST_SA);
         ContractBladeCompat.syncAkatsuki(player, blade, true);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.AKATSUKI);
 
         level.sendParticles(ParticleTypes.CRIMSON_SPORE,
                 player.getX(), player.getY() + 1.0D, player.getZ(),

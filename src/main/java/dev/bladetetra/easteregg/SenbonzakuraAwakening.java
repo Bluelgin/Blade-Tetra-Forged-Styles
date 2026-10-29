@@ -181,7 +181,7 @@ public final class SenbonzakuraAwakening {
             advanceRitual(player, blade, now);
         }
 
-        if (!isActive(blade)) {
+        if (!isActive(blade) || AwakenedBladeCombat.replacesLegacy()) {
             return;
         }
         expirePetalMarks(blade, now);
@@ -215,7 +215,7 @@ public final class SenbonzakuraAwakening {
             tag.putLong(TAG_LAST_SA, now);
         }
 
-        if (isActive(blade)
+        if (!AwakenedBladeCombat.replacesLegacy() && isActive(blade)
                 && petalMarks(blade) > 0
                 && tag.getLong(TAG_COOLDOWN_UNTIL) <= now) {
             tag.putLong(TAG_SA_WINDOW, now + SA_HIT_WINDOW);
@@ -230,7 +230,8 @@ public final class SenbonzakuraAwakening {
             return;
         }
         ItemStack blade = player.getMainHandItem();
-        if (event.getSource().getDirectEntity() == player && isActive(blade)) {
+        if (!AwakenedBladeCombat.replacesLegacy()
+                && event.getSource().getDirectEntity() == player && isActive(blade)) {
             long now = player.level().getGameTime();
             expirePetalMarks(blade, now);
             addPetalMark(player, blade, now);
@@ -254,6 +255,7 @@ public final class SenbonzakuraAwakening {
     /** Uses the actual post-mitigation Slash Art hit to scale the stored blossom burst. */
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
         Entity direct = event.getSource().getDirectEntity();
@@ -280,8 +282,12 @@ public final class SenbonzakuraAwakening {
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || PENDING_VOLLEYS.isEmpty()) return;
-        tickPetalVolleys(event.getServer());
+        if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING_VOLLEYS.clear();
+            return;
+        }
+        if (!PENDING_VOLLEYS.isEmpty()) tickPetalVolleys(event.getServer());
     }
 
     @SubscribeEvent
@@ -335,6 +341,7 @@ public final class SenbonzakuraAwakening {
     private static void awaken(ServerPlayer player, ItemStack blade) {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         clearRitualProgress(blade);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.SENBONZAKURA);
         blade.getOrCreateTag().putInt(TAG_PETAL_HITS, 0);
         blade.getOrCreateTag().putInt(TAG_PETAL_MARKS, 0);
         blade.getOrCreateTag().remove(TAG_MARKS_EXPIRE);

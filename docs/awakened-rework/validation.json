@@ -1,0 +1,469 @@
+{
+  "components": 62,
+  "material_frames": 68,
+  "svg_sources": 130,
+  "png_sheets": 10,
+  "offline_mp4": 11,
+  "pixel_and_source_hashes": {
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/akatsuki/atlas.png": {
+      "size": [
+        1024,
+        512
+      ],
+      "rgba_sha256": "6a171aa5e029f449ce986bd23f65683f450130fe6d29d858096c354e05629fa4"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/akatsuki/scar_lifecycle.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "be17b9076de62522a924ddc63e0cb3ee73a535f0d60c9423cd64fefdc6cad0a0"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/kyouka/atlas.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "c84f94198fdbc93e375d150d2cb9b312ec6c3533624c95cff45016f083c1d559"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/kyouka/mirror_lifecycle.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "509d5f5cfc7a630eca4349a087765e9852a92936f4a9418d09c3b1cb6f084bc6"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/raikiri/atlas.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "6fbd1cb733670d99c8e6ed654a07cc47cd7504ed76534e16e811a5aba183a62f"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/raikiri/step_flicker.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "8c89191fc9cf3e0c50f209a3f670b1d3d7fe3b037db0e72dce8f7adc51a5b29a"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/senbonzakura/atlas.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "172842cb3650444b081751305d4d413adebfbdcc0cd6d39fdf0133a6816c48be"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/senbonzakura/blade_disperse.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "975cf9fb80bd1f846f74f26ff31a9eb74da22a176a2360e64384c66662dc034e"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/shared/atlas.png": {
+      "size": [
+        256,
+        256
+      ],
+      "rgba_sha256": "2bf8e3ed4d86ad411702b84d14a8f964990f2cdc0a2c755b5f1e3d8d09402072"
+    },
+    "src/main/resources/assets/blade_tetra/textures/effect/awakened/shared/release_fold.png": {
+      "size": [
+        512,
+        512
+      ],
+      "rgba_sha256": "296453cf1b8eb7ee48d3d594e5e2825a366498030c3be5202cc1cabf1bbf680f"
+    },
+    "art/svg/awakened/akatsuki/blade_trace.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/causal_node.svg": {
+      "sha256": "7440562346bc025e310caaeb4a24efe8e4881e3e1bfea582d6c812dc14a33a85"
+    },
+    "art/svg/awakened/akatsuki/crescent.svg": {
+      "sha256": "21d0368e32388674aed981a6cbc328a45a1e9f9a58171186d7a851082d5e7936"
+    },
+    "art/svg/awakened/akatsuki/execution_cross.svg": {
+      "sha256": "c4883f86684c7d82e2505ba73941d2b4f33b4617b797300d2a7b6bb5f21abd39"
+    },
+    "art/svg/awakened/akatsuki/hud_corner.svg": {
+      "sha256": "4bcf808ccf8c5446f3d9df5d6c015aa1a6f0fd684afca48649e5aa9ebdf30001"
+    },
+    "art/svg/awakened/akatsuki/rift.svg": {
+      "sha256": "49e8d0dd5642b3b2f01748013edc88d352f159c35c93d6695ce89100c16ab113"
+    },
+    "art/svg/awakened/akatsuki/scar_0_appear.svg": {
+      "sha256": "fb6613247886d42bfc1f1fc7fa2a870246335f53c0f20503a557ac2e1415d3b6"
+    },
+    "art/svg/awakened/akatsuki/scar_0_break.svg": {
+      "sha256": "5871c48f9dbda2faffe8d50d7a2d5d3d9b630ecc3c92dc75247e02c3e04e5176"
+    },
+    "art/svg/awakened/akatsuki/scar_0_stable.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_1_appear.svg": {
+      "sha256": "ba7faf3a0045d54269e7d3c6e0f860f8cc25b0c5d1ddcf028d002d9a65e93ac8"
+    },
+    "art/svg/awakened/akatsuki/scar_1_break.svg": {
+      "sha256": "5599f1303ecec498726bc5d3e00cb6b9c6c21854586bb9a2a7357c04471336b9"
+    },
+    "art/svg/awakened/akatsuki/scar_1_stable.svg": {
+      "sha256": "9e82c2c6132a4eaa0add89aa58a841e5300a0d3a682e530459a8375f164aa615"
+    },
+    "art/svg/awakened/akatsuki/scar_2_appear.svg": {
+      "sha256": "d7985c53856941f997e0444cb61bc353803030e8b391f771699a43497d755523"
+    },
+    "art/svg/awakened/akatsuki/scar_2_break.svg": {
+      "sha256": "018ff9d790c60e9d165ea43106e8229fc906c59ab098f10e4df0714e7e105921"
+    },
+    "art/svg/awakened/akatsuki/scar_2_stable.svg": {
+      "sha256": "cfd792c3e4b270e7fe3f64acf360d8a78c7ed0ea3b9991e6113fcfa5e68fdf19"
+    },
+    "art/svg/awakened/akatsuki/scar_3_appear.svg": {
+      "sha256": "e9dc16692c144ae827caad868ac5ba499961c857e0d056c7984252f05a6e61db"
+    },
+    "art/svg/awakened/akatsuki/scar_3_break.svg": {
+      "sha256": "05864b4387ae84da59b57724ed9515266c3c048610c9395160d11ef69c908483"
+    },
+    "art/svg/awakened/akatsuki/scar_3_stable.svg": {
+      "sha256": "facdbf16b66ca2297d0b1a1c821d593281e9cb68d63ad7c679e0c596659a3a8c"
+    },
+    "art/svg/awakened/akatsuki/scar_4_appear.svg": {
+      "sha256": "5b3b53f992012c3e0e92e6f0b9fda35797467db831bded454eb4adef45261e18"
+    },
+    "art/svg/awakened/akatsuki/scar_4_break.svg": {
+      "sha256": "e5d24c04b0e47e115191de744f3f85f08930d79fa31954eee60e7252f23edf3d"
+    },
+    "art/svg/awakened/akatsuki/scar_4_stable.svg": {
+      "sha256": "2ead3dd27f6672e0aacd254a34f44fc31f78e6653887013a79deed4b216a86bf"
+    },
+    "art/svg/awakened/akatsuki/scar_5_appear.svg": {
+      "sha256": "f1c88f77f28bc4c46b53de1b4e5a3cb46647894eb05d0a4ea090818dddbffe42"
+    },
+    "art/svg/awakened/akatsuki/scar_5_break.svg": {
+      "sha256": "0cb05e6f1be7a1ac2815bb85437c9d4b14aaf0573b397034b5d9758e98c0326d"
+    },
+    "art/svg/awakened/akatsuki/scar_5_stable.svg": {
+      "sha256": "e1e4dd7ffad690a6c36c7dccd8dcfeafd6331919294d0ffea329126345865985"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/00.svg": {
+      "sha256": "c909cd257ffdb2e7f67e81a89521210cfef57b705bf59e513aaedc44e4ffc458"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/01.svg": {
+      "sha256": "78950516b94ab8c2bcd9225b88758490e1b17af6c310a8bd9b2826d54e68d8b4"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/02.svg": {
+      "sha256": "713e5a7b49de7200463ab6e68f720de6acbfd15fc5ce4a80b1c2f111e8f89e7e"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/03.svg": {
+      "sha256": "5273697897f223ce2eb9a55a7433842814edcfd5bfb9c91c8be03fb63f151f79"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/04.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/05.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/06.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/07.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/08.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/09.svg": {
+      "sha256": "c3ecb62ba6782f75cc653412e92242bc774eb017baf9ef5ae98516e1f6eb3572"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/10.svg": {
+      "sha256": "4b4a00e748ac69e0fb91dd9acb6cf40ce593a553bc410605602880d65eaf5345"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/11.svg": {
+      "sha256": "adbfaf7e154e2dc14f2f7088a23ce2e2587a9ba3ac1462b7cd7a9ee892310f80"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/12.svg": {
+      "sha256": "aefe9984c630112a16a3d41c773173b15ba1c28c301e260a60c024ffb329b13e"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/13.svg": {
+      "sha256": "504c848cad8f496c3b2c9b87d90a9b71f78965fbe7e2e44ba52c47dabd9ef60c"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/14.svg": {
+      "sha256": "cac8fc869e7859bad6786796a61b2ec5398e17c15d241975ad1c8621e35102bb"
+    },
+    "art/svg/awakened/akatsuki/scar_lifecycle/15.svg": {
+      "sha256": "e36f5fea2708bda6bbf4985763bfd19987a999d942f64014d7a5526007f94270"
+    },
+    "art/svg/awakened/akatsuki/true_name_seal.svg": {
+      "sha256": "8c9ff4d42c918ebff52af5c2398e3702fa5cdb1fe9d0774b48c9d218b6053ccc"
+    },
+    "art/svg/awakened/kyouka/echo_edge.svg": {
+      "sha256": "8899da774ff246aa711878bc523e6697c1bead58889c57fa2573db2cbd0abcec"
+    },
+    "art/svg/awakened/kyouka/echo_gradient.svg": {
+      "sha256": "3d490fe4ddec748c9dbe20369574ea6335d87e416584c2749effe95f072f724b"
+    },
+    "art/svg/awakened/kyouka/echo_wash.svg": {
+      "sha256": "28a1a9bffcde2bd7dad7be49aa4d1750fced407ffbdf73d4ee33037831249c06"
+    },
+    "art/svg/awakened/kyouka/hud_corner.svg": {
+      "sha256": "0fdd0220e4c3cf30e75d914c6e062ef9dbb1a6b98bdb0a90d3d1db3109566ea7"
+    },
+    "art/svg/awakened/kyouka/mirror_cracked.svg": {
+      "sha256": "f84fc1b7f460c1431b5911ccb75255dfa4c6108104e4dd34b923086ed8d0cd8b"
+    },
+    "art/svg/awakened/kyouka/mirror_ghost.svg": {
+      "sha256": "d77aaae39080c3f140caf604b730aca6f8ae5d386383ce1c586a9813b799e2b3"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/00.svg": {
+      "sha256": "9a0dfe2397feefb68d77f7a7e3565b1f4bd72513c1391ac3fa091e6bb44c435c"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/01.svg": {
+      "sha256": "92d3291d9327d23a3f42f5f998e2e079e303216886dc0740f31439639dcf9b34"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/02.svg": {
+      "sha256": "c13733c5ff4870d59cbf3e371c4eb5643be718daf2b3b01a06afa0d26c68cac6"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/03.svg": {
+      "sha256": "67a72d8b274b3eefdc21bdffe20b9c8a55bf12cd899ed8a7bdc6984c3030cbf9"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/04.svg": {
+      "sha256": "d768da38825b07edd5c5465e6532f8edb2ddbf4fc924fe4f583d36e591cda3a2"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/05.svg": {
+      "sha256": "926c41f341cd93c8f6e267584c68b9b5b7d66fedc4d8ffd533a04868ed14fccd"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/06.svg": {
+      "sha256": "0c04c303a7ae11018da2a2d0eaf697f447a149ec4e432302a792efb55d7d0029"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/07.svg": {
+      "sha256": "f13b750aa9fbf1f18c22e8ae7e15882fcef08189f79f0d51fa876a3a7db85b81"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/08.svg": {
+      "sha256": "3906abd3e566d59f9c18417916cd7434b88da7b0e02e11b38f020182697245ed"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/09.svg": {
+      "sha256": "f84fc1b7f460c1431b5911ccb75255dfa4c6108104e4dd34b923086ed8d0cd8b"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/10.svg": {
+      "sha256": "f84fc1b7f460c1431b5911ccb75255dfa4c6108104e4dd34b923086ed8d0cd8b"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/11.svg": {
+      "sha256": "f84fc1b7f460c1431b5911ccb75255dfa4c6108104e4dd34b923086ed8d0cd8b"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/12.svg": {
+      "sha256": "36899a84ccf8c29ab88c549b0af4f61004ec22fbdfd0932dae4d314a942599ef"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/13.svg": {
+      "sha256": "399039bd49f01455558301c1bb453cc535b6cc22dc37d750722e4fe63b8a23b3"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/14.svg": {
+      "sha256": "0ff0584819284c320732910c46b91f4dfc0fee3d37441d70b73b6a7dea536b0e"
+    },
+    "art/svg/awakened/kyouka/mirror_lifecycle/15.svg": {
+      "sha256": "e6100118a79c644566a5d9b4fe0b74e7103f01cd89e21bd124d3e9f1ee0d84c7"
+    },
+    "art/svg/awakened/kyouka/replay_cut.svg": {
+      "sha256": "4c8166309741c961b2389b98da72b768715b86110f0b8209371c7139f18cfcea"
+    },
+    "art/svg/awakened/kyouka/ripple.svg": {
+      "sha256": "8900ed8b8881e1a1faf2ad9095d346982b9e9fe0fb5691cef38900304e77e70e"
+    },
+    "art/svg/awakened/kyouka/shard_0.svg": {
+      "sha256": "ecf59fb2c1d525979d45dacfa0d06c2f4ab816a77c9fe707aacdb730221efca7"
+    },
+    "art/svg/awakened/kyouka/shard_1.svg": {
+      "sha256": "b6e0e094360508db4284588d27f7caa875ce21e79203ce77f1804faf51036b98"
+    },
+    "art/svg/awakened/kyouka/shard_2.svg": {
+      "sha256": "d734f70f5438c2658b3f9835593fabf04fa1f1ead4da7690e43587e29dee8d7f"
+    },
+    "art/svg/awakened/kyouka/shard_3.svg": {
+      "sha256": "bf05f3163279467934758b69443edcfcf6a291f904bfaa50c92a2317a6c8d680"
+    },
+    "art/svg/awakened/kyouka/true_name_seal.svg": {
+      "sha256": "5cc4949fd842572edcc529e19b8754a434124d5d1d55955d08eaa468a75641b8"
+    },
+    "art/svg/awakened/kyouka/water_mirror.svg": {
+      "sha256": "b908d63a158e0012e0ede047ab4530ec941393d6e85eabca3ba8a12637c34eba"
+    },
+    "art/svg/awakened/raikiri/dash_strobe.svg": {
+      "sha256": "8da820bb741f4a5bb89503e37462069671dc3cf4783f66d1605bb85eccca8379"
+    },
+    "art/svg/awakened/raikiri/direction_arc.svg": {
+      "sha256": "e8cb740f0668d1a9e9d1d22e122dafc9eb70aa776d46aaad190c27bddf1e9412"
+    },
+    "art/svg/awakened/raikiri/echo_edge.svg": {
+      "sha256": "5178e4371f5ea436b736e983bd7de8078ed0ede6b9e0a2083884aeafe95d2bc0"
+    },
+    "art/svg/awakened/raikiri/echo_gradient.svg": {
+      "sha256": "3d490fe4ddec748c9dbe20369574ea6335d87e416584c2749effe95f072f724b"
+    },
+    "art/svg/awakened/raikiri/echo_wash.svg": {
+      "sha256": "079ee19a8cbd3c9d47c98f8aaa3f0b2a32e2fc37e68657d0bfd9ce30df4ef121"
+    },
+    "art/svg/awakened/raikiri/hud_corner.svg": {
+      "sha256": "2e2217b0450f5b58cc8ea5ff7c112a372a53a23e3af469df8c8b8f8745c1f023"
+    },
+    "art/svg/awakened/raikiri/landing_pulse.svg": {
+      "sha256": "de2efafb647b23e5dd47106cb18895b80c013c2f49699259d9f868064ee70087"
+    },
+    "art/svg/awakened/raikiri/piercing_light.svg": {
+      "sha256": "15897d4256746a2e8755e4e30669372fbb12e4e69afce9d008a77fb2b3776120"
+    },
+    "art/svg/awakened/raikiri/step_flicker/00.svg": {
+      "sha256": "9c80a9536c4b8c48a71a1301a2d6674c92d6702489b6d5b3200d2691dfaea824"
+    },
+    "art/svg/awakened/raikiri/step_flicker/01.svg": {
+      "sha256": "f570b13385b876b4a4f7b8793fcdd4450639ea9e390d0320bf568953a384b44c"
+    },
+    "art/svg/awakened/raikiri/step_flicker/02.svg": {
+      "sha256": "9faa3bab0af9ec3cd82b14f2ccf3ac5305abdaf6502839b95b90080920aa8110"
+    },
+    "art/svg/awakened/raikiri/step_flicker/03.svg": {
+      "sha256": "d030907a34ee8306b2c778d5f6bb0b7c29a58339bb73fdee650643377598f42c"
+    },
+    "art/svg/awakened/raikiri/step_flicker/04.svg": {
+      "sha256": "082f92bda2661b7df275656232ce285de7189ea641e1d2446c5467ea975542b8"
+    },
+    "art/svg/awakened/raikiri/step_flicker/05.svg": {
+      "sha256": "ba18c820d2412caf077240994bab4635cf0b07f92ed4032d3d48e0b2716e9f09"
+    },
+    "art/svg/awakened/raikiri/step_flicker/06.svg": {
+      "sha256": "7714ad52eaec49d1dca1786a9f942227a8ed77aec4edc10e97094f4bbb0b5785"
+    },
+    "art/svg/awakened/raikiri/step_flicker/07.svg": {
+      "sha256": "a8233aad07707bbb4919ac1ab4db9b84d103118f1cb9c3c504afc01d8564bb4c"
+    },
+    "art/svg/awakened/raikiri/step_ribbon.svg": {
+      "sha256": "4f85822d45d46a0a9090d20cc713dafefded8fc27f4eefdda5724430cac933f7"
+    },
+    "art/svg/awakened/raikiri/thunder_cut.svg": {
+      "sha256": "a66a63cee21f2d1cbcaa399ab380049701af2b1ecee6e822c61161b17c8e39f5"
+    },
+    "art/svg/awakened/raikiri/true_name_seal.svg": {
+      "sha256": "784076883987cc6bb2f7e3698e7d22b277ba9e1d7eaa2000fed6b378cbad61c4"
+    },
+    "art/svg/awakened/senbonzakura/array_core.svg": {
+      "sha256": "5c3bd5e29d5fb299e6e94d2c9066a3571cbb4893ea1ec7a7441ebfd0d8420ce5"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/00.svg": {
+      "sha256": "7beee64bf4472862cb6b7a7b4587d0295eb4da98bb94893556cf597b3dd02eff"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/01.svg": {
+      "sha256": "449784bba0cd1de2890df42795d5d7f561b81f200a998c4f922ec1e575601305"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/02.svg": {
+      "sha256": "0f377f6f4093f640d4c2ed228b024c5c84dfa1b035a27847d68b7ffe13903f7b"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/03.svg": {
+      "sha256": "7b09da83a5f66a2f459027bfc410ddefc01843833f51942dd2cbfe6fa895051d"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/04.svg": {
+      "sha256": "0777591b6899136903e90e7fbacbab2d5822a57e58abbaa24691bec165c263e6"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/05.svg": {
+      "sha256": "1eae233374c86c08b15c0bf0507df871d91e3245b6506c79b5735bf216e9e8e9"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/06.svg": {
+      "sha256": "dfe83fb46f1ce6506d106c3452ecdc946343d6174962a4d74e30f50d8e8ee512"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/07.svg": {
+      "sha256": "40ddc1119736ea667a60e2e4db85ed52e5da441044bf6a906412df92f63e215b"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/08.svg": {
+      "sha256": "d56ff6f9da3266faf383ee07db9919d20acfb29dd2159f4acf973d2bf225756d"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/09.svg": {
+      "sha256": "0faef1a976c49b5f7892659810bc3c097ee01a3060325ee4fed451e258a5fff7"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/10.svg": {
+      "sha256": "40791ada1f16838e152100a85c0d68c9417f5c76c131767c86202f5f4a2674aa"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/11.svg": {
+      "sha256": "13bffa5cb454b9f20f1b562ea6f56b35a26a5f5060f93091a23d7d1433999528"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/12.svg": {
+      "sha256": "b561bfdc14d9d5698aeb2eb40855dc2245b048488dc8def7153f4c06cb5b74b3"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/13.svg": {
+      "sha256": "d66d28a0bb970c7135444fc5544950ace98803545da06e763a51236e2e1b4e1d"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/14.svg": {
+      "sha256": "d62f04a86e67d6f33081fc7d4062e8e3d3149f6c9a622c0866512e80e32afb5d"
+    },
+    "art/svg/awakened/senbonzakura/blade_disperse/15.svg": {
+      "sha256": "efb4398a2a658fc3b5804f547adba5af780301ff632aa5d3ff36178ea9d77af4"
+    },
+    "art/svg/awakened/senbonzakura/blade_medium.svg": {
+      "sha256": "f9f6491707ec894d7173cb4f467136d749e0033fb64c441b65e33887ce92efac"
+    },
+    "art/svg/awakened/senbonzakura/blade_small.svg": {
+      "sha256": "1986ddf6eb8e9cff0458384630bc40bdb31ac7c4772c24d24b253d5f57377f0e"
+    },
+    "art/svg/awakened/senbonzakura/dissolve_chip.svg": {
+      "sha256": "38a9cd5a2741edc52d33274c0e6f462d7764da9a37044a5189e2ade5b331426b"
+    },
+    "art/svg/awakened/senbonzakura/falling_petal.svg": {
+      "sha256": "8b486ae62894c3c038d2184f992592347f54195b3cf8de61de6ad599498b7d6d"
+    },
+    "art/svg/awakened/senbonzakura/hud_corner.svg": {
+      "sha256": "dade2fc56ada21db3b128ae1b66ed6c31504156ae526940b302559024b64e2c6"
+    },
+    "art/svg/awakened/senbonzakura/petal_blade.svg": {
+      "sha256": "321815ed3a02c9270df7c8c68b79b38cdf89e85fca160d66836504ce8c665686"
+    },
+    "art/svg/awakened/senbonzakura/phantom_blade.svg": {
+      "sha256": "613ab6bce5735cf146f92c025caf62d6b9c3fb91f2f7426815362e3b919fcd71"
+    },
+    "art/svg/awakened/senbonzakura/true_name_seal.svg": {
+      "sha256": "5c3bd5e29d5fb299e6e94d2c9066a3571cbb4893ea1ec7a7441ebfd0d8420ce5"
+    },
+    "art/svg/awakened/shared/alpha_ramp.svg": {
+      "sha256": "3d490fe4ddec748c9dbe20369574ea6335d87e416584c2749effe95f072f724b"
+    },
+    "art/svg/awakened/shared/release_fold/00.svg": {
+      "sha256": "03ed6b80ab67342e4cd0a2de24d3ceffe3beca16cb060736a5366d71cd823a5a"
+    },
+    "art/svg/awakened/shared/release_fold/01.svg": {
+      "sha256": "3b111528f53c25d29c7383b5f4c60eeaad23aafe4025a51bfecd00572cd83635"
+    },
+    "art/svg/awakened/shared/release_fold/02.svg": {
+      "sha256": "675dba2d55c52a67b53911849ae9ff0f1fa76b317a9b4175888be9dc49901c2c"
+    },
+    "art/svg/awakened/shared/release_fold/03.svg": {
+      "sha256": "455864c8713a980dd43c0ede0d37bd235997374c52b9f656ed0f759c0ab52bac"
+    },
+    "art/svg/awakened/shared/release_fold/04.svg": {
+      "sha256": "ba796b42a6582ae51c5079e9ed101343f44db693ed208477eea270d3c271bdae"
+    },
+    "art/svg/awakened/shared/release_fold/05.svg": {
+      "sha256": "28c8ac0ef8af3c9ede0a0765eaf3a518bd07d4ace2ebe8ab20a0bf14bd11809a"
+    },
+    "art/svg/awakened/shared/release_fold/06.svg": {
+      "sha256": "28c8ac0ef8af3c9ede0a0765eaf3a518bd07d4ace2ebe8ab20a0bf14bd11809a"
+    },
+    "art/svg/awakened/shared/release_fold/07.svg": {
+      "sha256": "ba796b42a6582ae51c5079e9ed101343f44db693ed208477eea270d3c271bdae"
+    },
+    "art/svg/awakened/shared/release_fold/08.svg": {
+      "sha256": "455864c8713a980dd43c0ede0d37bd235997374c52b9f656ed0f759c0ab52bac"
+    },
+    "art/svg/awakened/shared/release_fold/09.svg": {
+      "sha256": "675dba2d55c52a67b53911849ae9ff0f1fa76b317a9b4175888be9dc49901c2c"
+    },
+    "art/svg/awakened/shared/release_fold/10.svg": {
+      "sha256": "3b111528f53c25d29c7383b5f4c60eeaad23aafe4025a51bfecd00572cd83635"
+    },
+    "art/svg/awakened/shared/release_fold/11.svg": {
+      "sha256": "03ed6b80ab67342e4cd0a2de24d3ceffe3beca16cb060736a5366d71cd823a5a"
+    },
+    "art/svg/awakened/shared/success_burst.svg": {
+      "sha256": "d265850d5cb1692f62586c2d6ddbe5729ae5a6376304821200b5958a0c18ac0f"
+    },
+    "art/svg/awakened/shared/switch_slash.svg": {
+      "sha256": "61d136bfe13fba6535c79ec80f3e630b8d30134a2e434a3149a6d06368e633cd"
+    }
+  }
+}

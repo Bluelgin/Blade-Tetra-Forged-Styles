@@ -1218,5 +1218,22 @@
   "config.blade_tetra.visuals.swordAuraDecorationDistance": "Aura Decoration Distance",
   "config.blade_tetra.visuals.swordAuraDecorationDistance.tooltip": "Camera distance for optional crossed/heavy layers. Main projectiles remain visible.",
   "config.blade_tetra.visuals.swordAuraMaxDecorations": "Aura Decorations per Frame",
-  "config.blade_tetra.visuals.swordAuraMaxDecorations.tooltip": "Limits optional layers only, never attack count, damage or main projectiles."
+  "config.blade_tetra.visuals.swordAuraMaxDecorations.tooltip": "Limits optional layers only, never attack count, damage or main projectiles.",
+  "hud.blade_tetra.awakened.akatsuki": "Causal Scars",
+  "hud.blade_tetra.awakened.kyouka": "Mirror Records",
+  "hud.blade_tetra.awakened.senbonzakura": "Petal Charge",
+  "hud.blade_tetra.awakened.raikiri": "Thunder Charge",
+  "hud.blade_tetra.awakened.dispersed": "Dispersed",
+  "tooltip.blade_tetra.awakened.v2.akatsuki": "Awakened Causality: land real hits from different sides; after 3 scars, a successful Slash Art cuts fate.",
+  "tooltip.blade_tetra.awakened.v2.kyouka": "Awakened Mirror Replay: record up to 3 real hits; after 2, a successful Slash Art replays the strikes.",
+  "tooltip.blade_tetra.awakened.v2.senbonzakura": "Awakened Petal Array: sneak + Slash Art switches form; build charge in Dispersed form and unleash an array.",
+  "tooltip.blade_tetra.awakened.v2.raikiri": "Awakened Thunder Step: sneak + forward + right click upgrades Rapid Slash into hit-confirmed lightning steps; standard Slash Art triggers the finisher.",
+  "tooltip.blade_tetra.awakened.v2.primary_only": "Dual-soul V2 pending: only the primary soul currently controls V2 combat.",
+  "message.blade_tetra.awakened.rank_insufficient": "Awakened technique requires rank %s and %s Rank points",
+  "hud.blade_tetra.awakened.rank_cost": "Requires %s · Costs %s Rank",
+  "tooltip.blade_tetra.awakened.v2.dual_active": "Dual signature formed: one shared Rank payment, S rank required",
+  "vfx.blade_tetra.true_name.akatsuki": "Fate Severed",
+  "vfx.blade_tetra.true_name.kyouka": "Ten Thousand Mirrors",
+  "vfx.blade_tetra.true_name.senbonzakura": "Final Scene: Sakura Burial",
+  "vfx.blade_tetra.true_name.raikiri": "Divine Thunder Flash"
 }

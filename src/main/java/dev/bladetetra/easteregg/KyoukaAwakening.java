@@ -188,6 +188,7 @@ public final class KyoukaAwakening {
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getType() != SlashArts.ArtsType.Success
                 || !(event.getEntityLiving() instanceof ServerPlayer player)
                 || !isActive(player.getMainHandItem())) return;
@@ -217,6 +218,7 @@ public final class KyoukaAwakening {
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (!(event.getLevel() instanceof ServerLevel level)
                 || !(event.getEntity() instanceof IShootable shootable)
                 || !(shootable.getShooter() instanceof ServerPlayer player)
@@ -241,6 +243,7 @@ public final class KyoukaAwakening {
     /** Reads the real post-mitigation hit and delays it one tick to distinguish SA orderings. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getAmount() <= 0.0F || event.getSource().is(MIRROR_DAMAGE)
                 || BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
@@ -299,6 +302,11 @@ public final class KyoukaAwakening {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING.clear();
+            PENDING_HITS.clear();
+            return;
+        }
         MinecraftServer server = event.getServer();
         if (!PENDING_HITS.isEmpty()) {
             Iterator<Map.Entry<UUID, PendingHit>> hits = PENDING_HITS.entrySet().iterator();
@@ -613,6 +621,7 @@ public final class KyoukaAwakening {
     private static void awaken(ServerPlayer player, ItemStack blade) {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         clearRitualProgress(blade);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.KYOUKA);
         ServerLevel level = player.serverLevel();
         level.sendParticles(ParticleTypes.END_ROD,
                 player.getX(), player.getY() + 1.0D, player.getZ(),

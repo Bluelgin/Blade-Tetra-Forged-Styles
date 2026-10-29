@@ -1,0 +1,65 @@
+package dev.bladetetra.easteregg;
+
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+/** Pure deterministic V2 combat predicates for three awakened souls. */
+public final class AwakenedCombatMath {
+    /**
+     * After collision-checked movement, a thunder finisher must actually be in
+     * melee reach of the target's volume. Target acquisition can be 8 blocks,
+     * but an obstructed 8-block target cannot receive a remote melee strike.
+     */
+    public static boolean thunderFinisherCanReach(Vec3 arrival, AABB target) {
+        return arrival != null && target != null
+                && Double.isFinite(arrival.x) && Double.isFinite(arrival.y)
+                && Double.isFinite(arrival.z)
+                && target.inflate(2.4D, 1.0D, 2.4D)
+                        .contains(arrival.add(0.0D, 0.9D, 0.0D));
+    }
+
+    /** Independent of last-hit expiration: a new step opens its own timer. */
+    public static boolean thunderChainExpired(long lastStep, long now) {
+        return now < lastStep || now - lastStep > 36L;
+    }
+
+    /** A confirmed hit, not dash button-spam, authorizes the next Raikiri step. */
+    public static boolean isThunderFollowup(int current, boolean confirmed,
+            long lastStep, long now) {
+        return current > 0 && current < 3 && confirmed
+                && !thunderChainExpired(lastStep, now);
+    }
+
+    public static int nextThunderChain(int current, boolean confirmed,
+            long lastStep, long now) {
+        if (!isThunderFollowup(current, confirmed, lastStep, now)) return 1;
+        return Math.min(3, current + 1);
+    }
+
+    /** One committed event chooses the same formation on server and clients. */
+    public static int sakuraFormation(boolean airborne, boolean sprinting) {
+        return airborne ? 2 : sprinting ? 1 : 0;
+    }
+
+    public static float mirrorCut(float actualDamage) {
+        return bounded(actualDamage, 32.0F, 0.32F, 12.0F);
+    }
+
+    public static float petalBudget(float actualDamage, int charge) {
+        if (charge < 3) return 0;
+        return bounded(actualDamage, 32.0F, 0.35F + Math.min(6, charge) * 0.23F, 26.0F);
+    }
+
+    public static float thunderFinisher(float actualDamage, int charge) {
+        if (charge < 2) return 0;
+        return bounded(actualDamage, 32.0F, 0.35F + Math.min(4, charge) * 0.18F, 20.0F);
+    }
+
+    private static float bounded(float actualDamage, float inputCap,
+            float multiplier, float cap) {
+        if (!Float.isFinite(actualDamage) || actualDamage <= 0) return 0;
+        return Math.max(0, Math.min(cap, Math.min(actualDamage, inputCap) * multiplier));
+    }
+
+    private AwakenedCombatMath() { }
+}
