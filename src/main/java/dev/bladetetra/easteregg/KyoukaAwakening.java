@@ -558,7 +558,7 @@ public final class KyoukaAwakening {
         KyoukaVfxPacket packet = new KyoukaVfxPacket(type,
                 target.getX(), target.getY(), target.getZ(),
                 source == null ? -1 : source.getId(), target.getId(),
-                scale, duration, seed);
+                scale, duration, seed, level.dimension().location(), level.getGameTime(), java.util.UUID.randomUUID());
         for (ServerPlayer viewer : level.players()) {
             if (viewer.distanceToSqr(target) <= 128.0D * 128.0D) {
                 ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer), packet);

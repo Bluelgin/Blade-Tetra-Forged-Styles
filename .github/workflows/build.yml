@@ -24,7 +24,7 @@ jobs:
       - name: Build
         run: ./gradlew build kyoukaNativeApiAudit
       - name: Upload review JAR and JUnit evidence
-        if: success() && github.event_name == 'pull_request'
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: blade-tetra-review-build
@@ -51,7 +51,7 @@ jobs:
           xvfb-run -a ./gradlew runClient -PkyoukaMotionSmoke 2>&1 | tee build/kyouka-motion-smoke.log
           grep -F 'KYOUKA_MOTION_SMOKE_PASS' build/kyouka-motion-smoke.log
       - name: Upload Kyouka client motion evidence
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kyouka3-native-motion
@@ -69,7 +69,7 @@ jobs:
           ./gradlew runServer -PkyoukaNativeSmoke 2>&1 | tee build/kyouka-native-smoke.log
           grep -F 'KYOUKA_NATIVE_SMOKE_PASS' build/kyouka-native-smoke.log
       - name: Upload Kyouka runtime evidence
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kyouka3-native-evidence

@@ -1213,7 +1213,7 @@
   "hud.blade_tetra.awakened.raikiri": "雷荷",
   "hud.blade_tetra.awakened.dispersed": "散华",
   "tooltip.blade_tetra.awakened.v2.akatsuki": "觉醒·因果斩线：绕目标从不同方向造成真实伤害，3道斩线后成功SA触发命断。",
-  "tooltip.blade_tetra.awakened.v2.kyouka": "三镜映刃：A Rank、原生锁定敌人与圆环幻影剑共同激活；三把镜刃在目标身边同步剑技，合计追加75%伤害，持续消耗原生Rank。",
+  "tooltip.blade_tetra.awakened.v2.kyouka": "三镜追忆：真正晋升 SSS 时重演最近一斩，三镜合计追加75%伤害，冷却30秒。原生圆环幻影剑激活水镜衣：消耗原版氧气，攻击延迟14刻凝水猛击（40%）；剩余氧气提供有限卸力。",
   "tooltip.blade_tetra.awakened.v2.senbonzakura": "觉醒·无尽连舞：潜行SA切换凝刃/散华。凝刃积攒Rank；散华达到A级后持续燃烧评分，让原生B系连舞循环。评分不足则回到半月刃阵，不会自动凝刃。",
   "tooltip.blade_tetra.awakened.v2.raikiri": "觉醒·雷步：地面潜行+前进+右键将迅冲斩强化为连续雷步；命中后可续段，普通SA释放神鸣终击。",
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",

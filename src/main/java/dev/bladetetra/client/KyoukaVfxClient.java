@@ -42,14 +42,22 @@ public final class KyoukaVfxClient {
             BladeTetra.MOD_ID, "textures/effect/kyouka/mirror_shards.png");
     private static final List<Effect> EFFECTS = new ArrayList<>();
     private static ClientLevel activeLevel;
+    private static final java.util.Map<java.util.UUID,Long> SEEN = new java.util.HashMap<>();
 
     public static void spawn(KyoukaVfxPacket packet) {
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear();
+            EFFECTS.clear(); SEEN.clear();
             activeLevel = minecraft.level;
         }
+        if (minecraft.level == null || !packet.dimension().equals(minecraft.level.dimension().location())
+                || packet.duration() < 1 || packet.duration() > 240 || !Float.isFinite(packet.scale())
+                || SEEN.containsKey(packet.eventId())) return;
+        long elapsed = minecraft.level.getGameTime() - packet.started();
+        if (elapsed >= packet.duration() || elapsed < -40) return;
+        if (SEEN.size() >= 512) SEEN.remove(SEEN.keySet().iterator().next());
+        SEEN.put(packet.eventId(), minecraft.level.getGameTime()+240);
         if (minecraft.player != null) {
             double maximum = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
             if (minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
@@ -61,7 +69,8 @@ public final class KyoukaVfxClient {
                     && effect.sourceEntityId == packet.sourceEntityId()
                     && effect.targetEntityId == packet.targetEntityId());
         }
-        EFFECTS.add(new Effect(packet));
+        Effect effect = new Effect(packet); effect.age = (int)Math.max(0,elapsed);
+        EFFECTS.add(effect);
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
     }
@@ -90,9 +99,10 @@ public final class KyoukaVfxClient {
         Minecraft minecraft = Minecraft.getInstance();
         if (event.phase != TickEvent.Phase.END || minecraft.isPaused()) return;
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear();
+            EFFECTS.clear(); SEEN.clear();
             activeLevel = minecraft.level;
         }
+        if (activeLevel != null) SEEN.values().removeIf(until -> until < activeLevel.getGameTime());
         Iterator<Effect> iterator = EFFECTS.iterator();
         while (iterator.hasNext()) {
             Effect effect = iterator.next();

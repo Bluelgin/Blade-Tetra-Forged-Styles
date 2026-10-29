@@ -15,7 +15,7 @@ public final class KyoukaMirrorDamageService {
                 || !KyoukaMirrorSessions.inRange(p, target) || target.position().distanceToSqr(l.anchor()) > 9
                 || !p.hasLineOfSight(target) || target.skipAttackInteraction(p)
                 || MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(p, target))) return;
-        float amount = l.baseline() * (h.water() ? .40F : .75F);
+        float amount = h.water() ? l.baseline()*.40F : KyoukaRules.budget(l.baseline());
         int immunity = target.invulnerableTime;
         try {
             target.invulnerableTime = 0;

@@ -119,8 +119,29 @@ public final class KyoukaNativeSmokeTest {
             check(observed>previous,"secondary hit reaches real protection pipeline");
             target.setPos(25,200,1); previous=observed; KyoukaMirrorDamageService.apply(session,recall);
             check(observed==previous,"target outside recorded region misses"); target.setPos(17,200,1);
+            // Recasting a live native ring fires it; remove that first ring before asking native code to summon another.
+            for (var passenger : List.copyOf(player.getPassengers()))
+                if (passenger instanceof EntitySpiralSwords sword) { sword.doFire(); sword.discard(); }
             cast(player,true,false); KyoukaMirrorSessions.step();
             check(KyoukaMirrorSessions.armored(player) && session.pending.isEmpty(),"armor activation cancels pending recall");
+            long waterStart=level.getGameTime();
+            server.getWorldData().overworldData().setGameTime(waterStart+2);
+            state.updateComboSeq(player,ComboStateRegistry.COMBO_A2.getId());
+            target.invulnerableTime=0;
+            mods.flammpfeil.slashblade.util.AttackManager.doMeleeAttack(player,target,true,false,1F);
+            check(session.pending.size()==1 && session.pending.get(0).water(),"armor reserves one bounded water impact");
+            var water=session.pending.get(0); observed=0;
+            server.getWorldData().overworldData().setGameTime(waterStart+15); KyoukaMirrorSessions.step();
+            check(observed==0,"water cannot resolve before fourteen ticks");
+            server.getWorldData().overworldData().setGameTime(waterStart+16); KyoukaMirrorSessions.step();
+            check(Math.abs(observed-water.slash().baseline()*.40F)<.01F,"fourteen tick water uses forty percent budget");
+            check(session.pending.isEmpty(),"water authorization consumed once");
+            player.setAirSupply(300); player.setHealth(20); player.invulnerableTime=0;
+            player.hurt(player.damageSources().mobAttack(target),10);
+            check(Math.abs(player.getHealth()-13)<.01F && player.getAirSupply()==280,"actual final player damage commits thirty percent defense and twenty air");
+            int defenseAir=player.getAirSupply(); player.invulnerableTime=0;
+            player.hurt(player.damageSources().mobAttack(target),2);
+            check(player.getAirSupply()==defenseAir,"second hit cannot bypass defense cooldown");
             var reduction=new WaterMirrorDefenseBudget();
             check(Math.abs(reduction.available(0,20,300,300)-6)<.001F,"full air thirty percent capped at six");
             reduction.commit(0,3); check(reduction.available(59,20,300,300)==0,"defense sixty tick cooldown");

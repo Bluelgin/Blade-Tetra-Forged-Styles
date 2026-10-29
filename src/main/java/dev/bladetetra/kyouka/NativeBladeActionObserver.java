@@ -21,6 +21,7 @@ public final class NativeBladeActionObserver {
         final float health;
         ServerPlayer owner;
         DamageSource source;
+        LivingAttackEvent event;
         float baseline;
         Window(LivingEntity target) { this.target = target; health = target.getHealth(); }
     }
@@ -39,7 +40,7 @@ public final class NativeBladeActionObserver {
             try { nativeAttack.accept(target); completed = true; }
             finally {
                 if (previous == null) WINDOW.remove(); else WINDOW.set(previous);
-                if (completed && current.owner != null && current.baseline > 0
+                if (completed && current.owner != null && current.event != null && !current.event.isCanceled() && current.baseline > 0
                         && living.getHealth() < current.health)
                     KyoukaMirrorSessions.hit(current.owner, living, current.baseline, current.source);
             }
@@ -57,7 +58,7 @@ public final class NativeBladeActionObserver {
         Entity direct = source.getDirectEntity();
         if (direct != p && !(direct instanceof EntitySlashEffect slash && slash.getShooter() == p)) return;
         if (!Float.isFinite(e.getAmount()) || e.getAmount() <= 0 || e.getAmount() > 1024) return;
-        w.owner = p; w.source = source; w.baseline = e.getAmount();
+        w.owner = p; w.source = source; w.baseline = e.getAmount(); w.event = e;
     }
     private NativeBladeActionObserver() {}
 }

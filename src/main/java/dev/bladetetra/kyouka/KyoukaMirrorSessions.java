@@ -76,7 +76,8 @@ public final class KyoukaMirrorSessions {
     }
     private static State state(ServerPlayer p) {
         State s = STATES.get(p.getUUID());
-        if (s == null && STATES.size() < GameplayConfig.KYOUKA_MAX_SESSIONS.get()) {
+        if (s == null && STATES.size() < GameplayConfig.KYOUKA_MAX_SESSIONS.get()
+                && STATES.values().stream().filter(v -> v.owner.level()==p.level()).count() < GameplayConfig.KYOUKA_WORLD_SESSIONS.get()) {
             s = new State(p); STATES.put(p.getUUID(), s);
         }
         return s;
@@ -115,7 +116,7 @@ public final class KyoukaMirrorSessions {
         if (!p.isAlive() || p.isRemoved() || p.isSpectator() || p.getAirSupply() <= 0 || !eligible(p.getMainHandItem())) return;
         State s = state(p);
         if (s == null || armored(p)) return;
-        cancelPending(s); s.last = null; s.promotion = -1;
+        cancelPending(s); s.last = null; s.promotion = -1; s.replayUntil = 0;
         s.armorBlade = p.getMainHandItem(); s.armorWeapon = weapon(s.armorBlade);
         p.addEffect(new MobEffectInstance(WaterMirrorEffect.ARMOR.get(), -1, 0, false, false, true));
     }
@@ -157,12 +158,15 @@ public final class KyoukaMirrorSessions {
         s.armorBlade = null; s.armorWeapon = null;
         s.pending.removeIf(Pending::water); s.last = null; s.promotion = -1;
     }
+    private static KyoukaMirrorPacket packet(State s, Pending h, boolean stop) {
+        var l = h.slash;
+        return new KyoukaMirrorPacket(h.visual, s.owner.getUUID(), l.action.weapon, l.target, l.targetId,
+                s.dimension, l.action.combo, h.due, 1, l.yaw, l.anchor, stop, stop ? ItemStack.EMPTY : l.action.blade.copy());
+    }
     private static void mirrorPacket(State s, Pending h, boolean stop) {
         var l = h.slash;
-        var packet = new KyoukaMirrorPacket(h.visual, s.owner.getUUID(), l.action.weapon, l.target, l.targetId,
-                s.dimension, l.action.combo, h.due, 1, l.yaw, l.anchor, stop, stop ? ItemStack.EMPTY : l.action.blade.copy());
         ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
-                l.anchor.x, l.anchor.y, l.anchor.z, 96, s.owner.level().dimension())), packet);
+                l.anchor.x, l.anchor.y, l.anchor.z, 96, s.owner.level().dimension())), packet(s,h,stop));
     }
     private static void cancelPending(State s) {
         for (var h : s.pending) if (!h.water) mirrorPacket(s, h, true);
@@ -214,6 +218,24 @@ public final class KyoukaMirrorSessions {
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         State s = STATES.remove(event.getEntity().getUUID());
         if (s != null) { endArmor(s); cancelPending(s); }
+    }
+    @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e) {
+        // Infinite effects saved during an unclean shutdown have no valid server weapon session.
+        e.getEntity().removeEffect(WaterMirrorEffect.ARMOR.get());
+    }
+    @SubscribeEvent public static void tracking(PlayerEvent.StartTracking e) {
+        if (!(e.getEntity() instanceof ServerPlayer viewer)) return;
+        for (State s : STATES.values()) {
+            if (s.owner.level()!=viewer.level()) continue;
+            for (Pending h : s.pending) if (!h.water && (e.getTarget()==s.owner || e.getTarget().getUUID().equals(h.slash.target)))
+                ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),packet(s,h,false));
+        }
+    }
+    @SubscribeEvent public static void unload(net.minecraftforge.event.level.LevelEvent.Unload e) {
+        if (e.getLevel().isClientSide()) return;
+        for (State s : List.copyOf(STATES.values())) if (s.owner.level()==e.getLevel()) {
+            endArmor(s); cancelPending(s); STATES.remove(s.owner.getUUID(),s);
+        }
     }
     @SubscribeEvent public static void stopped(ServerStoppedEvent event) {
         for (State s : List.copyOf(STATES.values())) { endArmor(s); cancelPending(s); }

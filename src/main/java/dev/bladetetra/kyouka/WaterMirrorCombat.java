@@ -66,7 +66,7 @@ public final class WaterMirrorCombat {
         var pos = target.position();
         ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 pos.x, pos.y, pos.z, 96, p.level().dimension())), new KyoukaVfxPacket(type, pos.x, pos.y, pos.z,
-                p.getId(), target.getId(), 1, duration, p.getRandom().nextInt()));
+                p.getId(), target.getId(), 1, duration, p.getRandom().nextInt(), p.level().dimension().location(), p.level().getGameTime(), UUID.randomUUID()));
     }
     static void clear() { DEFENSE.clear(); PAYMENTS.clear(); }
     private WaterMirrorCombat() {}

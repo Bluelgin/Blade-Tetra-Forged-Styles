@@ -138,10 +138,10 @@ public final class GameplayConfig {
                         "When false, keeps original awakened combat behavior; unlocks remain saved.")
                 .define("enableAwakenedV2", true);
 
-        builder.push("kyouka3");
-        KYOUKA_START_COST = builder.defineInRange("startCost", 60, 0, 1800);
-        KYOUKA_DRAIN = builder.defineInRange("drainPerSecond", 12, 0, 600);
-        KYOUKA_ACTION_COST = builder.defineInRange("actionCost", 18, 0, 600);
+        builder.comment("Legacy section name retained for saved configurations; costs below are retired in Kyouka 4.").push("kyouka3");
+        KYOUKA_START_COST = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("startCost", 60, 0, 1800);
+        KYOUKA_DRAIN = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("drainPerSecond", 12, 0, 600);
+        KYOUKA_ACTION_COST = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("actionCost", 18, 0, 600);
         KYOUKA_RANGE = builder.defineInRange("range", 32.0, 4.0, 64.0);
         KYOUKA_MAX_SESSIONS = builder.defineInRange("serverSessions", 64, 1, 256);
         KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
