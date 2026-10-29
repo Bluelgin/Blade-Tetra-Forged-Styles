@@ -52,7 +52,7 @@ public final class KyoukaVfxClient {
             activeLevel = minecraft.level;
         }
         if (minecraft.level == null || !packet.dimension().equals(minecraft.level.dimension().location())
-                || packet.duration() < 1 || packet.duration() > 240 || !Float.isFinite(packet.scale())
+                || packet.duration() < 1 || packet.duration() > 240 && packet.type() >= KyoukaVfxPacket.WATER_GATHER || !Float.isFinite(packet.scale())
                 || SEEN.containsKey(packet.eventId())) return;
         long elapsed = minecraft.level.getGameTime() - packet.started();
         if (elapsed >= packet.duration() || elapsed < -40) return;

@@ -113,10 +113,16 @@ public final class KyoukaNativeSmokeTest {
             check(session.pending.size()==1 && !session.pending.get(0).water(), "actual SSS promotion defers until completed snapshot");
             var recall=session.pending.get(0);
             KyoukaMirrorSessions.step(); check(session.pending.size()==1,"sustained SSS cannot retrigger");
-            KyoukaMirrorDamageService.apply(session,recall);
+            long recallStart=level.getGameTime(); observed=0;
+            server.getWorldData().overworldData().setGameTime(recallStart+9); KyoukaMirrorSessions.step();
+            check(observed==0,"recall waits ten ticks");
+            server.getWorldData().overworldData().setGameTime(recallStart+10); KyoukaMirrorSessions.step();
             check(Math.abs(observed-last.baseline()*.75F)<.01F,"three mirrors share one 75 percent budget");
+            rank.setRawRankPoint(1800); rank.addRankPoint(player,10000); KyoukaMirrorSessions.step();
+            check(session.pending.size()==1,"SS to SSS oscillation cannot bypass six hundred tick cooldown");
+            float protectedHealth=target.getHealth();
             float previous=observed; protect=true; KyoukaMirrorDamageService.apply(session,recall); protect=false;
-            check(observed>previous,"secondary hit reaches real protection pipeline");
+            check(observed>previous && target.getHealth()==protectedHealth,"secondary hit respects real protection cancellation");
             target.setPos(25,200,1); previous=observed; KyoukaMirrorDamageService.apply(session,recall);
             check(observed==previous,"target outside recorded region misses"); target.setPos(17,200,1);
             // Recasting a live native ring fires it; remove that first ring before asking native code to summon another.
@@ -131,11 +137,14 @@ public final class KyoukaNativeSmokeTest {
             mods.flammpfeil.slashblade.util.AttackManager.doMeleeAttack(player,target,true,false,1F);
             check(session.pending.size()==1 && session.pending.get(0).water(),"armor reserves one bounded water impact");
             var water=session.pending.get(0); observed=0;
+            player.receiveFinalDamage(player.damageSources().mobAttack(target),.5F);
+            check(session.pending.size()==1,"ordinary received damage does not cancel scheduled water");
             server.getWorldData().overworldData().setGameTime(waterStart+15); KyoukaMirrorSessions.step();
             check(observed==0,"water cannot resolve before fourteen ticks");
             server.getWorldData().overworldData().setGameTime(waterStart+16); KyoukaMirrorSessions.step();
             check(Math.abs(observed-water.slash().baseline()*.40F)<.01F,"fourteen tick water uses forty percent budget");
             check(session.pending.isEmpty(),"water authorization consumed once");
+            server.getWorldData().overworldData().setGameTime(waterStart+63);
             player.setAirSupply(300); player.setHealth(20); player.invulnerableTime=0;
             player.receiveFinalDamage(player.damageSources().mobAttack(target),10);
             check(Math.abs(player.getHealth()-13)<.01F && player.getAirSupply()==280,"actual final player damage commits thirty percent defense and twenty air: hp="+player.getHealth()+" air="+player.getAirSupply());
@@ -148,9 +157,21 @@ public final class KyoukaNativeSmokeTest {
             check(reduction.available(60,20,300,300)==3,"rolling defense remainder authoritative");
             reduction.commit(60,3); check(reduction.available(120,20,300,300)==0,"infinite air cannot exceed rolling cap");
             check(reduction.available(200,20,150,300)==3,"window expiration and half air scale");
+            KyoukaMirrorSessions.endArmor(session);
+            state.updateComboSeq(player,ComboStateRegistry.COMBO_A3.getId()); target.invulnerableTime=0;
+            mods.flammpfeil.slashblade.util.AttackManager.doMeleeAttack(player,target,true,false,1F);
+            check(session.last!=null,"normal form resumes single snapshot recording");
+            server.getWorldData().overworldData().setGameTime(waterStart+124); KyoukaMirrorSessions.step();
+            check(session.last==null,"sixty tick history expires without tick position recording");
+            long recallCooldown=player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG)
+                    .getLong("blade_tetra_mirror_recall_until");
             player.setItemSlot(EquipmentSlot.MAINHAND,net.minecraft.world.item.ItemStack.EMPTY);
             KyoukaMirrorSessions.step();
             check(!player.hasEffect(WaterMirrorEffect.ARMOR.get()) && !KyoukaMirrorSessions.STATES.containsKey(player.getUUID()),"weapon swap clears form and scheduled attacks");
+            player.setItemSlot(EquipmentSlot.MAINHAND,blade); KyoukaMirrorSessions.step();
+            check(!KyoukaMirrorSessions.STATES.containsKey(player.getUUID()),"re-equipping at SSS does not create a recall or form");
+            check(recallCooldown==player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG)
+                    .getLong("blade_tetra_mirror_recall_until"),"weapon session cleanup preserves persisted recall cooldown");
             LogUtils.getLogger().info("KYOUKA_NATIVE_SMOKE_PASS: {} checks; actual native casts, commits, managed hits, rank promotion and Forge breathing; no visual claims",checks);
         } catch(Throwable failure) {
             LogUtils.getLogger().error("KYOUKA_NATIVE_SMOKE_FAIL",failure); throw new IllegalStateException(failure);
