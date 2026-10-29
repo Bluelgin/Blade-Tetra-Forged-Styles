@@ -24,7 +24,7 @@
 
 提交 `c9c33277fd04dcc4bacdf15676e4a0fb0e66b34d` 的 [CI 40857600568](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/actions/runs/40857600568) 已完整通过：Gradle build / JUnit / 实际JAR审计、独立图形客户端VMD/三把Tetra刀 **53 checks**、真实Forge专服 **32 checks**。两端协议为 kyouka4-water-2；包往返测试已包含维度、时间和事件UUID。
 
-后续进一步补齐追忆10刻调度、600刻冷却波动保护、60刻历史过期、重装备不触发、持久化冷却及普通受击不取消预约水斩。最终提交的校验结果见 [PR #49 检查](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/pull/49/checks) 与PR交付说明，不将前一提交的通过状态直接冒充最终HEAD结果。
+提交 `df90d69baa897e05735502ee7c2571e391cf8a6f` 的 [CI 40858108468](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/actions/runs/40858108468) 同样完整通过，专服扩展为 **39 checks**：补齐追忆10刻调度、600刻冷却波动保护、60刻历史过期、重装备不触发、持久化冷却及普通受击不取消预约水斩；独立客户端仍为53 checks。最终提交的校验结果见 [PR #49 检查](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/pull/49/checks) 与PR交付说明，不将前一提交的通过状态直接冒充最终HEAD结果。
 
 本地实际下载并检查：SlashBlade file 8018222 JAR、Forge 47.4.0 sources JAR、Java17 javap输出。本地纯WaterMirrorDefenseBudget经Java17编译。完整本机构建因ForgeGradle依赖网络解析失败，使用仓库CI校验，不将失败写成通过。
 
