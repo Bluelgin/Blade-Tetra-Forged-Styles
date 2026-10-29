@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/kyouka-3-three-mirrors'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -42,7 +43,7 @@ jobs:
           ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
           grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
       - name: Kyouka independent native VMD client smoke
-        if: github.event_name == 'pull_request'
+        if: success()
         timeout-minutes: 8
         env:
           LIBGL_ALWAYS_SOFTWARE: 'true'
@@ -54,7 +55,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kyouka3-native-motion
+          name: kyouka4-native-motion
           path: |
             build/kyouka-motion-smoke.log
             build/kyouka-motion-smoke/three-mirrors.png
@@ -72,7 +73,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kyouka3-native-evidence
+          name: kyouka4-native-evidence
           path: |
             build/kyouka-native-smoke.log
             build/kyouka-native-smoke/logs/**

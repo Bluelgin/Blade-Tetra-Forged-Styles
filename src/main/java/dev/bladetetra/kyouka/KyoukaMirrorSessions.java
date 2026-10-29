@@ -166,7 +166,8 @@ public final class KyoukaMirrorSessions {
     private static void mirrorPacket(State s, Pending h, boolean stop) {
         var l = h.slash;
         ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
-                l.anchor.x, l.anchor.y, l.anchor.z, 96, s.owner.level().dimension())), packet(s,h,stop));
+                l.anchor.x, l.anchor.y, l.anchor.z, 96, net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.DIMENSION, s.dimension))), packet(s,h,stop));
     }
     private static void cancelPending(State s) {
         for (var h : s.pending) if (!h.water) mirrorPacket(s, h, true);

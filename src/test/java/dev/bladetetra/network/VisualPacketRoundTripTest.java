@@ -40,7 +40,9 @@ class VisualPacketRoundTripTest {
         KyoukaVfxPacket expected = new KyoukaVfxPacket(
                 KyoukaVfxPacket.BREAK_SHATTER,
                 -10.5D, 70.25D, 31.75D,
-                12, -1, 1.35F, 42, -918273);
+                12, -1, 1.35F, 42, -918273,
+                new net.minecraft.resources.ResourceLocation("minecraft", "overworld"), 1234L,
+                java.util.UUID.fromString("0aa11111-2222-3333-4444-555555555555"));
         assertEquals(expected, roundTrip(expected,
                 KyoukaVfxPacket::encode,
                 KyoukaVfxPacket::decode));

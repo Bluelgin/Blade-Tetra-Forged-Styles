@@ -51,7 +51,7 @@ public final class KyoukaNativeSmokeTest {
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("blade_tetra.kyoukaNativeSmoke")) return;
         var server = event.getServer(); var level = server.overworld();
-        var player = FakePlayerFactory.getMinecraft(level);
+        var player = new HittableFakePlayer(level);
         List<ServerPlayer> peers = new ArrayList<>();
         try {
             level.getChunk(0,0); level.getChunk(1,0); level.addNewPlayer(player);
@@ -137,10 +137,10 @@ public final class KyoukaNativeSmokeTest {
             check(Math.abs(observed-water.slash().baseline()*.40F)<.01F,"fourteen tick water uses forty percent budget");
             check(session.pending.isEmpty(),"water authorization consumed once");
             player.setAirSupply(300); player.setHealth(20); player.invulnerableTime=0;
-            player.hurt(player.damageSources().mobAttack(target),10);
-            check(Math.abs(player.getHealth()-13)<.01F && player.getAirSupply()==280,"actual final player damage commits thirty percent defense and twenty air");
+            player.receiveFinalDamage(player.damageSources().mobAttack(target),10);
+            check(Math.abs(player.getHealth()-13)<.01F && player.getAirSupply()==280,"actual final player damage commits thirty percent defense and twenty air: hp="+player.getHealth()+" air="+player.getAirSupply());
             int defenseAir=player.getAirSupply(); player.invulnerableTime=0;
-            player.hurt(player.damageSources().mobAttack(target),2);
+            player.receiveFinalDamage(player.damageSources().mobAttack(target),2);
             check(player.getAirSupply()==defenseAir,"second hit cannot bypass defense cooldown");
             var reduction=new WaterMirrorDefenseBudget();
             check(Math.abs(reduction.available(0,20,300,300)-6)<.001F,"full air thirty percent capped at six");
@@ -159,6 +159,14 @@ public final class KyoukaNativeSmokeTest {
             KyoukaMirrorSessions.STATES.clear();
             if(target!=null)target.discard();target=null; player.discard();server.halt(false);
         }
+    }
+    /** FakePlayer is invulnerable by design; explicitly exercise the real final Player damage method. */
+    private static final class HittableFakePlayer extends net.minecraftforge.common.util.FakePlayer {
+        HittableFakePlayer(net.minecraft.server.level.ServerLevel level) {
+            super(level,new com.mojang.authlib.GameProfile(UUID.fromString("0aa11111-2222-3333-4444-555555555555"),"WaterMirrorSmoke"));
+        }
+        @Override public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource source) { return false; }
+        void receiveFinalDamage(net.minecraft.world.damagesource.DamageSource source,float amount) { super.actuallyHurt(source,amount); }
     }
     private static void nativeTick(mods.flammpfeil.slashblade.entity.EntitySlashEffect slash) {
         // ServerLevel increments this outside Entity.tick; isolated smoke must do the same.
