@@ -1236,5 +1236,6 @@
   "vfx.blade_tetra.true_name.kyouka": "Ten Thousand Mirrors",
   "vfx.blade_tetra.true_name.senbonzakura": "Final Scene: Sakura Burial",
   "vfx.blade_tetra.true_name.raikiri": "Divine Thunder Flash",
-  "message.blade_tetra.ritual.need_awakened": "Hold an awakened modular blade with Awakening 2.0 enabled."
+  "message.blade_tetra.ritual.need_awakened": "Hold an awakened modular blade with Awakening 2.0 enabled.",
+  "effect.blade_tetra.water_mirror_armor": "Water Mirror Armor"
 }

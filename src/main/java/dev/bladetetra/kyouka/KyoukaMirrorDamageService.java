@@ -2,48 +2,27 @@ package dev.bladetetra.kyouka;
 
 import dev.bladetetra.combat.*;
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import java.util.*;
 
-/** A single extra hit per legitimate native window: never one hit per rendered blade. */
+/** One extra hit shared by all three visual mirrors, or one delayed water impact. */
 public final class KyoukaMirrorDamageService {
-    private record Hit(KyoukaMirrorSession session, float amount,
-            CombatBalanceRules.AttackKind kind, BladeStyle style) {}
-    private static final List<Hit> PENDING = new ArrayList<>();
-    static void enqueue(KyoukaMirrorSession s, float amount,
-            CombatBalanceRules.AttackKind kind) {
-        if (PENDING.size() < 4096) PENDING.add(new Hit(s, amount, kind, StyleResolver.resolve(s.blade)));
+    static void apply(KyoukaMirrorSessions.State s, KyoukaMirrorSessions.Pending h) {
+        var l = h.slash(); var p = s.owner;
+        var entity = p.serverLevel().getEntity(l.target());
+        if (!(entity instanceof LivingEntity target) || !KyoukaMirrorSessions.legal(p, target)
+                || !KyoukaMirrorSessions.inRange(p, target) || target.position().distanceToSqr(l.anchor()) > 9
+                || !p.hasLineOfSight(target) || target.skipAttackInteraction(p)
+                || MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(p, target))) return;
+        float amount = l.baseline() * (h.water() ? .40F : .75F);
+        int immunity = target.invulnerableTime;
+        try {
+            target.invulnerableTime = 0;
+            boolean hit = SoulLegacyDamageGuard.apply(() -> CombatBalanceRuntime.authoredDamage(target,
+                    dev.bladetetra.easteregg.KyoukaAwakening.mirrorDamage(p.serverLevel(), p), amount, l.style(), l.kind()));
+            if (hit) WaterMirrorCombat.visual(p, target, dev.bladetetra.network.KyoukaVfxPacket.WATER_IMPACT, 12);
+        } finally { target.invulnerableTime = immunity; }
     }
-    static void flush() {
-        var hits = List.copyOf(PENDING); PENDING.clear();
-        for (var h : hits) {
-            var s = h.session;
-            if (KyoukaMirrorSessions.SESSIONS.get(s.owner.getUUID()) != s || !KyoukaMirrorSessions.valid(s)
-                    || !s.owner.hasLineOfSight(s.target)) continue;
-            // Both player attack protection and the ordinary LivingAttack/Hurt/Damage pipeline remain active.
-            // ForgeHooks.onPlayerAttackTarget also invokes ItemSlashBlade.onLeftClickEntity,
-            // which synthesizes L_CLICK/progressCombo unless native onClick is set. Post only
-            // the protection event here: a mirror impact must never masquerade as player input.
-            if (MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(s.owner, s.target))
-                    || s.target.skipAttackInteraction(s.owner)) continue;
-            double balanced = h.amount * dev.bladetetra.config.CombatBalanceConfig.multiplier(h.style, h.kind);
-            if (!Double.isFinite(balanced) || balanced <= 0 || balanced > 768) continue;
-            int immunity = s.target.invulnerableTime;
-            var motion = s.target.getDeltaMovement();
-            boolean marked = s.target.hurtMarked;
-            try {
-                s.target.invulnerableTime = 0;
-                SoulLegacyDamageGuard.apply(() -> CombatBalanceRuntime.authoredDamage(
-                        s.target, dev.bladetetra.easteregg.KyoukaAwakening.mirrorDamage(s.owner.serverLevel(), s.owner),
-                        h.amount, h.style, h.kind));
-            } finally {
-                // Only this native-authorized window bypasses hurt cooldown. No permanent immunity stripping or knockback.
-                s.target.invulnerableTime = immunity;
-                s.target.setDeltaMovement(motion); s.target.hurtMarked = marked;
-            }
-        }
-    }
-    static void clear() { PENDING.clear(); }
     private KyoukaMirrorDamageService() {}
 }

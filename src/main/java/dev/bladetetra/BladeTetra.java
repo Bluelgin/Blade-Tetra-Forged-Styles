@@ -48,6 +48,7 @@ public final class BladeTetra {
                 ClientVisualConfig.SPEC,
                 "blade-tetra-client.toml");
         ModItems.ITEMS.register(modBus);
+        dev.bladetetra.kyouka.WaterMirrorEffect.EFFECTS.register(modBus);
         ModEntities.ENTITIES.register(modBus);
         ModItems.CREATIVE_TABS.register(modBus);
         ModLootModifiers.CODECS.register(modBus);

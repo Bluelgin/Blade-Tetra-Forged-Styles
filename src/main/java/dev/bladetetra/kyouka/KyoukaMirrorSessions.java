@@ -1,32 +1,55 @@
 package dev.bladetetra.kyouka;
 
+import dev.bladetetra.combat.*;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.easteregg.*;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.network.*;
-import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank;
 import mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank;
-import mods.flammpfeil.slashblade.entity.EntitySpiralSwords;
+import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
+import mods.flammpfeil.slashblade.entity.*;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.animal.*;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.*;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 import java.util.*;
 
+/** Event-created, bounded state. No movement history, world entity query or recurring mirror session. */
 @Mod.EventBusSubscriber(modid = "blade_tetra")
 public final class KyoukaMirrorSessions {
-    static final Map<UUID, KyoukaMirrorSession> SESSIONS = new HashMap<>();
-    private static final String WEAPON = "blade_tetra_awakened_v2_id";
+    static final String WEAPON = "blade_tetra_awakened_v2_id";
+    private static final String COOLDOWN = "blade_tetra_mirror_recall_until";
+    static final Map<UUID, State> STATES = new HashMap<>();
+    private static final Map<EntitySlashEffect, Action> SHOTS = new IdentityHashMap<>();
+    record Action(ItemStack blade, UUID weapon, ResourceLocation combo, long started) {}
+    record LastMirrorSlash(Action action, UUID target, int targetId, long tick, Vec3 anchor,
+            float yaw, float baseline, BladeStyle style, CombatBalanceRules.AttackKind kind) {}
+    record Pending(LastMirrorSlash slash, long due, boolean water, UUID visual) {}
+    static final class State {
+        final ServerPlayer owner;
+        final ResourceLocation dimension;
+        Action action, accepted;
+        LastMirrorSlash last;
+        final List<Pending> pending = new ArrayList<>();
+        ItemStack armorBlade;
+        UUID armorWeapon;
+        long promotion = -1, nextAttack, replayUntil;
+        State(ServerPlayer owner) { this.owner = owner; dimension = owner.level().dimension().location(); }
+    }
     public static boolean eligible(ItemStack blade) {
         return GameplayConfig.ENABLE_AWAKENED_V2.get() && blade.getItem() instanceof ModularSlashBladeItem
                 && SoulLegacyState.active(blade) == SoulLegacyState.Legacy.KYOUKA
@@ -40,122 +63,161 @@ public final class KyoukaMirrorSessions {
                 && !owner.isAlliedTo(target) && !target.isAlliedTo(owner)
                 && (target instanceof Enemy || target instanceof Mob mob && mob.getTarget() == owner);
     }
-    static void activate(ServerPlayer owner, Set<EntitySpiralSwords> ring) {
-        if (!owner.isAlive() || owner.isRemoved() || owner.isSpectator()
-                || !eligible(owner.getMainHandItem()) || SESSIONS.containsKey(owner.getUUID())
-                || SESSIONS.size() >= GameplayConfig.KYOUKA_MAX_SESSIONS.get()
-                || SESSIONS.values().stream().filter(s -> s.owner.level() == owner.level()).count()
-                        >= GameplayConfig.KYOUKA_WORLD_SESSIONS.get()) return;
-        var state = owner.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
-        Entity locked = state == null ? null : state.getTargetEntity(owner.level());
-        if (!(locked instanceof LivingEntity target) || !legal(owner, target)
-                || !inRange(owner, target) || !owner.hasLineOfSight(target)) return;
-        var rank = owner.getCapability(CapabilityConcentrationRank.RANK_POINT).orElse(null);
-        // Other capability implementations may override default addRankPoint; fail closed.
-        if (rank == null || rank.getClass() != mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRank.class) return;
-        int cost = GameplayConfig.KYOUKA_START_COST.get();
-        long now = owner.level().getGameTime();
-        if (!KyoukaRules.canStart(rank.getRankPoint(now), rank.getUnitCapacity(), rank.getRank(now).level, cost)) return;
-        var tag = owner.getMainHandItem().getOrCreateTag();
-        if (!tag.hasUUID(WEAPON)) tag.putUUID(WEAPON, UUID.randomUUID());
-        var session = new KyoukaMirrorSession(owner, target, tag.getUUID(WEAPON), ring);
-        SESSIONS.put(owner.getUUID(), session);
-        AwakenedRankConstraintService.lock(rank, owner.getUUID());
-        rank.addRankPoint(owner, -cost);
-        if (!valid(session)) { stop(session); return; }
-        viewers(session);
-    }
     static boolean inRange(ServerPlayer owner, LivingEntity target) {
         double range = GameplayConfig.KYOUKA_RANGE.get();
-        return owner.distanceToSqr(target) <= range * range
-                && owner.serverLevel().hasChunkAt(target.blockPosition())
+        return owner.distanceToSqr(target) <= range * range && owner.serverLevel().hasChunkAt(target.blockPosition())
                 && owner.serverLevel().getEntity(target.getId()) == target;
     }
-    static boolean valid(KyoukaMirrorSession s) {
-        if (s.owner.isRemoved() || !s.owner.isAlive() || s.owner.isSpectator()
-                || s.owner.getMainHandItem() != s.blade || !eligible(s.blade)
-                || !s.blade.getOrCreateTag().hasUUID(WEAPON)
-                || !s.weapon.equals(s.blade.getOrCreateTag().getUUID(WEAPON))
-                || !legal(s.owner, s.target) || !inRange(s.owner, s.target)) return false;
-        s.ring.removeIf(e -> !e.isAlive() || e.itFired() || e.level() != s.owner.level()
-                || e.getOwner() != s.owner || e.getVehicle() != s.owner
-                || s.owner.serverLevel().getEntity(e.getId()) != e);
-        if (s.ring.isEmpty()) return false;
-        return s.owner.getCapability(CapabilityConcentrationRank.RANK_POINT).map(r ->
-                KyoukaRules.sustain(r.getRankPoint(s.owner.level().getGameTime()), r.getUnitCapacity(),
-                        r.getRank(s.owner.level().getGameTime()).level)).orElse(false);
+    private static long clock(ServerPlayer p) { return p.getServer().overworld().getGameTime(); }
+    private static UUID weapon(ItemStack blade) {
+        var tag = blade.getOrCreateTag();
+        if (!tag.hasUUID(WEAPON)) tag.putUUID(WEAPON, UUID.randomUUID());
+        return tag.getUUID(WEAPON);
     }
-    static boolean spend(KyoukaMirrorSession s, int amount) {
-        IConcentrationRank rank = s.owner.getCapability(CapabilityConcentrationRank.RANK_POINT).orElse(null);
-        if (!valid(s) || rank == null || rank.getRankPoint(s.owner.level().getGameTime()) < amount) return false;
-        rank.addRankPoint(s.owner, -amount);
-        return true;
-    }
-    static void send(ServerPlayer viewer, KyoukaMirrorSession s, boolean full, boolean stop) {
-        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
-                new KyoukaMirrorPacket(s.id, s.owner.getUUID(), s.weapon,
-                        s.target.getUUID(), s.target.getId(), s.owner.level().dimension().location(),
-                        s.combo, s.started, s.action, s.yaw, stop, full ? s.blade.copy() : ItemStack.EMPTY));
-    }
-    static void changed(KyoukaMirrorSession s) {
-        for (UUID id : s.viewers) {
-            var p = s.owner.getServer().getPlayerList().getPlayer(id);
-            if (p != null) send(p, s, false, false);
+    private static State state(ServerPlayer p) {
+        State s = STATES.get(p.getUUID());
+        if (s == null && STATES.size() < GameplayConfig.KYOUKA_MAX_SESSIONS.get()) {
+            s = new State(p); STATES.put(p.getUUID(), s);
         }
+        return s;
     }
-    private static void viewers(KyoukaMirrorSession s) {
-        Set<UUID> current = new HashSet<>();
-        for (ServerPlayer p : s.owner.serverLevel().players()) {
-            if (p.distanceToSqr(s.target) > 96*96) continue;
-            current.add(p.getUUID());
-            if (!s.viewers.contains(p.getUUID())) send(p, s, true, false);
-        }
-        for (UUID id : s.viewers) if (!current.contains(id)) {
-            var p = s.owner.getServer().getPlayerList().getPlayer(id);
-            if (p != null) send(p, s, false, true);
-        }
-        s.viewers.clear(); s.viewers.addAll(current);
+    static void committed(ServerPlayer p, ISlashBladeState nativeState) {
+        State s = state(p);
+        if (s == null) return;
+        var combo = nativeState.getComboSeq();
+        if (combo.getPath().equals("none") || combo.getPath().equals("standby")) return;
+        s.action = new Action(p.getMainHandItem(), weapon(p.getMainHandItem()), combo, nativeState.getLastActionTime());
     }
-    static void stop(KyoukaMirrorSession s) {
-        SESSIONS.remove(s.owner.getUUID(), s);
-        for (UUID id : s.viewers) {
-            var p = s.owner.getServer().getPlayerList().getPlayer(id);
-            if (p != null) send(p, s, false, true);
-        }
-        AwakenedRankConstraintService.unlock(s.owner.getUUID());
-        s.shots.clear(); s.budgets.clear(); s.viewers.clear();
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void spawned(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide() || event.loadedFromDisk() || event.getEntity().getClass() != EntitySlashEffect.class
+                || !(event.getEntity() instanceof EntitySlashEffect slash)
+                || !(slash.getShooter() instanceof ServerPlayer p)) return;
+        State s = STATES.get(p.getUUID());
+        if (s != null && s.action != null && validAction(s, s.action) && SHOTS.size() < 1024)
+            SHOTS.put(slash, s.action);
+    }
+    static boolean validAction(State s, Action a) {
+        var p = s.owner;
+        return !p.isRemoved() && p.isAlive() && !p.isSpectator()
+                && p.level().dimension().location().equals(s.dimension)
+                && a != null && p.getMainHandItem() == a.blade && eligible(a.blade)
+                && a.blade.hasTag() && a.weapon.equals(a.blade.getTag().getUUID(WEAPON));
+    }
+    public static boolean armored(ServerPlayer p) {
+        State s = STATES.get(p.getUUID());
+        return p.hasEffect(WaterMirrorEffect.ARMOR.get()) && s != null && s.armorBlade != null
+                && p.getMainHandItem() == s.armorBlade && eligible(s.armorBlade) && p.isAlive() && !p.isSpectator()
+                && !p.isRemoved() && p.getAirSupply() > 0 && p.level().dimension().location().equals(s.dimension)
+                && s.armorWeapon.equals(weapon(s.armorBlade));
+    }
+    static void activate(ServerPlayer p, Set<EntitySpiralSwords> ignored) {
+        if (!p.isAlive() || p.isRemoved() || p.isSpectator() || p.getAirSupply() <= 0 || !eligible(p.getMainHandItem())) return;
+        State s = state(p);
+        if (s == null || armored(p)) return;
+        cancelPending(s); s.last = null; s.promotion = -1;
+        s.armorBlade = p.getMainHandItem(); s.armorWeapon = weapon(s.armorBlade);
+        p.addEffect(new MobEffectInstance(WaterMirrorEffect.ARMOR.get(), -1, 0, false, false, true));
+    }
+    public static void rankChanged(LivingEntity user, int before, int after) {
+        if (!(user instanceof ServerPlayer p) || before >= IConcentrationRank.ConcentrationRanks.SSS.level
+                || after < IConcentrationRank.ConcentrationRanks.SSS.level || !eligible(p.getMainHandItem())) return;
+        State s = state(p);
+        if (s != null && !armored(p)) s.promotion = p.level().getGameTime();
+    }
+    static void hit(ServerPlayer p, LivingEntity target, float baseline, DamageSource source) {
+        State s = STATES.get(p.getUUID());
+        if (s == null || !legal(p, target) || !inRange(p, target)) return;
+        Action a = source.getDirectEntity() instanceof EntitySlashEffect slash ? SHOTS.get(slash) : s.action;
+        long now = p.level().getGameTime();
+        if (!validAction(s, a) || s.accepted == a || now < s.nextAttack || now < s.replayUntil) return;
+        var nativeState = p.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
+        if (!(source.getDirectEntity() instanceof EntitySlashEffect)
+                && (now - a.started > 60 || nativeState == null || !nativeState.getComboSeq().equals(a.combo)
+                || nativeState.getLastActionTime() != a.started)) return;
+        s.accepted = a; s.nextAttack = now + 2;
+        float phase = CombatBalanceRuntime.secondaryPhaseScale(p, source.getDirectEntity());
+        if (!Float.isFinite(phase) || phase <= 0) return;
+        var last = new LastMirrorSlash(a, target.getUUID(), target.getId(), now, target.position(),
+                p.getYRot(), Math.min(1024, baseline * phase), StyleResolver.resolve(a.blade), CombatBalanceRuntime.kind(p, source.getDirectEntity()));
+        if (armored(p)) {
+            if (s.pending.size() < 8) {
+                s.pending.add(new Pending(last, now + 14, true, UUID.randomUUID()));
+                WaterMirrorCombat.visual(p, target, KyoukaVfxPacket.WATER_GATHER, 14);
+            }
+        } else s.last = last;
+    }
+    private static net.minecraft.nbt.CompoundTag persisted(ServerPlayer p) {
+        var root = p.getPersistentData();
+        if (!root.contains(Player.PERSISTED_NBT_TAG)) root.put(Player.PERSISTED_NBT_TAG, new net.minecraft.nbt.CompoundTag());
+        return root.getCompound(Player.PERSISTED_NBT_TAG);
+    }
+    static void endArmor(State s) {
+        s.owner.removeEffect(WaterMirrorEffect.ARMOR.get());
+        s.armorBlade = null; s.armorWeapon = null;
+        s.pending.removeIf(Pending::water); s.last = null; s.promotion = -1;
+    }
+    private static void mirrorPacket(State s, Pending h, boolean stop) {
+        var l = h.slash;
+        var packet = new KyoukaMirrorPacket(h.visual, s.owner.getUUID(), l.action.weapon, l.target, l.targetId,
+                s.dimension, l.action.combo, h.due, 1, l.yaw, l.anchor, stop, stop ? ItemStack.EMPTY : l.action.blade.copy());
+        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
+                l.anchor.x, l.anchor.y, l.anchor.z, 96, s.owner.level().dimension())), packet);
+    }
+    private static void cancelPending(State s) {
+        for (var h : s.pending) if (!h.water) mirrorPacket(s, h, true);
+        s.pending.clear();
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        step();
+        if (event.phase == TickEvent.Phase.END) step();
     }
     static void step() {
-        // End old batches before accepting a replacement native cast.
-        for (var s : List.copyOf(SESSIONS.values())) {
-            long now = s.owner.level().getGameTime();
-            if (!valid(s)) { stop(s); continue; }
-            if (now >= s.nextDrain) {
-                s.nextDrain = now + 20;
-                if (!spend(s, GameplayConfig.KYOUKA_DRAIN.get()) || !valid(s)) { stop(s); continue; }
-            }
-            s.shots.values().removeIf(shot -> !shot.entity().isAlive());
-            if (now % 10 == 0) viewers(s);
-            if (now % 80 == 0) changed(s);
-        }
         KyoukaSpiralObserver.flush();
-        KyoukaMirrorDamageService.flush();
+        SHOTS.keySet().removeIf(e -> !e.isAlive() || e.isRemoved());
+        for (State s : List.copyOf(STATES.values())) {
+            var p = s.owner; long now = p.level().getGameTime();
+            if (p.isRemoved() || !p.isAlive() || !eligible(p.getMainHandItem())
+                    || !p.level().dimension().location().equals(s.dimension)) {
+                endArmor(s); cancelPending(s); STATES.remove(p.getUUID(), s); continue;
+            }
+            if (s.armorBlade != null && !armored(p)) endArmor(s);
+            if (s.last != null && (now - s.last.tick > 60 || !validAction(s, s.last.action))) s.last = null;
+            // Deferred to tick END: native Rank may rise inside hurt, before the hit callback returns.
+            if (s.promotion >= 0) {
+                if (!armored(p) && s.last != null && now - s.promotion <= 1
+                        && clock(p) >= persisted(p).getLong(COOLDOWN)) {
+                    var h = new Pending(s.last, now + 10, false, UUID.randomUUID());
+                    persisted(p).putLong(COOLDOWN, clock(p) + 600);
+                    s.pending.add(h); WaterMirrorCombat.visual(p, p, KyoukaVfxPacket.WATER_DEFLECT, 10); s.replayUntil = now + 30; mirrorPacket(s, h, false);
+                }
+                s.promotion = -1;
+            }
+            Iterator<Pending> it = s.pending.iterator();
+            while (it.hasNext()) {
+                Pending h = it.next();
+                if (!validAction(s, h.slash.action) || h.water && !armored(p)) {
+                    if (!h.water) mirrorPacket(s, h, true); it.remove(); continue;
+                }
+                if (now < h.due) continue;
+                if (now == h.due) KyoukaMirrorDamageService.apply(s, h);
+                if (h.water || now >= h.due + 20) {
+                    if (!h.water) mirrorPacket(s, h, true); it.remove();
+                }
+            }
+        }
+        WaterMirrorCombat.prune();
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent event) {
-        var s = SESSIONS.get(event.getEntity().getUUID()); if (s != null) stop(s);
+        State s = STATES.remove(event.getEntity().getUUID());
+        if (s != null) { endArmor(s); cancelPending(s); }
     }
-    @SubscribeEvent public static void unload(LevelEvent.Unload event) {
-        if (event.getLevel().isClientSide()) return;
-        for (var s : List.copyOf(SESSIONS.values())) if (s.owner.level() == event.getLevel()) stop(s);
+    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        State s = STATES.remove(event.getEntity().getUUID());
+        if (s != null) { endArmor(s); cancelPending(s); }
     }
     @SubscribeEvent public static void stopped(ServerStoppedEvent event) {
-        for (var s : List.copyOf(SESSIONS.values())) stop(s);
-        KyoukaSpiralObserver.clear(); KyoukaMirrorDamageService.clear();
-        AwakenedRankConstraintService.clear();
+        for (State s : List.copyOf(STATES.values())) { endArmor(s); cancelPending(s); }
+        STATES.clear(); SHOTS.clear(); KyoukaSpiralObserver.clear(); WaterMirrorCombat.clear();
     }
     private KyoukaMirrorSessions() {}
 }

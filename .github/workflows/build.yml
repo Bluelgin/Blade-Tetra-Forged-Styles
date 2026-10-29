@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/kyouka-3-three-mirrors]
   pull_request:
 
 permissions:
@@ -61,7 +61,7 @@ jobs:
             build/kyouka-motion-smoke/logs/**
           retention-days: 14
       - name: Kyouka native Forge smoke
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         timeout-minutes: 8
         run: |
           mkdir -p build/kyouka-native-smoke

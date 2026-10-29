@@ -23,11 +23,14 @@ public final class KyoukaMirrorRenderer {
     private static final Map<UUID, Visual> SESSIONS = new HashMap<>();
     private static final NativeBladeMotionSampler SAMPLER = new NativeBladeMotionSampler();
     private static ClientLevel world;
+    private static final Map<UUID, Long> STOPPED = new HashMap<>();
     public static void accept(KyoukaMirrorPacket p) {
         var level = Minecraft.getInstance().level;
-        if (world != level) { SESSIONS.clear(); world = level; }
+        if (world != level) { SESSIONS.clear(); STOPPED.clear(); world = level; }
         if (level == null || !p.dimension().equals(level.dimension().location())) return;
-        if (p.stop()) { SESSIONS.remove(p.session()); return; }
+        if (p.stop()) { SESSIONS.remove(p.session());
+            if (STOPPED.size() < 512) STOPPED.put(p.session(), level.getGameTime() + 60); return; }
+        if (STOPPED.containsKey(p.session()) || level.getGameTime() > p.started()+20) return;
         var previous = SESSIONS.get(p.session());
         if (previous != null && p.action() < previous.packet.action()) return;
         if (previous == null) {
@@ -41,13 +44,14 @@ public final class KyoukaMirrorRenderer {
         for (var s : SESSIONS.values()) { s.model = null; s.unsupported = false; }
     }
     @SubscribeEvent public static void unload(LevelEvent.Unload e) {
-        if (e.getLevel() == world) { SESSIONS.clear(); world = null; SAMPLER.reset(); }
+        if (e.getLevel() == world) { SESSIONS.clear(); STOPPED.clear(); world = null; SAMPLER.reset(); }
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e) {
         if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         var mc = Minecraft.getInstance(); var level = mc.level;
         if (level == null || world != level) return;
-        SESSIONS.values().removeIf(v -> level.getGameTime() - v.received > 240);
+        SESSIONS.values().removeIf(v -> level.getGameTime() > v.packet.started() + 20);
+        STOPPED.values().removeIf(until -> until < level.getGameTime());
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Vec3 eye = e.getCamera().getPosition();
         double distance = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
@@ -68,7 +72,8 @@ public final class KyoukaMirrorRenderer {
                 double clock = level.getGameTime() + e.getPartialTick();
                 // Exactly one native sample for this action/frame, shared unchanged by all three blades.
                 var motion = data.action() > 0 ? SAMPLER.sample(data.combo(), clock - data.started()) : null;
-                Vec3 center = target.getPosition(e.getPartialTick());
+                Vec3 center = data.anchor();
+                if (clock < data.started()-10) continue;
                 for (int i=0; i<3; i++) {
                     double angle = Math.toRadians(data.yaw()) + i * Math.PI * 2 / 3;
                     double radius = Math.max(1.2, target.getBbWidth()*.5 + .8);
@@ -78,6 +83,8 @@ public final class KyoukaMirrorRenderer {
                                 center.y-eye.y+.1+Math.sin(clock*.06)*.06,
                                 center.z-eye.z+Math.sin(angle)*radius);
                         pose.mulPose(Axis.YP.rotation((float)(-angle-Math.PI*.5)));
+                        WaterMirrorLayer.surface(pose, buffers, (float)Math.min(1, Math.max(0, (data.started()+20-clock)/8)));
+                        if (clock < data.started()) continue;
                         if (motion != null) {
                             pose.mulPoseMatrix(motion);
                             pose.last().normal().set(pose.last().pose()).invert().transpose();

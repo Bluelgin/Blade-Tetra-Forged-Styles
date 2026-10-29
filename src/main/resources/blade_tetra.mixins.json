@@ -9,6 +9,7 @@
     "AwakenedRankConstraintMixin",
     "NativeBladeCommitMixin",
     "NativeBladeAttackObserverMixin",
+    "WaterMirrorDamageCommitMixin",
     "CombatBalanceBladeStateMixin",
     "CustomStyleReachMixin",
     "CombatBalanceSlashArtsMixin",

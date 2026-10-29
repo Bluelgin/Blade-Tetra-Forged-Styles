@@ -70,118 +70,72 @@ public final class KyoukaNativeSmokeTest {
             level.addFreshEntity(target); state.setTargetEntityId(target.getId());
             var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
             long now = level.getGameTime(); rank.setLastUpdte(now); rank.setRawRankPoint(1600);
-            KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty(), "lock/rank alone do not activate");
-            cast(player, false, false); // actual native scheduler rejects released middle button
-            KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1600, "failed native cast has no mirror fee");
-            cast(player, true, false);
-            KyoukaMirrorSessions.step();
-            var session = KyoukaMirrorSessions.SESSIONS.get(player.getUUID());
-            check(session != null && session.ring.size()==8, "native S-rank batch creates one mirror session");
-            check(rank.getRawRankPoint()==1540, "native eight swords pay only one 60 point activation");
-            rank.addRankPoint(player, 100); check(rank.getRawRankPoint()==1540, "positive native addition blocked before write");
-            rank.setRawRankPoint(1700); check(rank.getRawRankPoint()==1540, "direct setter gain blocked");
-            rank.addRankPoint(player, -1); check(rank.getRawRankPoint()==1539, "negative native change preserved");
-            long seq=session.action;
-            cancelMotion=true; state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId()); cancelMotion=false;
-            check(session.action==seq, "cancelled motion does not commit");
-            state.progressCombo(player,true); check(session.action==seq, "virtual route cannot commit");
-            state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
-            check(session.action==seq+1 && session.combo.equals(state.getComboSeq()), "final committed native motion observed exactly once");
-            check(!session.shots.isEmpty(), "native click-created slash is independently observed");
-            var shot=session.shots.values().iterator().next().entity();
-            float baseline=(float)AttackHelper.calculateTotalDamage(player,target,(float)shot.getDamage(),false);
-            float health=target.getHealth(); observed=0;
-            nativeTick(shot); nativeTick(shot); KyoukaMirrorDamageService.flush();
-            check(Math.abs(observed-baseline*.75F)<.001F, "one native window gives total 75 percent: observed="+observed+" base="+baseline+" tick="+shot.tickCount+" alive="+shot.isAlive()+" indirect="+shot.getIndirect()+" owner="+(shot.getShooter()==player)+" valid="+KyoukaMirrorSessions.valid(session)+" windows="+session.budgets.get(session.action).windows+" points="+rank.getRawRankPoint());
-            check(target.getHealth()<health, "remote native action damages bound target");
-            check(rank.getRawRankPoint()==1521, "one native action pays 18; actual damage cannot earn rank");
-            check(session.action==seq+1, "secondary Rank callback cannot resolve/advance native combo");
-            long lockedPoints=rank.getRawRankPoint();
-            InheritedCombatDamage.apply(() -> { NativeBladeActionObserver.melee(player,.44F,null); return true; });
-            KyoukaMirrorDamageService.flush();
-            check(rank.getRawRankPoint()==lockedPoints, "inherited recursion cannot create an action debit");
-            var snapshot=new dev.bladetetra.network.KyoukaMirrorPacket(session.id,player.getUUID(),session.weapon,
-                    target.getUUID(),target.getId(),level.dimension().location(),session.combo,session.started,
-                    session.action,session.yaw,false,blade.copy());
-            var buffer=new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-            try {
-                dev.bladetetra.network.KyoukaMirrorPacket.encode(snapshot,buffer);
-                var decoded=dev.bladetetra.network.KyoukaMirrorPacket.decode(buffer);
-                check(decoded.valid() && decoded.target().equals(snapshot.target())
-                        && decoded.action()==snapshot.action() && !decoded.appearance().isEmpty(),"authoritative snapshot/real appearance round trip");
-            } finally {buffer.release();}
-            observed=0; nativeTick(shot); nativeTick(shot); KyoukaMirrorDamageService.flush();
-            check(observed==0 && rank.getRawRankPoint()==1521, "non-cycle slash later frames cannot inflate budget/fee");
-            // A distinct real native action can pay once again; protection sees the secondary hit.
-            state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
-            var next=session.shots.values().stream().filter(s -> s.entity()!=shot).findFirst().orElseThrow().entity();
-            health=target.getHealth(); protect=true; nativeTick(next);nativeTick(next);KyoukaMirrorDamageService.flush();protect=false;
-            check(target.getHealth()==health, "Forge protection cancels remote damage");
-            check(rank.getRawRankPoint()==1503, "repeated same-tick committed combo is distinct, not virtual");
-            // Native body damage remains present when the target is also in the owner's melee range.
-            target.setPos(2,200,1);normalObserved=0;observed=0;
-            state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
-            var local=session.shots.values().stream().filter(v -> v.action()==session.action).findFirst().orElseThrow().entity();
-            nativeTick(local);nativeTick(local);int nativeImmunity=target.invulnerableTime;
-            KyoukaMirrorDamageService.flush();
-            check(normalObserved>0 && Math.abs(observed-normalObserved*.75F)<.001F,
-                    "native body damage remains unchanged with one additional 75-percent budget");
-            check(target.invulnerableTime==nativeImmunity,"extra window restores native immunity rather than stripping it");
-            target.setPos(17,200,1);
-            var swords=List.copyOf(session.ring); swords.get(0).doFire();
-            check(KyoukaMirrorSessions.valid(session), "partial batch loss keeps remaining ring");
-            for(var sword:swords)sword.doFire(); KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty(), "last native ring firing ends session");
-            rank.addRankPoint(player,10); check(rank.getRawRankPoint()==1495, "rank unlocked after session cleanup");
-            for(var sword:swords)sword.discard();
-            rank.setRawRankPoint(1199); cast(player,true,false);KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1199, "below A native summon has no extra fee");
-            for(var e:List.copyOf(player.getPassengers())) if(e instanceof EntitySpiralSwords)e.discard();
-            rank.setRawRankPoint(1600);state.setTargetEntityId(-1);cast(player,true,false);KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1600,"no locked target cannot activate");
-            for(var e:List.copyOf(player.getPassengers())) if(e instanceof EntitySpiralSwords)e.discard();
+            cast(player, false, false); KyoukaMirrorSessions.step();
+            check(!player.hasEffect(WaterMirrorEffect.ARMOR.get()), "failed native cast cannot activate armor");
+            state.setTargetEntityId(-1);
+            cast(player, true, false); KyoukaMirrorSessions.step();
+            check(KyoukaMirrorSessions.armored(player), "real native spiral batch activates without locked target");
+            check(rank.getRawRankPoint()==1600, "no mirror start fee");
+            rank.addRankPoint(player,10);
+            check(rank.getRawRankPoint()>1600, "armor preserves native rank gain");
+            var session = KyoukaMirrorSessions.STATES.get(player.getUUID());
+            int air=player.getAirSupply();
+            var breathe=new net.minecraftforge.event.entity.living.LivingBreatheEvent(player,true,1,4,true);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(breathe);
+            check(!breathe.canBreathe(), "land breathing uses native drain branch");
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WATER_BREATHING,200));
+            breathe=new net.minecraftforge.event.entity.living.LivingBreatheEvent(player,true,1,4,true);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(breathe);
+            check(breathe.canBreathe(), "water breathing preserves native air behavior");
+            player.removeEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING);
+            player.setAirSupply(1);
+            breathe=new net.minecraftforge.event.entity.living.LivingBreatheEvent(player,true,1,4,true);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(breathe);
+            check(!player.hasEffect(WaterMirrorEffect.ARMOR.get()) && breathe.canBreathe(), "land low air exits before drowning");
+            check(player.getAirSupply()==1, "exit does not refill air"); player.setAirSupply(air);
             state.setTargetEntityId(target.getId());
-            cast(player,true,true);KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1600,"native Storm Swords cannot activate mirrors");
-            castCommands(player,EnumSet.of(InputCommand.M_DOWN,InputCommand.SNEAK,InputCommand.FORWARD));
+            state.updateComboSeq(player,ComboStateRegistry.COMBO_A1.getId());
+            check(session.action!=null, "real committed native action observed");
+            var action=session.action; cancelMotion=true;
+            state.updateComboSeq(player,ComboStateRegistry.COMBO_A2.getId()); cancelMotion=false;
+            check(session.action==action, "cancelled native motion cannot commit");
+            state.progressCombo(player,true);
+            check(session.action==action, "virtual native routing cannot commit");
+            target.invulnerableTime=0; observed=0;
+            mods.flammpfeil.slashblade.util.AttackManager.doMeleeAttack(player,target,true,false,1F);
+            check(session.last!=null, "successful native managed hit creates one snapshot");
+            var last=session.last;
+            target.invulnerableTime=0;
+            mods.flammpfeil.slashblade.util.AttackManager.doMeleeAttack(player,target,true,false,1F);
+            check(session.last==last, "same committed action shares one bounded authorization");
+            rank.setLastUpdte(now); rank.setRawRankPoint(1800); rank.addRankPoint(player,10000);
             KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty() && rank.getRawRankPoint()==1600,"native Heavy Rain cannot activate mirrors");
-            // Eight real server owners, each with a native batch; this is isolation testing, not human network acceptance.
-            for(int i=0;i<8;i++) {
-                var peer=FakePlayerFactory.get(level,new com.mojang.authlib.GameProfile(UUID.randomUUID(),"mirror"+i));
-                peers.add(peer);level.addNewPlayer(peer);peer.setPos(1,200,2+i*.2);peer.setNoGravity(true);
-                var copy=blade.copy();peer.setItemSlot(EquipmentSlot.MAINHAND,copy);
-                var bs=copy.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
-                bs.setTargetEntityId(target.getId());bs.setProudSoulCount(10000);
-                var rp=peer.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
-                rp.setLastUpdte(now);rp.setRawRankPoint(1600);cast(peer,true,false);
-            }
+            check(session.pending.size()==1 && !session.pending.get(0).water(), "actual SSS promotion defers until completed snapshot");
+            var recall=session.pending.get(0);
+            KyoukaMirrorSessions.step(); check(session.pending.size()==1,"sustained SSS cannot retrigger");
+            KyoukaMirrorDamageService.apply(session,recall);
+            check(Math.abs(observed-last.baseline()*.75F)<.01F,"three mirrors share one 75 percent budget");
+            float previous=observed; protect=true; KyoukaMirrorDamageService.apply(session,recall); protect=false;
+            check(observed>previous,"secondary hit reaches real protection pipeline");
+            target.setPos(25,200,1); previous=observed; KyoukaMirrorDamageService.apply(session,recall);
+            check(observed==previous,"target outside recorded region misses"); target.setPos(17,200,1);
+            cast(player,true,false); KyoukaMirrorSessions.step();
+            check(KyoukaMirrorSessions.armored(player) && session.pending.isEmpty(),"armor activation cancels pending recall");
+            var reduction=new WaterMirrorDefenseBudget();
+            check(Math.abs(reduction.available(0,20,300,300)-6)<.001F,"full air thirty percent capped at six");
+            reduction.commit(0,3); check(reduction.available(59,20,300,300)==0,"defense sixty tick cooldown");
+            check(reduction.available(60,20,300,300)==3,"rolling defense remainder authoritative");
+            reduction.commit(60,3); check(reduction.available(120,20,300,300)==0,"infinite air cannot exceed rolling cap");
+            check(reduction.available(200,20,150,300)==3,"window expiration and half air scale");
+            player.setItemSlot(EquipmentSlot.MAINHAND,net.minecraft.world.item.ItemStack.EMPTY);
             KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.size()==8,"eight native players have independent sessions");
-            check(KyoukaMirrorSessions.SESSIONS.values().stream().map(v -> v.id).distinct().count()==8,
-                    "shared copied weapon identity never merges owner sessions");
-            check(!KyoukaMirrorSessions.legal(player,peers.get(0)),"PVP/friendly players are never valid mirror targets");
-            peers.get(0).setItemSlot(EquipmentSlot.MAINHAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STICK));
-            var swappedRank=peers.get(0).getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
-            swappedRank.addRankPoint(peers.get(0),10);
-            check(swappedRank.getRawRankPoint()==1550,"same-tick new weapon gain is not blocked by the old mirror lock");
-            check(KyoukaMirrorSessions.SESSIONS.size()==7,"weapon swap clears the old lock at the gain entrance, before tick end");
-            KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.size()==7,"one weapon swap cleans only that owner's session");
-            var demoted=peers.get(1).getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
-            demoted.addRankPoint(peers.get(1),-800);KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.size()==6,"falling below native B ends only that owner's session");
-            target.discard();KyoukaMirrorSessions.step();
-            check(KyoukaMirrorSessions.SESSIONS.isEmpty(),"removed bound target cleans every remaining session without retargeting");
-            LogUtils.getLogger().info("KYOUKA_NATIVE_SMOKE_PASS: {} checks, actual native scheduler/commit/Mixin/area windows/Rank/Forge protection",checks);
+            check(!player.hasEffect(WaterMirrorEffect.ARMOR.get()) && !KyoukaMirrorSessions.STATES.containsKey(player.getUUID()),"weapon swap clears form and scheduled attacks");
+            LogUtils.getLogger().info("KYOUKA_NATIVE_SMOKE_PASS: {} checks; actual native casts, commits, managed hits, rank promotion and Forge breathing; no visual claims",checks);
         } catch(Throwable failure) {
             LogUtils.getLogger().error("KYOUKA_NATIVE_SMOKE_FAIL",failure); throw new IllegalStateException(failure);
         } finally {
             cancelMotion=false;protect=false;
-            for(var s:List.copyOf(KyoukaMirrorSessions.SESSIONS.values()))KyoukaMirrorSessions.stop(s);
-            for(var peer:peers)peer.discard();
+            KyoukaMirrorSessions.STATES.clear();
             if(target!=null)target.discard();target=null; player.discard();server.halt(false);
         }
     }
