@@ -71,8 +71,7 @@ public final class AwakenedBladeVfxClient {
             dev.bladetetra.client.sakura.SakuraCombatVisualController.accept(packet);
             return;
         }
-        if (!packet.valid() || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
-                || packet.soul() < 1 || packet.soul() > 4
+        if (!packet.valid() || packet.soul() < 1 || packet.soul() > 4
                 || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.RESONANCE) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
