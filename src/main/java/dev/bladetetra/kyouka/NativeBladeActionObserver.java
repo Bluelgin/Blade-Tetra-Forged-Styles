@@ -30,6 +30,7 @@ public final class NativeBladeActionObserver {
             KyoukaMirrorSessions.committed(p, state);
     }
     public static Consumer<Entity> observe(Consumer<Entity> nativeAttack) {
+        if (KyoukaMirrorSessions.STATES.isEmpty()) return nativeAttack;
         return target -> {
             if (!(target instanceof LivingEntity living) || target.level().isClientSide()) {
                 nativeAttack.accept(target); return;

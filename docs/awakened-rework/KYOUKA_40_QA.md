@@ -20,7 +20,11 @@
 
 首个4.0校验提交 `aa7ef67c04b4baf7b5fd0a8bc05935d8b4a59ed2`：[CI](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/actions/runs/40856312233)。完整 Gradle build/JUnit/实际JAR javap审计通过；真实Forge专服在“已有原生环剑尚未发射时再次施法”的测试条件处失败。此前合法施法、无锁定Buff、正常Rank收益、陆地呼吸/水下呼吸/低氧退出、取消/虚拟动作、实际原生命中、单动作预算、真实SSS边界、75%共享伤害及保护管线检查已执行。此失败不能写成整组专服通过。
 
-测试随后正确清理已有原生环剑再施法，并补入真实14 tick水斩、40%伤害与玩家实际受伤后的防御支付检查。最新结果由后续CI链接补充。
+测试随后正确清理已有原生环剑再施法，并补入真实14 tick水斩、40%伤害与玩家实际受伤后的防御支付检查。Forge FakePlayer 默认 isInvulnerableTo 始终为true，因此最终伤害测试使用仅测试用子类，显式调用原生 Player.actuallyHurt，不伪称真人完整 hurt/联网验收。
+
+提交 `c9c33277fd04dcc4bacdf15676e4a0fb0e66b34d` 的 [CI 40857600568](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/actions/runs/40857600568) 已完整通过：Gradle build / JUnit / 实际JAR审计、独立图形客户端VMD/三把Tetra刀 **53 checks**、真实Forge专服 **32 checks**。两端协议为 kyouka4-water-2；包往返测试已包含维度、时间和事件UUID。
+
+后续进一步补齐追忆10刻调度、600刻冷却波动保护、60刻历史过期、重装备不触发、持久化冷却及普通受击不取消预约水斩。最终提交的校验结果见 [PR #49 检查](https://github.com/Bluelgin/Blade-Tetra-Forged-Styles/pull/49/checks) 与PR交付说明，不将前一提交的通过状态直接冒充最终HEAD结果。
 
 本地实际下载并检查：SlashBlade file 8018222 JAR、Forge 47.4.0 sources JAR、Java17 javap输出。本地纯WaterMirrorDefenseBudget经Java17编译。完整本机构建因ForgeGradle依赖网络解析失败，使用仓库CI校验，不将失败写成通过。
 

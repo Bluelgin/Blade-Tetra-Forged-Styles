@@ -48,7 +48,7 @@ public final class KyoukaVfxClient {
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear(); SEEN.clear();
+            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
             activeLevel = minecraft.level;
         }
         if (minecraft.level == null || !packet.dimension().equals(minecraft.level.dimension().location())
@@ -69,6 +69,9 @@ public final class KyoukaVfxClient {
                     && effect.sourceEntityId == packet.sourceEntityId()
                     && effect.targetEntityId == packet.targetEntityId());
         }
+        if (packet.type() == KyoukaVfxPacket.WATER_DEFLECT
+                && minecraft.level.getEntity(packet.sourceEntityId()) instanceof net.minecraft.client.player.AbstractClientPlayer p)
+            dev.bladetetra.client.kyouka.WaterMirrorLayer.impulse(p,packet.started());
         Effect effect = new Effect(packet); effect.age = (int)Math.max(0,elapsed);
         EFFECTS.add(effect);
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
@@ -99,7 +102,7 @@ public final class KyoukaVfxClient {
         Minecraft minecraft = Minecraft.getInstance();
         if (event.phase != TickEvent.Phase.END || minecraft.isPaused()) return;
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear(); SEEN.clear();
+            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
             activeLevel = minecraft.level;
         }
         if (activeLevel != null) SEEN.values().removeIf(until -> until < activeLevel.getGameTime());

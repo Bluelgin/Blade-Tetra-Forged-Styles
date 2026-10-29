@@ -40,7 +40,7 @@ public final class KyoukaMirrorRenderer {
         previous.packet = p; previous.received = level.getGameTime();
     }
     public static void reload() {
-        SAMPLER.reset();
+        SAMPLER.reset(); WaterMirrorLayer.clear();
         for (var s : SESSIONS.values()) { s.model = null; s.unsupported = false; }
     }
     @SubscribeEvent public static void unload(LevelEvent.Unload e) {

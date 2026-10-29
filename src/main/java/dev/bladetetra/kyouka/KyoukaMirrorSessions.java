@@ -154,6 +154,8 @@ public final class KyoukaMirrorSessions {
         return root.getCompound(Player.PERSISTED_NBT_TAG);
     }
     static void endArmor(State s) {
+        if (s.armorBlade != null && s.owner.hasEffect(WaterMirrorEffect.ARMOR.get()))
+            WaterMirrorCombat.visual(s.owner,s.owner,KyoukaVfxPacket.WATER_IMPACT,12);
         s.owner.removeEffect(WaterMirrorEffect.ARMOR.get());
         s.armorBlade = null; s.armorWeapon = null;
         s.pending.removeIf(Pending::water); s.last = null; s.promotion = -1;
