@@ -26,17 +26,17 @@ For the current neutral (1.0) combat multipliers and their scope, see [Combat ba
 | `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins. |
 | `akatsukiExecutionMinimumTargetHealth` | `40.0` | Minimum target maximum health for the full execution timeline. |
 
-## Raikiri 3.0 (awakened V2)
+## Raikiri 3.1 (awakened V2)
 
 Requires `discoveries.enableAwakenedV2=true`; false keeps the original legacy handlers.
-New values live in `discoveries.raikiri3`. Full behavior and bounds: [Raikiri 3.0](docs/awakened-rework/RAIKIRI_30.md).
+New values live in `discoveries.raikiri3`. Full behavior and bounds: [Raikiri 3.1](docs/awakened-rework/RAIKIRI_30.md).
 
 | Settings | Defaults | Purpose |
 | --- | --- | --- |
-| `trailSamples`, `delayStart`, `delayEnd` | `4`, `6`, `10` | Fixed path samples and delayed strike ticks |
+| `trailSamples`, `delayStart`, `delayEnd` | `4`, `14`, `22` | Actual path samples and delayed strike ticks |
 | `globalTrailLimit`, `trailDamageBudget`, `trailTargetCap`, `strikeRadius` | `128`, `6`, `3`, `1.25` | Bounded active trails, shared damage, per-victim cap, local strike radius |
-| `swordsPerPlayer`, `globalSwordLimit`, `swordLifetime` | `3`, `256`, `120` | Owner/global anchor limits and lifetime |
-| `dischargePeriod`, `targetsPerRound`, `swordRange` | `15`, `2`, `4` | Pulse interval, target count and local search radius |
+| `swordsPerPlayer`, `globalSwordLimit`, `swordLifetime` | `3`, `256`, `200` | Owner/global anchor limits and lifetime |
+| `dischargePeriod`, `targetsPerRound`, `swordRange` | `20`, `2`, `4` | Pulse interval, target count and local search radius |
 | `roundDamageBudget`, `lifetimeDamageBudget` | `3`, `12` | Per-pulse and absolute whole-life damage caps |
 | `resonanceRadius`, `resonanceMultiplier` | `2`, `1.5` | Real step-segment trigger radius and one saturated next-pulse boost |
 
