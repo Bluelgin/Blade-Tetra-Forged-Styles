@@ -103,14 +103,16 @@ public final class KyoukaMirrorSessions {
         return !p.isRemoved() && p.isAlive() && !p.isSpectator()
                 && p.level().dimension().location().equals(s.dimension)
                 && a != null && p.getMainHandItem() == a.blade && eligible(a.blade)
-                && a.blade.hasTag() && a.weapon.equals(a.blade.getTag().getUUID(WEAPON));
+                && a.blade.hasTag() && a.blade.getTag().hasUUID(WEAPON)
+                && a.weapon.equals(a.blade.getTag().getUUID(WEAPON));
     }
     public static boolean armored(ServerPlayer p) {
         State s = STATES.get(p.getUUID());
         return p.hasEffect(WaterMirrorEffect.ARMOR.get()) && s != null && s.armorBlade != null
                 && p.getMainHandItem() == s.armorBlade && eligible(s.armorBlade) && p.isAlive() && !p.isSpectator()
                 && !p.isRemoved() && p.getAirSupply() > 0 && p.level().dimension().location().equals(s.dimension)
-                && s.armorWeapon.equals(weapon(s.armorBlade));
+                && s.armorBlade.hasTag() && s.armorBlade.getTag().hasUUID(WEAPON)
+                && s.armorWeapon.equals(s.armorBlade.getTag().getUUID(WEAPON));
     }
     static void activate(ServerPlayer p, Set<EntitySpiralSwords> ignored) {
         if (!p.isAlive() || p.isRemoved() || p.isSpectator() || p.getAirSupply() <= 0 || !eligible(p.getMainHandItem())) return;
@@ -150,7 +152,7 @@ public final class KyoukaMirrorSessions {
     }
     private static net.minecraft.nbt.CompoundTag persisted(ServerPlayer p) {
         var root = p.getPersistentData();
-        if (!root.contains(Player.PERSISTED_NBT_TAG)) root.put(Player.PERSISTED_NBT_TAG, new net.minecraft.nbt.CompoundTag());
+        if (!root.contains(Player.PERSISTED_NBT_TAG, net.minecraft.nbt.Tag.TAG_COMPOUND)) root.put(Player.PERSISTED_NBT_TAG, new net.minecraft.nbt.CompoundTag());
         return root.getCompound(Player.PERSISTED_NBT_TAG);
     }
     static void endArmor(State s) {
