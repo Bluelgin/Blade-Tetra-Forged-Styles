@@ -30,20 +30,8 @@ class AwakenedRankCostTest {
         assertFalse(AwakenedRankCost.canPay(1500, 300, 5, 5, -1));
     }
 
-    @Test void basicBStepRemainsChainableAfterRankFallsBelowB() {
-        // Only the initial step in a three-step sequence is a paid cast.
-        assertTrue(AwakenedRankCost.canPay(900, 300, 3, 3, 75));
-        assertFalse(AwakenedRankCost.canPay(825, 300, 2, 3, 75));
-        assertTrue(AwakenedCombatMath.isThunderFollowup(1, true, 10, 15));
-        assertTrue(AwakenedCombatMath.isThunderFollowup(2, true, 15, 20));
-        assertFalse(AwakenedCombatMath.isThunderFollowup(3, true, 20, 25));
-        assertFalse(AwakenedCombatMath.isThunderFollowup(2, false, 15, 20));
-    }
-
     @Test void slashbladeGradeBoundsAreUsedRatherThanIndependentMeter() {
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.KYOUKA));
         assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.SAKURA_ARRAY));
-        assertEquals(3, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.RAIKIRI_STEP));
-        assertEquals(4, AwakenedRankCost.requiredLevel(AwakenedRankCost.Cast.RAIKIRI_FINISH));
     }
 }

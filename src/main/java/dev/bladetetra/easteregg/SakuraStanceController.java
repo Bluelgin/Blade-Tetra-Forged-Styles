@@ -69,7 +69,7 @@ public final class SakuraStanceController {
         String id = tag.getString("id");
         if (!id.isBlank()) {
             var at = player.getEyePosition();
-            var packet = new AwakenedBladeVfxPacket(3, action, at.x, at.y, at.z, at.x, at.y, at.z, 0,
+            var packet = new AwakenedBladeVfxPacket(3, action + 4, at.x, at.y, at.z, at.x, at.y, at.z, 0,
                     new AwakenedBladeVfxPacket.SakuraCue(player.getUUID(), id, p.slot,
                             p.dimension.location(), action, SakuraCombatVisuals.nextSequence(), p.at, -1));
             if (packet.valid()) ModNetwork.CHANNEL.send(

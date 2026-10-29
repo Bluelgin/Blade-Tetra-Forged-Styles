@@ -171,10 +171,11 @@ public final class GameplayConfig {
         SAKURA_SA_STAGE_DAMAGE = builder.comment("Total additional damage budget per SA stage, split across its pulses.")
                 .defineInRange("sakuraSaStageDamage", 8., 0., 32.);
         AWAKENED_RANK_COST_STEP = builder
-                .comment("Raikiri basic lightning step: requires B rank.")
+                .comment("Deprecated compatibility key: ignored. Native rapid movement and its lightning extension have no extra Rank cost.")
                 .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
+        dev.bladetetra.easteregg.RaikiriConfig.define(builder);
         AWAKENED_RANK_COST_FINISH = builder
-                .comment("Raikiri charged dash finisher: requires A rank.")
+                .comment("Deprecated compatibility key: ignored by Raikiri V2/3. Native SA has no extra finisher cost.")
                 .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
         AWAKENED_RANK_COST_DUAL_BONUS = builder
                 .comment("Extra native Rank points charged for the six awakened dual-soul signatures.",

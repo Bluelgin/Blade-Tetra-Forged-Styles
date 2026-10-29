@@ -1,3 +1,5 @@
+> Historical record. Current integration behavior and acceptance: [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md).
+
 # 觉醒刀 2.0 · Java 接入记录
 
 > **2026-10-28 状态变更：赤月 V2 战斗已撤回，保留原机制。** 下文旧轮次里关于赤月“六方向因果斩线／33tick 裁断／独立 360 Rank 消耗／V2 战斗 HUD／因果裁断触发的额外双魂追加”属于历史实现记录，**不再生效**。当前赤月仍按原版 `AkatsukiExecution` 触发终月处决、旧双魂协奏，保留 `blade_tetra:akatsuki_execution` 伤害源与《契约之刃》公开桥接。原有觉醒条件、#40 图集美术与 #43 真名仪式保留。当前 V2 战斗仅适用于镜花、千本樱和雷切。
@@ -19,7 +21,7 @@
 
 赤月/镜花与雷切终结技继续使用原生 Slash Art 成功事件；千本樱仅通过原生下劈/上挑改变形态，SA不切换。**雷切雷步现已独立接入原生 Shift+W+右键的 RAPID_SLASH ComboState，而不再属于潜行SA分支。**普通SA仍可按条件施放雷切终结技；未觉醒时原剑技不变。
 
-`AwakenedBladeVfxPacket` 消息 ID 21、`AwakenedBladeStatePacket` ID 22、纯视觉 `AwakenedMirrorEchoPacket` ID 23，网络协议现为 **18**（包含此前的觉醒V2协议16/17、新增S2C动态真名消息24）。使用美术已交付的真实 atlas，遵循 0.5px 内缩 UV，按刀魂合并提交透明四边形；部分动态纹理使用独立动画图集按帧选 UV，真名符纹使用 Astra 正式资源。**四种觉醒增加了44tick独立分阶段演出**，不修改原成就和音效。HUD 图标显示服务器确认的剑势/镜影/斩线/雷荷，读主手刀 UUID，不从客户端攻击动画推算数值。基础效果时长按 Astra 时间轴 18/22/40/44/56/64 tick 选择；使用原有客户端视觉开关、距离与最大效果预算。
+`AwakenedBladeVfxPacket` 消息 ID 21、`AwakenedBladeStatePacket` ID 22、纯视觉 `AwakenedMirrorEchoPacket` ID 23，网络协议现为 **raikiri3-native-2**（包含此前的觉醒V2协议16/17、新增S2C动态真名消息24）。使用美术已交付的真实 atlas，遵循 0.5px 内缩 UV，按刀魂合并提交透明四边形；部分动态纹理使用独立动画图集按帧选 UV，真名符纹使用 Astra 正式资源。**四种觉醒增加了44tick独立分阶段演出**，不修改原成就和音效。HUD 图标显示服务器确认的剑势/镜影/斩线（雷荷HUD已移除），读主手刀 UUID，不从客户端攻击动画推算数值。基础效果时长按 Astra 时间轴 18/22/40/44/56/64 tick 选择；使用原有客户端视觉开关、距离与最大效果预算。
 
 ### 验收重点
 
@@ -49,10 +51,9 @@
 | 赤月 · 命断 | S | 360 | 有合法交错斩线、有效目标、队列有空间 |
 | 镜花 · 镜像重演 | A | 300 | 两次以上真实招式、合法目标、队列有空间 |
 | 千本樱 · 三类剑阵 | A | 300 | 散华积累至少三格、至少一个目标、队列有空间 |
-| 雷切 · 雷步 | B | 75（一次开启最多3步连段） | 服务器确实检测到至少0.5格可移动空间；后续两段需命中确认，**不重复扣Rank** |
-| 雷切 · 雷光终击 | A | 240 | 雷荷足够、有效目标在8格范围内、有视线 |
+| 雷切 · 原生残响 | 无额外门槛 | 0 | 原生动作实际提交并执行，真实连续路径通过校验 |
 
-雷切第一步Rank支付后，只有22tick内真实命中才能获得后续免付费雷步的资格，每次步骤之间不得超过36tick，最多3步；失败、超时或开始下一组时才需要再次达到B评级并支付75分。这样初次B评级不会一脚降级就失去完整连段。HUD会同步即时免费/付费状态，雷切握刀期间每10tick主动刷新状态。
+雷切不再使用首次付费/免费续步窗口或资源HUD。原生连续动作、Rank和ComboState全由上游控制，扩展只观察。
 
 千本樱原生下劈/上挑改变凝散形态**不消耗** Rank；真实命中产生的斩线、樱刃小反击、雷荷、镜影记录均免费。这让 Rank 用于决定主动高阶技何时释放，而不是每次出刀都被扣。玩家评分不足会收到原生动作栏提示；HUD直接显示当前技能消耗及最低等级。
 
@@ -71,8 +72,8 @@
 - `awakenedRankCostAkatsuki` 360
 - `awakenedRankCostKyouka` 300
 - `awakenedRankCostSakuraArray` 300
-- `awakenedRankCostRaikiriStep` 75
-- `awakenedRankCostRaikiriFinisher` 240
+- `awakenedRankCostRaikiriStep` 75：废弃兼容键，原生残响明确忽略，不额外扣Rank。
+- `awakenedRankCostRaikiriFinisher` 240：废弃兼容键，雷切3.0明确忽略，绝不改作雷痕/驻留剑伤害。
 - `awakenedRankCostDualSurcharge` 120
 
 配置键都在 `discoveries` 节点下，0分配置意味着仍需要最低评级但不消耗评分；关闭总开关才是完全豁免。新功能不会阻止玩家使用原生 SlashBlade 的普通攻击或 SA 本体，仅影响觉醒2.0的特殊追加技。
@@ -89,7 +90,7 @@
 
 ### 自动测试
 
-- `AwakenedCombatMathTest`：六方向、真正交错、雷步命中确认链、三种剑阵、伤害上限与NaN/Infinity拒绝。
+- `AwakenedCombatMathTest`：六方向、真正交错、三种剑阵、伤害上限与NaN/Infinity拒绝。
 - `AwakenedBladeVfxPacketTest`、`AwakenedBladeStatePacketTest`、`AwakenedMirrorEchoPacketTest`：服务端事件/主手资源、Rank等级/消耗以及骨骼录制指令的网络编码往返。
 - `AwakenedRankCostTest`：Rank等级与原生点数门槛、一次完整扣费、Rank下降后再释放失败、异常价格拒绝。
 - `AwakenedArtContractTest`：使用美术 PR #40 的 `assets.json` 校验 19 个直接引用的图集组件贴图坐标。
@@ -98,26 +99,23 @@
 
 ## 第五轮：Rank / SA 安全边界、真实持刀残影、凝散过渡
 
-- **雷切终击近战判定**：8格范围只是候选目标锁定距离，不再允许穿墙或冲刺被碰撞挡下后的远程伤害。先基于服务端AABB逐段模拟最多3.5格冲刺的落点，再确认落点是否进入目标碰撞箱附近2.4格，成功后才实际扣 Rank 和移动。额外伤害如果被其他模组保护取消，退还**本次觉醒技能**的Rank（不退上游Slash Art独立消耗），还原原有hurt immunity。
-- **雷步时间独立**：第一次在长期无攻击后发动雷步时，不再被普通资源160tick清理错误地清空新连段。连段专用36tick计时器处理失效，初次命中新目标不重置stepChain；后续步数仍要真实命中确认，续接无需重复支付。
 - **镜花持刀重演**：客户端骨骼快照同时保留当时的 `ItemStack.copy()`，镜像按录制时的主手（左右手）和模型手臂骨骼 `translateToHand` 绘制真实Tetra/SlashBlade刀身。录制后的主玩家换武器不会改变旧残影所持刀。保留世界切换清理、48组素材/12个并发残影上限；残影距离裁剪改为**观看者到历史攻击位置**的距离，不再因攻击者离开原位置而提前消失。使用原生 `ItemRenderer.renderStatic`，未采用伪剑贴图；模型透明度/骨骼对齐仍需游戏客户端验证。
 - **千本樱状态过渡（2.2取代旧图集动画）**：服务端动作提交授权；同一个SakuraShardPool逐尖分解后归阵，上挑从现有空闲/出击位置连续回流原刀。原生几何分段重建，刀鞘不参与，详见2.2维护说明。
 - **镜花Rank队列预算**：预约三段镜斩前先确认共享队列能容纳所有记录，队列临界值不超额，也不会先扣Rank再发现无法入队。
-- **自动回归**：`AwakenedCombatMathTest` 新增对冲刺后目标范围、垂直距离、NaN、长时间不攻击后新雷步仍可命中续接的断言。完整游戏内测试清单更新于 `docs/awakened-rework/QA_MATRIX.md`。
+- **自动回归**：旧雷步/终击断言已移除，现使用原生动作保持、真实轨迹及字段生命周期测试；详见 `RAIKIRI_30.md` 与 `QA_MATRIX.md`。
 
 **仍须发布前人工验证**：镜花实际手持Tetra OBJ正确对齐、透明渲染、多人同步，千本樱第一/第三人称凝散与Tetra特殊部件，原生SA叠加，世界/服务器生命周期、所有4刀端到端Forge GameTests。CI Java Build和已有回归不等于这些项目已完成。
 
+
+> 下方第五/六轮雷切实现为历史记录，已被雷切3.0替代；不要据此恢复提前扣费或旧终击。
 
 ## 第六轮：原生 Shift+W 雷切剑技 / 真名解放独立 HUD（设计落地切片）
 
 本轮实现基于此前用户确认的新架构，并非最终视觉验收完成。
 
-### 原生雷切剑技：先路由，后结算
+### 雷切：仅观察原生动作
 
-- `RaikiriRapidCombo` 在 Forge `SlashBladeEvent.NextComboEvent` **候选节点为原生 RAPID_SLASH**、玩家在地面且 `InputCommand.SNEAK + FORWARD + R_CLICK` 三个命令同时存在时才尝试升级。非觉醒雷切、主魂不是雷切、碰撞无路可走、缺少 Rank 时保持原生 `RAPID_SLASH`；不劫持其他 SA/普通招式。
-- `awakened_raikiri_rapid` 注册在 ModComboStates 同一 `DeferredRegister`，沿用 **RAPID_SLASH 的原生动作帧、原生 hold/命中效果和原生斩击节拍（2/4/7 tick）**，但移除原生不受控的 moveRelative 前进，避免其与雷步额外移动叠加。服务端 `beginRaikiriRapid` 在提交新ComboState前完成碰撞扫描、Rank一次性支付、至多3.5格真实位置移动和同步步迹。已移除旧潜行+SA雷步路径；雷切独立普通SA终结技保留。
-- 正式续步依赖**处于真实雷切专用 ComboState 的有效伤害命中**以及 22tick确认、36tick内续接；仅第一步付Rank，续接2、3段免费；普通攻击/不相关SA不能激活续步。
-- **限制**：需要在真实MC服务器中确认原生 `NextComboEvent` 的事件排序、专用ComboState动画及 HoldAction 处理不会被其他模组改写，以及 IAIDO/RENGEKI/DANGAKU/CUSTOM 的兼容；单元测试及构建不代替这项工作。
+当前权威说明见 [RAIKIRI_30.md](RAIKIRI_30.md)。`RaikiriActionObserver` 只观察最终提交的原生动作及服务端实际连续位置；不更改输入、ComboState、动作时间表、动画、位移或原生伤害，不额外扣Rank。
 
 ### 真名解放演出引擎
 
@@ -130,11 +128,11 @@
 ### 分层责任
 
 ```
-原生NextComboEvent -> RaikiriRapidCombo(选择ComboState) -> AwakenedBladeCombat(验证/支付/步进)
+原生动作提交 -> RaikiriActionObserver(实际位置) -> RaikiriFieldService(残响/雷剑/共振)
 服务端真实觉醒成功 -> AwakeningPresentationService -> 世界VFX(旁观者)
                                                     -> AwakeningPresentationPacket(本人)
                                                       -> AwakeningIntroClient(纯呈现状态)
                                                       -> AwakeningIntroOverlay(Forge GUI)
 ```
 
-后续建议优先用真实客户端录制一次赤月觉醒与雷切三段迅捷斩，按 `QA_MATRIX.md` 验收，并拆除尚未使用的旧Raikiri手动SA语义文档；若录制发现出招打断或动作错位，以游戏事实优先于Build。
+后续按 `QA_MATRIX.md` 验证真实客户端的原生移动、落雷位置、驻留剑、共振、多人与帧时间；不得用专服 Smoke 结果冒充图形客户端验收。

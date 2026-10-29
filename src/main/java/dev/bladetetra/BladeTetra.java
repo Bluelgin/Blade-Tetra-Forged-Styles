@@ -56,7 +56,6 @@ public final class BladeTetra {
         ModRecipes.SERIALIZERS.register(modBus);
         ModSounds.SOUND_EVENTS.register(modBus);
         ModComboStates.registerHeldDangaku();
-        dev.bladetetra.easteregg.RaikiriRapidCombo.register();
         dev.bladetetra.easteregg.SakuraSixthCombo.register();
         dev.bladetetra.easteregg.SakuraDanceCombos.register();
         ModComboStates.COMBOS.register(modBus);

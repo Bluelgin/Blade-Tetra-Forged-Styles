@@ -32,15 +32,15 @@ public record AwakenedBladeVfxPacket(int soul, int type,
             double endX, double endY, double endZ, int variant) {
         this(soul, type, x, y, z, endX, endY, endZ, variant, null);
     }
-    public static final int SAKURA_SWING = 5;
-    public static final int SAKURA_HIT = 6;
-    public static final int SAKURA_DISPERSE = 7, SAKURA_CONDENSE = 8;
+    public static final int SAKURA_SWING = 9;
+    public static final int SAKURA_HIT = 10;
+    public static final int SAKURA_DISPERSE = 11, SAKURA_CONDENSE = 12;
     public boolean valid() {
         return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_CONDENSE
                 && finitePosition(x, y, z) && finitePosition(endX, endY, endZ)
                 && (type < SAKURA_SWING ? sakura == null
                     : soul == 3 && sakura != null && sakura.valid()
-                        && (type <= SAKURA_HIT ? sakura.stage() <= 6 : sakura.stage() == type));
+                        && (type <= SAKURA_HIT ? sakura.stage() <= 6 : sakura.stage() == type - 4));
     }
     private static boolean finitePosition(double x, double y, double z) {
         return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z)
@@ -51,6 +51,10 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     public static final int RELEASE = 2;
     public static final int STEP = 3;
     public static final int STANCE = 4;
+    public static final int GROUND_SWORD = 5;
+    public static final int REMOVE_SWORD = 6;
+    public static final int BOLT = 7;
+    public static final int RESONANCE = 8;
 
     public static void encode(AwakenedBladeVfxPacket value, FriendlyByteBuf buf) {
         buf.writeByte(value.soul);

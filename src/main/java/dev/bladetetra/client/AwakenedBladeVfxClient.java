@@ -31,9 +31,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import static dev.bladetetra.client.vfx.render.VfxPrimitives.texturedQuad;
 import static dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.*;
@@ -65,7 +63,7 @@ public final class AwakenedBladeVfxClient {
             ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID,
                     "textures/effect/awakened/raikiri/step_flicker.png")
     };
-    private static final List<Effect> EFFECTS = new ArrayList<>();
+    private static final AwakenedEffectQueue<Effect> EFFECTS = new AwakenedEffectQueue<>();
     private static ClientLevel currentLevel;
 
     public static void spawn(AwakenedBladeVfxPacket packet) {
@@ -75,30 +73,37 @@ public final class AwakenedBladeVfxClient {
         }
         if (!packet.valid() || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()
                 || packet.soul() < 1 || packet.soul() > 4
-                || packet.type() < 0 || packet.type() > 4) return;
+                || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.RESONANCE) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
         if (currentLevel != minecraft.level) {
             EFFECTS.clear();
             currentLevel = minecraft.level;
         }
+        if (packet.soul() == 4 && packet.type() == AwakenedBladeVfxPacket.REMOVE_SWORD) {
+            EFFECTS.removeIf(fx -> fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD
+                    && fx.data.variant() == packet.variant());
+            return;
+        }
+        if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         if (minecraft.player != null
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
                 > max * max) return;
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
-        EFFECTS.add(new Effect(packet));
-        while (EFFECTS.size() > cap) EFFECTS.remove(0);
+        EFFECTS.offer(new Effect(packet),packet.soul() == 4
+                && packet.type() == AwakenedBladeVfxPacket.GROUND_SWORD ? packet.variant() : null,cap);
     }
 
     @SubscribeEvent
     public static void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || Minecraft.getInstance().isPaused()) return;
+        if (event.phase != TickEvent.Phase.END) return;
         ClientLevel level = Minecraft.getInstance().level;
         if (level != currentLevel) {
             EFFECTS.clear();
             currentLevel = level;
         }
+        if (Minecraft.getInstance().isPaused()) return;
         Iterator<Effect> iter = EFFECTS.iterator();
         while (iter.hasNext()) {
             Effect fx = iter.next();
@@ -159,6 +164,11 @@ public final class AwakenedBladeVfxClient {
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableBlend();
+        for (Effect fx : EFFECTS) {
+            if (fx.data.type() == AwakenedBladeVfxPacket.GROUND_SWORD)
+                RaikiriVisualClient.sword(event, poses, eye, fx.data,
+                        fx.age + event.getPartialTick(), fx.duration, intensity);
+        }
         drawTrueNames(event, poses, camera);
         poses.popPose();
     }
@@ -218,6 +228,10 @@ public final class AwakenedBladeVfxClient {
                 * Mth.clamp((fx.duration - age) / 8.0F, 0, 1)
                 * Mth.clamp(intensity, 0, 1);
         if (alpha <= 0) return;
+        if (data.soul() == 4 && data.type() >= AwakenedBladeVfxPacket.GROUND_SWORD) {
+            RaikiriVisualClient.atlas(buffer, matrix, eye, data, age, fx.duration, alpha);
+            return;
+        }
         Vec3 pos = new Vec3(data.x(), data.y(), data.z());
         int soul = data.soul();
         int type = data.type();
@@ -538,7 +552,10 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.AWAKEN -> AwakeningPresentationTimeline.WORLD_END;
                 case AwakenedBladeVfxPacket.RELEASE -> data.soul() == 3 ? 64
                         : data.soul() == 4 ? 40 : 56;
-                case AwakenedBladeVfxPacket.STEP -> 22;
+                case AwakenedBladeVfxPacket.GROUND_SWORD -> (int)Math.max(1,Math.min(200,data.endX()));
+                case AwakenedBladeVfxPacket.BOLT -> 8;
+                case AwakenedBladeVfxPacket.RESONANCE -> 12;
+                case AwakenedBladeVfxPacket.STEP -> data.soul() == 4 ? 26 : 12;
                 case AwakenedBladeVfxPacket.MARK -> 18;
                 default -> 18;
             };

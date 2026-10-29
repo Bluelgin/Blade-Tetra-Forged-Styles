@@ -1,3 +1,5 @@
+> Historical record. Current integration behavior and acceptance: [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md).
+
 > 镜花4.0的当前证据与未验收项见 [KYOUKA_40_QA.md](KYOUKA_40_QA.md)。旧3.0数据不得当作4.0通过证据。
 
 # 觉醒刀 2.0：发布前手动与服务器验收清单
@@ -40,7 +42,7 @@
 - [ ] 单次剑阵最多5目标共享≤26伤害预算，28/31/34/37/40 tick与视觉同步；友军、玩家、驯养动物均不受伤。
 - [ ] 原生多种第三方 OBJ 分组、物品栏、第一/第三人称、双持、副手等不隐藏其它刀部件（`RenderOverrideEvent` 仅针对本刀NBT）。
 
-## 雷切——原生Shift+W迅捷斩、Rank经济与连续雷步
+## 雷切——保留原生迅捷斩，观察真实路径
 
 - [ ] 使用已觉醒雷切，**地面Shift+W+右键**触发原生迅捷斩升级节点 `awakened_raikiri_rapid`：实际执行原生动作帧和迅捷斩刀光；额外的雷步位移仅一次，不能叠加原生跑斩移动，不生成第二套独立伤害。
 - [ ] 未觉醒或手持非雷切、主魂不是雷切、Rank不足、阻挡无位移空间：保留原生 `RAPID_SLASH`，不改变其他流派原本剑技，不扣雷切Rank。
@@ -78,3 +80,13 @@
 ## 发布阻断
 
 目前尚无本清单全项的游戏内验收记录。尤其是**玩家模型六帧回放、真实Tetra OBJ渲染取消、多人下Rank评分同步和新机制平衡**需真实客户端操作。若任一环节导致致命崩溃、穿墙或重复伤害，应保持PR Draft，并优先修复，不要自动合并。
+
+### Raikiri 3.1 manual acceptance
+
+- Confirm the default 14–22 tick sequential aftershock follows the observed native path, including short moves.
+- Confirm grounded ss.obj/ss.png remains visible for 200 ticks under transient VFX spam and fades at expiry.
+- Confirm 20-tick discharges hurt without pushing enemies; native melee and trail knockback still work.
+- Check late observer remaining-life sync, distance changes, effect toggle, remove packet and world switch.
+- Confirm exhausted swords remain cosmetic, resonance does not extend life, and all visual quality tiers render acceptably.
+
+Dedicated smoke and headless queue tests do not establish client visual or network acceptance.
