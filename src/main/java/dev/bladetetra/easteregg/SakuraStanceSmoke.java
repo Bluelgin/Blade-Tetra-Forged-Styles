@@ -114,8 +114,18 @@ public final class SakuraStanceSmoke {
             tag.putBoolean(SakuraStanceRules.DISPERSED,false);tag.putInt(SakuraStanceController.FRACTURE,0);
             advance(level,20);end(actor);
             for(int stage=1;stage<=4;stage++) {
+                advance(level,40);
                 SakuraStanceController.fractureHit(actor,blade);
                 check(SakuraStanceController.fracture(blade)==stage,"persistent fracture stage "+stage);
+                if(stage<4) {
+                    SakuraStanceController.fractureHit(actor,blade);
+                    check(SakuraStanceController.fracture(blade)==stage,"same-tick repeated hits cannot fracture again");
+                    advance(level,39);SakuraStanceController.fractureHit(actor,blade);
+                    check(SakuraStanceController.fracture(blade)==stage&&!SakuraStanceController.canFracture(actor,blade),
+                            "fracture cooldown blocks the first 39 ticks");
+                    advance(level,1);
+                    check(SakuraStanceController.canFracture(actor,blade),"fracture cooldown ends at tick 40");
+                }
                 check(SakuraStanceController.dispersed(blade)==(stage==4),"only final fracture changes stance");
             }
             state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());end(actor);

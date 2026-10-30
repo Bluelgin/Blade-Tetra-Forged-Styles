@@ -1,7 +1,9 @@
 # Progressive blade release
 
-Condensed successful native melee/slash attack actions roll once at 25%, not once per target or
-hit. Four persistent item-NBT stages remove a quarter of the steel each and deploy the same
+Condensed successful native melee/slash attack actions roll once at 10%, not once per target or
+hit. Successful fractures impose a 40-tick (2-second) cooldown stored on the blade;
+hits during cooldown do not roll. Swapping blades or toggling stance does not reset it.
+Four persistent item-NBT stages remove a quarter of the steel each and deploy the same
 quarter of the existing bounded back shard pool. Partial shards only follow; they do not attack.
 Stage four changes to dispersed at PlayerTick.END, after the native damage window. No durability,
 module, enchantment or item destruction occurs. Stage changes synchronize through existing equipment NBT.

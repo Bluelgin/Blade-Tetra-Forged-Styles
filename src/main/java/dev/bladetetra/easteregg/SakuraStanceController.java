@@ -28,6 +28,9 @@ import java.util.UUID;
 public final class SakuraStanceController {
     private record Pending(ItemStack blade, ResourceKey<Level> dimension, int slot, int action, long at) {}
     public static final String FRACTURE="blade_tetra_sakura_fracture";
+    private static final String LAST_FRACTURE="blade_tetra_sakura_last_fracture";
+    static final int FRACTURE_COOLDOWN=40;
+    static final float FRACTURE_CHANCE=.10F;
     private record Reassembly(ItemStack blade,int slot,long at) {}
     private static final Map<UUID,Reassembly> REASSEMBLY=new HashMap<>();
     public static int fracture(ItemStack blade) {
@@ -35,8 +38,17 @@ public final class SakuraStanceController {
     }
     public static float fraction(ItemStack blade) { return dispersed(blade)?0:1-fracture(blade)/4F; }
     public static boolean reassembling(ServerPlayer p) {return REASSEMBLY.containsKey(p.getUUID());}
+    static boolean canFracture(ServerPlayer p,ItemStack blade) {
+        if(!supported(blade)||dispersed(blade)||reassembling(p)) return false;
+        var tag=blade.getTag();
+        if(tag==null||!tag.contains(LAST_FRACTURE,net.minecraft.nbt.Tag.TAG_LONG)) return true;
+        long elapsed=p.level().getGameTime()-tag.getLong(LAST_FRACTURE);
+        // Imported blades from a world with a later clock must not lock forever.
+        return elapsed<0||elapsed>=FRACTURE_COOLDOWN;
+    }
     public static void fractureHit(ServerPlayer p,ItemStack blade) {
-        if(!supported(blade)||dispersed(blade)||reassembling(p)) return;
+        if(!canFracture(p,blade)) return;
+        blade.getOrCreateTag().putLong(LAST_FRACTURE,p.level().getGameTime());
         int stage=Math.min(4,fracture(blade)+1);
         blade.getOrCreateTag().putInt(FRACTURE,stage);
         if(stage==4) {

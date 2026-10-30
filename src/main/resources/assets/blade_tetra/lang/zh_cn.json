@@ -1214,7 +1214,7 @@
   "hud.blade_tetra.awakened.dispersed": "散华",
   "tooltip.blade_tetra.awakened.v2.akatsuki": "终月：保留原有低血量处决与固有剑灵联动；真名解放仪式。",
   "tooltip.blade_tetra.awakened.v2.kyouka": "三镜追忆：真正晋升 SSS 时重演最近一斩，三镜合计追加75%伤害，冷却30秒。原生圆环幻影剑激活水镜衣：消耗原版氧气，攻击延迟14刻凝水猛击（40%）；剩余氧气提供有限卸力。",
-  "tooltip.blade_tetra.awakened.v2.senbonzakura": "下劈散华，上挑归刀。凝华命中每个有效动作有25%概率散解四分之一刀身，碎刃逐步进入背后编队，四段散尽自动散华。散华普通刀伤降低30%，碎刃飞至敌人头顶释放幻影剑。完整归刀后复原；独立SA燃烧Rank循环B1–B6。",
+  "tooltip.blade_tetra.awakened.v2.senbonzakura": "下劈散华，上挑归刀。凝华命中每个有效动作有10%概率散解四分之一刀身，每次散解后冷却2秒，碎刃逐步进入背后编队，四段散尽自动散华。散华普通刀伤降低30%，碎刃飞至敌人头顶释放幻影剑。完整归刀后复原；独立SA燃烧Rank循环B1–B6。",
   "tooltip.blade_tetra.awakened.v2.raikiri": "原生潜行+前进+右键经过的路径延迟落雷；Rank A以上同时附着8秒雷铠，移速+20%，每秒电击近敌；雨中可额外传导一次。启动消耗60 Rank，每秒30，低于B结束；下坠斩留下驻留雷针。",
   "tooltip.blade_tetra.awakened.v2.primary_only": "双魂重制中：目前由主魂执行觉醒 2.0 战斗规则。",
   "message.blade_tetra.awakened.rank_insufficient": "觉醒技需要 %s 评级与 %s 评分点数",

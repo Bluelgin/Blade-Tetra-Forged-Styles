@@ -70,7 +70,8 @@ public final class SakuraCombatVisuals {
         Attack a=direct instanceof EntitySlashEffect slash?SLASHES.get(slash):nativeMelee?action(p,b):null;
         if(a==null||a.confirmed||!a.matches(p,b)) return;
         a.confirmed=true;
-        if(!SakuraStanceController.dispersed(b)) a.fracture=p.getRandom().nextFloat()<.25F;
+        if(!SakuraStanceController.dispersed(b)) a.fracture=SakuraStanceController.canFracture(p,b)
+                &&p.getRandom().nextFloat()<SakuraStanceController.FRACTURE_CHANCE;
         else SakuraShardAttackService.concerto(p,b,target,damage);
     }
     @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e) {
