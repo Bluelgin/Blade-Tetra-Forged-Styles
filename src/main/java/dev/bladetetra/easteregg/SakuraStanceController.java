@@ -27,6 +27,26 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SakuraStanceController {
     private record Pending(ItemStack blade, ResourceKey<Level> dimension, int slot, int action, long at) {}
+    public static final String FRACTURE="blade_tetra_sakura_fracture";
+    private record Reassembly(ItemStack blade,int slot,long at) {}
+    private static final Map<UUID,Reassembly> REASSEMBLY=new HashMap<>();
+    public static int fracture(ItemStack blade) {
+        return blade.hasTag()?Math.max(0,Math.min(4,blade.getTag().getInt(FRACTURE))):0;
+    }
+    public static float fraction(ItemStack blade) { return dispersed(blade)?0:1-fracture(blade)/4F; }
+    public static boolean reassembling(ServerPlayer p) {return REASSEMBLY.containsKey(p.getUUID());}
+    public static void fractureHit(ServerPlayer p,ItemStack blade) {
+        if(!supported(blade)||dispersed(blade)||reassembling(p)) return;
+        int stage=Math.min(4,fracture(blade)+1);
+        blade.getOrCreateTag().putInt(FRACTURE,stage);
+        if(stage==4) {
+            blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED,true);
+            p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.blade_tetra.sakura.dispersed"),true);
+        }
+        p.serverLevel().playSound(null,p.blockPosition(),net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_BREAK,
+                net.minecraft.sounds.SoundSource.PLAYERS,.35F,1.5F);
+        p.containerMenu.broadcastChanges();
+    }
     private static final Map<UUID, Pending> PENDING = new HashMap<>();
     public static boolean supported(ItemStack blade) {
         return AwakenedBladeCombat.replacesLegacy() && StyleResolver.resolve(blade) == BladeStyle.RENGEKI
@@ -53,6 +73,16 @@ public final class SakuraStanceController {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void tick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer player)) return;
+        Reassembly rebuilding=REASSEMBLY.get(player.getUUID());
+        if(rebuilding!=null) {
+            if(!player.isAlive() || player.getMainHandItem()!=rebuilding.blade
+                    ||player.getInventory().selected!=rebuilding.slot ||!supported(rebuilding.blade)
+                    ||dispersed(rebuilding.blade)) REASSEMBLY.remove(player.getUUID());
+            else if(player.level().getGameTime()>=rebuilding.at+14) {
+                rebuilding.blade.getOrCreateTag().putInt(FRACTURE,0);
+                REASSEMBLY.remove(player.getUUID());player.containerMenu.broadcastChanges();
+            }
+        }
         Pending p = PENDING.remove(player.getUUID());
         if (p == null || !player.isAlive() || player.getMainHandItem() != p.blade
                 || player.getInventory().selected != p.slot || !player.level().dimension().equals(p.dimension)
@@ -64,6 +94,9 @@ public final class SakuraStanceController {
         if (!SakuraStanceRules.changes(action, dispersed(p.blade))
                 || !SakuraStanceRules.committed(action, state.getComboSeq(), p.at, state.getLastActionTime())) return;
         p.blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED, action == SakuraStanceRules.DISPERSE);
+        if(action==SakuraStanceRules.CONDENSE)
+            REASSEMBLY.put(player.getUUID(),new Reassembly(p.blade,p.slot,player.level().getGameTime()));
+        else REASSEMBLY.remove(player.getUUID());
         var tag = p.blade.getTag();
         String id = tag.getString("id");
         if (!id.isBlank()) {
@@ -78,10 +111,10 @@ public final class SakuraStanceController {
         // clients can retain the old geometry/pool through the NBT change.
         player.containerMenu.broadcastChanges();
     }
-    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) { PENDING.remove(e.getEntity().getUUID()); }
-    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) { PENDING.remove(e.getEntity().getUUID()); }
-    @SubscribeEvent public static void death(LivingDeathEvent e) { PENDING.remove(e.getEntity().getUUID()); }
-    @SubscribeEvent public static void clone(PlayerEvent.Clone e) { PENDING.remove(e.getEntity().getUUID()); }
-    @SubscribeEvent public static void stop(ServerStoppedEvent e) { PENDING.clear(); }
+    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) { PENDING.remove(e.getEntity().getUUID()); REASSEMBLY.remove(e.getEntity().getUUID()); }
+    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) { PENDING.remove(e.getEntity().getUUID()); REASSEMBLY.remove(e.getEntity().getUUID()); }
+    @SubscribeEvent public static void death(LivingDeathEvent e) { PENDING.remove(e.getEntity().getUUID()); REASSEMBLY.remove(e.getEntity().getUUID()); }
+    @SubscribeEvent public static void clone(PlayerEvent.Clone e) { PENDING.remove(e.getEntity().getUUID()); REASSEMBLY.remove(e.getEntity().getUUID()); }
+    @SubscribeEvent public static void stop(ServerStoppedEvent e) { PENDING.clear(); REASSEMBLY.clear(); }
     private SakuraStanceController() {}
 }

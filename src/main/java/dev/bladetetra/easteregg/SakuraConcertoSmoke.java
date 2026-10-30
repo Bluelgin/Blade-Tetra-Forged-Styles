@@ -56,11 +56,12 @@ final class SakuraConcertoSmoke {
             state.setComboSeq(ComboStateRegistry.COMBO_B1.getId());state.setLastActionTime(at);
             AttackManager.doMeleeAttack(actor,target,true,false,.244F);
             check(probe.meleeDamage>0,"real native melee damages target");
-            for(int t=1;t<=5;t++) {time(level,at+t);service(actor);}
+            for(int t=1;t<=SakuraShardAttackRules.FIRE_TICK;t++) {time(level,at+t);service(actor);}
             check(probe.swords.size()==1,"one native summoned sword emitted after real melee");
             EntityAbstractSummonedSword sword=probe.swords.get(0);
+            check(sword.getY()>target.getBoundingBox().maxY,"projectile starts above enemy head");
             check(SoulLegacyDamageGuard.isSecondary(sword.damageSources().indirectMagic(sword,actor)),"explicit secondary source marker");
-            for(int t=6;t<=12;t++) {
+            for(int t=SakuraShardAttackRules.FIRE_TICK+1;t<=12;t++) {
                 time(level,at+t);if(!sword.isRemoved()) sword.tick();service(actor);
                 SakuraShardAttackService.serverTick(new TickEvent.ServerTickEvent(TickEvent.Phase.END,()->true,level.getServer()));
             }

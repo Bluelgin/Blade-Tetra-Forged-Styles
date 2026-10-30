@@ -4,7 +4,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** Shared server/client timing and view coordinates; no entities, registries or input state. */
 public final class SakuraShardAttackRules {
-    public static final int LOGICAL_SHARDS=24, FIRE_TICK=5, RETURN_TICK=6, FLIGHT_TICKS=12;
+    public static final int LOGICAL_SHARDS=24, FIRE_TICK=8, RETURN_TICK=9, FLIGHT_TICKS=15;
     public static final int CONCERTO_VARIANT=100;
     public static int index(int logical,int count) {return logical*count/LOGICAL_SHARDS;}
     public static Vec3 platform(Vec3 eye,Vec3 look,boolean rightSide) {

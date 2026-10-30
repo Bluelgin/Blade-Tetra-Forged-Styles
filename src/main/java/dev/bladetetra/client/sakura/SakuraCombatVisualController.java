@@ -52,11 +52,7 @@ public final class SakuraCombatVisualController {
     }
     private static boolean eligible(Player player) {
         var mc=Minecraft.getInstance();
-        View existing=VIEWS.get(player.getUUID());
-        boolean transition=existing!=null&&existing.bladeId.equals(bladeId(player))
-                &&existing.pool.stance()!=null&&existing.pool.stance().active(player.level().getGameTime());
         return player.isAlive() && SakuraStanceController.supported(player.getMainHandItem())
-                && (SakuraStanceController.dispersed(player.getMainHandItem()) || transition)
                 && !AwakeningVisualController.presenting(player) && !bladeId(player).isBlank()
                 && (mc.player==null||mc.player.distanceToSqr(player)<=distance()*distance());
     }
@@ -67,12 +63,12 @@ public final class SakuraCombatVisualController {
     }
     private static float fraction(View v,double now) {
         var t=v.pool.stance();
-        return t==null?(SakuraStanceController.dispersed(v.owner.getMainHandItem())?0:1):t.fraction(now);
+        return t==null?v.pool.partialFraction(now):t.fraction(now);
     }
     public static float bladeFraction(Player owner,float partial) {
         View v=VIEWS.get(owner.getUUID());
         return v!=null&&v.bladeId.equals(bladeId(owner))?fraction(v,owner.level().getGameTime()+partial)
-                :SakuraStanceController.dispersed(owner.getMainHandItem())?0:1;
+                :SakuraStanceController.fraction(owner.getMainHandItem());
     }
     public static void capture(Player owner,mods.flammpfeil.slashblade.event.client.RenderOverrideEvent e,boolean firstPerson) {
         View v=VIEWS.get(owner.getUUID());
@@ -114,10 +110,9 @@ public final class SakuraCombatVisualController {
         if(stance) {
             if(cue.sequence()<=view.stanceSequence) return true;
             view.stanceSequence=cue.sequence();
-            float from=view.pool.stance()==null
-                    ?(packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE?1:0):fraction(view,world.getGameTime());
+            float from=fraction(view,world.getGameTime());
             boolean disperse=packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE;
-            if(disperse&&view.pool.stance()==null) view.pool.hide();
+            if(disperse&&view.pool.stance()==null&&from>=.999F) view.pool.hide();
             if(!existed&&!disperse) for(var shard:view.pool.shards) shard.visibility=shard.previousVisibility=1;
             // Start locally from current positions; never fast-forward skipped flight
             // into a teleport when an authoritative packet arrives late.
@@ -150,7 +145,10 @@ public final class SakuraCombatVisualController {
             if(group.targetId<0) continue;
             // Capture the entity object once; ID reuse after unload cannot retarget a volley.
             if(view.targets[i]==null&&world.getEntity(group.targetId) instanceof LivingEntity living)
-                view.targets[i]=living;
+                {
+                    view.targets[i]=living;
+                    if(group.concerto) group.targetOffset=group.goal.subtract(living.getBoundingBox().getCenter());
+                }
         }
     }
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e) {
@@ -181,6 +179,7 @@ public final class SakuraCombatVisualController {
             if(v.owner.position().distanceToSqr(v.lastRoot)>64) {
                 // Teleports/world corrections cancel the view instead of drawing a long ribbon.
                 v.pool=new SakuraShardPool(count(),frame(v.owner),now);
+                v.pool.initialFraction(SakuraStanceController.fraction(v.owner.getMainHandItem()));
                 java.util.Arrays.fill(v.targets,null);
             }
             v.lastRoot=v.owner.position();
@@ -198,7 +197,13 @@ public final class SakuraCombatVisualController {
                     v.targets[i]=null;
                     group.goal=group.center;
                 }
-                else group.goal=target.getBoundingBox().getCenter();
+                else group.goal=target.getBoundingBox().getCenter().add(group.concerto?group.targetOffset:Vec3.ZERO);
+            }
+            float desired=SakuraStanceController.fraction(v.owner.getMainHandItem());
+            if(desired!=v.lastFraction) {
+                if(v.pool.stance()==null||!v.pool.stance().active(now))
+                    v.pool.partial(fraction(v,now),desired,now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
+                v.lastFraction=desired;
             }
             v.pool.tick(frame(v.owner),now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
         }
@@ -230,10 +235,12 @@ public final class SakuraCombatVisualController {
         Vec3 lastRoot;
         long predictedAt=Long.MIN_VALUE;
         int predictedStage;
+        float lastFraction;
         View(Player owner,String id,long time) {
             this.owner=owner; bladeId=id; slot=owner.getInventory().selected;
             lastRoot=owner.position(); pool=new SakuraShardPool(count(),frame(owner),time);
-            if(!SakuraStanceController.dispersed(owner.getMainHandItem())) pool.hide();
+            lastFraction=SakuraStanceController.fraction(owner.getMainHandItem());
+            pool.initialFraction(lastFraction);
         }
     }
     private record Pending(AwakenedBladeVfxPacket packet,long expires) {}
