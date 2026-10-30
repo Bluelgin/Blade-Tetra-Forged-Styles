@@ -13,6 +13,15 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EASTER_EGG_UNLOCKS;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_V2;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_AWAKENED_RANK_COSTS;
+    public static final ForgeConfigSpec.IntValue AWAKENED_SAKURA_BURN_POINTS_PER_SECOND;
+    public static final ForgeConfigSpec.IntValue KYOUKA_START_COST, KYOUKA_DRAIN, KYOUKA_ACTION_COST;
+    public static final ForgeConfigSpec.IntValue KYOUKA_MAX_SESSIONS, KYOUKA_WORLD_SESSIONS;
+    public static final ForgeConfigSpec.DoubleValue KYOUKA_RANGE;
+
+    public static final ForgeConfigSpec.IntValue SAKURA_SA_MAX_TICKS, SAKURA_CONCERTO_INTERVAL;
+    public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -121,6 +130,51 @@ public final class GameplayConfig {
                         "Allow new blade legacy and easter-egg progress/unlocks.",
                         "Existing unlocked blade tags are never deleted when disabled.")
                 .define("enableEasterEggUnlocks", true);
+        ENABLE_AWAKENED_V2 = builder
+                .comment("Use True Name Release combat on awakened blades.",
+                        "When false, keeps original awakened combat behavior; unlocks remain saved.")
+                .define("enableAwakenedV2", true);
+
+        builder.comment("Legacy section name retained for saved configurations; costs below are retired in Kyouka 4.").push("kyouka3");
+        KYOUKA_START_COST = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("startCost", 60, 0, 1800);
+        KYOUKA_DRAIN = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("drainPerSecond", 12, 0, 600);
+        KYOUKA_ACTION_COST = builder.comment("Deprecated: ignored by Kyouka 4.").defineInRange("actionCost", 18, 0, 600);
+        KYOUKA_RANGE = builder.defineInRange("range", 32.0, 4.0, 64.0);
+        KYOUKA_MAX_SESSIONS = builder.defineInRange("serverSessions", 64, 1, 256);
+        KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
+        builder.pop();
+        ENABLE_AWAKENED_RANK_COSTS = builder
+                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA only.",
+                        "Kyouka 4 and Raikiri 3.1 never use extra Rank payments.")
+                .define("enableAwakenedRankCosts", true);
+        builder
+                .comment("Deprecated V2 replay price; ignored by Three Mirrors.")
+                .defineInRange("awakenedRankCostKyouka", 300, 0, 1800);
+        builder
+                .comment("Deprecated compatibility key: ignored by Senbonzakura 3.0; SA uses its dedicated drain setting.")
+                .defineInRange("awakenedRankCostSakuraArray", 300, 0, 1800);
+        AWAKENED_SAKURA_BURN_POINTS_PER_SECOND = builder
+                .comment("Base native Rank points spent per second of Senbonzakura infinite dance SA.",
+                        "A pays 100%, S 88%, SS 80%, SSS 67%. Ordinary attacks do not burn Rank.")
+                .defineInRange("awakenedSakuraFlowDrainPerSecond", 120, 1, 600);
+        SAKURA_SA_MAX_TICKS = builder.comment("Maximum infinite dance SA duration; finishes the current native action.")
+                .defineInRange("sakuraSaMaxTicks", 1200, 40, 6000);
+        SAKURA_CONCERTO_INTERVAL = builder.comment("Minimum server ticks between ordinary shard concerto launches.")
+                .defineInRange("sakuraConcertoInterval", 8, 6, 40);
+        SAKURA_CONCERTO_FRACTION = builder.defineInRange("sakuraConcertoDamageFraction", .25, 0., .5);
+        SAKURA_CONCERTO_CAP = builder.defineInRange("sakuraConcertoDamageCap", 6., 0., 20.);
+        SAKURA_SA_STAGE_DAMAGE = builder.comment("Total additional damage budget per SA stage, split across its pulses.")
+                .defineInRange("sakuraSaStageDamage", 8., 0., 32.);
+        builder
+                .comment("Deprecated compatibility key: ignored. Native rapid movement and its lightning extension have no extra Rank cost.")
+                .defineInRange("awakenedRankCostRaikiriStep", 75, 0, 1800);
+        dev.bladetetra.easteregg.RaikiriConfig.define(builder);
+        builder
+                .comment("Deprecated compatibility key: ignored by Raikiri V2/3. Native SA has no extra finisher cost.")
+                .defineInRange("awakenedRankCostRaikiriFinisher", 240, 0, 1800);
+        builder
+                .comment("Deprecated compatibility key: ignored by integrated awakened combat.")
+                .defineInRange("awakenedRankCostDualSurcharge", 120, 0, 1800);
         SMITHY_CLUE_CHANCE = builder
                 .comment(
                         "Chance that a village weaponsmith chest receives one smithing clue.",

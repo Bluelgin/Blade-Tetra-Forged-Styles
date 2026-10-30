@@ -18,7 +18,8 @@ final class RengekiFlowRules {
             "combo_b_end", "combo_b_end2", "combo_b_end3", "combo_b7_end");
 
     static boolean isNativeBFlow(String namespace, String path) {
-        return "slashblade".equals(namespace) && path != null && NATIVE_B_FLOW.contains(path);
+        return ("slashblade".equals(namespace) && path != null && NATIVE_B_FLOW.contains(path))
+                || ("blade_tetra".equals(namespace) && ("awakened_sakura_b6".equals(path) || path != null && path.matches("sakura_dance_b[1-6]")));
     }
 
     static boolean isNativeAirFlow(String namespace, String path) {

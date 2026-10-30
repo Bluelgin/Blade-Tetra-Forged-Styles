@@ -59,6 +59,13 @@ final class ForgedSlashArtDamageBalance {
         }
     }
 
+    static float secondaryPhaseScale(ServerPlayer player, Entity origin) {
+        if (origin != null && isNativeAttackEntity(origin)
+                && origin.getPersistentData().contains(DAMAGE_SCALE_TAG))
+            return origin.getPersistentData().getFloat(DAMAGE_SCALE_TAG);
+        return ForgedSlashArtHandler.activeDamageScale(player);
+    }
+
     private static boolean isNativeAttackEntity(Entity entity) {
         return entity instanceof EntitySlashEffect
                 || entity instanceof EntityJudgementCut

@@ -22,13 +22,94 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew build kyoukaNativeApiAudit
+      - name: Upload review JAR and JUnit evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blade-tetra-review-build
+          path: |
+            build/libs/*.jar
+            build/test-results/test/*.xml
+            build/kyouka-native-api.txt
+          retention-days: 14
+      - name: Sword aura hotfix hit smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sword-aura-hit-smoke
+          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
+          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
+      - name: Kyouka independent native VMD client smoke
+        if: success()
+        timeout-minutes: 8
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 'true'
+        run: |
+          mkdir -p build/kyouka-motion-smoke
+          xvfb-run -a ./gradlew runClient -PkyoukaMotionSmoke 2>&1 | tee build/kyouka-motion-smoke.log
+          grep -F 'KYOUKA_MOTION_SMOKE_PASS' build/kyouka-motion-smoke.log
+      - name: Upload Kyouka client motion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyouka4-native-motion
+          path: |
+            build/kyouka-motion-smoke.log
+            build/kyouka-motion-smoke/three-mirrors.png
+            build/kyouka-motion-smoke/logs/**
+          retention-days: 14
+      - name: Kyouka native Forge smoke
+        if: always()
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/kyouka-native-smoke
+          echo 'eula=true' > build/kyouka-native-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PkyoukaNativeSmoke 2>&1 | tee build/kyouka-native-smoke.log
+          grep -F 'KYOUKA_NATIVE_SMOKE_PASS' build/kyouka-native-smoke.log
+      - name: Upload Kyouka runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyouka4-native-evidence
+          path: |
+            build/kyouka-native-smoke.log
+            build/kyouka-native-smoke/logs/**
+            build/test-results/test/*.xml
+            build/kyouka-native-api.txt
+          retention-days: 14
+      - name: Sakura 3.0 ordinary combat, SA and native stance Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/sakura-combat-smoke
+          echo 'eula=true' > build/sakura-combat-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
+          grep -F 'AWAKENED_INTEGRATION_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_STANCE_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_SA_SMOKE_PASS' build/sakura-combat-smoke.log
+          grep -F 'SAKURA_CONCERTO_SMOKE_PASS' build/sakura-combat-smoke.log
+      - name: Raikiri 3 native Forge smoke
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 10
+        run: |
+          mkdir -p build/raikiri-combat-smoke
+          echo 'eula=true' > build/raikiri-combat-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PraikiriCombatSmoke 2>&1 | tee build/raikiri-combat-smoke.log
+          grep -F 'RAIKIRI_COMBAT_SMOKE_PASS' build/raikiri-combat-smoke.log
       - name: Mikage native Forge smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
         run: |
           mkdir -p build/mikage-native-smoke
           echo 'eula=true' > build/mikage-native-smoke/eula.txt
+          set -o pipefail
           ./gradlew runServer -PmikageNativeSmoke 2>&1 | tee build/mikage-native-smoke.log
           grep -F 'MIKAGE_NATIVE_SMOKE_PASS' build/mikage-native-smoke.log
       - name: Custom style Tetra Forge smoke
@@ -37,6 +118,7 @@ jobs:
         run: |
           mkdir -p build/custom-style-smoke
           echo 'eula=true' > build/custom-style-smoke/eula.txt
+          set -o pipefail
           ./gradlew runServer -PcustomStyleSmoke 2>&1 | tee build/custom-style-smoke.log
           grep -F 'CUSTOM_STYLE_SMOKE_PASS' build/custom-style-smoke.log
       - name: Lifeng CUSTOM Forge smoke
@@ -45,13 +127,15 @@ jobs:
         run: |
           mkdir -p build/lifeng-smoke
           echo 'eula=true' > build/lifeng-smoke/eula.txt
+          set -o pipefail
           ./gradlew runServer -PlifengSmoke 2>&1 | tee build/lifeng-smoke.log
           grep -F 'LIFENG_CUSTOM_SMOKE_PASS' build/lifeng-smoke.log
-      - name: Sword aura hotfix hit smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/sword-aura-hit-smoke
-          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
-          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
-          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
+      - name: Upload integration smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: awakened-integration-smoke
+          path: |
+            build/*smoke.log
+            build/*smoke/logs/**
+          retention-days: 14

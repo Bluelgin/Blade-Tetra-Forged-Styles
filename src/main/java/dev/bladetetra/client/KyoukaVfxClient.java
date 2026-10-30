@@ -42,14 +42,22 @@ public final class KyoukaVfxClient {
             BladeTetra.MOD_ID, "textures/effect/kyouka/mirror_shards.png");
     private static final List<Effect> EFFECTS = new ArrayList<>();
     private static ClientLevel activeLevel;
+    private static final java.util.Map<java.util.UUID,Long> SEEN = new java.util.HashMap<>();
 
     public static void spawn(KyoukaVfxPacket packet) {
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear();
+            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
             activeLevel = minecraft.level;
         }
+        if (minecraft.level == null || !packet.dimension().equals(minecraft.level.dimension().location())
+                || packet.duration() < 1 || packet.duration() > 240 && packet.type() >= KyoukaVfxPacket.WATER_GATHER || !Float.isFinite(packet.scale())
+                || SEEN.containsKey(packet.eventId())) return;
+        long elapsed = minecraft.level.getGameTime() - packet.started();
+        if (elapsed >= packet.duration() || elapsed < -40) return;
+        if (SEEN.size() >= 512) SEEN.remove(SEEN.keySet().iterator().next());
+        SEEN.put(packet.eventId(), minecraft.level.getGameTime()+240);
         if (minecraft.player != null) {
             double maximum = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
             if (minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
@@ -61,9 +69,32 @@ public final class KyoukaVfxClient {
                     && effect.sourceEntityId == packet.sourceEntityId()
                     && effect.targetEntityId == packet.targetEntityId());
         }
-        EFFECTS.add(new Effect(packet));
+        if (packet.type() == KyoukaVfxPacket.WATER_DEFLECT
+                && minecraft.level.getEntity(packet.sourceEntityId()) instanceof net.minecraft.client.player.AbstractClientPlayer p)
+            dev.bladetetra.client.kyouka.WaterMirrorLayer.impulse(p,packet.started());
+        Effect effect = new Effect(packet); effect.age = (int)Math.max(0,elapsed);
+        EFFECTS.add(effect);
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
+    }
+
+    @SubscribeEvent
+    public static void arm(net.minecraftforge.client.event.RenderArmEvent e) {
+        var p = e.getPlayer();
+        if (!p.hasEffect(dev.bladetetra.kyouka.WaterMirrorEffect.ARMOR.get())
+                || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
+        var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(p);
+        if (!(renderer instanceof net.minecraft.client.renderer.entity.player.PlayerRenderer playerRenderer)) return;
+        var model = playerRenderer.getModel();
+        var arm = e.getArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+        float x = arm.xRot, y = arm.yRot, z = arm.zRot;
+        try {
+            arm.xRot = 0; arm.yRot = 0; arm.zRot = 0;
+            float ratio = Math.max(0, Math.min(1, p.getAirSupply()/(float)Math.max(1,p.getMaxAirSupply())));
+            arm.render(e.getPoseStack(), e.getMultiBufferSource().getBuffer(net.minecraft.client.renderer.RenderType.entityTranslucent(
+                    dev.bladetetra.client.kyouka.WaterMirrorLayer.WATER)), e.getPackedLight(),
+                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, .65F, .88F, 1, .06F+.18F*ratio);
+        } finally { arm.xRot=x; arm.yRot=y; arm.zRot=z; }
     }
 
     @SubscribeEvent
@@ -71,9 +102,10 @@ public final class KyoukaVfxClient {
         Minecraft minecraft = Minecraft.getInstance();
         if (event.phase != TickEvent.Phase.END || minecraft.isPaused()) return;
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear();
+            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
             activeLevel = minecraft.level;
         }
+        if (activeLevel != null) SEEN.values().removeIf(until -> until < activeLevel.getGameTime());
         Iterator<Effect> iterator = EFFECTS.iterator();
         while (iterator.hasNext()) {
             Effect effect = iterator.next();
@@ -102,6 +134,7 @@ public final class KyoukaVfxClient {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderTexture(0, POOL_TEXTURE);
         renderPools(matrix, event.getPartialTick(), global);
+        renderWater(matrix, camera.getPosition(), event.getPartialTick(), global);
 
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE);
@@ -118,7 +151,7 @@ public final class KyoukaVfxClient {
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         for (Effect effect : EFFECTS) {
-            if (effect.type == KyoukaVfxPacket.BREAK_SHATTER) continue;
+            if (effect.type == KyoukaVfxPacket.BREAK_SHATTER || effect.type >= KyoukaVfxPacket.WATER_GATHER) continue;
             float age = effect.age + partialTick;
             float fadeIn = Mth.clamp(age / 5.0F, 0.0F, 1.0F);
             float fadeOut = Mth.clamp((effect.duration - age) / 9.0F, 0.0F, 1.0F);
@@ -130,6 +163,29 @@ public final class KyoukaVfxClient {
                     ? 1.55D + age / Math.max(1.0D, effect.duration) * 0.25D : 1.30D);
             horizontalTexturedQuad(buffer, matrix,
                     effect.position.add(0.0D, 0.035D, 0.0D), radius, alpha, 0xFFFFFF);
+        }
+        Tesselator.getInstance().end();
+    }
+
+    private static void renderWater(Matrix4f matrix, Vec3 camera, float partial, float global) {
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        for (Effect e : EFFECTS) {
+            if (e.type < KyoukaVfxPacket.WATER_GATHER) continue;
+            float t = Mth.clamp((e.age + partial) / e.duration, 0, 1);
+            Vec3 center = e.position.add(0, .9, 0);
+            boolean gather = e.type == KyoukaVfxPacket.WATER_GATHER;
+            // Droplets converge and compress; impact emits an expanding blue-white water ring.
+            for (int i=0; i<10; i++) {
+                double angle = i * Math.PI * 2 / 10 + t * 2;
+                double radius = gather ? 1.1 * (1-t) : .15 + t * 1.8;
+                Vec3 droplet = center.add(Math.cos(angle)*radius, Math.sin(angle*2)*radius*.35, Math.sin(angle)*radius);
+                dev.bladetetra.client.vfx.render.VfxPrimitives.billboard(buffer, matrix, camera,
+                        droplet, gather ? .04 + .08*t : .12*(1-t), (1-t*.7F)*global*.8F, 0xB2E9FF);
+            }
+            if (!gather) horizontalTexturedQuad(buffer, matrix, e.position.add(0,.08,0), .3+t*1.7, (1-t)*global, 0xCAEFFF);
+            else dev.bladetetra.client.vfx.render.VfxPrimitives.billboard(buffer, matrix, camera,
+                    center, .08+.18*t, t*global*.8F, 0xE0F8FF);
         }
         Tesselator.getInstance().end();
     }
@@ -193,7 +249,7 @@ public final class KyoukaVfxClient {
             age++;
             Entity target = level == null || targetEntityId < 0
                     ? null : level.getEntity(targetEntityId);
-            if (target != null) position = target.position();
+            if (target != null && type < KyoukaVfxPacket.WATER_GATHER) position = target.position();
         }
     }
 

@@ -26,6 +26,27 @@ For the current neutral (1.0) combat multipliers and their scope, see [Combat ba
 | `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins. |
 | `akatsukiExecutionMinimumTargetHealth` | `40.0` | Minimum target maximum health for the full execution timeline. |
 
+## Raikiri 3.1 (awakened V2)
+
+Requires `discoveries.enableAwakenedV2=true`; false keeps the original legacy handlers.
+New values live in `discoveries.raikiri3`. Full behavior and bounds: [Raikiri 3.1](docs/awakened-rework/RAIKIRI_30.md).
+
+| Settings | Defaults | Purpose |
+| --- | --- | --- |
+| `trailSamples`, `delayStart`, `delayEnd` | `4`, `14`, `22` | Actual path samples and delayed strike ticks |
+| `globalTrailLimit`, `trailDamageBudget`, `trailTargetCap`, `strikeRadius` | `128`, `6`, `3`, `1.25` | Bounded active trails, shared damage, per-victim cap, local strike radius |
+| `swordsPerPlayer`, `globalSwordLimit`, `swordLifetime` | `3`, `256`, `200` | Owner/global anchor limits and lifetime |
+| `dischargePeriod`, `targetsPerRound`, `swordRange` | `20`, `2`, `4` | Pulse interval, target count and local search radius |
+| `roundDamageBudget`, `lifetimeDamageBudget` | `3`, `12` | Per-pulse and absolute whole-life damage caps |
+| `resonanceRadius`, `resonanceMultiplier` | `2`, `1.5` | Real step-segment trigger radius and one saturated next-pulse boost |
+
+Native Rapid Slash and its lightning extension have no additional Rank gate or payment.
+`discoveries.awakenedRankCostRaikiriStep=75` is also a deprecated, ignored compatibility key.
+`awakenedRankCostRaikiriFinisher=240` is a deprecated, ignored compatibility key; native SA has no Raikiri extra cost.
+Observation limits: `maxObservationTicks=40`, `maxObservedSegment=2.5`, `maxObservedPath=12`, `trailSampleSpacing=0.35`.
+They limit recording only, never native movement.
+Conductivity/legacy lightning values below retain their old meaning and are not used as Raikiri 3.0 budgets.
+
 ## Conductivity
 
 | Setting | Default | Purpose |
@@ -174,3 +195,22 @@ categories are accepted automatically; no Blade Tetra setting is required.
 The pre-1.3.0 third-party metal definitions remain hidden so existing weapons
 continue to resolve their original material keys. They are not offered as new
 workbench outcomes.
+
+## 镜花水月4.0
+
+服务器旧 `[kyouka3]` 名称保留用于配置迁移。`startCost`、`drainPerSecond`、`actionCost` 已弃用且忽略；`range`（默认32格）、`serverSessions`（64）、`worldSessions`（32）继续限制状态/结算。SSS追忆：60刻历史、10刻延迟、600刻冷却、总75%。水镜衣：原版airSupply；水斩14刻/40%、最多8份预约、每动作首个成功窗口；卸力最高30%、60刻间隔、200刻内最多6HP、成功另耗20空气。参数目前固定在有界运行时中，不复用弃用Rank价格。
+
+客户端与服务端必须同时更新到 `awakened2-integrated-1` 协议。原版氧气、Buff和呼吸增强负责续航，没有新增能量条。详见 `docs/awakened-rework/KYOUKA_40.md`。
+
+## 千本樱 3.0
+
+旧 `awakenedSakuraFlowDrainPerSecond` 键保留，仅用于散华无限连舞 SA；普通散华攻击不额外燃烧 Rank。新增 `sakuraSaMaxTicks=1200`、`sakuraConcertoInterval=8`、`sakuraConcertoDamageFraction=0.25`、`sakuraConcertoDamageCap=6.0`、`sakuraSaStageDamage=8.0`。详细作用和上下限见 [千本樱维护说明](docs/awakened-rework/SAKURA_30.md)。
+
+### Raikiri 3.1 pacing
+
+Under `discoveries.raikiri3`, defaults are `delayStart=14`, `delayEnd=22` (each 1–80 ticks),
+`swordLifetime=200` and `dischargePeriod=20`. Existing TOML values are preserved; edit these four keys
+or remove them to regenerate the new defaults. Delays belong to each actual server path sample;
+reversed delay endpoints normalize. Trail/sword budgets remain 6 total / 3 per trail victim and
+3 per sword round / 12 per sword lifetime; exhausted swords remain visible but cannot exceed that budget.
+Sword discharges suppress only their scoped knockback. Native attacks and path strikes retain theirs.

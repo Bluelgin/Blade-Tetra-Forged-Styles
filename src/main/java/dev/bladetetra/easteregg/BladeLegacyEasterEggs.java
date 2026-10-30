@@ -358,6 +358,7 @@ public final class BladeLegacyEasterEggs {
         unlock(player, blade, TAG_RAIKIRI_UNLOCKED, RAIKIRI_ADVANCEMENT,
                 "message.blade_tetra.raikiri.unlocked", ChatFormatting.AQUA,
                 ParticleTypes.ELECTRIC_SPARK, SoundEvents.LIGHTNING_BOLT_THUNDER, 1.28F);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.RAIKIRI);
         tag.remove(TAG_RAIKIRI_CHARGED_AT);
         tag.remove(TAG_RAIKIRI_LAST_SA);
     }
@@ -477,9 +478,11 @@ public final class BladeLegacyEasterEggs {
             float pitch) {
         blade.getOrCreateTag().putBoolean(flag, true);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(particle,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                42, 0.75D, 0.65D, 0.75D, 0.035D);
+        if (!TAG_RAIKIRI_UNLOCKED.equals(flag) || !AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(particle,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    42, 0.75D, 0.65D, 0.75D, 0.035D);
+        }
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS,
                 0.9F, pitch);
         player.displayClientMessage(

@@ -48,6 +48,7 @@ public final class BladeTetra {
                 ClientVisualConfig.SPEC,
                 "blade-tetra-client.toml");
         ModItems.ITEMS.register(modBus);
+        dev.bladetetra.kyouka.WaterMirrorEffect.EFFECTS.register(modBus);
         ModEntities.ENTITIES.register(modBus);
         ModItems.CREATIVE_TABS.register(modBus);
         ModLootModifiers.CODECS.register(modBus);
@@ -55,6 +56,8 @@ public final class BladeTetra {
         ModRecipes.SERIALIZERS.register(modBus);
         ModSounds.SOUND_EVENTS.register(modBus);
         ModComboStates.registerHeldDangaku();
+        dev.bladetetra.easteregg.SakuraSixthCombo.register();
+        dev.bladetetra.easteregg.SakuraDanceCombos.register();
         ModComboStates.COMBOS.register(modBus);
         ModSlashBladeAbilities.SLASH_ARTS.register(modBus);
         ModSlashBladeAbilities.SPECIAL_EFFECTS.register(modBus);

@@ -127,13 +127,19 @@ public final class SenbonzakuraAwakening {
 
     public static void appendTooltip(ItemStack stack, List<Component> tooltip) {
         if (isActive(stack)) {
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.awakened")
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
-            tooltip.add(Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.marks",
-                            petalMarks(stack), MAX_MARKS)
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+            if (AwakenedBladeCombat.replacesLegacy()) {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.awakened.v2.senbonzakura")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            } else {
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.senbonzakura.awakened")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+                tooltip.add(Component.translatable(
+                                "tooltip.blade_tetra.senbonzakura.marks",
+                                petalMarks(stack), MAX_MARKS)
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
         } else if (isUnlocked(stack)) {
             tooltip.add(Component.translatable(
                             "tooltip.blade_tetra.senbonzakura.dormant")
@@ -181,7 +187,7 @@ public final class SenbonzakuraAwakening {
             advanceRitual(player, blade, now);
         }
 
-        if (!isActive(blade)) {
+        if (!isActive(blade) || AwakenedBladeCombat.replacesLegacy()) {
             return;
         }
         expirePetalMarks(blade, now);
@@ -215,7 +221,7 @@ public final class SenbonzakuraAwakening {
             tag.putLong(TAG_LAST_SA, now);
         }
 
-        if (isActive(blade)
+        if (!AwakenedBladeCombat.replacesLegacy() && isActive(blade)
                 && petalMarks(blade) > 0
                 && tag.getLong(TAG_COOLDOWN_UNTIL) <= now) {
             tag.putLong(TAG_SA_WINDOW, now + SA_HIT_WINDOW);
@@ -230,7 +236,8 @@ public final class SenbonzakuraAwakening {
             return;
         }
         ItemStack blade = player.getMainHandItem();
-        if (event.getSource().getDirectEntity() == player && isActive(blade)) {
+        if (!AwakenedBladeCombat.replacesLegacy()
+                && event.getSource().getDirectEntity() == player && isActive(blade)) {
             long now = player.level().getGameTime();
             expirePetalMarks(blade, now);
             addPetalMark(player, blade, now);
@@ -254,6 +261,7 @@ public final class SenbonzakuraAwakening {
     /** Uses the actual post-mitigation Slash Art hit to scale the stored blossom burst. */
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
         Entity direct = event.getSource().getDirectEntity();
@@ -280,8 +288,12 @@ public final class SenbonzakuraAwakening {
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || PENDING_VOLLEYS.isEmpty()) return;
-        tickPetalVolleys(event.getServer());
+        if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING_VOLLEYS.clear();
+            return;
+        }
+        if (!PENDING_VOLLEYS.isEmpty()) tickPetalVolleys(event.getServer());
     }
 
     @SubscribeEvent
@@ -335,18 +347,21 @@ public final class SenbonzakuraAwakening {
     private static void awaken(ServerPlayer player, ItemStack blade) {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         clearRitualProgress(blade);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.SENBONZAKURA);
         blade.getOrCreateTag().putInt(TAG_PETAL_HITS, 0);
         blade.getOrCreateTag().putInt(TAG_PETAL_MARKS, 0);
         blade.getOrCreateTag().remove(TAG_MARKS_EXPIRE);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(
-                ParticleTypes.CHERRY_LEAVES,
-                player.getX(), player.getY() + 1.1D, player.getZ(),
-                72, 1.15D, 0.9D, 1.15D, 0.035D);
-        level.sendParticles(
-                ParticleTypes.END_ROD,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                24, 0.75D, 0.75D, 0.75D, 0.025D);
+        if (!AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(
+                    ParticleTypes.CHERRY_LEAVES,
+                    player.getX(), player.getY() + 1.1D, player.getZ(),
+                    72, 1.15D, 0.9D, 1.15D, 0.035D);
+            level.sendParticles(
+                    ParticleTypes.END_ROD,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    24, 0.75D, 0.75D, 0.75D, 0.025D);
+        }
         level.playSound(
                 null,
                 player.blockPosition(),

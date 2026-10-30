@@ -34,6 +34,10 @@ class RengekiFlowRulesTest {
         assertFalse(RengekiFlowRules.isNativeBFlow(null, "combo_b1"));
         assertFalse(RengekiFlowRules.isNativeBFlow("slashblade", null));
     }
+    @Test void sakuraSaDelegatesRetainNativeTradeoffAndVisualSize() {
+        for(int stage=1;stage<=6;stage++) assertTrue(RengekiFlowRules.isNativeBFlow("blade_tetra","sakura_dance_b"+stage));
+        assertFalse(RengekiFlowRules.isNativeBFlow("blade_tetra","sakura_dance_b7"));
+    }
     @Test void nativeAirVisualsDoNotResizeSlashArts() {
         for (String path : new String[]{"aerial_rave_a1", "aerial_rave_b4", "aerial_cleave_landing"})
             assertTrue(RengekiFlowRules.isNativeAirFlow("slashblade", path));

@@ -9,6 +9,7 @@ import mods.flammpfeil.slashblade.entity.EntityJudgementCut;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.entity.IShootable;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -120,6 +121,11 @@ public final class CombatBalanceRuntime {
             float amount, BladeStyle style, CombatBalanceRules.AttackKind kind) {
         float balanced = CombatBalanceRules.damage(amount, CombatBalanceConfig.multiplier(style, kind), false);
         return InheritedCombatDamage.apply(() -> target.hurt(source, balanced));
+    }
+
+    /** Snapshot the existing composed-SA phase for independent secondary budgets. */
+    public static float secondaryPhaseScale(ServerPlayer player, Entity origin) {
+        return ForgedSlashArtDamageBalance.secondaryPhaseScale(player, origin);
     }
 
     private static boolean nativeAttack(Entity entity) {

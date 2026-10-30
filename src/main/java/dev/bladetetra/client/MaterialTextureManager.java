@@ -913,6 +913,10 @@ public final class MaterialTextureManager {
         MaterialTextureCache.clear();
         LegacyModelPartRenderer.clear();
         InventoryBladeModel.clear();
+        AwakeningBladeGeometry.clear();
+        DispersedBladeGeometry.clear();
+        dev.bladetetra.client.sakura.SakuraCombatVisualController.clear();
+        dev.bladetetra.client.awakening.AwakeningVisualController.clear();
         ForgedGuardModel.clear();
     }
 

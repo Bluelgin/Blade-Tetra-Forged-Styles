@@ -147,13 +147,16 @@ public final class AkatsukiAwakening {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         blade.getOrCreateTag().remove(TAG_LAST_SA);
         ContractBladeCompat.syncAkatsuki(player, blade, true);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.AKATSUKI);
 
-        level.sendParticles(ParticleTypes.CRIMSON_SPORE,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                90, 1.3D, 0.8D, 1.3D, 0.025D);
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                36, 0.8D, 0.65D, 0.8D, 0.04D);
+        if (!AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(ParticleTypes.CRIMSON_SPORE,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    90, 1.3D, 0.8D, 1.3D, 0.025D);
+            level.sendParticles(ParticleTypes.REVERSE_PORTAL,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    36, 0.8D, 0.65D, 0.8D, 0.04D);
+        }
         level.playSound(null, player.blockPosition(),
                 SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.PLAYERS,
                 1.0F, 0.72F);

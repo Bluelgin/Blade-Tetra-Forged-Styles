@@ -10,10 +10,11 @@ import java.util.function.Supplier;
 
 /** One tracked mirror-pool or mirror-shatter presentation for Kyouka Suigetsu. */
 public record KyoukaVfxPacket(int type, double x, double y, double z,
-        int sourceEntityId, int targetEntityId, float scale, int duration, int seed) {
+        int sourceEntityId, int targetEntityId, float scale, int duration, int seed, net.minecraft.resources.ResourceLocation dimension, long started, java.util.UUID eventId) {
     public static final int REFLECTION_POOL = 0;
     public static final int BREAK_CHARGE = 1;
     public static final int BREAK_SHATTER = 2;
+    public static final int WATER_GATHER = 3, WATER_IMPACT = 4, WATER_DEFLECT = 5;
 
     public static void encode(KyoukaVfxPacket packet, FriendlyByteBuf buffer) {
         buffer.writeByte(packet.type);
@@ -25,13 +26,14 @@ public record KyoukaVfxPacket(int type, double x, double y, double z,
         buffer.writeFloat(packet.scale);
         buffer.writeVarInt(packet.duration);
         buffer.writeInt(packet.seed);
+        buffer.writeResourceLocation(packet.dimension); buffer.writeLong(packet.started); buffer.writeUUID(packet.eventId);
     }
 
     public static KyoukaVfxPacket decode(FriendlyByteBuf buffer) {
         return new KyoukaVfxPacket(buffer.readUnsignedByte(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),
                 buffer.readVarInt() - 1, buffer.readVarInt() - 1,
-                buffer.readFloat(), buffer.readVarInt(), buffer.readInt());
+                buffer.readFloat(), buffer.readVarInt(), buffer.readInt(), buffer.readResourceLocation(), buffer.readLong(), buffer.readUUID());
     }
 
     public static void handle(KyoukaVfxPacket packet,

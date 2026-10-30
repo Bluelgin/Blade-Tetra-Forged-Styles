@@ -1,5 +1,7 @@
 # 拔刀剑：百构流派
 
+觉醒刀联合版本的实际玩法、维护入口、协议和验收边界见 [当前觉醒刀架构](docs/awakened-rework/CURRENT_ARCHITECTURE.md)。
+
 <p align="center">
   <img src=".github/assets/cover.png" width="280" alt="Blade Tetra: Forged Styles logo">
 </p>
@@ -81,3 +83,7 @@ gradlew build
 - 分享码保留剑谱名称和动作顺序；导入时仍由服务器验证所需模组、版本与普通招式权限，不兼容未发布的旧 `BTSTYLE1:` 格式。
 - 部分美术状态仍缺可靠客户端接口，未伪造录制或锻造成功反馈，详见[客户端整合边界](docs/custom-style-art/CLIENT_INTEGRATION.md)。
 - 历次[版本更新日志](docs/releases/README.md)统一收纳在 `docs/releases/`；Alpha 至 1.5.2 的旧首页内容移至[历史记录](docs/history/README_HISTORY.md)，不作为当前功能说明。
+
+### 千本樱 3.0（开发分支）
+
+散华普通攻击保留原生 B1–B7 与方向/空中技，真实命中驱动轮换碎刃发射原生幻影剑，不额外燃烧 Rank。散华下原生 SA 操作启动独立的 B1–B6 自动无限连舞，消耗原生 Rank；凝刃保留原 SA。详见 [玩法、配置与维护](docs/awakened-rework/SAKURA_30.md)。

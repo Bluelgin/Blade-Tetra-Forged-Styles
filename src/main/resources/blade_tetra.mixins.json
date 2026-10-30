@@ -6,6 +6,10 @@
   "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
     "ProviderEffectCompatMixin",
+    "AwakenedRankConstraintMixin",
+    "NativeBladeCommitMixin",
+    "NativeBladeAttackObserverMixin",
+    "WaterMirrorDamageCommitMixin",
     "CombatBalanceBladeStateMixin",
     "CustomStyleReachMixin",
     "CombatBalanceSlashArtsMixin",
@@ -26,5 +30,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "client": []
 }

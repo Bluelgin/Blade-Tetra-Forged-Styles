@@ -188,6 +188,7 @@ public final class KyoukaAwakening {
 
     @SubscribeEvent
     public static void onSlashArt(SlashBladeEvent.PerformSlashArtEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getType() != SlashArts.ArtsType.Success
                 || !(event.getEntityLiving() instanceof ServerPlayer player)
                 || !isActive(player.getMainHandItem())) return;
@@ -217,6 +218,7 @@ public final class KyoukaAwakening {
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (!(event.getLevel() instanceof ServerLevel level)
                 || !(event.getEntity() instanceof IShootable shootable)
                 || !(shootable.getShooter() instanceof ServerPlayer player)
@@ -241,6 +243,7 @@ public final class KyoukaAwakening {
     /** Reads the real post-mitigation hit and delays it one tick to distinguish SA orderings. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
+        if (AwakenedBladeCombat.replacesLegacy()) return;
         if (event.getAmount() <= 0.0F || event.getSource().is(MIRROR_DAMAGE)
                 || BladeTechniqueHandler.isTechniqueDamage(event.getSource())
                 || SoulLegacyDamageGuard.isSecondary(event.getSource())) return;
@@ -299,6 +302,11 @@ public final class KyoukaAwakening {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        if (AwakenedBladeCombat.replacesLegacy()) {
+            PENDING.clear();
+            PENDING_HITS.clear();
+            return;
+        }
         MinecraftServer server = event.getServer();
         if (!PENDING_HITS.isEmpty()) {
             Iterator<Map.Entry<UUID, PendingHit>> hits = PENDING_HITS.entrySet().iterator();
@@ -550,7 +558,7 @@ public final class KyoukaAwakening {
         KyoukaVfxPacket packet = new KyoukaVfxPacket(type,
                 target.getX(), target.getY(), target.getZ(),
                 source == null ? -1 : source.getId(), target.getId(),
-                scale, duration, seed);
+                scale, duration, seed, level.dimension().location(), level.getGameTime(), java.util.UUID.randomUUID());
         for (ServerPlayer viewer : level.players()) {
             if (viewer.distanceToSqr(target) <= 128.0D * 128.0D) {
                 ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer), packet);
@@ -578,7 +586,7 @@ public final class KyoukaAwakening {
         return null;
     }
 
-    private static DamageSource mirrorDamage(ServerLevel level, ServerPlayer attacker) {
+    public static DamageSource mirrorDamage(ServerLevel level, ServerPlayer attacker) {
         return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                 .getHolderOrThrow(MIRROR_DAMAGE), null, attacker);
     }
@@ -613,13 +621,16 @@ public final class KyoukaAwakening {
     private static void awaken(ServerPlayer player, ItemStack blade) {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
         clearRitualProgress(blade);
+        AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.KYOUKA);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(ParticleTypes.END_ROD,
-                player.getX(), player.getY() + 1.0D, player.getZ(),
-                48, 1.0D, 0.65D, 1.0D, 0.018D);
-        level.sendParticles(ParticleTypes.SPLASH,
-                player.getX(), player.getY() + 0.1D, player.getZ(),
-                36, 1.25D, 0.05D, 1.25D, 0.025D);
+        if (!AwakenedBladeCombat.replacesLegacy()) {
+            level.sendParticles(ParticleTypes.END_ROD,
+                    player.getX(), player.getY() + 1.0D, player.getZ(),
+                    48, 1.0D, 0.65D, 1.0D, 0.018D);
+            level.sendParticles(ParticleTypes.SPLASH,
+                    player.getX(), player.getY() + 0.1D, player.getZ(),
+                    36, 1.25D, 0.05D, 1.25D, 0.025D);
+        }
         level.playSound(null, player.blockPosition(),
                 SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS,
                 1.0F, 1.15F);

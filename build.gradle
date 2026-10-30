@@ -21,6 +21,14 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('sakuraCombatSmoke')) {
+                workingDirectory project.file('build/sakura-combat-smoke')
+                property 'blade_tetra.sakuraCombatSmoke', 'true'
+            }
+            if (project.hasProperty('raikiriCombatSmoke')) {
+                workingDirectory project.file('build/raikiri-combat-smoke')
+                property 'blade_tetra.raikiriCombatSmoke', 'true'
+            }
             if (project.hasProperty('swordAuraHitSmoke')) {
                 workingDirectory project.file('build/sword-aura-hit-smoke')
                 property 'blade_tetra.swordAuraHitSmoke', 'true'
@@ -33,6 +41,10 @@ minecraft {
                 workingDirectory project.file('build/custom-style-input-review')
                 property 'blade_tetra.customStyleInputReview', 'true'
                 property 'blade_tetra.customStyleDebug', 'true'
+            }
+            if (project.hasProperty('mirrorRitualReview')) {
+                workingDirectory project.file('build/mirror-ritual-review')
+                property 'blade_tetra.mirrorRitualReview', 'true'
             }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
@@ -48,6 +60,14 @@ minecraft {
             if (project.hasProperty('deadThoughtRemovalSmoke')) {
                 workingDirectory project.file('build/dead-thought-removal-smoke')
                 property 'blade_tetra.deadThoughtRemovalSmoke', 'true'
+            }
+            if (project.hasProperty('kyoukaMotionSmoke')) {
+                workingDirectory project.file('build/kyouka-motion-smoke')
+                property 'blade_tetra.kyoukaMotionSmoke', 'true'
+            }
+            if (project.hasProperty('kyoukaNativeSmoke')) {
+                workingDirectory project.file('build/kyouka-native-smoke')
+                property 'blade_tetra.kyoukaNativeSmoke', 'true'
             }
             if (project.hasProperty('mikageNativeSmoke')) {
                 workingDirectory project.file('build/mikage-native-smoke')
@@ -102,6 +122,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('mirrorRitualReview')) {
+                args '--width', '960', '--height', '540'
+            }
             if (project.hasProperty('artPreview')) {
                 args '--width', '1600', '--height', '1000'
             }
@@ -178,6 +201,8 @@ dependencies {
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
     implementation fg.deobf(
             "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+    // Compile the optional public animation-map alias; no new runtime requirement.
+    compileOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
 
     // Compile against JEI's stable API only. The plugin is discovered when JEI
@@ -355,4 +380,26 @@ tasks.named('jar', Jar).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// Review the actual resolved/remapped 1.9.63 binary, rather than assuming upstream source matches.
+tasks.register('kyoukaNativeApiAudit') {
+    doLast {
+        def out = file('build/kyouka-native-api.txt')
+        out.parentFile.mkdirs()
+        out.withOutputStream { stream ->
+            exec {
+                commandLine 'javap', '-classpath', sourceSets.main.compileClasspath.asPath, '-c', '-p',
+                        'mods.flammpfeil.slashblade.registry.combo.ComboState',
+                        'mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState',
+                        'mods.flammpfeil.slashblade.entity.EntitySlashEffect',
+                        'mods.flammpfeil.slashblade.entity.EntitySpiralSwords',
+                        'mods.flammpfeil.slashblade.util.AttackManager',
+                        'mods.flammpfeil.slashblade.util.AttackHelper',
+                        'mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank',
+                        'mods.flammpfeil.slashblade.client.renderer.layers.LayerMainBlade'
+                standardOutput = stream
+            }
+        }
+    }
 }
