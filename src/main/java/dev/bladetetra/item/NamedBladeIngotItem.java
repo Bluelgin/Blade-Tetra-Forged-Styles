@@ -44,7 +44,10 @@ public final class NamedBladeIngotItem extends Item {
     }
 
     public static LegacyImprintKind source(ItemStack stack) {
-        String id = sourceId(stack);
+        return sourceFromId(sourceId(stack));
+    }
+
+    public static LegacyImprintKind sourceFromId(String id) {
         if (id == null) return null;
         try {
             return NamedLegacyCatalog.get(id);
