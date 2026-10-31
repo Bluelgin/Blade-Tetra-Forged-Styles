@@ -22,18 +22,6 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         return new NamedLegacyParts(variant(stack, "saya", old.saya()), hilt, hilt);
     }
 
-    /** Optional independent blade silhouette; hilt and grip always remain the existing pair. */
-    public static LegacyImprintKind bladeFromStack(ItemStack stack) {
-        LegacyImprintKind snapshot = NamedLegacyImprintStorage.snapshot(stack, "blade");
-        if (snapshot != null) return snapshot;
-        String id = NamedLegacyImprintStorage.sourceId(stack, "blade");
-        return id == null ? null : safeCatalogGet(id);
-    }
-
-    public static LegacyImprintKind visualBladeFromStack(ItemStack stack) {
-        return visible(bladeFromStack(stack));
-    }
-
     /** Client-only presentation view; unsupported models fall back without losing identity. */
     public static NamedLegacyParts visualFromStack(ItemStack stack) {
         NamedLegacyParts semantic = fromStack(stack);
@@ -71,6 +59,18 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         } catch (RuntimeException | LinkageError failure) {
             return null;
         }
+    }
+
+    /** Optional independent blade silhouette; hilt and grip always remain the existing pair. */
+    public static LegacyImprintKind bladeFromStack(ItemStack stack) {
+        LegacyImprintKind snapshot = NamedLegacyImprintStorage.snapshot(stack, "blade");
+        if (snapshot != null) return snapshot;
+        String id = NamedLegacyImprintStorage.sourceId(stack, "blade");
+        return id == null ? null : safeCatalogGet(id);
+    }
+
+    public static LegacyImprintKind visualBladeFromStack(ItemStack stack) {
+        return visible(bladeFromStack(stack));
     }
 
     public boolean present() {
