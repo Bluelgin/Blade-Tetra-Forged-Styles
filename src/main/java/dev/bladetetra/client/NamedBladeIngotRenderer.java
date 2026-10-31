@@ -22,6 +22,8 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -37,6 +39,7 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
     private static final int LIMIT = 96;
     private static final ResourceLocation IRON = ResourceLocation.fromNamespaceAndPath(
             "minecraft", "textures/item/iron_ingot.png");
+    private static final Set<String> UNAVAILABLE = new LinkedHashSet<>();
     private static final Map<String, ResourceLocation> CACHE =
             new LinkedHashMap<>(32, .75F, true);
 
@@ -82,7 +85,7 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
     private static synchronized ResourceLocation resolve(ItemStack stack) {
         String id = NamedBladeIngotItem.sourceId(stack);
         LegacyImprintKind kind = NamedBladeIngotItem.source(stack);
-        if (id == null || kind == null) return IRON;
+        if (id == null || kind == null || UNAVAILABLE.contains(id)) return IRON;
         ResourceLocation cached = CACHE.get(id);
         if (cached != null) return cached;
         Minecraft minecraft = Minecraft.getInstance();
@@ -95,7 +98,8 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
                 NativeImage output = new NativeImage(SIZE, SIZE, true)) {
             compose(iron, sword, output, id.hashCode());
             ResourceLocation registered = minecraft.getTextureManager()
-                    .register("named_ingot/" + Integer.toUnsignedString(id.hashCode(), 16),
+                    .register("named_ingot/" + Integer.toUnsignedString(id.hashCode(), 16)
+                            + "_" + id.length(),
                             new DynamicTexture(copy(output)));
             CACHE.put(id, registered);
             while (CACHE.size() > LIMIT) {
@@ -106,7 +110,13 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
             }
             return registered;
         } catch (Exception ignored) {
-            // Removed addon, invalid PNG or unsupported source: use vanilla iron.
+            // Cache bad resource references until reload rather than decoding every frame.
+            UNAVAILABLE.add(id);
+            while (UNAVAILABLE.size() > LIMIT) {
+                Iterator<String> itr = UNAVAILABLE.iterator();
+                itr.next();
+                itr.remove();
+            }
             return IRON;
         }
     }
@@ -184,6 +194,7 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
         Minecraft minecraft = Minecraft.getInstance();
         for (ResourceLocation id : CACHE.values()) minecraft.getTextureManager().release(id);
         CACHE.clear();
+        UNAVAILABLE.clear();
     }
 
     @SubscribeEvent
