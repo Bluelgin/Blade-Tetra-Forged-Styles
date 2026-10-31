@@ -81,9 +81,30 @@ public final class NamedLegacyPack extends AbstractPackResources {
         }
 
         putHistoricalImprovements(historicalImprovements);
+        putGenericModule("blade");
         putGenericModule("saya");
         putGenericModule("tsuba");
 
+        en.addProperty("tetra.module.slashblade/legacy_blade.name", "Imprinted blade");
+        zh.addProperty("tetra.module.slashblade/legacy_blade.name", "名刀刀身");
+        en.addProperty("tetra.variant.legacy_blade/imprinted", "Named blade");
+        zh.addProperty("tetra.variant.legacy_blade/imprinted", "名刀刀身");
+        for (String part : List.of("blade", "saya", "tsuba")) {
+            String enPart = part.equals("blade") ? "Blade" : part.equals("saya") ? "Saya" : "Complete hilt";
+            String zhPart = part.equals("blade") ? "刀身" : part.equals("saya") ? "刀鞘" : "镡柄一体刀装";
+            en.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".name", "Named ingot · " + enPart);
+            zh.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".name", "名刀锭 · " + zhPart);
+            en.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".description", "Uses the named blade ingot in the Tetra workbench; source identity comes from the ingot.");
+            zh.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".description", "消耗名刀锭进行锻造，刀型来源由名刀锭决定。");
+        }
+        en.addProperty("item.blade_tetra.named_blade_ingot", "Named blade ingot");
+        zh.addProperty("item.blade_tetra.named_blade_ingot", "名刀锭");
+        en.addProperty("item.blade_tetra.named_blade_ingot.named", "%s ingot");
+        zh.addProperty("item.blade_tetra.named_blade_ingot.named", "%s锭");
+        en.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "Tetra: blade, saya and complete hilt only");
+        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "仅可用于 Tetra 刀身、刀鞘与镡柄一体刀装");
+        en.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "Missing named blade source: %s");
+        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "来源名刀未加载：%s");
         en.addProperty("tetra.module.slashblade/legacy_saya.name", "Imprinted saya");
         zh.addProperty("tetra.module.slashblade/legacy_saya.name", "映锻刀鞘");
         en.addProperty("tetra.module.slashblade/legacy_tsuba.name", "Imprinted hilt");
@@ -227,12 +248,21 @@ public final class NamedLegacyPack extends AbstractPackResources {
         JsonArray slots = new JsonArray();
         slots.add("slashblade/" + part);
         module.add("slots", slots);
-        module.addProperty("type", "tetra:basic_module");
+        module.addProperty("type", part.equals("blade") ? "tetra:basic_major_module" : "tetra:basic_module");
+        if (part.equals("blade")) {
+            module.add("improvements", JsonParser.parseString("[\"tetra:sword/basic_blade/\",\"tetra:sword/shared_blade/\",\"tetra:sword/shared/\",\"tetra:shared/\",\"tetra:slashblade/blade/\"]"));
+        }
         module.addProperty("renderLayer", part.equals("saya") ? "lower" : "higher");
         JsonArray variants = new JsonArray();
         JsonObject variant = new JsonObject();
         variant.addProperty("key", NamedLegacyImprintStorage.genericVariant(part));
-        variant.addProperty("durability", part.equals("saya") ? 24 : 0);
+        variant.addProperty("durability", part.equals("blade") ? 120 : part.equals("saya") ? 24 : 0);
+        if (part.equals("blade")) {
+            variant.add("attributes", JsonParser.parseString("{\"generic.attack_speed\":-1.9,\"generic.attack_damage\":4}"));
+            variant.add("tools", JsonParser.parseString("{\"cut\":[1,2]}"));
+            variant.add("aspects", JsonParser.parseString("{\"edged_weapon\":2,\"breakable\":2}"));
+            variant.add("tags", JsonParser.parseString("[\"forge:swords\"]"));
+        }
         variant.addProperty("integrity", part.equals("saya") ? 1 : 0);
         variants.add(variant);
         module.add("variants", variants);
