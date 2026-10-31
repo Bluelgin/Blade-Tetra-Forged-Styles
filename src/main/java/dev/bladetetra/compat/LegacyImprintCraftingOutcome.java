@@ -68,7 +68,8 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             if (preMaterials != null) for (ItemStack ingredient : preMaterials) {
                 if (ingotSource == null) ingotSource = NamedBladeIngotItem.sourceId(ingredient);
             }
-            if (ingotSource != null && NamedBladeIngotItem.sourceFromId(ingotSource) != null) {
+            if (ingotSource != null) {
+                // Missing addon sources remain soft references, like historical imprints.
                 changed |= NamedLegacyImprintStorage.putSource(
                         upgradedStack.getOrCreateTag(), dynamicPart, ingotSource);
                 try {
