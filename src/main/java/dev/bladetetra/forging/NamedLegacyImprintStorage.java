@@ -20,6 +20,7 @@ import java.util.List;
 public final class NamedLegacyImprintStorage {
     public static final String ROOT = "blade_tetra_named_imprints";
     private static final String SAYA = "saya";
+    private static final String BLADE = "blade";
     private static final String TSUBA = "tsuba";
     private static final String SNAPSHOT_SUFFIX = "_snapshot";
     private static final String NAME = "name";
@@ -38,6 +39,7 @@ public final class NamedLegacyImprintStorage {
 
     public static String partForSlot(String slot) {
         return switch (slot) {
+            case "slashblade/blade" -> BLADE;
             case "slashblade/saya" -> SAYA;
             case "slashblade/tsuba" -> TSUBA;
             default -> null;
@@ -190,7 +192,7 @@ public final class NamedLegacyImprintStorage {
             return false;
         }
         boolean changed = false;
-        for (String part : new String[]{SAYA, TSUBA}) {
+        for (String part : new String[]{BLADE, SAYA, TSUBA}) {
             String module = tag.getString("slashblade/" + part);
             if (module.isEmpty()) {
                 changed |= clearSource(tag, part);
@@ -307,7 +309,7 @@ public final class NamedLegacyImprintStorage {
     }
 
     private static boolean validPart(String part) {
-        return SAYA.equals(part) || TSUBA.equals(part);
+        return BLADE.equals(part) || SAYA.equals(part) || TSUBA.equals(part);
     }
 
     private NamedLegacyImprintStorage() {
