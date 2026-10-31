@@ -33,6 +33,15 @@ jobs:
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
           retention-days: 14
+      - name: Named ingot three-slot Tetra smoke
+        if: github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
+        timeout-minutes: 8
+        run: |
+          mkdir -p build/named-ingot-smoke
+          echo 'eula=true' > build/named-ingot-smoke/eula.txt
+          set -o pipefail
+          ./gradlew runServer -PnamedIngotSmoke 2>&1 | tee build/named-ingot-smoke.log
+          grep -F 'NAMED_INGOT_SMOKE_PASS' build/named-ingot-smoke.log
       - name: Sword aura hotfix hit smoke
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
