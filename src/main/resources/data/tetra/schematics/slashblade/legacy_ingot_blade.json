@@ -1,0 +1,28 @@
+{
+  "replace": true,
+  "slots": [
+    "slashblade/blade"
+  ],
+  "materialSlotCount": 1,
+  "displayType": "major",
+  "glyph": {
+    "textureX": 24,
+    "textureY": 112
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [
+          "blade_tetra:named_blade_ingot"
+        ],
+        "count": 1
+      },
+      "materialSlot": 0,
+      "requiredTools": {
+        "hammer_dig": "minecraft:iron"
+      },
+      "moduleKey": "slashblade/legacy_blade",
+      "moduleVariant": "legacy_blade/imprinted"
+    }
+  ]
+}
