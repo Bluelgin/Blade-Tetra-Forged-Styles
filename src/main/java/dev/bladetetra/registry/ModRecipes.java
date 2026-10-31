@@ -3,6 +3,7 @@ package dev.bladetetra.registry;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.recipe.ModularSlashBladeRecipe;
 import dev.bladetetra.recipe.IronKatanaRecipe;
+import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.recipe.SayaBannerSkinRecipe;
 import dev.bladetetra.recipe.TsukaWrapColorRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -38,6 +39,11 @@ public final class ModRecipes {
             SERIALIZERS.register(
                     "tsuka_wrap_color",
                     () -> new SimpleCraftingRecipeSerializer<>(TsukaWrapColorRecipe::new));
+
+    public static final RegistryObject<RecipeSerializer<NamedBladeIngotRecipe>>
+            NAMED_BLADE_INGOT = SERIALIZERS.register(
+                    "named_blade_ingot",
+                    () -> new SimpleCraftingRecipeSerializer<>(NamedBladeIngotRecipe::new));
 
     private ModRecipes() {
     }
