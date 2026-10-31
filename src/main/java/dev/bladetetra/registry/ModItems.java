@@ -108,7 +108,6 @@ public final class ModItems {
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
                         output.accept(NAMED_BLADE_INGOT.get());
-                        output.accept(LEGACY_IMPRINT_SCROLL.get());
                         output.accept(LIFENG_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
