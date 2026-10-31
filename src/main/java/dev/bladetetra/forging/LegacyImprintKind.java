@@ -16,6 +16,14 @@ public record LegacyImprintKind(String id, ResourceLocation name,
                 ? LegacyCalibrationProfile.DEFAULT : defaultProfile.normalized();
     }
 
+    /** Vanilla wooden puppet is a registered item, not a data-driven named blade. */
+    public static final LegacyImprintKind WOODEN_PUPPET = new LegacyImprintKind(
+            "slashblade/slashblade_wood",
+            new ResourceLocation("slashblade", "slashblade_wood"),
+            new ResourceLocation("slashblade", "model/blade.obj"),
+            new ResourceLocation("slashblade", "model/blade.png"),
+            "minecraft:oak_planks", LegacyCalibrationProfile.DEFAULT,
+            2.0D, 60, null, List.of());
     public static final LegacyImprintKind BLACK_FOX = fox("black");
     public static final LegacyImprintKind WHITE_FOX = fox("white");
 
