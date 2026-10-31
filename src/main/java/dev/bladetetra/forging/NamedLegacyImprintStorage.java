@@ -184,7 +184,7 @@ public final class NamedLegacyImprintStorage {
     }
 
     /**
-     * Migrates 1.5.x per-blade Tetra variants to the two generic V2 variants.
+     * Migrates 1.5.x per-blade Tetra variants to the generic V2 variants (blade, saya and composite hilt).
      * Unknown/removed addon ids are intentionally retained as soft references.
      */
     public static boolean migrateStackTag(CompoundTag tag) {
