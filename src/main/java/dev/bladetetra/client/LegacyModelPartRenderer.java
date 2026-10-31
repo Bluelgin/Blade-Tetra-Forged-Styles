@@ -131,6 +131,12 @@ public final class LegacyModelPartRenderer {
                 ? kind.visualProfile()
                 : LegacyCalibrationProfile.DEFAULT;
         WavefrontObject view = view(source, target, part, profile);
+        if (view == null && inherited && part == Part.BLADE) {
+            // Optional named models may lack damaged, fragment or inventory groups.
+            // Only the missing blade view falls back; preserve installed source NBT.
+            renderPart(event, null, Part.BLADE, target, ordinaryTexture, ordinaryEmissive);
+            return;
+        }
         if (view == null) {
             return;
         }
