@@ -148,3 +148,11 @@ Incremental tests cover delayed final settlement after the former +12 deadline, 
 200-tick expiry/whole-life budget, real hurt velocity behavior (sword versus trail/ordinary), and saturated
 client queue admission/removal. Existing native action/landing/resonance and cleanup smoke remains.
 Graphical readability, fade, natural input/movement and multi-client timing still require manual client QA.
+
+## Optional thunder armor extension
+
+The Rank-free native action guarantees above still apply to Rapid Slash, trails
+and grounded swords. A successful sneak-forward-right-click can additionally
+activate the Rank-burning Thunder Armor buff at Rank A. Its separate entry/upkeep
+costs, vanilla status tracking, rain hop and body arcs are documented in
+[RAIKIRI_THUNDER_ARMOR.md](RAIKIRI_THUNDER_ARMOR.md).
