@@ -97,6 +97,10 @@ minecraft {
                 workingDirectory project.file("build/speed-efficiency-smoke-${tetra_file_id}")
                 property 'blade_tetra.speedEfficiencySmoke', 'true'
             }
+            if (project.hasProperty('namedIngotSmoke')) {
+                workingDirectory project.file('build/named-ingot-smoke')
+                property 'blade_tetra.namedIngotSmoke', 'true'
+            }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
                         ? '-sjap-yakumo'
