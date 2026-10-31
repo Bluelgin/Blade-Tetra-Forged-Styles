@@ -4,9 +4,16 @@ import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
 import dev.bladetetra.item.NamedBladeIngotItem;
+import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.registry.ModItems;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.registries.ForgeRegistries;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -25,6 +32,7 @@ public final class NamedIngotSmokeTest {
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             LegacyImprintKind source = NamedLegacyCatalog.values().stream().findFirst().orElseThrow();
+            verifyExtraction(player);
             ItemStack ingot = NamedBladeIngotItem.create(source);
             ItemStack stack = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
             String oldGrip = stack.getOrCreateTag().getString("slashblade/tsuka");
@@ -60,6 +68,47 @@ public final class NamedIngotSmokeTest {
             LogUtils.getLogger().error("NAMED_INGOT_SMOKE_FAIL", e);
         } finally {
             event.getServer().halt(false);
+        }
+    }
+
+    private static void verifyExtraction(Player player) {
+        AbstractContainerMenu dummyMenu = new AbstractContainerMenu(null, -1) {
+            @Override public ItemStack quickMoveStack(Player player, int slot) {
+                return ItemStack.EMPTY;
+            }
+            @Override public boolean stillValid(Player player) { return true; }
+            @Override public void slotsChanged(net.minecraft.world.Container container) {}
+        };
+        TransientCraftingContainer grid = new TransientCraftingContainer(dummyMenu, 3, 3);
+        ItemStack wooden = new ItemStack(ForgeRegistries.ITEMS.getValue(
+                new ResourceLocation("slashblade", "slashblade_wood")));
+        grid.setItem(4, wooden);
+        for (int i = 0; i < 9; i++) if (i != 4) grid.setItem(i,
+                new ItemStack(ForgeRegistries.ITEMS.getValue(
+                        new ResourceLocation("slashblade", "proudsoul_tiny"))));
+        NamedBladeIngotRecipe recipe = new NamedBladeIngotRecipe(
+                new ResourceLocation(BladeTetra.MOD_ID, "named_blade_ingot"),
+                CraftingBookCategory.EQUIPMENT);
+        if (!recipe.matches(grid, player.level())) {
+            throw new IllegalStateException("3x3 wooden puppet extraction unavailable");
+        }
+        ItemStack result = recipe.assemble(grid, player.level().registryAccess());
+        if (!LegacyImprintKind.WOODEN_PUPPET.id().equals(
+                NamedBladeIngotItem.sourceId(result))) {
+            throw new IllegalStateException("Extraction produced wrong source");
+        }
+        int before = wooden.getCapability(ItemSlashBlade.BLADESTATE)
+                .map(state -> state.getDamage()).orElse(-1);
+        ItemStack returned = recipe.getRemainingItems(grid).get(4);
+        int after = returned.getCapability(ItemSlashBlade.BLADESTATE)
+                .map(state -> state.getDamage()).orElse(-1);
+        if (returned.isEmpty() || before < 0 || after <= before) {
+            throw new IllegalStateException("Source blade not safely returned with wear");
+        }
+        grid.setItem(0, new ItemStack(ForgeRegistries.ITEMS.getValue(
+                new ResourceLocation("slashblade", "proudsoul"))));
+        if (recipe.matches(grid, player.level())) {
+            throw new IllegalStateException("Wrong Proud Soul variant accepted");
         }
     }
 
