@@ -25,13 +25,13 @@ public final class SakuraCombatVisuals {
     private static final class Attack {
         final ServerPlayer player;final ItemStack blade;final int slot;final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
         final ResourceLocation combo;final long at;
-        long slashAt=Long.MIN_VALUE;boolean confirmed;
+        long slashAt=Long.MIN_VALUE;boolean confirmed, fracture;
         Attack(ServerPlayer p,ItemStack b,ResourceLocation c,long at) {
             player=p;blade=b;slot=p.getInventory().selected;dimension=p.level().dimension();combo=c;this.at=at;
         }
         boolean matches(ServerPlayer p,ItemStack b) {
             return p==player&&blade==b&&slot==p.getInventory().selected&&dimension.equals(p.level().dimension())
-                    &&p.isAlive()&&SakuraEndlessFlow.eligible(b)&&p.level().getGameTime()-at>=0
+                    &&p.isAlive()&&SakuraStanceController.supported(b)&&p.level().getGameTime()-at>=0
                     &&p.level().getGameTime()-at<=40;
         }
     }
@@ -46,7 +46,7 @@ public final class SakuraCombatVisuals {
         return a;
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void slash(SlashBladeEvent.DoSlashEvent e) {
-        if(!(e.getUser() instanceof ServerPlayer p)||!SakuraEndlessFlow.eligible(e.getBlade())
+        if(!(e.getUser() instanceof ServerPlayer p)||!SakuraStanceController.supported(e.getBlade())
                 ||SakuraInfiniteDanceSA.active(p,e.getBlade())) return;
         Attack a=action(p,e.getBlade());if(a!=null) a.slashAt=p.level().getGameTime();
     }
@@ -61,7 +61,7 @@ public final class SakuraCombatVisuals {
         }
     }
     public static void confirm(ServerPlayer p,ItemStack b,Entity direct,LivingEntity target,float damage) {
-        if(!SakuraEndlessFlow.eligible(b)) return;
+        if(!SakuraStanceController.supported(b)) return;
         if(SakuraInfiniteDanceSA.active(p,b)) {
             if(direct==p||direct instanceof EntitySlashEffect) SakuraShardAttackService.targetHit(p,b,target);
             return;
@@ -70,11 +70,24 @@ public final class SakuraCombatVisuals {
         Attack a=direct instanceof EntitySlashEffect slash?SLASHES.get(slash):nativeMelee?action(p,b):null;
         if(a==null||a.confirmed||!a.matches(p,b)) return;
         a.confirmed=true;
-        SakuraShardAttackService.concerto(p,b,target,damage);
+        if(!SakuraStanceController.dispersed(b)) a.fracture=SakuraStanceController.canFracture(p,b)
+                &&p.getRandom().nextFloat()<SakuraStanceController.FRACTURE_CHANCE;
+        else SakuraShardAttackService.concerto(p,b,target,damage);
     }
     @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e) {
         if(e.phase!=net.minecraftforge.event.TickEvent.Phase.END||!(e.player instanceof ServerPlayer p)) return;
-        Attack a=CURRENT.get(p.getUUID());if(a!=null&&!a.matches(p,p.getMainHandItem())) CURRENT.remove(p.getUUID());
+        Attack a=CURRENT.get(p.getUUID());
+        if(a!=null&&a.fracture) {a.fracture=false;if(a.matches(p,p.getMainHandItem())) SakuraStanceController.fractureHit(p,a.blade);}
+        if(a!=null&&!a.matches(p,p.getMainHandItem())) CURRENT.remove(p.getUUID());
+    }
+    @SubscribeEvent(priority=EventPriority.HIGH)
+    public static void scaleOrdinary(net.minecraftforge.event.entity.living.LivingHurtEvent e) {
+        if(!(e.getSource().getEntity() instanceof ServerPlayer p)
+                ||!SakuraEndlessFlow.eligible(p.getMainHandItem())
+                ||SakuraInfiniteDanceSA.active(p,p.getMainHandItem())
+                ||SoulLegacyDamageGuard.isSecondary(e.getSource())) return;
+        var direct=e.getSource().getDirectEntity();
+        if(direct==p||direct instanceof EntitySlashEffect) e.setAmount(e.getAmount()*.7F);
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
         CURRENT.remove(e.getEntity().getUUID());SLASHES.values().removeIf(a->a.player.getUUID().equals(e.getEntity().getUUID()));

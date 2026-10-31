@@ -29,11 +29,22 @@ final class RaikiriVisualClient {
         if(data.type()==AwakenedBladeVfxPacket.BOLT) {
             Vec3 end=new Vec3(data.endX(),data.endY(),data.endZ());
             int count=quality==0?2:quality==1?4:6;
+            boolean armor=data.variant()==2 || data.variant()==3;
+            if(armor) alpha=Math.min(1,ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue())
+                    * Mth.clamp((duration-age)/4,0,1);
             Vec3 prev=pos;
             for(int i=1;i<=count;i++) {
                 Vec3 next=pos.lerp(end,i/(double)count);
                 if(i<count) next=next.add(Math.sin(i*17+age)*0.12,0,Math.cos(i*13+age)*0.12);
-                dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.segment(b,m,eye,prev,next,0.08,4,4,alpha);
+                if(armor) {
+                    double taper=1-.45*i/count;
+                    dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.segment(b,m,eye,prev,next,.13*taper,4,4,alpha*.25F);
+                    dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.segment(b,m,eye,prev,next,.045*taper,4,4,alpha);
+                    if(quality>0 && i==count/2) {
+                        Vec3 fork=next.add(.18,.28,-.16);
+                        dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.segment(b,m,eye,next,fork,.025,4,4,alpha*.8F);
+                    }
+                } else dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.segment(b,m,eye,prev,next,0.08,4,4,alpha);
                 prev=next;
             }
             dev.bladetetra.client.vfx.render.AwakenedAtlasBatch.billboardTile(b,m,eye,end,0.9,6,4,alpha,0);

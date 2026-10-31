@@ -210,10 +210,14 @@ public final class RaikiriCombatSmokeTest {
             land();RaikiriActionObserver.logout(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(actor));
             check(RaikiriFieldService.swordCount(actor.getUUID())==0,"logout cleanup");
             var dual=blade.copy();dual.getOrCreateTag().putString(ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE+"_material","awakened_soul_inscription/akatsuki_raikiri");
-            check(!RaikiriActionObserver.eligible(dual),"secondary Raikiri cannot enable extension");
+            dual.getOrCreateTag().putBoolean(AkatsukiAwakening.TAG_UNLOCKED,true);
+            dual.getOrCreateTag().putInt(SoulSkillState.SELECTED,SoulLegacyState.Legacy.AKATSUKI.ordinal());
+            check(!RaikiriActionObserver.eligible(dual),"unselected secondary Raikiri cannot enable extension");
             var key=state.getSlashArtsKey();reset(state);state.doChargeAction(actor,40);
             check(Objects.equals(state.getSlashArtsKey(),key),"native Slash Arts key untouched");
             GameplayConfig.ENABLE_AWAKENED_V2.set(false);check(!RaikiriActionObserver.eligible(blade),"legacy mode excludes new observer");GameplayConfig.ENABLE_AWAKENED_V2.set(true);
+            victims.forEach(Zombie::discard);
+            armorChecks();
             LogUtils.getLogger().info("RAIKIRI_COMBAT_SMOKE_PASS: {} checks",checks);
         } catch(Throwable failure) {
             LogUtils.getLogger().error("RAIKIRI_COMBAT_SMOKE_FAIL",failure);throw new IllegalStateException("Raikiri native observer smoke failed",failure);
@@ -222,6 +226,117 @@ public final class RaikiriCombatSmokeTest {
             if(actor!=null) { RaikiriActionObserver.clear(actor.getUUID(),e.getServer());actor.discard(); }
             if(plain!=null) plain.discard();e.getServer().halt(false);
         }
+    }
+    private static void armorChecks() {
+        RaikiriActionObserver.clear(actor.getUUID(),level.getServer());
+        actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));actor.moveTo(0,160,0,0,0);
+        reset(state(actor));
+        actor.setInvulnerable(true);actor.setHealth(actor.getMaxHealth());
+        var armor=new RaikiriThunderArmor();long t=now();
+        double speed=actor.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        rank(actor).setLastUpdte(t);rank(actor).setRawRankPoint(1199);armor.start(actor);
+        check(!armor.active(),"armor rejects below A");
+        rank(actor).setRawRankPoint(1600);armor.start(actor);
+        check(armor.active() && rank(actor).getRawRankPoint()==1540,"armor start costs once");
+        check(actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"armor is a real vanilla effect");
+        check(Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed*1.2)<1e-7,
+                "vanilla buff applies exactly twenty percent speed");
+        check(actor.getEffect(RaikiriThunderArmorEffect.ARMOR.get()).showIcon()
+                && actor.getEffect(RaikiriThunderArmorEffect.ARMOR.get()).getDuration()==160,
+                "eight second icon and countdown exposed to vanilla HUD");
+        armor.start(actor);check(rank(actor).getRawRankPoint()==1540,"recast does not charge or stack");
+        check(actor.getEffect(RaikiriThunderArmorEffect.ARMOR.get()).getDuration()==160
+                && Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed*1.2)<1e-7,
+                "recast cannot amplify speed");
+        var a=victim(1,0);var b=victim(3.5,0);var c=victim(5,0);
+        try {
+            level.setWeatherParameters(0,1000,true,false);level.setRainLevel(1);
+            check(level.isRainingAt(a.blockPosition()),"test enemies exposed to rain");
+            ((ServerLevelData)level.getLevelData()).setGameTime(t+20);
+            rank(actor).setLastUpdte(t+20);float health=c.getHealth();
+            armor.tick(actor);
+            check(rank(actor).getRawRankPoint()==1510,"armor round fee and no lightning rank gain");
+            check(c.getHealth()<health && health-c.getHealth()<=1,"rain conducts once to enemy beyond primary range");
+            level.setBlock(new BlockPos(5,164,0),Blocks.STONE.defaultBlockState(),3);
+            ((ServerLevelData)level.getLevelData()).setGameTime(t+40);health=c.getHealth();armor.tick(actor);
+            check(c.getHealth()==health,"roof blocks rain conduction");
+            level.setBlock(new BlockPos(5,164,0),Blocks.AIR.defaultBlockState(),3);
+            level.setRainLevel(0);
+            ((ServerLevelData)level.getLevelData()).setGameTime(t+60);armor.tick(actor);
+            check(c.getHealth()==health,"clear weather has no conduction");
+            armor.stop(actor);check(!armor.active() && !actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"armor cleanup removes speed");
+            check(Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed)<1e-7,"effect removal restores original speed");
+            rank(actor).setRawRankPoint(1600);armor.start(actor);
+            ((ServerLevelData)level.getLevelData()).setGameTime(t+220);armor.tick(actor);
+            check(!armor.active(),"armor expires at eight seconds");
+            rank(actor).setLastUpdte(t+220);rank(actor).setRawRankPoint(1200);armor.start(actor);
+            rank(actor).setRawRankPoint(899);armor.tick(actor);
+            check(!armor.active(),"below B ends armor");
+            rank(actor).setRawRankPoint(1600);armor.start(actor);
+            rank(actor).setRawRankPoint(925);time(now()+20);rank(actor).setLastUpdte(now());armor.tick(actor);
+            check(!armor.active() && rank(actor).getRawRankPoint()==925,"unaffordable pulse ends before crossing B floor or charging");
+            rank(actor).setRawRankPoint(1600);armor.start(actor);
+            actor.removeEffect(RaikiriThunderArmorEffect.ARMOR.get());armor.tick(actor);
+            check(!armor.active() && Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed)<1e-7,"dispelling buff ends its server discharge");
+            GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(false);
+            rank(actor).setRawRankPoint(1600);rank(actor).setLastUpdte(now());
+            armor.start(actor);check(armor.active() && rank(actor).getRawRankPoint()==1600,"rank-cost configuration honored");
+            time(now()+20);rank(actor).setLastUpdte(now());armor.tick(actor);
+            check(rank(actor).getRawRankPoint()==1600,"free-cost pulse does not debit rank");armor.stop(actor);
+            GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(true);
+            // Direct discharge fixtures must not lend their consumed weapon to native admission checks.
+            actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));
+            rank(actor).setRawRankPoint(1600);inputs(actor);reset(state(actor));
+            cancel=true;state(actor).progressCombo(actor);cancel=false;tick();
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()) && rank(actor).getRawRankPoint()==1600,"cancelled native action cannot activate or charge armor");
+            reset(state(actor));rewrite=true;state(actor).progressCombo(actor);rewrite=false;tick();
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"rewritten native action cannot activate armor");
+            reset(state(actor));net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new BladeMotionEvent(actor,ComboStateRegistry.RAPID_SLASH.getId()));tick();
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"uncommitted motion cannot activate armor");
+            actor.getCapability(CapabilityInputState.INPUT_STATE).ifPresent(i->i.getCommands().clear());
+            state(actor).updateComboSeq(actor,ComboStateRegistry.RAPID_SLASH.getId());tick();
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"native motion without sneak-forward-rightclick cannot activate armor");
+            time(now()+1);rank(actor).setLastUpdte(now());inputs(actor);reset(state(actor));
+            state(actor).updateComboSeq(actor,ComboStateRegistry.RAPID_SLASH.getId());tick();
+            var committedArmor=RaikiriActionObserver.session(actor);
+            check(committedArmor!=null && committedArmor.armor.active(),"actual committed native rapid activates armor; alive="
+                    +actor.isAlive()+", eligible="+RaikiriActionObserver.eligible(actor.getMainHandItem())
+                    +", broken="+state(actor).isBroken());
+            check(rank(actor).getRawRankPoint()==1540,"native activation charges once");
+            tick();check(rank(actor).getRawRankPoint()==1540,"duplicate observer does not charge twice");
+            actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));tick();
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),
+                    "switch blade removes speed immediately");
+            rank(actor).setRawRankPoint(1600);time(now()+1);rank(actor).setLastUpdte(now());
+            reset(state(actor));state(actor).updateComboSeq(actor,ComboStateRegistry.RAPID_SLASH.getId());tick();
+            check(actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"new eligible blade can activate independently");
+            RaikiriActionObserver.dimension(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent(actor,net.minecraft.world.level.Level.OVERWORLD,net.minecraft.world.level.Level.NETHER));
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"dimension change removes vanilla armor effect");
+            var session=RaikiriActionObserver.session(actor);session.armor.start(actor);
+            actor.getInventory().selected=1;tick();actor.getInventory().selected=0;
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"slot switch removes vanilla armor effect");
+            session=RaikiriActionObserver.session(actor);session.armor.start(actor);
+            RaikiriActionObserver.death(new net.minecraftforge.event.entity.living.LivingDeathEvent(actor,level.damageSources().generic()));
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"death removes armor effect and speed");
+            actor.addEffect(new net.minecraft.world.effect.MobEffectInstance(RaikiriThunderArmorEffect.ARMOR.get(),160));
+            RaikiriActionObserver.login(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent(actor));
+            check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"reconnect cannot retain orphaned saved armor");
+            var fusion=blade(true);var tag=fusion.getOrCreateTag();
+            tag.putString(ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE+"_material","awakened_soul_inscription/akatsuki_raikiri");
+            tag.putBoolean(AkatsukiAwakening.TAG_UNLOCKED,true);
+            tag.putInt(SoulSkillState.SELECTED,SoulLegacyState.Legacy.RAIKIRI.ordinal());
+            actor.setItemSlot(EquipmentSlot.MAINHAND,fusion);
+            rank(actor).setLastUpdte(now());rank(actor).setRawRankPoint(1600);
+            session=RaikiriActionObserver.session(actor);session.armor.start(actor);
+            check(actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"secondary selected Raikiri supports real armor buff");
+            SoulSwitchService.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor));
+            SoulSwitchService.request(actor,new dev.bladetetra.network.SoulSwitchPacket(
+                    actor.getInventory().selected,tag.getUUID(SoulSkillState.BLADE_ID),SoulLegacyState.Legacy.RAIKIRI.ordinal()));
+            check(SoulSkillState.selected(fusion)==SoulLegacyState.Legacy.AKATSUKI
+                    && !actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get())
+                    && Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed)<1e-7,
+                    "real soul-switch request ends armor and restores speed");
+        } finally { GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(true);armor.stop(actor);RaikiriActionObserver.clear(actor.getUUID(),level.getServer());a.discard();b.discard();c.discard();level.setWeatherParameters(1000,0,false,false);level.setRainLevel(0); }
     }
     private static void inputs(ServerPlayer p) { p.getCapability(CapabilityInputState.INPUT_STATE).ifPresent(input->{input.getCommands().clear();input.getCommands().addAll(EnumSet.of(InputCommand.SNEAK,InputCommand.FORWARD,InputCommand.R_CLICK));}); }
     private static ISlashBladeState state(ServerPlayer p) { return p.getMainHandItem().getCapability(ModularSlashBladeItem.BLADESTATE).orElseThrow(IllegalStateException::new); }

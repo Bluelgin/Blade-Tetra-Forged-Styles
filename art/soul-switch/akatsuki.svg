@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs><linearGradient id="moon" x2=".2" y2="1"><stop stop-color="#ffb7bf"/><stop offset=".5" stop-color="#e7526d"/><stop offset="1" stop-color="#8c1839"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="27" fill="#1c1423" fill-opacity=".82" stroke="#c7a183" stroke-width="1.2"/>
+  <path d="M12 19A25 25 0 0 1 45 10M52 45A25 25 0 0 1 19 54" fill="none" stroke="#f4d4a9" stroke-width="2"/>
+  <path d="M41 13C24 9 13 23 18 38c4 13 19 17 30 8-13 3-23-5-23-16 0-9 6-15 16-17Z" fill="url(#moon)" stroke="#ffccd0" stroke-width="1.1"/>
+  <path d="m43 17-9 24 2 5 5-4 5-26Z" fill="#f9e6d4"/>
+  <path d="m31 43 11 4M34 47l-2 7" fill="none" stroke="#d28484" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="m32 3 3 4-3 3-3-3Z" fill="#f4d4a9"/>
+</svg>

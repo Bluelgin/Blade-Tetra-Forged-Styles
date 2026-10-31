@@ -49,7 +49,8 @@ minecraft {
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'
-                property 'blade_tetra.artPreviewOutput', project.file('art-previews/inventory-update').absolutePath
+                property 'blade_tetra.artPreviewOutput', project.file(project.hasProperty('awakenedArtPreview') ? 'art-previews/awakened-upgrade' : 'art-previews/inventory-update').absolutePath
+                if (project.hasProperty('awakenedArtPreview')) property 'blade_tetra.awakenedArtPreview', 'true'
                 if (project.hasProperty('artInventoryBenchmark')) property 'blade_tetra.artInventoryBenchmark', 'true'
             }
             if (project.hasProperty('providerEffectSmoke')) {

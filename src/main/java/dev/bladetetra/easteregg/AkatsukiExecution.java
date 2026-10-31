@@ -76,6 +76,12 @@ public final class AkatsukiExecution {
     private static final Map<UUID, Execution> EXECUTIONS = new HashMap<>();
     private static final List<PendingStart> PENDING = new ArrayList<>();
 
+    public static boolean switchBlocked(ServerPlayer player) {
+        UUID owner = player.getUUID();
+        return PENDING.stream().anyMatch(p -> p.attackerId.equals(owner))
+                || EXECUTIONS.values().stream().anyMatch(e -> e.attackerId.equals(owner));
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
         LivingEntity target = event.getEntity();
@@ -90,7 +96,7 @@ public final class AkatsukiExecution {
         ServerPlayer attacker = resolveAttacker(event);
         if (attacker == null || !canAffect(attacker, target)) return;
         ItemStack blade = attacker.getMainHandItem();
-        if (!AkatsukiAwakening.isActive(blade)) return;
+        if (!SoulSkillState.enabled(blade, SoulLegacyState.Legacy.AKATSUKI)) return;
 
         long now = level.getGameTime();
         UUID bladeId = bladeId(blade);
@@ -397,7 +403,7 @@ public final class AkatsukiExecution {
 
     private static boolean holdsBlade(ServerPlayer player, UUID expectedId) {
         ItemStack blade = player.getMainHandItem();
-        return AkatsukiAwakening.isActive(blade)
+        return SoulSkillState.enabled(blade, SoulLegacyState.Legacy.AKATSUKI)
                 && blade.hasTag() && blade.getTag().hasUUID(BLADE_ID)
                 && expectedId.equals(blade.getTag().getUUID(BLADE_ID));
     }

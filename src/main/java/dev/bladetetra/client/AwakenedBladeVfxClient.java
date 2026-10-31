@@ -85,6 +85,7 @@ public final class AwakenedBladeVfxClient {
             return;
         }
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
+        RaikiriThunderArmorClient.discharge(packet);
         double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         if (minecraft.player != null
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())

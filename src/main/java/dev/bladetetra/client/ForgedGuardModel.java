@@ -14,16 +14,19 @@ import java.util.Map;
 final class ForgedGuardModel {
     private static final Map<Key, WavefrontObject> CACHE = new LinkedHashMap<>();
     private static final int SEGMENTS = 16;
-    private record Key(WavefrontObject source, TsubaProfile profile) {}
+    private record Key(WavefrontObject source, TsubaProfile profile, AwakenedWeaponArt.Theme theme) {}
     private ForgedGuardModel() {}
 
     static synchronized WavefrontObject forProfile(WavefrontObject source, TsubaProfile profile) {
-        Key key = new Key(source, profile);
+        return forProfile(source, profile, AwakenedWeaponArt.Theme.NONE);
+    }
+    static synchronized WavefrontObject forProfile(WavefrontObject source, TsubaProfile profile, AwakenedWeaponArt.Theme theme) {
+        Key key = new Key(source, profile, theme);
         if (CACHE.containsKey(key)) return CACHE.get(key);
         Map<String, List<Face>> groups = new LinkedHashMap<>();
         boolean changed = false;
         for (var group : source.groupObjects) {
-            List<Face> replacement = replace(group.faces, profile, InventoryBladeModel.isIcon(group.name));
+            List<Face> replacement = replace(group.faces, profile, InventoryBladeModel.isIcon(group.name), theme);
             groups.put(group.name, replacement);
             changed |= replacement != group.faces;
         }
@@ -35,6 +38,9 @@ final class ForgedGuardModel {
     static synchronized void clear() { CACHE.clear(); }
 
     static List<Face> replace(List<Face> source, TsubaProfile profile, boolean icon) {
+        return replace(source,profile,icon,AwakenedWeaponArt.Theme.NONE);
+    }
+    static List<Face> replace(List<Face> source, TsubaProfile profile, boolean icon, AwakenedWeaponArt.Theme theme) {
         List<Face> oldGuard = source.stream().filter(InventoryGuardGeometry::isGuard).toList();
         if (oldGuard.isEmpty()) return source;
         List<Face> result = new ArrayList<>(source.stream().filter(f -> !InventoryGuardGeometry.isGuard(f)).toList());
@@ -60,7 +66,7 @@ final class ForgedGuardModel {
             normal = normal.plus(new Vec(0, 0, .38)).unit();
             across = normal.cross(tangent).unit();
         }
-        Frame frame = new Frame(center, tangent, across, normal, radius, radius * .055);
+        Frame frame = new Frame(center, tangent, across, normal, radius, radius * (theme==AwakenedWeaponArt.Theme.KYOUKA ? .035 : .055));
         double[] rings = profile==TsubaProfile.MOKKO ? new double[]{.19,.40,.72,1} : new double[]{.19,.88,1};
         boolean[][] cells = new boolean[rings.length-1][SEGMENTS];
         for (int ring=0; ring<cells.length; ring++) for (int sector=0; sector<SEGMENTS; sector++) {
@@ -70,8 +76,8 @@ final class ForgedGuardModel {
             if (!cells[ring][sector]) continue;
             double shift=profile==TsubaProfile.MOKKO ? -.5 : 0;
             double a0=(sector+shift)*Math.PI*2/SEGMENTS, a1=(sector+1+shift)*Math.PI*2/SEGMENTS;
-            Node p0=node(frame,profile,rings[ring],a0), p1=node(frame,profile,rings[ring+1],a0);
-            Node p2=node(frame,profile,rings[ring+1],a1), p3=node(frame,profile,rings[ring],a1);
+            Node p0=node(frame,profile,theme,rings[ring],a0), p1=node(frame,profile,theme,rings[ring+1],a0);
+            Node p2=node(frame,profile,theme,rings[ring+1],a1), p3=node(frame,profile,theme,rings[ring],a1);
             add(result, p0, p1, p2, p3, 1);
             add(result, p3, p2, p1, p0, -1);
             // Close the outer bevel, blade slot and actual pierced windows, not alpha-only holes.
@@ -97,8 +103,17 @@ final class ForgedGuardModel {
             case NONE -> 0;
         };
     }
-    private static Node node(Frame f,TsubaProfile profile,double ring,double angle) {
-        double shape=outline(profile,angle), u=Math.cos(angle)*ring*shape, v=Math.sin(angle)*ring*shape;
+    static double outline(TsubaProfile profile,double angle,AwakenedWeaponArt.Theme theme) {
+        double base=outline(profile,angle);
+        return switch(theme) {
+            case SENBONZAKURA -> base*(.9+.1*Math.cos(angle*5));
+            case KYOUKA -> base*.91;
+            case RAIKIRI -> base*(.88+.12*Math.cos(angle*8));
+            default -> base;
+        };
+    }
+    private static Node node(Frame f,TsubaProfile profile,AwakenedWeaponArt.Theme theme,double ring,double angle) {
+        double shape=outline(profile,angle,theme), u=Math.cos(angle)*ring*shape, v=Math.sin(angle)*ring*shape;
         if (ring==.19) {u=Math.cos(angle)*.18; v=Math.sin(angle)*.12;}
         Vec plane=f.center.plus(f.tangent.scale(u*f.radius)).plus(f.across.scale(v*f.radius));
         double height=f.thickness*(ring==1 ? .42 : 1);

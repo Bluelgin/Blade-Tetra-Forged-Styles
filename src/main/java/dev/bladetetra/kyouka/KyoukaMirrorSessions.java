@@ -52,8 +52,7 @@ public final class KyoukaMirrorSessions {
     }
     public static boolean eligible(ItemStack blade) {
         return GameplayConfig.ENABLE_AWAKENED_V2.get() && blade.getItem() instanceof ModularSlashBladeItem
-                && SoulLegacyState.active(blade) == SoulLegacyState.Legacy.KYOUKA
-                && SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.KYOUKA)
+                && dev.bladetetra.easteregg.SoulSkillState.enabled(blade, SoulLegacyState.Legacy.KYOUKA)
                 && blade.getCapability(ItemSlashBlade.BLADESTATE).map(s -> !s.isBroken()).orElse(false);
     }
     public static boolean legal(ServerPlayer owner, LivingEntity target) {
@@ -172,6 +171,14 @@ public final class KyoukaMirrorSessions {
         ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 l.anchor.x, l.anchor.y, l.anchor.z, 96, net.minecraft.resources.ResourceKey.create(
                         net.minecraft.core.registries.Registries.DIMENSION, s.dimension))), packet(s,h,stop));
+    }
+    public static boolean switchBlocked(ServerPlayer p) {
+        State s = STATES.get(p.getUUID());
+        return s != null && !s.pending.isEmpty();
+    }
+    public static void releaseForSwitch(ServerPlayer p) {
+        State s = STATES.remove(p.getUUID());
+        if (s != null) { endArmor(s); cancelPending(s); }
     }
     private static void cancelPending(State s) {
         for (var h : s.pending) if (!h.water) mirrorPacket(s, h, true);

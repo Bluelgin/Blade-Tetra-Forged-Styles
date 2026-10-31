@@ -111,6 +111,27 @@ public final class SakuraStanceSmoke {
             check(SakuraStanceController.dispersed(blade),"other combat style unchanged");
             tag.putString(dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT,oldModule);
             check(SakuraStanceRules.action(ComboStateRegistry.AERIAL_CLEAVE_LOOP.getId())==0,"loop excluded");
+            tag.putBoolean(SakuraStanceRules.DISPERSED,false);tag.putInt(SakuraStanceController.FRACTURE,0);
+            advance(level,20);end(actor);
+            for(int stage=1;stage<=4;stage++) {
+                advance(level,40);
+                SakuraStanceController.fractureHit(actor,blade);
+                check(SakuraStanceController.fracture(blade)==stage,"persistent fracture stage "+stage);
+                if(stage<4) {
+                    SakuraStanceController.fractureHit(actor,blade);
+                    check(SakuraStanceController.fracture(blade)==stage,"same-tick repeated hits cannot fracture again");
+                    advance(level,39);SakuraStanceController.fractureHit(actor,blade);
+                    check(SakuraStanceController.fracture(blade)==stage&&!SakuraStanceController.canFracture(actor,blade),
+                            "fracture cooldown blocks the first 39 ticks");
+                    advance(level,1);
+                    check(SakuraStanceController.canFracture(actor,blade),"fracture cooldown ends at tick 40");
+                }
+                check(SakuraStanceController.dispersed(blade)==(stage==4),"only final fracture changes stance");
+            }
+            state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());end(actor);
+            check(SakuraStanceController.fracture(blade)==4,"reassembly cannot instantly reset fracture");
+            advance(level,14);end(actor);
+            check(SakuraStanceController.fracture(blade)==0&&!SakuraStanceController.dispersed(blade),"completed reassembly restores full blade");
             LogUtils.getLogger().info("SAKURA_STANCE_SMOKE_PASS: actual native input/commit, air miss, cleave area damage and landing, upper .50, B6 tail at zero Rank, idempotence, virtual/canceled commit, swap, lifecycle cleanup, unawakened/other-style exclusion, Shift+SA removed");
         } finally {MinecraftForge.EVENT_BUS.unregister(probe);victim.discard();actor.setShiftKeyDown(false);}
     }

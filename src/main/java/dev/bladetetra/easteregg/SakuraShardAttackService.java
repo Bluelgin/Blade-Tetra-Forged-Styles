@@ -74,12 +74,13 @@ public final class SakuraShardAttackService {
         if(now<o.nextAt||now<o.blockedUntil||o.pending!=null||FLIGHTS.size()>=MAX_PROJECTILES) return;
         float budget=SakuraShardAttackRules.damage(damage,GameplayConfig.SAKURA_CONCERTO_FRACTION.get(),GameplayConfig.SAKURA_CONCERTO_CAP.get());
         if(budget<=0) return;
+        Vec3 launch=overhead(p,target,o.right);if(launch==null) return;
         int logical=o.cursor++%SakuraShardAttackRules.LOGICAL_SHARDS;
         boolean right=o.right;o.right=!right;
         o.nextAt=now+GameplayConfig.SAKURA_CONCERTO_INTERVAL.get();
         o.pending=new Pending(target,budget,now+SakuraShardAttackRules.FIRE_TICK,right);
         cue(p,blade,1,SakuraShardAttackRules.CONCERTO_VARIANT+logical*2+(right?1:0),
-                target.getBoundingBox().getCenter(),target.getId(),now);
+                launch,target.getId(),now);
     }
     public static void dancePulse(ServerPlayer p,ItemStack blade,int stage,int elapsed) {
         var state=blade.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
@@ -108,6 +109,10 @@ public final class SakuraShardAttackService {
                         p.level().dimension().location(),stage,SakuraCombatVisuals.nextSequence(),at,target));
         if(packet.valid()) ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(()->p),packet);
     }
+    public static boolean switchBlocked(ServerPlayer p) {
+        Owner o = OWNERS.get(p.getUUID());
+        return o != null && o.pending != null || FLIGHTS.values().stream().anyMatch(f -> f.owner == p);
+    }
     public static void cancel(ServerPlayer p) {
         Owner o=OWNERS.get(p.getUUID());
         if(o!=null) {o.pending=null;o.blockedUntil=p.level().getGameTime()+SakuraShardAttackRules.FLIGHT_TICKS;}
@@ -121,9 +126,9 @@ public final class SakuraShardAttackService {
         Pending pending=o.pending;
         if(pending==null||now<pending.fireAt) return;
         o.pending=null;
-        if(SakuraInfiniteDanceSA.active(p,o.blade)||!validTarget(p,pending.target)||now>pending.fireAt+1
+        if(!SakuraEndlessFlow.eligible(o.blade)||SakuraInfiniteDanceSA.active(p,o.blade)||!validTarget(p,pending.target)||now>pending.fireAt+1
                 ||FLIGHTS.size()>=MAX_PROJECTILES||FLIGHTS.values().stream().filter(f->f.owner==p).count()>=PER_PLAYER) return;
-        Vec3 origin=SakuraShardAttackRules.platform(p.getEyePosition(),p.getLookAngle(),pending.right);
+        Vec3 origin=overhead(p,pending.target,pending.right);if(origin==null) return;
         Vec3 end=pending.target.getBoundingBox().getCenter();
         if(p.level().clip(new ClipContext(p.getEyePosition(),origin,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()!=HitResult.Type.MISS
                 ||p.level().clip(new ClipContext(origin,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()!=HitResult.Type.MISS) return;
@@ -135,6 +140,19 @@ public final class SakuraShardAttackService {
         Vec3 direction=end.subtract(origin).normalize();sword.shoot(direction.x,direction.y,direction.z,3,0);
         FLIGHTS.put(sword,new Flight(p,o,pending.target,pending.damage,now));
         if(!p.level().addFreshEntity(sword)) FLIGHTS.remove(sword);
+    }
+    private static Vec3 overhead(ServerPlayer p,LivingEntity target,boolean right) {
+        Vec3 center=target.getBoundingBox().getCenter();
+        Vec3 side=new Vec3(p.getLookAngle().z,0,-p.getLookAngle().x).normalize().scale(right?1:-1);
+        for(Vec3 candidate:List.of(center.add(0,target.getBbHeight()*.5+.6,0).add(side.scale(.25)),
+                center.add(side.scale(1.1)).add(0,.35,0))) {
+            if(!p.serverLevel().hasChunkAt(net.minecraft.core.BlockPos.containing(candidate))) continue;
+            var box=new AABB(candidate,candidate).inflate(.12);
+            if(!p.level().noCollision(box)) continue;
+            if(p.level().clip(new ClipContext(p.getEyePosition(),candidate,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()==HitResult.Type.MISS
+                    &&p.level().clip(new ClipContext(candidate,center,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()==HitResult.Type.MISS) return candidate;
+        }
+        return null;
     }
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent e) {
         if(e.phase!=TickEvent.Phase.END) return;

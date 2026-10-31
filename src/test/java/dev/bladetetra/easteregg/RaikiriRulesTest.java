@@ -5,6 +5,16 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RaikiriRulesTest {
+    @Test void armorRequiresAForEntryAndPreservesBFloorAfterPayment() {
+        assertFalse(RaikiriRules.armorCanStart(399,100,4,60));
+        assertFalse(RaikiriRules.armorCanStart(400,100,3,60));
+        assertTrue(RaikiriRules.armorCanStart(400,100,4,60));
+        assertFalse(RaikiriRules.armorCanStart(400,100,4,101));
+        assertFalse(RaikiriRules.armorCanStart(400,0,4,60));
+        assertTrue(RaikiriRules.armorCanSustain(300,100,3));
+        assertFalse(RaikiriRules.armorCanSustain(299,100,3));
+        assertFalse(RaikiriRules.armorCanSustain(400,100,2));
+    }
     private static RaikiriRules.Point p(double x,double y,double z) { return new RaikiriRules.Point(x,y,z); }
     @Test void resonanceUsesSweptSegmentRatherThanEndpointOnly() {
         assertEquals(1,RaikiriRules.distanceSquared(p(1.5,0,1),p(0,0,0),p(3.5,0,0)),1e-8);

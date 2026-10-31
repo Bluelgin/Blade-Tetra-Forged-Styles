@@ -54,8 +54,8 @@ public final class AwakenedBladeCombat {
         ServerPlayer player = attacker(event);
         if (player == null || !canAffect(player, event.getEntity())) return;
         ItemStack blade = player.getMainHandItem();
-        SoulLegacyState.Legacy soul = SoulLegacyState.active(blade);
-        if (!SoulLegacyState.isActive(blade, soul) || !isV2CombatSoul(soul)
+        SoulLegacyState.Legacy soul = SoulSkillState.selected(blade);
+        if (!SoulSkillState.enabled(blade, soul) || !isV2CombatSoul(soul)
                 || soul == SoulLegacyState.Legacy.KYOUKA) return;
         if (soul == SoulLegacyState.Legacy.SENBONZAKURA) {
             SakuraCombatVisuals.confirm(player, blade, event.getSource().getDirectEntity(),

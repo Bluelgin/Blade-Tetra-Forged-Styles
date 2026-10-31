@@ -14,6 +14,7 @@ import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.easteregg.SoulResonance;
+import dev.bladetetra.easteregg.SoulSkillState;
 import dev.bladetetra.visual.SayaBannerSkin;
 import dev.bladetetra.visual.SayaPresetSkin;
 import dev.bladetetra.forging.FoxLegacyParts;
@@ -85,6 +86,22 @@ public final class BladeDetailTooltip {
             }
         }
 
+        if (AwakenedBladeCombat.replacesLegacy() && SoulSkillState.fusion(stack)) {
+            var selected = SoulSkillState.selected(stack);
+            lines.add(Component.translatable("tooltip.blade_tetra.soul.selected", SoulLegacyState.displayName(selected))
+                    .withStyle(ChatFormatting.GOLD));
+            lines.add(Component.translatable("tooltip.blade_tetra.soul.switch")
+                    .withStyle(ChatFormatting.GRAY));
+            if (!SoulSkillState.allowsStyle(selected, StyleResolver.resolve(stack)))
+                lines.add(Component.translatable("hud.blade_tetra.soul.requires", Component.translatable(
+                        SoulSkillState.requiredStyle(selected).getTranslationKey()))
+                        .withStyle(ChatFormatting.DARK_GRAY));
+            if (AwakenedBladeCombat.isV2CombatSoul(selected))
+                lines.add(Component.translatable("tooltip.blade_tetra.awakened.v2."
+                        + selected.name().toLowerCase(java.util.Locale.ROOT)).withStyle(ChatFormatting.GRAY));
+            else lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution").withStyle(ChatFormatting.RED));
+            return lines;
+        }
         if (!AwakenedBladeCombat.replacesLegacy()
                 || !AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack)))
             SoulResonance.appendTooltip(stack, lines);

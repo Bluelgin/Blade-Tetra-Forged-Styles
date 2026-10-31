@@ -28,12 +28,39 @@ import java.util.List;
 public final class BladeArtPreviewClient {
     private static boolean started, opened;
     private static int readyTicks;
+    private static int worldCapture=-1, worldFrames;
     private static List<BladeArtPreviewSamples.Sample> samples;
     private static final String WORLD = "blade-art-review";
 
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if (!Boolean.getBoolean("blade_tetra.artPreview") || event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
+        if (worldCapture>=0 && mc.player!=null && mc.level!=null) {
+            if (++worldFrames==1) {
+                int sample=worldCapture/3, view=worldCapture%3;
+                var stack=samples.get(sample).stack().copy();
+                mc.player.getInventory().selected=0;
+                mc.player.getInventory().setItem(0,stack);
+                mc.player.setXRot(0);mc.player.setYRot(0);mc.player.yHeadRot=0;mc.player.yBodyRot=0;
+                mc.options.setCameraType(net.minecraft.client.CameraType.values()[view]);
+                var server=mc.getSingleplayerServer();var id=mc.player.getUUID();
+                if(server!=null) server.execute(()->{var player=server.getPlayerList().getPlayer(id);
+                    if(player!=null){player.getInventory().selected=0;player.getInventory().setItem(0,stack.copy());player.inventoryMenu.broadcastChanges();}});
+            }
+            if(worldFrames==35) {
+                try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
+                    image.writeToFile(Path.of(System.getProperty("blade_tetra.artPreviewOutput"))
+                            .resolve("held-"+(worldCapture/3)+"-view-"+(worldCapture%3)+".png"));
+                } catch(java.io.IOException e){throw new IllegalStateException(e);}
+                if(++worldCapture==12) {
+                    worldCapture=-1;mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                    mc.setScreen(new Gallery(false));
+                    LogUtils.getLogger().info("BLADE_ART_HELD_VIEWS_CAPTURED: 4 blades, first person + third person back/front");
+                }
+                worldFrames=0;
+            }
+            return;
+        }
         if (!started && mc.screen instanceof TitleScreen) {
             started = true;
             if (Files.exists(mc.gameDirectory.toPath().resolve("saves/"+WORLD+"/level.dat"))) {
@@ -53,7 +80,8 @@ public final class BladeArtPreviewClient {
         if (!opened && mc.level != null && mc.player != null && mc.screen == null && ++readyTicks > 40) {
             opened = true;
             try {
-                samples = BladeArtPreviewSamples.create();
+                if(Boolean.getBoolean("blade_tetra.awakenedArtPreview")) {mc.options.guiScale().set(2);mc.resizeDisplay();}
+                samples = Boolean.getBoolean("blade_tetra.awakenedArtPreview") ? BladeArtPreviewSamples.createAwakened() : BladeArtPreviewSamples.create();
                 // Place the exact gallery stacks in this isolated world's inventory.
                 var server = mc.getSingleplayerServer();
                 var id = mc.player.getUUID();
@@ -98,7 +126,7 @@ public final class BladeArtPreviewClient {
         }
         @Override public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
             g.fill(0,0,width,height,0xFF10151C);
-            String heading=switch(page) {case 0->"改装可视化 · 同刀对照";
+            String heading=Boolean.getBoolean("blade_tetra.awakenedArtPreview") ? "觉醒刀美术升级 · 赤月 / 千本樱 / 镜花水月 / 雷切" : switch(page) {case 0->"改装可视化 · 同刀对照";
                 case 1->"部件轮廓 / 特殊材料 / 赤月整套外观";default->"通用刀镡重制 · 三种轮廓与材料对照";};
             g.drawCenteredString(font,heading,width/2,10,0xF2DFC0);
             g.drawCenteredString(font, "实际物品栏渲染 | 大图 + 原尺寸图标 | ESC进入世界，F8重新打开", width/2, 25, 0xA2AFBC);
@@ -149,11 +177,11 @@ public final class BladeArtPreviewClient {
         @Override public void render(GuiGraphics g,int mx,int my,float delta) {
             g.fill(0,0,width,height,0xFF10151C);
             g.drawCenteredString(font,"通用刀镡正面 · 游戏中的实际世界模型",width/2,10,0xF2DFC0);
-            g.drawCenteredString(font,"椭圆 / 四叶镂空 / 切角八角 | 铁 / 黄金 / 下界合金",width/2,25,0xA2AFBC);
+            g.drawCenteredString(font,(Boolean.getBoolean("blade_tetra.awakenedArtPreview") ? "樱瓣 / 薄椭圆 / 雷纹 | 保留三种部件结构" : "椭圆 / 四叶镂空 / 切角八角 | 铁 / 黄金 / 下界合金"),width/2,25,0xA2AFBC);
             int cellW=(width-32)/3,cellH=(height-76)/3;
             com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
             for(int i=0;i<9;i++) {
-                int index=24+(i/3)*4+(i%3);
+                int index=Boolean.getBoolean("blade_tetra.awakenedArtPreview") ? (i/3)*4+1+i%3 : 24+(i/3)*4+(i%3);
                 var sample=samples.get(index);
                 int x=16+(i%3)*cellW,y=43+(i/3)*cellH;
                 g.fill(x+2,y+2,x+cellW-4,y+cellH-4,0xFF202933);
@@ -184,6 +212,7 @@ public final class BladeArtPreviewClient {
                 }catch(java.io.IOException e){throw new IllegalStateException(e);}
                 if(Boolean.getBoolean("blade_tetra.artInventoryBenchmark"))
                     minecraft.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(minecraft.player));
+                else if(Boolean.getBoolean("blade_tetra.awakenedArtPreview")) minecraft.setScreen(new SayaDetails());
                 else {Gallery gallery=new Gallery(false);gallery.page=2;minecraft.setScreen(gallery);}
             }
         }
@@ -191,10 +220,58 @@ public final class BladeArtPreviewClient {
             var location=stack.getCapability(dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE)
                     .map(s->s.getModel().orElseThrow()).orElseThrow();
             var source=mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager.getInstance().getModel(location);
-            var model=ForgedGuardModel.forProfile(source,dev.bladetetra.visual.MaterialAppearance.fromStack(stack).tsubaProfile());
+            var model=ForgedGuardModel.forProfile(source,dev.bladetetra.visual.MaterialAppearance.fromStack(stack).tsubaProfile(),AwakenedWeaponArt.fromStack(stack));
             var group=model.groupObjects.stream().filter(t->t.name.equals("blade")).findFirst().orElseThrow();
             return RuntimeWavefrontViewFactory.create("blade",group.faces.stream().filter(InventoryGuardGeometry::isGuard).toList());
         }
         @Override public boolean isPauseScreen(){return true;}
     }
+    /** Unobstructed broadside view of the actual sheaths, using the normal world material hook. */
+    private static final class SayaDetails extends Screen {
+        int frames;
+        SayaDetails(){super(Component.literal("觉醒刀鞘细节"));}
+        @Override protected void init() {
+            addRenderableWidget(Button.builder(Component.literal("返回整刀预览"),b->minecraft.setScreen(new Gallery(false)))
+                    .bounds(width/2-70,height-25,140,20).build());
+        }
+        @Override public void render(GuiGraphics g,int mx,int my,float delta) {
+            g.fill(0,0,width,height,0xFF10151C);
+            g.drawCenteredString(font,"觉醒刀鞘 · 游戏实际模型与材质",width/2,10,0xF2DFC0);
+            g.drawCenteredString(font,"赤月保持原样 / 千本樱樱花漆绘 / 镜花水纹镶镜 / 雷切银嵌雷纹",width/2,25,0xA2AFBC);
+            int rowH=(height-76)/4;
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+            for(int i=0;i<4;i++) {
+                var sample=samples.get(i);int y=43+i*rowH;
+                g.fill(18,y+2,width-18,y+rowH-4,0xFF202933);
+                g.drawString(font,sample.label().split(" / ")[0],28,y+10,0xF6F0E5);
+                var location=sample.stack().getCapability(dev.bladetetra.item.ModularSlashBladeItem.BLADESTATE)
+                        .map(state->state.getModel().orElseThrow()).orElseThrow();
+                var model=mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager.getInstance().getModel(location);
+                var group=model.groupObjects.stream().filter(part->part.name.equals("sheath")).findFirst().orElseThrow();
+                float minX=Float.POSITIVE_INFINITY,minY=minX,maxX=Float.NEGATIVE_INFINITY,maxY=maxX;
+                for(var face:group.faces) for(var v:face.vertices) {
+                    minX=Math.min(minX,v.x);maxX=Math.max(maxX,v.x);minY=Math.min(minY,v.y);maxY=Math.max(maxY,v.y);
+                }
+                float scale=Math.min((width-190)/(maxX-minX),(rowH-18)/(maxY-minY));
+                g.flush();g.pose().pushPose();g.pose().translate(width/2F+22,y+rowH/2F,150);
+                g.pose().scale(scale,-scale,scale);g.pose().translate(-(minX+maxX)/2,-(minY+maxY)/2,0);
+                mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.resetCol();
+                mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
+                        sample.stack(),model,"sheath",mods.flammpfeil.slashblade.init.DefaultResources.resourceDefaultTexture,
+                        g.pose(),g.bufferSource(),net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
+                        mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState::getSlashBladeBlend,false);
+                g.flush();g.pose().popPose();
+            }
+            super.render(g,mx,my,delta);g.flush();
+            if(++frames==35) {
+                try(var image=Screenshot.takeScreenshot(minecraft.getMainRenderTarget())) {
+                    image.writeToFile(Path.of(System.getProperty("blade_tetra.artPreviewOutput")).resolve("saya-details.png"));
+                }catch(java.io.IOException error){throw new IllegalStateException(error);}
+                LogUtils.getLogger().info("BLADE_ART_SAYA_DETAILS_CAPTURED");
+                worldCapture=0;worldFrames=0;minecraft.setScreen(null);
+            }
+        }
+        @Override public boolean isPauseScreen(){return true;}
+    }
+
 }

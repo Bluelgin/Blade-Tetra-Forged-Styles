@@ -29,7 +29,7 @@ public final class SakuraShardPool {
         public long sequence;
         public final long actionAt;
         public final double startedAt;
-        public Vec3 center, goal, hitPosition;
+        public Vec3 center, goal, hitPosition, targetOffset=Vec3.ZERO;
         public final Vec3 forward;
         public int targetId;
         public boolean predicted, canceled, confirmed;
@@ -53,6 +53,7 @@ public final class SakuraShardPool {
         for (Shard s : shards) s.visibility = s.previousVisibility = 0;
     }
     public void beginStance(boolean dispersing, double time, Vec3 grip, Vec3 tip, float fromFraction) {
+        partialTransition=false;
         stance = new SakuraStanceTransition(dispersing, time, fromFraction);
         danceUntil=0;deployment=0;
         java.util.Arrays.fill(groups, null);
@@ -66,6 +67,38 @@ public final class SakuraShardPool {
             if(s.initialVisibility<=.001F) s.history = 0;
             s.state = State.TRANSITION;
         }
+    }
+
+    private boolean partialTransition;
+    private float partialFrom=1,partialTo=1;
+    private double partialAt;
+    public float partialFraction(double time) {
+        return (float)(partialFrom+(partialTo-partialFrom)*SakuraStanceTransition.smooth((time-partialAt)/6));
+    }
+    public void initialFraction(float fraction) {
+        partialFrom=partialTo=fraction;
+        for(Shard s:shards) s.visibility=s.previousVisibility=s.index<Math.round((1-fraction)*shards.length)?1:0;
+    }
+    public void partial(float from,float to,double time,Vec3 grip,Vec3 tip) {
+        stance=null;partialTransition=true;partialFrom=from;partialTo=to;partialAt=time;
+        java.util.Arrays.fill(groups,null);
+        for(Shard s:shards) {
+            s.group=null;s.history=0;s.initialVisibility=s.visibility;
+            double index=(s.index+.5)/shards.length;
+            s.start=s.visibility>.001?s.position:grip.lerp(tip,1-index);
+            s.position=s.previous=s.start;s.state=State.TRANSITION;
+        }
+    }
+    private void tickPartial(Shard s,double time,Vec3 home) {
+        double t=Math.max(0,Math.min(1,(time-partialAt)/6));
+        boolean shown=s.index<Math.round((1-partialTo)*shards.length);
+        if(shown) {
+            Vec3 forward=SakuraShardFormation.forward(frame);
+            Vec3 side=new Vec3(forward.z,0,-forward.x).scale(1.1);
+            s.position=cubic(s.start,s.start.add(side),home.add(side.scale(.2)),home,t);
+            s.visibility=(float)(s.initialVisibility+(1-s.initialVisibility)*SakuraStanceTransition.smooth(t));
+        } else {s.position=home;s.visibility=0;}
+        if(t>=1) {s.position=home;s.state=State.IDLE;s.history=0;}
     }
 
     private int cursor;
@@ -150,26 +183,20 @@ public final class SakuraShardPool {
         return home.add(SakuraShardFormation.forward(frame).scale(-deployment*(index%3)*.27))
                 .add(0,deployment*(index%3)*.32,0);
     }
-    private Vec3 platform(boolean right) {
-        Vec3 forward=SakuraShardFormation.forward(frame);
-        Vec3 look=forward.scale(Math.cos(frame.pitch())).add(0,-Math.sin(frame.pitch()),0);
-        return dev.bladetetra.easteregg.SakuraShardAttackRules.platform(
-                frame.root().add(0,frame.height(),0),look,right);
-    }
     private void tickConcerto(Shard s,Group g,Vec3 home,double time) {
         double age=time-g.startedAt;
-        Vec3 platform=platform(g.right);
-        if((g.canceled||age>=6)&&s.state!=State.RETURN)
+        Vec3 platform=g.center;
+        if((g.canceled||age>=dev.bladetetra.easteregg.SakuraShardAttackRules.RETURN_TICK)&&s.state!=State.RETURN)
             beginReturn(s,time,s.position,s.position.subtract(s.previous));
         if(s.state==State.RETURN) {
             double u=(time-s.returningAt)/6;
             s.position=cubic(s.returnStart,s.returnStart.add(s.returnVelocity.scale(2)),home,home,u);
             if(u>=1) {s.position=home;s.state=State.IDLE;s.group=null;s.history=0;g.members--;}
-        } else if(age<4) {
-            s.position=cubic(s.start,s.start.add(0,.45,0),platform.add(0,.15,0),platform,age/4);
+        } else if(age<6) {
+            s.position=cubic(s.start,s.start.add(0,.45,0),platform.add(0,.15,0),platform,age/6);
         } else {s.state=State.SLASH;s.position=platform;}
         recordMotion(s);
-        if(s.state==State.SLASH) s.direction=g.goal.subtract(platform).normalize();
+        if(s.state==State.SLASH) s.direction=g.targetOffset.lengthSqr()>.001?g.targetOffset.scale(-1).normalize():new Vec3(0,-1,0);
     }
     public boolean confirm(long sequence, Vec3 target, int targetId, double time) {
         for(Group group:groups) if(group!=null&&group.sequence==sequence&&!group.confirmed) {
@@ -193,7 +220,8 @@ public final class SakuraShardPool {
             shard.previousVisibility=shard.visibility;
             Vec3 home=home(shard.index,time);
             if(shard.state==State.TRANSITION) {
-                tickStance(shard,time,home,grip,tip);
+                if(partialTransition) tickPartial(shard,time,home);
+                else tickStance(shard,time,home,grip,tip);
                 recordMotion(shard);
                 continue;
             }
