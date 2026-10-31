@@ -231,6 +231,7 @@ public final class RaikiriCombatSmokeTest {
         RaikiriActionObserver.clear(actor.getUUID(),level.getServer());
         actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));actor.moveTo(0,160,0,0,0);
         reset(state(actor));
+        actor.setInvulnerable(true);actor.setHealth(actor.getMaxHealth());
         var armor=new RaikiriThunderArmor();long t=now();
         double speed=actor.getAttributeValue(Attributes.MOVEMENT_SPEED);
         rank(actor).setLastUpdte(t);rank(actor).setRawRankPoint(1199);armor.start(actor);
@@ -283,6 +284,8 @@ public final class RaikiriCombatSmokeTest {
             time(now()+20);rank(actor).setLastUpdte(now());armor.tick(actor);
             check(rank(actor).getRawRankPoint()==1600,"free-cost pulse does not debit rank");armor.stop(actor);
             GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(true);
+            // Direct discharge fixtures must not lend their consumed weapon to native admission checks.
+            actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));
             rank(actor).setRawRankPoint(1600);inputs(actor);reset(state(actor));
             cancel=true;state(actor).progressCombo(actor);cancel=false;tick();
             check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()) && rank(actor).getRawRankPoint()==1600,"cancelled native action cannot activate or charge armor");
@@ -295,7 +298,10 @@ public final class RaikiriCombatSmokeTest {
             check(!actor.hasEffect(RaikiriThunderArmorEffect.ARMOR.get()),"native motion without sneak-forward-rightclick cannot activate armor");
             time(now()+1);rank(actor).setLastUpdte(now());inputs(actor);reset(state(actor));
             state(actor).updateComboSeq(actor,ComboStateRegistry.RAPID_SLASH.getId());tick();
-            check(RaikiriActionObserver.session(actor).armor.active(),"actual committed native rapid activates armor");
+            var committedArmor=RaikiriActionObserver.session(actor);
+            check(committedArmor!=null && committedArmor.armor.active(),"actual committed native rapid activates armor; alive="
+                    +actor.isAlive()+", eligible="+RaikiriActionObserver.eligible(actor.getMainHandItem())
+                    +", broken="+state(actor).isBroken());
             check(rank(actor).getRawRankPoint()==1540,"native activation charges once");
             tick();check(rank(actor).getRawRankPoint()==1540,"duplicate observer does not charge twice");
             actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));tick();
