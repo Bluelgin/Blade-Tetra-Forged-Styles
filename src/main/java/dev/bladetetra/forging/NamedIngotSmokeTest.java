@@ -24,9 +24,7 @@ public final class NamedIngotSmokeTest {
         if (!Boolean.getBoolean("blade_tetra.namedIngotSmoke")) return;
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
-            LegacyImprintKind source = NamedLegacyCatalog.values().stream()
-                    .filter(kind -> kind.visualUsable() || kind == LegacyImprintKind.WOODEN_PUPPET)
-                    .findFirst().orElseThrow();
+            LegacyImprintKind source = NamedLegacyCatalog.values().stream().findFirst().orElseThrow();
             ItemStack ingot = NamedBladeIngotItem.create(source);
             ItemStack stack = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
             String oldGrip = stack.getOrCreateTag().getString("slashblade/tsuka");
