@@ -90,7 +90,7 @@ public final class LegacyModelPartRenderer {
             return;
         }
         if (target.startsWith("blade")) {
-            renderPart(event, null, Part.BLADE, target,
+            renderPart(event, NamedLegacyParts.visualBladeFromStack(event.getStack()), Part.BLADE, target,
                     ordinaryTexture, ordinaryEmissive);
             if ("blade_fragment".equals(target)) {
                 return;
@@ -101,7 +101,7 @@ public final class LegacyModelPartRenderer {
                     ordinaryTexture, ordinaryEmissive);
             return;
         }
-        renderPart(event, null, Part.BLADE, target,
+        renderPart(event, NamedLegacyParts.visualBladeFromStack(event.getStack()), Part.BLADE, target,
                 ordinaryTexture, ordinaryEmissive);
         renderPart(event, parts.tsuba(), Part.TSUBA, target,
                 ordinaryTexture, ordinaryEmissive);
@@ -141,6 +141,8 @@ public final class LegacyModelPartRenderer {
             if (part == Part.SAYA) {
                 // Restore the previous origin-preserving uniform sheath fit. Never recenter Y/Z.
                 if (!kind.id().startsWith("fox_")) fitLegacySaya(poses, source, event.getOriginalModel());
+            } else if (part == Part.BLADE) {
+                applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
             } else if (part == Part.HILT) {
                 applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
             }
