@@ -45,6 +45,8 @@ public final class SoulResonance {
     }
 
     public static boolean isFormed(ItemStack stack, Resonance resonance) {
+        // V2 fusion selects one complete skill set. Retired automatic pair procs must not run alongside it.
+        if (AwakenedBladeCombat.replacesLegacy() && SoulSkillState.fusion(stack)) return false;
         if (!is(stack, resonance)) return false;
         if (SoulLegacyState.inscribed(stack).stream().anyMatch(soul ->
                 !SoulLegacyState.isActive(stack, soul))) return false;

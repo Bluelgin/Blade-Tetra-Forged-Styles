@@ -64,3 +64,8 @@ tools/art/*
 !art/awakening-ritual/
 !art/awakening-ritual/**
 !tools/art/export_ritual.cjs
+
+# Editable soul-switch seals and reproducible texture export
+!art/soul-switch/
+!art/soul-switch/**
+!tools/art/export_soul_switch.cjs

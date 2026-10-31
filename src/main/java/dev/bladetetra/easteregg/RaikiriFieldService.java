@@ -33,7 +33,7 @@ public final class RaikiriFieldService {
     private static final List<Trail> TRAILS=new ArrayList<>();
     private static final List<Sword> SWORDS=new ArrayList<>();
     private static int nextVisualId=1;
-    enum DamageKind { TRAIL_STRIKE, SWORD_DISCHARGE }
+    enum DamageKind { TRAIL_STRIKE, SWORD_DISCHARGE, ARMOR_DISCHARGE }
     private record Impact(LivingEntity target,float cap,DamageKind kind) {}
     private static final ThreadLocal<Impact> IMPACT=new ThreadLocal<>();
     private record Strike(Vec3 position,long due) {}
@@ -181,7 +181,7 @@ public final class RaikiriFieldService {
             }
         }
     }
-    private static List<LivingEntity> targets(ServerPlayer p,Vec3 origin,double radius,int limit) {
+    static List<LivingEntity> targets(ServerPlayer p,Vec3 origin,double radius,int limit) {
         ServerLevel level=p.serverLevel(); AABB box=new AABB(origin,origin).inflate(radius);
         // Never load adjacent chunks to search or ray trace.
         if(!RaikiriActionObserver.loaded(level,box)) return List.of();
@@ -234,7 +234,7 @@ public final class RaikiriFieldService {
     @SubscribeEvent(priority=EventPriority.LOWEST)
     public static void dischargeKnockback(LivingKnockBackEvent e) {
         Impact impact=IMPACT.get();
-        if(impact!=null && impact.kind==DamageKind.SWORD_DISCHARGE && e.getEntity()==impact.target)
+        if(impact!=null && impact.kind!=DamageKind.TRAIL_STRIKE && e.getEntity()==impact.target)
             e.setCanceled(true);
     }
     // Third-party amplification cannot turn an explicitly budgeted secondary

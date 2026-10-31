@@ -108,6 +108,10 @@ public final class SakuraShardAttackService {
                         p.level().dimension().location(),stage,SakuraCombatVisuals.nextSequence(),at,target));
         if(packet.valid()) ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(()->p),packet);
     }
+    public static boolean switchBlocked(ServerPlayer p) {
+        Owner o = OWNERS.get(p.getUUID());
+        return o != null && o.pending != null || FLIGHTS.values().stream().anyMatch(f -> f.owner == p);
+    }
     public static void cancel(ServerPlayer p) {
         Owner o=OWNERS.get(p.getUUID());
         if(o!=null) {o.pending=null;o.blockedUntil=p.level().getGameTime()+SakuraShardAttackRules.FLIGHT_TICKS;}

@@ -39,6 +39,7 @@ public final class RaikiriActionObserver {
         final ItemStack stack;
         long cleaveStarted;
         boolean cleaving,observedAir;
+        final RaikiriThunderArmor armor=new RaikiriThunderArmor();
         Pending pending;
         Run rapid;
         Vec3 observedPosition;
@@ -54,7 +55,7 @@ public final class RaikiriActionObserver {
                     && p.getMainHandItem()==stack && blade.equals(id(stack));
         }
     }
-    private record Pending(BladeMotionEvent event,long tick,Vec3 position) {}
+    private record Pending(BladeMotionEvent event,long tick,Vec3 position,boolean armorInput) {}
     private static final class Run {
         final UUID id=UUID.randomUUID();
         final long stamp;
@@ -70,17 +71,11 @@ public final class RaikiriActionObserver {
         return tag.getUUID(BLADE_ID);
     }
     static boolean eligible(ItemStack stack) {
-        // active() preserves the baseline's primary-soul precedence. A Raikiri
-        // secondary inscription alone never grants this controller.
+        // Combat selection is independent of the stable name/art primary soul.
         return AwakenedBladeCombat.replacesLegacy()
                 && net.minecraftforge.fml.ModList.get().getModContainerById("slashblade")
                         .map(mod->"1.9.63".equals(mod.getModInfo().getVersion().toString())).orElse(false)
-                && SoulLegacyState.inscribed(stack).stream().findFirst().orElse(SoulLegacyState.Legacy.NONE)
-                        ==SoulLegacyState.Legacy.RAIKIRI
-                && (SoulLegacyState.inscribed(stack).size()==1
-                        || SoulResonance.isFormed(stack,SoulResonance.resolve(stack)))
-                && SoulLegacyState.active(stack)==SoulLegacyState.Legacy.RAIKIRI
-                && SoulLegacyState.isActive(stack,SoulLegacyState.Legacy.RAIKIRI);
+                && SoulSkillState.enabled(stack,SoulLegacyState.Legacy.RAIKIRI);
     }
     static Session session(ServerPlayer p) {
         Session s=SESSIONS.get(p.getUUID());
@@ -114,7 +109,12 @@ public final class RaikiriActionObserver {
         // Retain the mutable event until post-commit validation, including
         // later same-priority third-party rewrites INTO the native rapid ID.
         Session s=session(p);
-        if(s!=null) s.pending=new Pending(event,p.level().getGameTime(),p.position());
+        if(s!=null) s.pending=new Pending(event,p.level().getGameTime(),p.position(),
+                p.getCapability(mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState.INPUT_STATE)
+                        .map(input->input.getCommands().containsAll(EnumSet.of(
+                                mods.flammpfeil.slashblade.util.InputCommand.SNEAK,
+                                mods.flammpfeil.slashblade.util.InputCommand.FORWARD,
+                                mods.flammpfeil.slashblade.util.InputCommand.R_CLICK))).orElse(false));
     }
     private static void committed(ServerPlayer p,Session s) {
         Pending pending=s.pending;if(pending==null) return;
@@ -126,6 +126,7 @@ public final class RaikiriActionObserver {
                 || state.getLastActionTime()!=pending.tick) return;
         if(s.rapid==null || s.rapid.stamp!=pending.tick) {
             finish(s);s.rapid=new Run(pending);
+            if(pending.armorInput) s.armor.start(p);
         }
         s.pending=null;
     }
@@ -208,7 +209,11 @@ public final class RaikiriActionObserver {
         MinecraftServer server=e.getServer();
         for(UUID owner:List.copyOf(SESSIONS.keySet())) {
             Session s=SESSIONS.get(owner);ServerPlayer p=owner(server,s);
-            if(!s.valid(p)) clear(owner,server);else observe(p,s);
+            if(!s.valid(p)) clear(owner,server);
+            else {
+                observe(p,s);
+                if(SESSIONS.get(owner)==s) s.armor.tick(p);
+            }
         }
         RaikiriFieldService.tick(server);
     }
@@ -217,7 +222,17 @@ public final class RaikiriActionObserver {
         return level!=null && level.getPlayerByUUID(s.owner) instanceof ServerPlayer p ? p : null;
     }
     static void clear(UUID owner,MinecraftServer server) {
-        SESSIONS.remove(owner); RaikiriFieldService.clear(owner,server);
+        Session s=SESSIONS.remove(owner);
+        if(s!=null) {
+            ServerPlayer p=server==null?null:owner(server,s);
+            if(p==null && server!=null) p=server.getPlayerList().getPlayer(owner);
+            s.armor.stop(p);
+        }
+        RaikiriFieldService.clear(owner,server);
+    }
+    @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e) {
+        // Session ownership is intentionally not saved across a reconnect.
+        e.getEntity().removeEffect(RaikiriThunderArmorEffect.ARMOR.get());
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); RaikiriFieldService.forgetViewer(e.getEntity().getUUID()); }
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) { clear(e.getEntity().getUUID(),e.getEntity().getServer()); RaikiriFieldService.forgetViewer(e.getEntity().getUUID()); }
@@ -227,6 +242,6 @@ public final class RaikiriActionObserver {
             for(UUID owner:java.util.List.copyOf(SESSIONS.keySet()))
                 if(SESSIONS.get(owner).dimension.equals(l.dimension())) clear(owner,l.getServer());
     }
-    @SubscribeEvent public static void stop(ServerStoppedEvent e) { SESSIONS.clear(); RaikiriFieldService.reset(); }
+    @SubscribeEvent public static void stop(ServerStoppedEvent e) { for(UUID owner:List.copyOf(SESSIONS.keySet())) clear(owner,e.getServer()); RaikiriFieldService.reset(); }
     private RaikiriActionObserver() {}
 }

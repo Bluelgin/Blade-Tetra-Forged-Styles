@@ -64,5 +64,12 @@ public final class RaikiriRules {
         }
         public float remaining() { return remaining; }
     }
+    static boolean armorCanStart(long points,long unit,int grade,int cost) {
+        return cost>=0 && unit>0 && grade>=4 && points/(double)unit>=4
+                && points>=cost && (points-cost)/(double)unit>=3;
+    }
+    static boolean armorCanSustain(long points,long unit,int grade) {
+        return unit>0 && grade>=3 && points/(double)unit>=3;
+    }
     private RaikiriRules() {}
 }

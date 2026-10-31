@@ -139,7 +139,7 @@ public final class AkatsukiAwakening {
                 ) return;
         ItemStack blade = event.player.getMainHandItem();
         if (!isUnlocked(blade)) return;
-        boolean active = isActive(blade);
+        boolean active = SoulSkillState.enabled(blade, SoulLegacyState.Legacy.AKATSUKI);
         ContractBladeCompat.syncAkatsuki(event.player, blade, active);
     }
 

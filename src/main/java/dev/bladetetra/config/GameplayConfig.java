@@ -144,8 +144,8 @@ public final class GameplayConfig {
         KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
         builder.pop();
         ENABLE_AWAKENED_RANK_COSTS = builder
-                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA only.",
-                        "Kyouka 4 and Raikiri 3.1 never use extra Rank payments.")
+                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA and Raikiri thunder armor.",
+                        "Kyouka 4 and native Raikiri attacks never use extra Rank payments.")
                 .define("enableAwakenedRankCosts", true);
         builder
                 .comment("Deprecated V2 replay price; ignored by Three Mirrors.")

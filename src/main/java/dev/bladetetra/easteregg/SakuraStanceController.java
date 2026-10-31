@@ -30,8 +30,7 @@ public final class SakuraStanceController {
     private static final Map<UUID, Pending> PENDING = new HashMap<>();
     public static boolean supported(ItemStack blade) {
         return AwakenedBladeCombat.replacesLegacy() && StyleResolver.resolve(blade) == BladeStyle.RENGEKI
-                && SoulLegacyState.active(blade) == SoulLegacyState.Legacy.SENBONZAKURA
-                && SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.SENBONZAKURA);
+                && SoulSkillState.enabled(blade, SoulLegacyState.Legacy.SENBONZAKURA);
     }
     public static boolean dispersed(ItemStack blade) {
         return blade.getTag() != null && blade.getTag().getBoolean(SakuraStanceRules.DISPERSED);
