@@ -24,7 +24,7 @@ import java.util.Objects;
  * A damaged copy of the source is returned, rather than consuming the original.
  */
 public final class NamedBladeIngotRecipe extends CustomRecipe {
-    private static final String SOUL = "slashblade:proudsoul";
+    private static final String SOUL = "slashblade:proudsoul_tiny";
 
     public NamedBladeIngotRecipe(net.minecraft.resources.ResourceLocation id,
             CraftingBookCategory category) {
