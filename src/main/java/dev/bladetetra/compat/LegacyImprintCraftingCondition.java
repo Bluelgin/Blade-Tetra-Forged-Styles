@@ -13,7 +13,7 @@ import se.mickelus.tetra.module.schematic.UpgradeSchematic;
 
 import java.util.Map;
 
-/** Limits the generic imprint identity effect to Blade Tetra's two fitting slots. */
+/** Limits source ownership updates to the three named-ingot-compatible module slots. */
 public final class LegacyImprintCraftingCondition implements CraftingEffectCondition {
     @Override
     public boolean test(ResourceLocation[] unlocks, ItemStack upgradedStack, String slot,
