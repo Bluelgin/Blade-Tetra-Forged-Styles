@@ -8,7 +8,6 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.config.ClientVisualConfig;
-import dev.bladetetra.easteregg.AkatsukiAwakening;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.KyoukaAwakening;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
@@ -72,7 +71,7 @@ public final class MaterialTextureManager {
                     BladeTetra.MOD_ID, "model/util/durability_filled.obj");
     private static final int LOGICAL_ATLAS_SIZE = 128;
     private static final int GENERATED_ATLAS_SIZE = 256;
-    private static final String ART_REVISION = "blade-art-2.1-v11-akatsuki-without-charm";
+    private static final String ART_REVISION = "blade-art-2.2-v4-native-durability";
     private static final ThreadLocal<Boolean> RENDERING_INTERNAL_PASS =
             ThreadLocal.withInitial(() -> false);
     static final Palette RAYSKIN_PALETTE =
@@ -102,10 +101,10 @@ public final class MaterialTextureManager {
             // Keep the native hollow frame/gauges; render the portrait separately.
             event.setModel(BladeModelManager.getInstance()
                     .getModel(DURABILITY_MODEL));
+            var backplateTheme=AwakenedWeaponArt.fromStack(event.getStack());
             if ("base".equals(event.getOriginalTarget())) {
                 ResourceLocation baseTexture =
-                        ensureDurabilityBaseTexture(appearance.blade(),
-                                AkatsukiAwakening.isActive(event.getStack()));
+                        ensureDurabilityBaseTexture(appearance.blade(), backplateTheme);
                 if (baseTexture != null) {
                     // The portrait has its own colors: do not multiply it by
                     // the native gray-to-magenta damage tint or foil glint.
@@ -136,9 +135,7 @@ public final class MaterialTextureManager {
                     }
                 }
             }
-            // Preserve Resharped's original blue durability layer and red
-            // broken-state layer. They share the same source texture but use
-            // the "color" and "color_r" targets respectively.
+            // Native healthy and broken gauges keep their original texture and color.
             return;
         }
 
@@ -150,9 +147,9 @@ public final class MaterialTextureManager {
             // The unlit render type is reserved for the decorative backplate.
             event.setModel(InventoryBladeModel.forTarget(event.getModel(), event.getOriginalTarget()));
         }
-        event.setModel(ForgedGuardModel.forProfile(event.getModel(), appearance.tsubaProfile()));
-        if (glowState.soul()==SoulGlow.AKATSUKI) {
-            // This named finish uses localized red soul glow instead of a full-surface
+        event.setModel(ForgedGuardModel.forProfile(event.getModel(), appearance.tsubaProfile(), AwakenedWeaponArt.fromName(glowState.soul().name())));
+        if (AwakenedWeaponArt.fromName(glowState.soul().name()) != AwakenedWeaponArt.Theme.NONE) {
+            // Named finishes use localized soul glow instead of a full-surface
             // purple foil layer. Enchantments and ItemStack.hasFoil are untouched.
             event.setEnableEffect(false);
         }
@@ -259,6 +256,7 @@ public final class MaterialTextureManager {
                     textureLayout);
             applyLegacyBaseArt(image, glowState, textureLayout);
             if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
+            AwakenedWeaponArt.apply(image,appearance,textureLayout,glowState.broken(),AwakenedWeaponArt.fromName(glowState.soul().name()));
             boolean visible = applyEmissionMask(
                     image,
                     appearance,
@@ -465,10 +463,10 @@ public final class MaterialTextureManager {
     }
 
     private static synchronized ResourceLocation ensureDurabilityBaseTexture(
-            String bladeMaterial, boolean akatsuki) {
+            String bladeMaterial, AwakenedWeaponArt.Theme theme) {
         long materialRevision = TetraMaterialVisualResolver.revision();
         String cacheKey = bladeMaterial
-                + (akatsuki ? "|mikage" : "|flow")
+                + "|" + theme.name() + "|" + ART_REVISION
                 + "|tetra-material-revision="
                 + materialRevision;
         ResourceLocation cached = MaterialTextureCache.durability(cacheKey);
@@ -478,9 +476,9 @@ public final class MaterialTextureManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
-            NativeImage image = MaterialTextureCache.copyBackplate(minecraft.getResourceManager(), akatsuki);
+            NativeImage image = MaterialTextureCache.copyBackplate(minecraft.getResourceManager(), theme);
 
-            recolorDurabilityBase(image, bladeMaterial, akatsuki);
+            if (theme == AwakenedWeaponArt.Theme.NONE) recolorDurabilityBase(image, bladeMaterial);
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location =
                     durabilityBaseLocation(cacheKey, materialRevision);
@@ -499,7 +497,7 @@ public final class MaterialTextureManager {
 
     private static void recolorDurabilityBase(
             NativeImage image,
-            String bladeMaterial, boolean akatsuki) {
+            String bladeMaterial) {
         Palette palette = styleFor(bladeMaterial).palette();
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
@@ -508,24 +506,14 @@ public final class MaterialTextureManager {
                 if (sourceAlpha == 0) {
                     continue;
                 }
-                if (akatsuki && !MikageBackplateTint.isHair(red(source), green(source), blue(source))) continue;
                 int luminance = (
                         red(source) * 30
                                 + green(source) * 59
                                 + blue(source) * 11)
                         / 100;
                 float tone = luminance / 255.0F;
-                int materialColor = Palette.lerp(
-                        palette.mid(),
-                        Palette.lerp(palette.highlight(), 0xFFFFFF, 0.35F),
-                        tone);
-                int original = red(source) << 16 | green(source) << 8 | blue(source);
-                // A pale portrait should take on the material's hue, not its
-                // dark metallic value. Keep most of the authored highlights.
-                materialColor = akatsuki
-                        ? Palette.lerp(original, materialColor, 0.40F)
-                        : Palette.lerp(Palette.scale(palette.mid(), 0.45F),
-                                Palette.lerp(palette.highlight(), 0xFFFFFF, 0.30F), tone);
+                int materialColor = Palette.lerp(Palette.scale(palette.mid(), 0.45F),
+                        Palette.lerp(palette.highlight(), 0xFFFFFF, 0.30F), tone);
                 image.setPixelRGBA(
                         x,
                         y,
@@ -578,6 +566,7 @@ public final class MaterialTextureManager {
                     textureLayout);
             applyLegacyBaseArt(image, glowState, textureLayout);
             if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
+            AwakenedWeaponArt.apply(image,appearance,textureLayout,glowState.broken(),AwakenedWeaponArt.fromName(glowState.soul().name()));
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID,
