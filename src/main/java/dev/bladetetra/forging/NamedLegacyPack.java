@@ -30,8 +30,8 @@ import java.util.Set;
 /**
  * Required in-memory Tetra data pack.
  *
- * <p>V2 keeps per-blade schematic ids for old scroll compatibility and for a
- * clear source choice in Tetra's UI, but all named blades share only two module
+ * <p>V2 preserves per-blade schematic ids for historical scroll compatibility and for a
+ * clear source choice in Tetra's UI, but all named blades share just three module
  * variants. The source blade id is written to Blade Tetra NBT by a crafting
  * effect, so addon count no longer expands Tetra's module-variant table.</p>
  */
@@ -129,7 +129,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
         putUnique("assets/blade_tetra/lang/en_us.json", en.toString());
         putUnique("assets/blade_tetra/lang/zh_cn.json", zh.toString());
         LogUtils.getLogger().info(
-                "Blade Tetra named-pattern pack staged {} blades using 2 generic module variants",
+                "Blade Tetra named-pattern pack staged {} blades using 3 generic module variants",
                 accepted.size());
     }
 
