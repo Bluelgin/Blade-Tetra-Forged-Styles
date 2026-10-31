@@ -8,6 +8,7 @@ import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.LegacyDebugTalismanItem;
 import dev.bladetetra.item.LegacyImprintScrollItem;
 import dev.bladetetra.item.NamedBladeRecordItem;
+import dev.bladetetra.item.NamedBladeIngotItem;
 import dev.bladetetra.item.SayaPatternItem;
 import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
@@ -68,6 +69,8 @@ public final class ModItems {
             ITEMS.register("smithing_journal", SmithingJournalItem::new);
     public static final RegistryObject<NamedBladeRecordItem> NAMED_BLADE_RECORD =
             ITEMS.register("named_blade_record", NamedBladeRecordItem::new);
+    public static final RegistryObject<NamedBladeIngotItem> NAMED_BLADE_INGOT =
+            ITEMS.register("named_blade_ingot", NamedBladeIngotItem::new);
     public static final RegistryObject<LegacyImprintScrollItem> LEGACY_IMPRINT_SCROLL =
             ITEMS.register("legacy_imprint_scroll", LegacyImprintScrollItem::new);
     public static final RegistryObject<SayaPatternItem> SAYA_PATTERN_BLACK_GOLD =
@@ -104,6 +107,7 @@ public final class ModItems {
                         output.accept(DEAD_THOUGHT_SOUL_SEAL.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
+                        output.accept(NAMED_BLADE_INGOT.get());
                         output.accept(LEGACY_IMPRINT_SCROLL.get());
                         output.accept(LIFENG_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
