@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('namedIngotArtReview')) {
+                workingDirectory project.file('build/named-ingot-art-review')
+                property 'blade_tetra.namedIngotArtReview', 'true'
+            }
             if (project.hasProperty('bladeStorageSmoke')) {
                 workingDirectory project.file('build/blade-storage-smoke')
                 property 'blade_tetra.storageSmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
@@ -143,6 +147,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('namedIngotArtReview')) {
+                args '--width', '1600', '--height', '1000'
+            }
             if (project.hasProperty('bloodBladeReview')) {
                 args '--width', '1360', '--height', '768'
             }
