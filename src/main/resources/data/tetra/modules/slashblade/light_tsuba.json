@@ -1,18 +1,47 @@
 {
   "replace": true,
-  "slots": [ "slashblade/tsuba" ],
+  "slots": [
+    "slashblade/tsuba"
+  ],
   "type": "tetra:basic_module",
   "renderLayer": "higher",
   "variants": [
     {
-      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:metal/",
+        "tetra:bone/",
+        "tetra:gem/"
+      ],
       "key": "light_tsuba/",
       "attributes": {
         "generic.attack_speed": 0.1
       },
       "extract": {
         "durability": 0.03,
-        "glyph": { "textureX": 8, "textureY": 112 }
+        "glyph": {
+          "textureX": 8,
+          "textureY": 112
+        }
+      }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "light_tsuba/",
+      "attributes": {
+        "generic.attack_speed": 0.1
+      },
+      "extract": {
+        "durability": 0.03,
+        "glyph": {
+          "textureX": 8,
+          "textureY": 112
+        },
+        "primaryAttributes": {
+          "generic.attack_damage": 0.25
+        }
       }
     }
   ]

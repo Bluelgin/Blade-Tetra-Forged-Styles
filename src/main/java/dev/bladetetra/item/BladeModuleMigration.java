@@ -74,6 +74,8 @@ final class BladeModuleMigration {
                 stack, ModularSlashBladeItem.KASHIRA_SLOT,
                 ModularSlashBladeItem.KASHIRA_MODULE, "simple_kashira/iron");
 
+        changed |= dev.bladetetra.forging.NamedLegacyImprintStorage.migrateStackTag(tag);
+        changed |= dev.bladetetra.forging.NamedBladeMaterial.migrate(stack);
         changed |= migrateEnchantmentMappings(tag);
         if (tag.getInt(MODULE_SCHEMA_KEY) != MODULE_SCHEMA_VERSION) {
             tag.putInt(MODULE_SCHEMA_KEY, MODULE_SCHEMA_VERSION);

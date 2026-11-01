@@ -1,6 +1,5 @@
 package dev.bladetetra.item;
 
-import dev.bladetetra.forging.LegacyImprinting;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -21,15 +20,13 @@ public final class LegacyImprintScrollItem extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        return LegacyImprinting.tryBegin(context);
+        return InteractionResult.PASS;
     }
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.use")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.retired")
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.risk")
-                .withStyle(ChatFormatting.DARK_RED));
     }
 }

@@ -120,7 +120,8 @@ public final class ModItems {
                         output.accept(RAIKIRI_SOUL_FRAGMENT.get());
                         output.accept(KYOUKA_SOUL_FRAGMENT.get());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
-                        output.accept(NAMED_BLADE_INGOT.get());
+                        dev.bladetetra.forging.NamedLegacyCatalog.values().forEach(kind ->
+                                output.accept(dev.bladetetra.item.NamedBladeIngotItem.create(kind)));
                         output.accept(LIFENG_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
@@ -129,8 +130,6 @@ public final class ModItems {
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.FLYING_SWALLOW));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.FULL_MOON));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.ZANSHIN));
-                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.BLACK_FOX));
-                        output.accept(ForgingScrolls.create(ForgingScrolls.Kind.WHITE_FOX));
                         SmithingLore.CLUES.forEach(clue ->
                                 output.accept(SmithingClueItem.create(clue)));
                         output.accept(SAYA_PATTERN_BLACK_GOLD.get());

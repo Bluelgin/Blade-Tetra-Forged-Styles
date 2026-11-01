@@ -85,7 +85,8 @@ public final class NamedBladeIngotRenderer extends BlockEntityWithoutLevelRender
     private static synchronized ResourceLocation resolve(ItemStack stack) {
         String id = NamedBladeIngotItem.sourceId(stack);
         LegacyImprintKind kind = NamedBladeIngotItem.source(stack);
-        if (id == null || kind == null || UNAVAILABLE.contains(id)) return IRON;
+        if (id == null || kind == null) return new ResourceLocation("blade_tetra", "textures/item/named_blade_ingot_unknown.png");
+        if (UNAVAILABLE.contains(id)) return IRON;
         ResourceLocation cached = CACHE.get(id);
         if (cached != null) return cached;
         Minecraft minecraft = Minecraft.getInstance();

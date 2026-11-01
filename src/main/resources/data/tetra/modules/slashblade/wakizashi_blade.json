@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/blade" ],
+  "slots": [
+    "slashblade/blade"
+  ],
   "type": "tetra:basic_major_module",
   "improvements": [
     "tetra:sword/basic_blade/",
@@ -11,7 +13,13 @@
   ],
   "variants": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:gem/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:gem/",
+        "tetra:bone/"
+      ],
       "key": "wakizashi_blade/",
       "attributes": {
         "generic.attack_speed": -1.45
@@ -20,17 +28,59 @@
         "sweeping": 1
       },
       "tools": {
-        "cut": [ 1, 2 ]
+        "cut": [
+          1,
+          2
+        ]
       },
       "aspects": {
         "edged_weapon": 2,
         "breakable": 2
       },
       "durability": -10,
-      "tags": [ "forge:swords" ],
+      "tags": [
+        "forge:swords"
+      ],
       "extract": {
         "primaryAttributes": {
           "generic.attack_damage": 0.88
+        },
+        "durability": 1.1,
+        "integrity": -1,
+        "magicCapacity": 1,
+        "glyph": {
+          "textureX": 0
+        }
+      }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "wakizashi_blade/",
+      "attributes": {
+        "generic.attack_speed": -1.45
+      },
+      "effects": {
+        "sweeping": 1
+      },
+      "tools": {
+        "cut": [
+          1,
+          2
+        ]
+      },
+      "aspects": {
+        "edged_weapon": 2,
+        "breakable": 2
+      },
+      "durability": -10,
+      "tags": [
+        "forge:swords"
+      ],
+      "extract": {
+        "primaryAttributes": {
+          "generic.attack_damage": 0.5
         },
         "durability": 1.1,
         "integrity": -1,

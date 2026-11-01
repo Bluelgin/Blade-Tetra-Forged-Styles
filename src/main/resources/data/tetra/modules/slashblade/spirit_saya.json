@@ -1,18 +1,47 @@
 {
   "replace": true,
-  "slots": [ "slashblade/saya" ],
+  "slots": [
+    "slashblade/saya"
+  ],
   "type": "tetra:basic_module",
   "renderLayer": "lower",
   "variants": [
     {
-      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:metal/",
+        "tetra:bone/",
+        "tetra:gem/"
+      ],
       "key": "spirit_saya/",
       "durability": 10,
       "integrity": -1,
       "extract": {
         "durability": 0.15,
         "magicCapacity": 2,
-        "glyph": { "textureX": 24, "textureY": 112 }
+        "glyph": {
+          "textureX": 24,
+          "textureY": 112
+        }
+      }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "spirit_saya/",
+      "durability": 10,
+      "integrity": -1,
+      "extract": {
+        "durability": 0.15,
+        "magicCapacity": 2,
+        "glyph": {
+          "textureX": 24,
+          "textureY": 112
+        },
+        "primaryAttributes": {
+          "generic.attack_damage": 0.25
+        }
       }
     }
   ]

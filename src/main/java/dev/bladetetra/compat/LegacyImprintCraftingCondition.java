@@ -39,6 +39,7 @@ public final class LegacyImprintCraftingCondition implements CraftingEffectCondi
                         .contains(part, Tag.TAG_STRING);
         // Also run when the blade imprint was replaced by an ordinary blade
         // so stale source ownership is removed.
-        return imprinted || oldSourceNeedsCleanup;
+        return imprinted || oldSourceNeedsCleanup
+                || dev.bladetetra.forging.NamedBladeMaterial.namedVariant(tag.getString(module + "_material"));
     }
 }

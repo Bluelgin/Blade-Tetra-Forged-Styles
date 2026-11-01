@@ -29,7 +29,10 @@
     "MikageNativeSwordImpactMixin",
     "MikageGateReflectionMixin",
     "MirrorIceMixin",
-    "SwordTypeMixin"
+    "SwordTypeMixin",
+    "NamedMaterialVariantMixin",
+    "NamedMaterialSchematicMixin",
+    "NamedMaterialRegistryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

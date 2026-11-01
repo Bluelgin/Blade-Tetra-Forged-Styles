@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/tsuba" ],
+  "slots": [
+    "slashblade/tsuba"
+  ],
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": {
@@ -15,9 +17,24 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:bone/", "tetra:gem/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:bone/",
+        "tetra:gem/"
+      ],
       "moduleKey": "slashblade/simple_tsuba",
       "moduleVariant": "simple_tsuba/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "moduleKey": "slashblade/simple_tsuba",
+      "moduleVariant": "simple_tsuba/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ]
 }

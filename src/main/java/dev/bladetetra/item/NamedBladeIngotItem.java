@@ -68,8 +68,17 @@ public final class NamedBladeIngotItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
         String source = sourceId(stack);
+        if (source == null) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_ingot.unbound")
+                    .withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_ingot.source_stats")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
         tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_ingot.parts")
                 .withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_ingot.stats")
+                .withStyle(ChatFormatting.DARK_GRAY));
         if (source == null || source(stack) == null) {
             tooltip.add(Component.translatable("tooltip.blade_tetra.named_blade_ingot.missing",
                     source == null ? "?" : source).withStyle(ChatFormatting.DARK_GRAY));

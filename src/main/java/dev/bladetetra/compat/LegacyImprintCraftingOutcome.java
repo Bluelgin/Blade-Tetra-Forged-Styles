@@ -58,6 +58,7 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             ItemStack[] preMaterials) {
         String key = schematic == null ? null : schematic.getKey();
         boolean changed = NamedLegacyImprintStorage.applyCraftResult(upgradedStack, slot, key);
+        changed |= dev.bladetetra.forging.NamedBladeMaterial.capture(upgradedStack, slot, preMaterials);
         String dynamicPart = NamedLegacyImprintStorage.partForSlot(slot);
         if (dynamicPart != null && key != null
                 && (key.equals("slashblade/legacy_ingot_" + dynamicPart)

@@ -1052,10 +1052,10 @@
   "item.blade_tetra.named_blade_record": "Named Blade Record",
   "tooltip.blade_tetra.named_blade_record": "A handbook for named-blade imprinting, orthodox forms and legacy fusions",
   "tooltip.blade_tetra.named_blade_record.use": "Right-click to read; lists legacy fusions registered by this version",
-  "message.blade_tetra.named_blade_record.gift": "A Named Blade Record and a blank imprint scroll slip from a hidden pocket in the Smithing Journal.",
+  "message.blade_tetra.named_blade_record.gift": "A copy of the Named Blade Record slips out of the Smithing Journal.",
   "lore.blade_tetra.named_blade_record.cover": "Named Blade Record\n\n— Notes of an unknown bladesmith —\n\n'When you find a famed blade, do not rush to copy its edge.\nStudy the saya first, then the hilt.'\n\nForms and attunements observed on the road; the originals remain the work of their own makers.",
-  "lore.blade_tetra.named_blade_record.imprinting": "[Named-blade imprinting]\n\nPlace a supported named blade on a blade stand directly above a Tetra workbench.\n\nHold a blank imprint scroll and sneak-right-click the workbench to open the study screen.\n\nConfirming study consumes the scroll and the selected Proud Soul booster from your inventory. Spheres improve the odds; crystals and trapezohedrons also protect against breakage.\n\nFailure still damages the original blade. Breakage protection does not prevent durability loss.",
-  "lore.blade_tetra.named_blade_record.orthodox": "[Orthodox legacy]\n\nA successful study unlocks the named blade's saya and complete hilt fittings.\n\nYour Tetra blade material remains your own.\n\nMatching saya and hilt fittings form imprint affinity and inherit the source blade's registered SA or SE.",
+  "lore.blade_tetra.named_blade_record.imprinting": "[Named ingots]\n\nSurround a named blade with 8 tiny Proud Souls in a crafting table. The blade is returned with wear; repair it first if needed.\n\nUse the ingot as a material in regular Tetra blade, saya or guard forging. All require a level 3 hammer. No research scroll is needed.",
+  "lore.blade_tetra.named_blade_record.orthodox": "[Form and inheritance]\n\nBlade: 50% of source base attack. Saya and guard: 25% each. Sources may be mixed. Durability and capacity grow more slowly; speed follows the module.\n\nMatching saya and guard retain registered source SA/SE inheritance, without a second numerical affinity bonus.",
   "lore.blade_tetra.named_blade_record.fusion_intro": "[Legacy fusion]\n\nSome fittings from different named blades can be tuned together, awakening techniques that neither source blade possessed.\n\nSaya and hilt order matters. Reversing the same pair can produce a different result.\n\nConfirmed combinations follow.",
   "lore.blade_tetra.named_blade_record.fusion_page": "Confirmed fusions",
   "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s saya\n+ %2$s hilt\n→ %3$s",
@@ -1353,5 +1353,11 @@
   "tooltip.blade_tetra.soul_fragment.kyouka.words": "water|mirror|shadow|moon|reflection",
   "tooltip.blade_tetra.soul_fragment.kyouka.coda": "Leave a shadow, reveal a blade; between truth and illusion lies an opening.",
   "tooltip.blade_tetra.soul_fragment.warning_words": "consumes|consuming|burning|cost|cooldown|interrupt|cancel|exhaustion|reserve|spends",
-  "tooltip.blade_tetra.soul_fragment.benefit_words": "recover|restore|boosts|extends|speed|refund|returns"
+  "tooltip.blade_tetra.soul_fragment.benefit_words": "recover|restore|boosts|extends|speed|refund|returns",
+  "tooltip.blade_tetra.legacy_imprint_scroll.retired": "Retired imprint scroll; use named blade ingots in regular forging.",
+  "tooltip.blade_tetra.named_blade_ingot.stats": "Stats derive from source base attack; requires a level 3 hammer",
+  "tetra.material.named_blade_ingot.name": "Named blade ingot",
+  "tetra.material.named_blade_ingot.prefix": "Named",
+  "tooltip.blade_tetra.named_blade_ingot.unbound": "Without a name, its nature lies unformed.",
+  "tooltip.blade_tetra.named_blade_ingot.source_stats": "Properties depend on the source named blade."
 }

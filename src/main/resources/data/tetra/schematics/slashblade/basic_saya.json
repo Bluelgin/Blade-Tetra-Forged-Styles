@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/saya" ],
+  "slots": [
+    "slashblade/saya"
+  ],
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": {
@@ -13,9 +15,22 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:metal/",
+        "tetra:bone/"
+      ],
       "moduleKey": "slashblade/basic_saya",
       "moduleVariant": "basic_saya/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "moduleKey": "slashblade/basic_saya",
+      "moduleVariant": "basic_saya/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ]
 }

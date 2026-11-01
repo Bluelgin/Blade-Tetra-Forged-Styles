@@ -1063,10 +1063,10 @@
   "item.blade_tetra.named_blade_record": "名刀映录",
   "tooltip.blade_tetra.named_blade_record": "记录名刀映锻、正传与异传调律",
   "tooltip.blade_tetra.named_blade_record.use": "右键翻阅；自动列出本版本已登记的异传组合",
-  "message.blade_tetra.named_blade_record.gift": "《锻刀秘录》的夹层落下一册《名刀映录》，以及一张空白映锻卷。",
+  "message.blade_tetra.named_blade_record.gift": "《锻刀秘录》的夹层落下一册《名刀映录》。",
   "lore.blade_tetra.named_blade_record.cover": "名刀映录\n\n—— 佚名刀匠手录 ——\n\n『得一名刀，莫急着仿其锋。\n先观其鞘，再识其柄。』\n\n此册记旅途所见之刀，录其形与调律之法，不夺原作之名。",
-  "lore.blade_tetra.named_blade_record.imprinting": "【名刀映锻】\n\n将支持研习的名刀置于 Tetra 工作台正上方的挂刀台。\n\n手持空白映锻卷，潜行右键工作台，开启研习界面。\n\n确认研习会消耗空白映锻卷；背包中选中的耀魂助力材料也会消耗。耀魂宝珠提高成功率；耀魂结晶与耀魂宝玉还提供防折断保护。\n\n失败仍会损失原刀耐久；防折断不等于无损。",
-  "lore.blade_tetra.named_blade_record.orthodox": "【正传】\n\n研习成功后，刀谱会解锁对应名刀的刀鞘与完整镡柄刀装。\n\n刀身仍由自己的 Tetra 材料锻造。\n\n同源刀鞘与镡柄重新相合，会形成映锻契合，并继承原刀已登记的 SA 或 SE。",
+  "lore.blade_tetra.named_blade_record.imprinting": "【名刀锭】\n\n将名刀置于合成台中央，周围放置8个破碎的耀魂，提取其名刀锭。原刀会归还并消耗耐久；请先修复受损的刀。\n\n在Tetra工作台的普通刀身、刀鞘或刀镡锻造中，把名刀锭作为材料使用。统一需要3级锤，无需研习刀谱。",
+  "lore.blade_tetra.named_blade_record.orthodox": "【承形与正传】\n\n刀身继承原刀基础攻击的50%，刀鞘与刀镡各25%，可以混用不同来源。耐久与魔容量等随基础攻击缓慢增长；攻速仍由刀型决定。\n\n同源刀鞘与刀镡相合，继承原刀已登记的SA或SE；不会额外叠加旧契合攻击加成。",
   "lore.blade_tetra.named_blade_record.fusion_intro": "【异传】\n\n部分不同名刀的刀装也能彼此调律，产生原刀从未拥有过的剑技。\n\n刀鞘与镡柄的顺序具有意义。\n同样两把名刀，交换位置也可能得到完全不同的结果。\n\n已确认的组合记录在后页。",
   "lore.blade_tetra.named_blade_record.fusion_page": "已确认异传",
   "lore.blade_tetra.named_blade_record.fusion_entry": "%1$s之鞘\n＋ %2$s镡柄\n→ %3$s",
@@ -1364,5 +1364,11 @@
   "tooltip.blade_tetra.soul_fragment.kyouka.words": "水中|镜外|破影|三镜|水光|镜散",
   "tooltip.blade_tetra.soul_fragment.kyouka.coda": "留影以惑敌，凝水以见刃；虚实皆为出刀之隙。",
   "tooltip.blade_tetra.soul_fragment.warning_words": "消耗|扣后|占用|拒绝|不返|不退|中断|取消|冷却|耗尽|失效|不叠加|不刷新",
-  "tooltip.blade_tetra.soul_fragment.benefit_words": "恢复|返还|提高|增伤|移速|传导|重组"
+  "tooltip.blade_tetra.soul_fragment.benefit_words": "恢复|返还|提高|增伤|移速|传导|重组",
+  "tooltip.blade_tetra.legacy_imprint_scroll.retired": "旧映锻刀谱已退役；请提取名刀锭，在普通锻造中使用。",
+  "tooltip.blade_tetra.named_blade_ingot.stats": "材料数值由原刀基础攻击力决定；锻造需要3级锤",
+  "tetra.material.named_blade_ingot.name": "名刀锭",
+  "tetra.material.named_blade_ingot.prefix": "名刀",
+  "tooltip.blade_tetra.named_blade_ingot.unbound": "未定其名，尚无其性。",
+  "tooltip.blade_tetra.named_blade_ingot.source_stats": "数值随来源名刀而定。"
 }

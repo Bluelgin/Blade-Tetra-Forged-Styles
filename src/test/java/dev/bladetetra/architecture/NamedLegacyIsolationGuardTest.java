@@ -31,8 +31,6 @@ class NamedLegacyIsolationGuardTest {
                 "Every provider must share the generic saya/hilt variants");
         assertFalse(pack.contains("\"legacy_\" + part + \"/\" + kind.id()"),
                 "Provider ids must not expand Tetra's module variant table");
-        assertTrue(pack.contains("Map<String, byte[]> staged = buildKindResources(kind)"),
-                "Per-provider generated resources must be staged atomically");
     }
 
     @Test

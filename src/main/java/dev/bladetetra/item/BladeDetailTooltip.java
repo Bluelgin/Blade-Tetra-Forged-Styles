@@ -196,8 +196,10 @@ public final class BladeDetailTooltip {
         List<Component> lines = new ArrayList<>();
         FoxLegacyParts fox = FoxLegacyParts.fromStack(stack);
         var namedParts = dev.bladetetra.forging.NamedLegacyParts.fromStack(stack);
-        if (namedParts.present()) {
+        var namedBlade = dev.bladetetra.forging.NamedLegacyParts.bladeFromStack(stack);
+        if (namedParts.present() || namedBlade != null) {
             for (var part : java.util.List.of(
+                    new Object[]{"blade", namedBlade},
                     new Object[]{"saya", namedParts.saya()},
                     new Object[]{"hilt", namedParts.tsuba()})) {
                 if (part[1] instanceof dev.bladetetra.forging.LegacyImprintKind kind)

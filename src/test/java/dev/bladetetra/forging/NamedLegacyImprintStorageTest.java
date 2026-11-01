@@ -14,6 +14,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NamedLegacyImprintStorageTest {
     @Test
+    void ordinaryNamedMaterialRetainsIdentityThroughRefinementAndMigration() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("slashblade/blade", "slashblade/nodachi_blade");
+        tag.putString("slashblade/nodachi_blade_material", "nodachi_blade/named_blade_ingot");
+        NamedLegacyImprintStorage.putSource(tag, "blade", "missing_addon/remembered");
+        assertFalse(NamedLegacyImprintStorage.migrateStackTag(tag));
+        assertFalse(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "othermod:polish"));
+        assertEquals("missing_addon/remembered", NamedLegacyImprintStorage.sourceId(tag, "blade"));
+        tag.putString("slashblade/nodachi_blade_material", "nodachi_blade/iron");
+        assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "slashblade/nodachi_blade"));
+        assertNull(NamedLegacyImprintStorage.sourceId(tag, "blade"));
+    }
+
+    @Test
     void namedIngotBladeSlotIsIndependentFromUnchangedCompositeHilt() {
         CompoundTag tag = new CompoundTag();
         assertEquals("blade", NamedLegacyImprintStorage.partForSlot("slashblade/blade"));

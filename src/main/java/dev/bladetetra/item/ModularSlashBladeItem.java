@@ -242,7 +242,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         migrateLegacyModules(stack);
         int modularDurability = getModuleMaxDamage(stack);
         var completeSet = NamedLegacyParts.fromStack(stack).completeSet();
-        if (completeSet == null) {
+        if (completeSet == null || hasNamedMaterial(stack)) {
             return modularDurability;
         }
         ImprintAffinity affinity = ImprintAffinity.calculate(
@@ -262,9 +262,19 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
                 getAttributeModifiersCached(stack).get(Attributes.ATTACK_DAMAGE));
     }
 
+    private static boolean hasNamedMaterial(ItemStack stack) {
+        if (stack.getTag() == null) return false;
+        for (String part : new String[]{"blade", "saya", "tsuba"}) {
+            String module = stack.getTag().getString("slashblade/" + part);
+            if (dev.bladetetra.forging.NamedBladeMaterial.namedVariant(
+                    stack.getTag().getString(module + "_material"))) return true;
+        }
+        return false;
+    }
+
     public ImprintAffinity getImprintAffinity(ItemStack stack) {
         var completeSet = NamedLegacyParts.fromStack(stack).completeSet();
-        if (completeSet == null) {
+        if (completeSet == null || hasNamedMaterial(stack)) {
             return null;
         }
         return ImprintAffinity.calculate(

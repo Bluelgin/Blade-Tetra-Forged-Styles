@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 
 /**
  * Stable storage for named-imprint identity.
@@ -60,7 +61,7 @@ public final class NamedLegacyImprintStorage {
         }
         String material = tag.getString(module + "_material");
         String prefix = "legacy_" + part + "/";
-        if (material.equals(genericVariant(part))) {
+        if (material.equals(genericVariant(part)) || NamedBladeMaterial.namedVariant(material)) {
             if (!tag.contains(ROOT, Tag.TAG_COMPOUND)) {
                 return null;
             }
@@ -81,6 +82,17 @@ public final class NamedLegacyImprintStorage {
      */
     public static LegacyImprintKind snapshot(ItemStack stack, String part) {
         return stack == null ? null : snapshot(stack.getTag(), part);
+    }
+
+    /** Stat queries need only attack, without rebuilding models, profiles and effect lists. */
+    public static OptionalDouble snapshotAttack(ItemStack stack, String part) {
+        String source = sourceId(stack, part);
+        if (source == null || stack.getTag() == null) return OptionalDouble.empty();
+        CompoundTag value = stack.getTag().getCompound(ROOT).getCompound(snapshotKey(part));
+        if (!source.equals(value.getString("id")) || !value.contains(BASE_ATTACK, Tag.TAG_DOUBLE))
+            return OptionalDouble.empty();
+        double attack = value.getDouble(BASE_ATTACK);
+        return Double.isFinite(attack) ? OptionalDouble.of(attack) : OptionalDouble.empty();
     }
 
     static LegacyImprintKind snapshot(CompoundTag tag, String part) {
@@ -208,7 +220,7 @@ public final class NamedLegacyImprintStorage {
                     tag.putString(materialKey, genericVariant(part));
                     changed = true;
                 }
-            } else if (!material.equals(genericVariant(part))) {
+            } else if (!material.equals(genericVariant(part)) && !NamedBladeMaterial.namedVariant(material)) {
                 changed |= clearSource(tag, part);
             }
         }
@@ -238,7 +250,7 @@ public final class NamedLegacyImprintStorage {
         if (source != null) {
             return genericInstalled ? putSource(tag, part, source) : clearSource(tag, part);
         }
-        return genericInstalled ? false : clearSource(tag, part);
+        return genericInstalled || sourceId(tag, part) != null ? false : clearSource(tag, part);
     }
 
     public static String sourceFromSchematic(String schematicKey, String part) {

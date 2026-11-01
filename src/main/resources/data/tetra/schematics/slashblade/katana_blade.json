@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/blade" ],
+  "slots": [
+    "slashblade/blade"
+  ],
   "materialSlotCount": 1,
   "displayType": "major",
   "translation": {
@@ -13,10 +15,26 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:gem/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:gem/",
+        "tetra:bone/"
+      ],
       "countFactor": 2,
       "moduleKey": "slashblade/katana_blade",
       "moduleVariant": "katana_blade/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "countFactor": 2,
+      "moduleKey": "slashblade/katana_blade",
+      "moduleVariant": "katana_blade/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ]
 }
