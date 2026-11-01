@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <title>消失的知识 · 破碎纸页</title>
+  <desc>原创像素美术。暖色旧纸、紫褐描边、褪色刀形墨迹与朱砂残印。32像素网格，透明背景；游戏贴图以32×32导出。</desc>
+  <!-- Upper fragment: irregular silhouette and a torn, stepped lower edge. -->
+  <path fill="#342b37" d="M9 2h8v1h6v1h3v4h-1v5h-1v3h-2v1h-3v-1h-2v2h-3v-1h-2v-2H9v1H7v-3H6V9h1V5h2z"/>
+  <path fill="#a28062" d="M10 3h7v1h6v1h2v3h-1v5h-1v2h-4v-1h-2v2h-3v-1h-2v-2H9v1H8V9H7V7h1V5h2z"/>
+  <path fill="#d8bd90" d="M10 4h7v1h6v3h1v4h-1v2h-4v-1h-3v2h-3v-2h-3v-1H9V9H8V7h2z"/>
+  <path fill="#eddbb4" d="M10 4h6v1h5v1h2v5h-2v2h-3v-1h-3v2h-2v-2h-3v-2H9V7h1z"/>
+  <path fill="#fff0ce" d="M10 4h6v1h-6zM9 7h1v3H9zM10 6h2v1h-2z"/>
+  <path fill="#c6a77c" d="M22 6h1v3h-1zM21 12h2v2h-2zM11 12h2v1h-2zM14 14h2v1h-2z"/>
+  <!-- A folded corner, the last small intact piece of the page. -->
+  <path fill="#97785e" d="M23 5h2v3h-3V7h1z"/>
+  <path fill="#fff0ce" d="M23 5h1v2h-1z"/>
+  <!-- Broken blade sketch and interrupted, unreadable annotations. -->
+  <path fill="#81938e" d="M17 6h2v1h-1v2h-1v2h-1v1h-1v-2h1V8h1z"/>
+  <path fill="#b3b8a1" d="M17 6h1v2h-1zM16 9h1v2h-1z"/>
+  <path fill="#b4a17d" d="M11 7h3v1h-3zM11 9h2v1h-2zM20 9h1v2h-1zM19 12h2v1h-2z"/>
+  <path fill="#d3bd96" d="M11 8h1v1h-1zM13 10h1v1h-1zM20 6h1v1h-1z"/>
+  <!-- Lower fragment: a broad open tear, with no connecting paper. -->
+  <path fill="#342b37" d="M8 18h3v1h2v-1h3v1h2v-2h3v2h2v3h-1v3h-1v2h-3v2h-5v-1H8v-1H5v-4H4v-2h2v-2h2z"/>
+  <path fill="#a28062" d="M8 19h3v1h3v-1h2v1h3v-2h1v2h2v2h-1v3h-1v1h-3v2h-4v-1H8v-1H6v-3H5v-1h2v-2h1z"/>
+  <path fill="#dbc295" d="M8 20h3v1h3v-1h2v1h3v-1h2v2h-1v3h-3v2h-4v-1H8v-1H7v-3h1z"/>
+  <path fill="#eddbb4" d="M8 20h2v1h3v1h3v-1h3v3h-3v2h-3v-1H8z"/>
+  <path fill="#fff0ce" d="M8 20h2v1H8zM10 21h3v1h-3zM14 20h2v1h-2zM19 20h2v1h-2z"/>
+  <path fill="#b99a73" d="M8 25h4v1H8zM14 26h3v1h-3zM19 24h1v1h-1z"/>
+  <!-- The severed drawing and faded vermilion stamp. -->
+  <path fill="#81938e" d="M11 21h1v2h-1zM10 23h4v1h-2v2h-1v-2h-1z"/>
+  <path fill="#b3b8a1" d="M10 23h1v1h-1z"/>
+  <path fill="#a15f5d" d="M16 22h3v3h-1v1h-3v-3h1z"/>
+  <path fill="#ca8b7b" d="M16 22h2v1h-2zM15 24h1v1h-1z"/>
+  <path fill="#ead0a7" d="M17 23h1v1h-1zM16 24h1v1h-1z"/>
+  <!-- Loose scraps: physical paper, not magic sparks. -->
+  <path fill="#59434a" d="M26 16h3v3h-2v-1h-1zM3 16h2v2H3zM24 25h2v2h-2z"/>
+  <path fill="#d8bd90" d="M26 16h2v1h-2zM27 17h1v1h-1zM3 16h1v1H3zM24 25h1v1h-1z"/>
+  <path fill="#f1dfb7" d="M26 16h1v1h-1z"/>
+</svg>

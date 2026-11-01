@@ -57,4 +57,5 @@
 - 已有物品通过原注册 ID 自然加载，不扫描世界、不清除物品、不改写历史物品 NBT。
 - 已完成的 Tetra 名刀刀谱保持原物品、名称、外观与 NBT；仅停用对应旧映锻配方和产出。不添加逐卷轴禁用逻辑，不影响其他 Tetra 卷轴及原生展示行为。
 - 名刀来源识别、模型适配、属性快照、正传／异传及旧武器所需兼容逻辑继续保留。
-- 「消失的知识」的破碎纸张 SVG 是独立待审美术稿，本次不替换游戏内 PNG。
+- 「消失的知识」使用破碎纸张贴图：SVG 母版为 `art-previews/lost_knowledge.svg`，以 32×32、透明背景导出到 `assets/blade_tetra/textures/item/legacy_imprint_scroll.png`，沿用原物品模型引用。暖色残纸、断开的刀形墨迹与朱砂残印与已确认预览一致。
+- 可使用 CairoSVG 重新导出：`cairosvg art-previews/lost_knowledge.svg -o src/main/resources/assets/blade_tetra/textures/item/legacy_imprint_scroll.png -s 0.0625`。SVG 标称大小为 512×512，缩放后严格落在 32×32 像素网格；CairoSVG 仅为美术导出工具，不是模组运行依赖。
