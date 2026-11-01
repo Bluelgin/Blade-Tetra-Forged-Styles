@@ -60,3 +60,9 @@
 - 名刀来源识别、模型适配、属性快照、正传／异传及旧武器所需兼容逻辑继续保留。
 - 「消失的知识」使用破碎纸张贴图：SVG 母版为 `art-previews/lost_knowledge.svg`，以 32×32、透明背景导出到 `assets/blade_tetra/textures/item/legacy_imprint_scroll.png`，沿用原物品模型引用。暖色残纸、断开的刀形墨迹与朱砂残印与已确认预览一致。
 - 可使用 CairoSVG 重新导出：`cairosvg art-previews/lost_knowledge.svg -o src/main/resources/assets/blade_tetra/textures/item/legacy_imprint_scroll.png -s 0.0625`。SVG 标称大小为 512×512，缩放后严格落在 32×32 像素网格；CairoSVG 仅为美术导出工具，不是模组运行依赖。
+
+## 附属美术验收环境
+
+独立创造页截图环境可启用现有 `-PsjapTest -PyakumoTest` 配置，安装 SJAP 1.2.16（CurseForge 文件 7039817）与 YakumoBlade 1.1.4（文件 7264677）。CI 从作者的 CurseForge 官方 CDN 获取 Yakumo JAR，放入仅供开发使用的 `run/test-libs`，复用 ForgeGradle 的反混淆依赖加载；不打包进发行 JAR，不新增玩家必装依赖。
+
+超过 45 种来源时，验收入口通过原生滚轮操作截取列表顶部、中段、底部，分别保存 `named-ingot-creative.png`、`named-ingot-creative-1.png`、`named-ingot-creative-2.png`；客户端日志记录实际识别的来源总数与命名空间分布。截图成功仅代表该组合能够启动并呈现图标，不替代第三方武器玩法的完整兼容验收。

@@ -53,7 +53,7 @@ public final class NamedIngotArtReview {
     }
 
     private static final class Review extends CreativeModeInventoryScreen {
-        private int frames;
+        private int frames, capture;
         Review(Minecraft mc) {
             super(mc.player, mc.level.enabledFeatures(), true);
         }
@@ -93,7 +93,11 @@ public final class NamedIngotArtReview {
                 long ingots = menu.slots.stream().map(slot -> slot.getItem())
                         .filter(stack -> stack.getItem() instanceof NamedBladeIngotItem).count();
                 if (ingots < 2) throw new IllegalStateException("Named ingot section missing: " + ingots);
-                LogUtils.getLogger().info("NAMED_INGOT_CREATIVE_OPEN: {} visible source ingots", ingots);
+                var providers = new java.util.TreeMap<String, Integer>();
+                for (var kind : dev.bladetetra.forging.NamedLegacyCatalog.values())
+                    providers.merge(kind.name().getNamespace(), 1, Integer::sum);
+                LogUtils.getLogger().info("NAMED_INGOT_CREATIVE_OPEN: {} visible / {} total source ingots; providers {}",
+                        ingots, contents.size(), providers);
             } catch (ReflectiveOperationException failure) {
                 throw new IllegalStateException(failure);
             }
@@ -106,10 +110,20 @@ public final class NamedIngotArtReview {
                     throw new IllegalStateException("Source art did not render; fallback is not an art pass");
                 var mc = Minecraft.getInstance();
                 try (var image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
-                    image.writeToFile(mc.gameDirectory.toPath().resolve("named-ingot-creative.png"));
-                    LogUtils.getLogger().info("NAMED_INGOT_ART_REVIEW_PASS: actual creative inventory, integrated world");
+                    String file = capture == 0 ? "named-ingot-creative.png"
+                            : "named-ingot-creative-" + capture + ".png";
+                    image.writeToFile(mc.gameDirectory.toPath().resolve(file));
+                    LogUtils.getLogger().info("NAMED_INGOT_ART_CAPTURE: {}", file);
                 } catch (java.io.IOException failure) { throw new IllegalStateException(failure); }
-                mc.stop();
+                if (++capture < 3 && ModItems.NAMED_INGOTS_TAB.get().getDisplayItems().size() > 45) {
+                    // Drive vanilla scrolling, so both visible slots and the
+                    // native scrollbar position agree in the real screenshot.
+                    mouseScrolled(0, 0, capture == 1 ? -4 : -1000);
+                    frames = 0;
+                } else {
+                    LogUtils.getLogger().info("NAMED_INGOT_ART_REVIEW_PASS: actual creative inventory, {} captures", capture);
+                    mc.stop();
+                }
             }
         }
     }
