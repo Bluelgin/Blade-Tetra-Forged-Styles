@@ -83,7 +83,7 @@ final class NamedIngotArtwork {
             java.util.List<Face> candidates = new java.util.ArrayList<>();
             int inspected = 0;
             for (var group : model.groupObjects) {
-                if (!group.name.equals("item_blade") && !group.name.equals("backplate")) continue;
+                if (!group.name.equals("item_blade") && !group.name.equals("backplate") && !group.name.equals("item_back")) continue;
                 for (var face : group.faces) {
                     if (++inspected > 200_000) return best;
                     if (face.textureCoordinates == null || face.textureCoordinates.length < 3) continue;
@@ -95,10 +95,10 @@ final class NamedIngotArtwork {
                     }
                     var candidate = new Region(u0, v0, u1, v1);
                     double w = u1 - u0, h = v1 - v0;
-                    if (!candidate.valid() || w * h < .015 || w * h > .8) continue;
+                    if (!candidate.valid() || w * h < .000001 || w * h > .8) continue;
                     double score = projectedArea(face) * Math.min(w, h) / Math.max(w, h);
                     candidates.add(face);
-                    if (group.name.equals("backplate")) score *= 4;
+                    if (group.name.equals("backplate") || group.name.equals("item_back")) score *= 4;
                     if (score > bestScore) { best = candidate; bestScore = score; bestFace = face; }
                 }
             }
