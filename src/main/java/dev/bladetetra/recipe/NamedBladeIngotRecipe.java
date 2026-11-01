@@ -1,7 +1,7 @@
 package dev.bladetetra.recipe;
 
 import dev.bladetetra.forging.LegacyImprintKind;
-import dev.bladetetra.forging.LegacyResearchability;
+import dev.bladetetra.forging.NamedBladeIngotEligibility;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.registry.ModRecipes;
@@ -40,7 +40,7 @@ public final class NamedBladeIngotRecipe extends CustomRecipe {
     public ItemStack assemble(CraftingContainer grid, RegistryAccess access) {
         ItemStack original = findBlade(grid);
         if (original == null) return ItemStack.EMPTY;
-        LegacyImprintKind kind = LegacyResearchability.identify(original);
+        LegacyImprintKind kind = NamedBladeIngotEligibility.inspect(original).kind();
         return kind == null ? ItemStack.EMPTY : NamedBladeIngotItem.create(kind);
     }
 
@@ -54,7 +54,7 @@ public final class NamedBladeIngotRecipe extends CustomRecipe {
         ItemStack saved = blade.copy();
         saved.setCount(1);
         saved.getCapability(ItemSlashBlade.BLADESTATE).ifPresent(state -> {
-            int cost = cost(state.getMaxDamage());
+            int cost = NamedBladeIngotEligibility.cost(state.getMaxDamage());
             state.setDamage(state.getDamage() + cost);
             saved.getOrCreateTag().put("bladeState", state.serializeNBT());
         });
@@ -63,14 +63,14 @@ public final class NamedBladeIngotRecipe extends CustomRecipe {
     }
 
     public static int cost(int maximum) {
-        return Math.max(1, (int)Math.ceil(Math.max(2, maximum) * 0.10D));
+        return NamedBladeIngotEligibility.cost(maximum);
     }
 
     private static ItemStack findBlade(CraftingContainer grid) {
         if (grid.getWidth() != 3 || grid.getHeight() != 3) return null;
         ItemStack center = grid.getItem(4);
         if (!(center.getItem() instanceof ItemSlashBlade)) return null;
-        if (LegacyResearchability.identify(center) == null) return null;
+        if (!NamedBladeIngotEligibility.inspect(center).extractable()) return null;
         for (int i = 0; i < 9; i++) {
             if (i == 4) continue;
             ItemStack stack = grid.getItem(i);
@@ -79,12 +79,7 @@ public final class NamedBladeIngotRecipe extends CustomRecipe {
                 return null;
             }
         }
-        return center.getCapability(ItemSlashBlade.BLADESTATE)
-                .resolve()
-                .filter(state -> state.getMaxDamage() > 1
-                        && state.getDamage() + cost(state.getMaxDamage()) < state.getMaxDamage())
-                .map(state -> center)
-                .orElse(null);
+        return center;
     }
 
     @Override
