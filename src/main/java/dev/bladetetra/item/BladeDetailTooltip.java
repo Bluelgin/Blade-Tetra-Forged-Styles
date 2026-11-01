@@ -92,14 +92,19 @@ public final class BladeDetailTooltip {
                     .withStyle(ChatFormatting.GOLD));
             lines.add(Component.translatable("tooltip.blade_tetra.soul.switch")
                     .withStyle(ChatFormatting.GRAY));
-            if (!SoulSkillState.allowsStyle(selected, StyleResolver.resolve(stack)))
+            if (!SoulSkillState.allowsStyle(stack, selected))
                 lines.add(Component.translatable("hud.blade_tetra.soul.requires", Component.translatable(
                         SoulSkillState.requiredStyle(selected).getTranslationKey()))
                         .withStyle(ChatFormatting.DARK_GRAY));
+            if (SoulSkillState.customLinked(stack))
+                lines.add(Component.translatable("tooltip.blade_tetra.soul.custom_linked").withStyle(ChatFormatting.AQUA));
             if (AwakenedBladeCombat.isV2CombatSoul(selected))
                 lines.add(Component.translatable("tooltip.blade_tetra.awakened.v2."
                         + selected.name().toLowerCase(java.util.Locale.ROOT)).withStyle(ChatFormatting.GRAY));
-            else lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution").withStyle(ChatFormatting.RED));
+            else {
+                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution").withStyle(ChatFormatting.RED));
+                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.blood_blade").withStyle(ChatFormatting.DARK_RED));
+            }
             return lines;
         }
         if (!AwakenedBladeCombat.replacesLegacy()
@@ -130,6 +135,8 @@ public final class BladeDetailTooltip {
                 && AkatsukiAwakening.isActive(stack)) {
             lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution")
                     .withStyle(ChatFormatting.RED));
+            if (AwakenedBladeCombat.replacesLegacy())
+                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.blood_blade").withStyle(ChatFormatting.DARK_RED));
             if (ContractBladeCompat.hasAkatsuki(stack)) {
                 lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.spirit_bound")
                         .withStyle(ChatFormatting.DARK_RED));

@@ -9,7 +9,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "awakened2-soul-switch-1";
+    private static final String PROTOCOL = "awakened2-blood-threads-6";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -18,6 +18,12 @@ public final class ModNetwork {
 
     // Retired wire IDs 22 (V2 HUD) and 23 (old pose replay) stay reserved.
     public static void register() {
+        CHANNEL.registerMessage(30, AkatsukiThreadPacket.class, AkatsukiThreadPacket::encode,
+                AkatsukiThreadPacket::decode, AkatsukiThreadPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(29, SakuraRecallPacket.class, SakuraRecallPacket::encode,
+                SakuraRecallPacket::decode, SakuraRecallPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(28, SoulActivityPacket.class, SoulActivityPacket::encode,
+                SoulActivityPacket::decode, SoulActivityPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(26, SoulSwitchPacket.class, SoulSwitchPacket::encode,
                 SoulSwitchPacket::decode, SoulSwitchPacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(27, SoulSwitchReply.class, SoulSwitchReply::encode,

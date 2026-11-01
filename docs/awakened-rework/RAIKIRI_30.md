@@ -1,5 +1,7 @@
 # Raikiri 3.1 — observe native motion, leave lightning behind
 
+> The former swept-path 1.5x charge interaction is superseded by [Needle Burst](RAIKIRI_NEEDLE_BURST.md): consumed needles gather into one short-delay burst per native Rapid Slash. Untouched needles retain their periodic and lifetime budgets. The sections below retain the original native-observation history.
+
 ## Baseline and correction
 
 PR #48 stays on `codex/raikiri-3-thunder-resonance`, based directly on #41

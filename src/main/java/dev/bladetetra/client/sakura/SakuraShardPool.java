@@ -1,6 +1,7 @@
 package dev.bladetetra.client.sakura;
 
 import net.minecraft.world.phys.Vec3;
+import dev.bladetetra.easteregg.SakuraRecallSequence;
 import static dev.bladetetra.client.sakura.SakuraShardTrajectory.*;
 
 /** Fixed client-only objects. A launched index is the SAME shard absent from its home. */
@@ -48,12 +49,63 @@ public final class SakuraShardPool {
     private long lastSequence;
     private double danceUntil, deployment;
     private SakuraStanceTransition stance;
+    private Vec3 recallTarget,recallOrigin,recallGoal;
+    private boolean recallCanceled;
+    private double recallReturnAge,recallRelease,recallHitAt=-100,recallBloomAt=-100;
+    private int recallTier;
+    private float recallHeight=3;
+    public Vec3 recallTarget() {return stance!=null&&stance.striking()&&stance.active(now)?recallTarget:null;}
+    public Vec3 recallCrown() {return recallTarget==null?null:recallTarget.add(0,recallHeight,0);}
+    public boolean recallCanceled() {return recallCanceled;}
+    public double releaseAge(double time) {return stance==null?-100:time-stance.startedAt()-recallRelease;}
+    public int recallTier() {return recallTier;}
+    public double recallBloomAge(double time) {return time-recallBloomAt;}
+    public double recallHitAge(double time) {return time-recallHitAt;}
+    public boolean charging(double time) {
+        return stance!=null&&stance.striking()&&!recallCanceled&&time-stance.startedAt()>=SakuraRecallSequence.APPROACH
+                &&time-stance.startedAt()<recallRelease;
+    }
+    public void strikeRecall(Vec3 target,int maxTier,float height) {strikeRecall(target,maxTier,height,SakuraRecallSequence.release(maxTier));}
+    public void strikeRecall(Vec3 target,int maxTier,float height,int releaseTicks) {
+        recallTarget=recallOrigin=recallGoal=target;recallHeight=height;recallTier=0;recallHitAt=recallBloomAt=-100;
+        recallCanceled=false;recallRelease=releaseTicks;
+        recallReturnAge=recallRelease+SakuraRecallSequence.RUSH+SakuraRecallSequence.BLOOM;
+        stance=new SakuraStanceTransition(false,stance.startedAt(),stance.fromFraction(),true,
+                recallReturnAge,(int)recallReturnAge+SakuraRecallSequence.RETURN);
+    }
+    public void recallStage(int tier) {recallTier=Math.max(recallTier,Math.min(3,tier));}
+    public void releaseRecall(Vec3 anchor,double time,int tier) {
+        if(stance==null||!stance.striking()||recallCanceled)return;
+        recallTarget=recallGoal=anchor;recallTier=tier;recallRelease=time-stance.startedAt();
+        recallReturnAge=recallRelease+SakuraRecallSequence.RUSH+SakuraRecallSequence.BLOOM;
+        stance=new SakuraStanceTransition(false,stance.startedAt(),stance.fromFraction(),true,
+                recallReturnAge,(int)Math.ceil(recallReturnAge)+SakuraRecallSequence.RETURN);
+    }
+    public void confirmBloom(double time) {if(!recallCanceled)recallBloomAt=time;}
+    public void confirmRecall(double time) {if(!recallCanceled)recallHitAt=time;}
+    public void trackRecall(Vec3 target,double time) {
+        if(stance==null||!stance.striking()||recallCanceled) return;
+        if(target.distanceToSqr(recallOrigin)>SakuraRecallSequence.LEASH*SakuraRecallSequence.LEASH) {abortRecall(time);return;}
+        if(time-stance.startedAt()<recallRelease-SakuraRecallSequence.LOCK)recallGoal=target;
+    }
+    public void abortRecall(double time) {
+        if(stance==null||!stance.striking()||recallCanceled)return;
+        recallCanceled=true;recallReturnAge=Math.max(0,time-stance.startedAt());
+        stance=new SakuraStanceTransition(false,stance.startedAt(),stance.fromFraction(),true,
+                recallReturnAge,(int)Math.ceil(recallReturnAge)+SakuraRecallSequence.RETURN);
+        for(Shard s:shards) {s.returnStart=s.position;s.returnVelocity=Vec3.ZERO;}
+    }
+    public float chargeGlow(int index,double time) {
+        if(!charging(time))return 0;
+        double progress=(time-stance.startedAt()-SakuraRecallSequence.APPROACH)/Math.max(1,recallRelease-SakuraRecallSequence.APPROACH);
+        return (float)Math.min(1,.15+progress*.55+recallTier*.1+Math.sin(time*.9+index)*.07);
+    }
     public SakuraStanceTransition stance() { return stance; }
     public void hide() {
         for (Shard s : shards) s.visibility = s.previousVisibility = 0;
     }
     public void beginStance(boolean dispersing, double time, Vec3 grip, Vec3 tip, float fromFraction) {
-        partialTransition=false;
+        partialTransition=false;recallTarget=null;
         stance = new SakuraStanceTransition(dispersing, time, fromFraction);
         danceUntil=0;deployment=0;
         java.util.Arrays.fill(groups, null);
@@ -212,6 +264,8 @@ public final class SakuraShardPool {
     }
     public void tick(SakuraShardFormation.Frame next, double time, Vec3 grip, Vec3 tip) {
         frame=next; now=time;
+        if(stance!=null&&stance.striking()&&!recallCanceled&&time-stance.startedAt()<recallRelease-SakuraRecallSequence.LOCK)
+            recallTarget=approach(recallTarget,recallGoal,SakuraRecallSequence.TRACK_STEP);
         deployment=Math.max(0,Math.min(1,deployment+(time<danceUntil?.12:-.12)));
         for(Group group:groups) if(group!=null)
             group.center=approach(group.center,group.goal,.55);
@@ -223,6 +277,8 @@ public final class SakuraShardPool {
                 if(partialTransition) tickPartial(shard,time,home);
                 else tickStance(shard,time,home,grip,tip);
                 recordMotion(shard);
+                if(stance!=null&&stance.striking()&&!recallCanceled&&time-stance.startedAt()<recallRelease-SakuraRecallSequence.LOCK)
+                    shard.direction=new Vec3(0,-1,0);
                 continue;
             }
             // Forming shards can join a follow-up before fully opaque. Their
@@ -284,6 +340,39 @@ public final class SakuraShardPool {
             if(u>=1) {s.state=State.IDLE;s.position=home;s.visibility=1;s.history=0;}
         } else {
             double u=Math.max(0,Math.min(1,age/stance.duration()));
+            if(stance.striking()&&!recallCanceled&&age<=recallReturnAge) {
+                double charge=Math.max(0,Math.min(1,(age-SakuraRecallSequence.APPROACH)/
+                        Math.max(1,recallRelease-SakuraRecallSequence.APPROACH)));
+                Vec3 crown=recallCrown();
+                double angle=index*Math.PI*6+age*(.055+.13*charge)+recallTier*.12;
+                double radius=(.75-charge*.42)+(s.index%3)*.065;
+                double wobble=(.018+recallTier*.015)*Math.sin(age*1.7+s.index*2.3);
+                Vec3 orbit=crown.add(Math.cos(angle)*(radius+wobble),(index-.5)*.65,
+                        Math.sin(angle)*(radius+wobble));
+                // A few original shards briefly slip outward and are pulled back into the unstable core.
+                double leak=Math.max(0,Math.sin(age*.65+(s.index/6)*2.17));
+                if(recallTier>0&&s.index%6==0&&age<recallRelease)
+                    orbit=orbit.add(Math.cos(angle)*leak*leak*.22*recallTier,leak*.08,
+                            Math.sin(angle)*leak*leak*.22*recallTier);
+                if(age<SakuraRecallSequence.APPROACH) {
+                    s.position=cubic(s.start,s.start.add(0,1,0),orbit.add(0,.4,0),orbit,
+                            age/SakuraRecallSequence.APPROACH);
+                } else if(age<recallRelease)s.position=orbit;
+                else {
+                    double rush=Math.min(1,(age-recallRelease)/SakuraRecallSequence.RUSH);
+                    Vec3 through=recallTarget.add(Math.cos(angle)*.12,-.15,Math.sin(angle)*.12);
+                    s.position=orbit.lerp(through,rush*rush);
+                    if(age>recallRelease+SakuraRecallSequence.RUSH) {
+                        double bloom=(age-recallRelease-SakuraRecallSequence.RUSH)/SakuraRecallSequence.BLOOM;
+                        s.position=s.position.add(Math.cos(angle)*bloom*.48,bloom*.16,Math.sin(angle)*bloom*.48);
+                    }
+                }
+                s.returnStart=s.position;
+                Vec3 velocity=s.position.subtract(s.previous);
+                s.returnVelocity=velocity.lengthSqr()>.04?velocity.normalize().scale(.2):velocity;
+                s.visibility=s.initialVisibility;return;
+            }
+            if(stance.striking())u=Math.max(0,Math.min(1,(age-recallReturnAge)/(stance.duration()-recallReturnAge)));
             Vec3 along=tip.subtract(grip);
             Vec3 end=grip.add(along.scale(index*stance.fraction(time)));
             Vec3 side=new Vec3(-along.z,0,along.x).normalize();
@@ -291,7 +380,8 @@ public final class SakuraShardPool {
             double swirl=Math.sin(u*Math.PI)*(.12+(s.index%4)*.04);
             Vec3 orbit=side.scale(Math.cos(u*Math.PI*2+index*6.28)*swirl)
                     .add(0,Math.sin(u*Math.PI*2+index*6.28)*swirl,0);
-            s.position=cubic(s.start,s.start.add(s.returnVelocity.scale(2)),end.add(0,-.25,0),end,u).add(orbit);
+            Vec3 start=stance.striking()&&s.returnStart!=null?s.returnStart:s.start;
+            s.position=cubic(start,start.add(s.returnVelocity.scale(2)),end.add(0,-.25,0),end,u).add(orbit);
             s.visibility=(float)(s.initialVisibility*(1-SakuraStanceTransition.smooth((u-.65)/.35)));
             if(u>=1) {s.position=end;s.visibility=0;s.state=State.IDLE;s.history=0;}
         }

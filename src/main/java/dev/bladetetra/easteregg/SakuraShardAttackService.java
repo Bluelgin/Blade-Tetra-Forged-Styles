@@ -34,14 +34,14 @@ public final class SakuraShardAttackService {
     private static final int MAX_PROJECTILES=256, PER_PLAYER=4, PROJECTILE_TTL=30;
     private static final class Owner {
         final ItemStack blade; final int slot; final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension;
-        long nextAt, blockedUntil; int cursor; boolean right;
+        long nextAt, blockedUntil, nextCondensedAt; int cursor; boolean right;
         Pending pending; LivingEntity lastTarget; long targetAt;
         Owner(ServerPlayer p,ItemStack b) {blade=b;slot=p.getInventory().selected;dimension=p.level().dimension();}
         boolean matches(ServerPlayer p) {return p.isAlive()&&p.getMainHandItem()==blade&&slot==p.getInventory().selected
-                &&dimension.equals(p.level().dimension())&&SakuraEndlessFlow.eligible(blade);}
+                &&dimension.equals(p.level().dimension())&&SakuraStanceController.supported(blade);}
     }
-    private record Pending(LivingEntity target,float damage,long fireAt,boolean right) {}
-    private record Flight(ServerPlayer owner,Owner binding,LivingEntity target,float budget,long at) {}
+    private record Pending(LivingEntity target,float damage,long fireAt,boolean right,boolean dispersed) {}
+    private record Flight(ServerPlayer owner,Owner binding,LivingEntity target,float budget,long at,boolean dispersed) {}
     private static final class DamageBudget {
         final ServerPlayer owner; final LivingEntity target; float remaining;
         DamageBudget(ServerPlayer owner,LivingEntity target,float amount) {this.owner=owner;this.target=target;remaining=amount;}
@@ -65,6 +65,39 @@ public final class SakuraShardAttackService {
         if(o==null||!o.matches(p)) {o=new Owner(p,blade);OWNERS.put(p.getUUID(),o);}
         o.lastTarget=target;o.targetAt=p.level().getGameTime();
     }
+    public static void remember(ServerPlayer p,ItemStack blade,LivingEntity target,float damage) {
+        if(Float.isFinite(damage)&&damage>0) targetHit(p,blade,target);
+    }
+    public static void condensedShot(ServerPlayer p,ItemStack blade,LivingEntity target,float damage) {
+        if(!SakuraStanceController.supported(blade)||SakuraStanceController.dispersed(blade)||!validTarget(p,target))return;
+        Owner o=OWNERS.get(p.getUUID());if(o==null||!o.matches(p))return;
+        long now=p.level().getGameTime();
+        if(now<o.nextCondensedAt||o.pending!=null||SakuraRecallService.active(p)||FLIGHTS.size()>=MAX_PROJECTILES)return;
+        float budget=SakuraShardAttackRules.damage(damage,.20,4);
+        if(budget<=0||overhead(p,target,o.right)==null)return;
+        o.nextCondensedAt=now+30;
+        o.pending=new Pending(target,budget,now+4,o.right,false);o.right=!o.right;
+        SoulActivityService.triggered(p,blade,SoulLegacyState.Legacy.SENBONZAKURA);
+    }
+    private static boolean recallTarget(ServerPlayer p,LivingEntity target) {
+        return SakuraRecallService.valid(p,target);
+    }
+    /** Prefer recent combat, otherwise acquire one nearby visible hostile in a bounded query. */
+    private static LivingEntity recallTarget(ServerPlayer p,Owner o) {
+        long age=p.level().getGameTime()-o.targetAt;
+        if(age>=0&&age<=100&&o.lastTarget!=null&&recallTarget(p,o.lastTarget))return o.lastTarget;
+        return p.serverLevel().getEntitiesOfClass(Mob.class,
+                p.getBoundingBox().inflate(SakuraRecallSequence.SEARCH_RANGE),t->recallTarget(p,t)).stream()
+                .min(Comparator.comparingDouble(p::distanceToSqr)).orElse(null);
+    }
+    /** Consume one complete dispersed formation; no eligible enemy still permits harmless reassembly. */
+    public static LivingEntity recall(ServerPlayer p,ItemStack blade) {
+        if(!SakuraStanceController.supported(blade)||!SakuraStanceController.dispersed(blade))return null;
+        Owner o=OWNERS.get(p.getUUID());cancel(p);
+        if(o==null||!o.matches(p)) {o=new Owner(p,blade);OWNERS.put(p.getUUID(),o);}
+        LivingEntity target=recallTarget(p,o);
+        return SakuraRecallService.start(p,blade,target)?target:null;
+    }
     /** Invoked only after a verified native attack's first positive LivingDamage event. */
     public static void concerto(ServerPlayer p,ItemStack blade,LivingEntity target,float damage) {
         if(!SakuraEndlessFlow.eligible(blade)||SakuraInfiniteDanceSA.active(p,blade)||!validTarget(p,target)) return;
@@ -78,7 +111,8 @@ public final class SakuraShardAttackService {
         int logical=o.cursor++%SakuraShardAttackRules.LOGICAL_SHARDS;
         boolean right=o.right;o.right=!right;
         o.nextAt=now+GameplayConfig.SAKURA_CONCERTO_INTERVAL.get();
-        o.pending=new Pending(target,budget,now+SakuraShardAttackRules.FIRE_TICK,right);
+        o.pending=new Pending(target,budget,now+SakuraShardAttackRules.FIRE_TICK,right,true);
+        SoulActivityService.triggered(p,blade,SoulLegacyState.Legacy.SENBONZAKURA);
         cue(p,blade,1,SakuraShardAttackRules.CONCERTO_VARIANT+logical*2+(right?1:0),
                 launch,target.getId(),now);
     }
@@ -100,6 +134,11 @@ public final class SakuraShardAttackService {
         try {InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->target.hurt(p.damageSources().playerAttack(p),damage)));}
         finally {if(previous==null) SA_BUDGET.remove();else SA_BUDGET.set(previous);}
     }
+    static void secondary(ServerPlayer p,LivingEntity target,float damage) {
+        DamageBudget previous=SA_BUDGET.get();SA_BUDGET.set(new DamageBudget(p,target,damage));
+        try {InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->target.hurt(p.damageSources().playerAttack(p),damage)));}
+        finally {if(previous==null)SA_BUDGET.remove();else SA_BUDGET.set(previous);}
+    }
     public static void cue(ServerPlayer p,ItemStack blade,int stage,int variant,Vec3 end,int target,long at) {
         var tag=blade.getTag();if(tag==null||tag.getString("id").isBlank()) return;
         Vec3 origin=p.getEyePosition();
@@ -109,11 +148,17 @@ public final class SakuraShardAttackService {
                         p.level().dimension().location(),stage,SakuraCombatVisuals.nextSequence(),at,target));
         if(packet.valid()) ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(()->p),packet);
     }
+    public static boolean hasPendingAttack(ServerPlayer p) {
+        Owner o = OWNERS.get(p.getUUID());
+        return o != null && o.matches(p) && (o.pending != null || SakuraRecallService.active(p)
+                || FLIGHTS.values().stream().anyMatch(f -> f.owner == p && f.binding == o));
+    }
     public static boolean switchBlocked(ServerPlayer p) {
         Owner o = OWNERS.get(p.getUUID());
-        return o != null && o.pending != null || FLIGHTS.values().stream().anyMatch(f -> f.owner == p);
+        return o != null && (o.pending != null || SakuraRecallService.active(p)) || FLIGHTS.values().stream().anyMatch(f -> f.owner == p);
     }
     public static void cancel(ServerPlayer p) {
+        SakuraRecallService.cancel(p);
         Owner o=OWNERS.get(p.getUUID());
         if(o!=null) {o.pending=null;o.blockedUntil=p.level().getGameTime()+SakuraShardAttackRules.FLIGHT_TICKS;}
         FLIGHTS.entrySet().removeIf(e->{if(e.getValue().owner==p) {e.getKey().discard();return true;}return false;});
@@ -126,7 +171,7 @@ public final class SakuraShardAttackService {
         Pending pending=o.pending;
         if(pending==null||now<pending.fireAt) return;
         o.pending=null;
-        if(!SakuraEndlessFlow.eligible(o.blade)||SakuraInfiniteDanceSA.active(p,o.blade)||!validTarget(p,pending.target)||now>pending.fireAt+1
+        if(SakuraStanceController.dispersed(o.blade)!=pending.dispersed||SakuraInfiniteDanceSA.active(p,o.blade)||!validTarget(p,pending.target)||now>pending.fireAt+1
                 ||FLIGHTS.size()>=MAX_PROJECTILES||FLIGHTS.values().stream().filter(f->f.owner==p).count()>=PER_PLAYER) return;
         Vec3 origin=overhead(p,pending.target,pending.right);if(origin==null) return;
         Vec3 end=pending.target.getBoundingBox().getCenter();
@@ -138,8 +183,23 @@ public final class SakuraShardAttackService {
         sword.getPersistentData().putBoolean(MARK,true);
         SoulLegacyDamageGuard.markSecondary(sword);InheritedCombatDamage.mark(sword);
         Vec3 direction=end.subtract(origin).normalize();sword.shoot(direction.x,direction.y,direction.z,3,0);
-        FLIGHTS.put(sword,new Flight(p,o,pending.target,pending.damage,now));
+        FLIGHTS.put(sword,new Flight(p,o,pending.target,pending.damage,now,pending.dispersed));
         if(!p.level().addFreshEntity(sword)) FLIGHTS.remove(sword);
+    }
+    static void locator(ServerPlayer p,LivingEntity target,Vec3 origin,float attack) {
+        Owner o=OWNERS.get(p.getUUID());
+        if(o==null||!o.matches(p)||!SakuraRecallService.valid(p,target)||FLIGHTS.size()>=MAX_PROJECTILES
+                ||FLIGHTS.values().stream().filter(f->f.owner==p).count()>=PER_PLAYER)return;
+        Vec3 end=target.getBoundingBox().getCenter();
+        if(p.level().clip(new ClipContext(origin,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()!=HitResult.Type.MISS)return;
+        var sword=new EntityAbstractSummonedSword(SlashBlade.RegistryEvents.SummonedSword,p.level());
+        sword.getPersistentData().putBoolean("blade_tetra_sakura_locator",true);
+        sword.setPos(origin);sword.setOwner(p);sword.setColor(0xffa6ce);sword.setDamage(attack*.05F);
+        sword.setPierce((byte)0);sword.setNoClip(false);sword.getPersistentData().putBoolean(MARK,true);
+        SoulLegacyDamageGuard.markSecondary(sword);InheritedCombatDamage.mark(sword);
+        Vec3 d=end.subtract(origin).normalize();sword.shoot(d.x,d.y,d.z,1.3F,0);
+        FLIGHTS.put(sword,new Flight(p,o,target,attack*.05F,p.level().getGameTime(),false));
+        if(!p.level().addFreshEntity(sword))FLIGHTS.remove(sword);
     }
     private static Vec3 overhead(ServerPlayer p,LivingEntity target,boolean right) {
         Vec3 center=target.getBoundingBox().getCenter();
@@ -158,7 +218,8 @@ public final class SakuraShardAttackService {
         if(e.phase!=TickEvent.Phase.END) return;
         FLIGHTS.entrySet().removeIf(entry->{
             var sword=entry.getKey();var f=entry.getValue();
-            if(sword.isRemoved()||!f.binding.matches(f.owner)||!validTarget(f.owner,f.target)
+            if(sword.isRemoved()||sword.getPersistentData().getBoolean("blade_tetra_sakura_locator")&&!SakuraRecallService.charging(f.owner)||!f.binding.matches(f.owner)||!validTarget(f.owner,f.target)
+                    ||SakuraStanceController.dispersed(f.binding.blade)!=f.dispersed
                     ||f.owner.level().getGameTime()-f.at>PROJECTILE_TTL) {sword.discard();return true;}return false;
         });
     }
@@ -173,13 +234,14 @@ public final class SakuraShardAttackService {
         var direct=e.getSource().getDirectEntity();
         if(!(direct instanceof EntityAbstractSummonedSword sword)||!sword.getPersistentData().getBoolean(MARK)) return;
         Flight f=FLIGHTS.get(sword);
-        if(f==null||e.getEntity()!=f.target||!f.binding.matches(f.owner)||!validTarget(f.owner,f.target)) e.setCanceled(true);
+        if(f==null||sword.getPersistentData().getBoolean("blade_tetra_sakura_locator")&&!SakuraRecallService.charging(f.owner)||e.getEntity()!=f.target||!f.binding.matches(f.owner)||SakuraStanceController.dispersed(f.binding.blade)!=f.dispersed||!validTarget(f.owner,f.target)) e.setCanceled(true);
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void hurt(LivingHurtEvent e) {
         DamageBudget budget=SA_BUDGET.get();
         if(budget!=null&&budget.matches(e.getSource(),e.getEntity())) e.setAmount(Math.min(e.getAmount(),budget.remaining));
         if(e.getSource().getDirectEntity() instanceof EntityAbstractSummonedSword sword&&sword.getPersistentData().getBoolean(MARK)) {
             Flight f=FLIGHTS.get(sword);e.setAmount(f==null?0:Math.min(e.getAmount(),f.budget));
+            if(sword.getPersistentData().getBoolean("blade_tetra_sakura_locator"))e.setAmount(Math.min(e.getAmount(),Math.max(0,e.getEntity().getHealth()-1)));
         }
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void damage(LivingDamageEvent e) {
@@ -189,6 +251,7 @@ public final class SakuraShardAttackService {
         }
         if(e.getSource().getDirectEntity() instanceof EntityAbstractSummonedSword sword&&sword.getPersistentData().getBoolean(MARK)) {
             Flight f=FLIGHTS.get(sword);e.setAmount(f==null?0:Math.min(e.getAmount(),f.budget));
+            if(sword.getPersistentData().getBoolean("blade_tetra_sakura_locator"))e.setAmount(Math.min(e.getAmount(),Math.max(0,e.getEntity().getHealth()-1)));
         }
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {

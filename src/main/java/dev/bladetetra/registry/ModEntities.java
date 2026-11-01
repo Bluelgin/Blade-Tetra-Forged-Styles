@@ -15,6 +15,12 @@ public final class ModEntities {
     public static final DeferredRegister<EntityType<?>> ENTITIES =
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, BladeTetra.MOD_ID);
 
+    public static final RegistryObject<EntityType<dev.bladetetra.kyouka.KyoukaAfterimageEntity>> KYOUKA_AFTERIMAGE =
+            ENTITIES.register("kyouka_afterimage", () -> EntityType.Builder.of(
+                    dev.bladetetra.kyouka.KyoukaAfterimageEntity::new, MobCategory.MISC)
+                    .sized(.6F, 1.8F).clientTrackingRange(10).updateInterval(1)
+                    .build(BladeTetra.MOD_ID + ":kyouka_afterimage"));
+
     public static final RegistryObject<EntityType<dev.bladetetra.challenge.MikageDivineCompanionEntity>> MIKAGE_DIVINE_COMPANION =
             ENTITIES.register("mikage_divine_companion", () -> EntityType.Builder.of(
                     dev.bladetetra.challenge.MikageDivineCompanionEntity::new, MobCategory.CREATURE)

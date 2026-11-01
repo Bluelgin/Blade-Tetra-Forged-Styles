@@ -33,7 +33,7 @@ public final class RaikiriFieldService {
     private static final List<Trail> TRAILS=new ArrayList<>();
     private static final List<Sword> SWORDS=new ArrayList<>();
     private static int nextVisualId=1;
-    enum DamageKind { TRAIL_STRIKE, SWORD_DISCHARGE, ARMOR_DISCHARGE }
+    enum DamageKind { TRAIL_STRIKE, SWORD_DISCHARGE, ARMOR_DISCHARGE, NEEDLE_BURST }
     private record Impact(LivingEntity target,float cap,DamageKind kind) {}
     private static final ThreadLocal<Impact> IMPACT=new ThreadLocal<>();
     private record Strike(Vec3 position,long due) {}
@@ -46,6 +46,7 @@ public final class RaikiriFieldService {
         int index;
         boolean sealed;
         Vec3 last;
+        RaikiriNeedleBurst burst;
         Trail(RaikiriActionObserver.Session s,UUID action,long now) {
             session=s;this.action=action;expires=RaikiriRules.trailExpiry(now,RaikiriConfig.MAX_OBSERVE_TICKS.get(),
                     RaikiriConfig.DELAY_START.get(),RaikiriConfig.DELAY_END.get());
@@ -69,7 +70,6 @@ public final class RaikiriFieldService {
         final int visual=nextVisualId++;
         final long born,expires;
         final RaikiriRules.Budget budget;
-        final RaikiriRules.Charge charge=new RaikiriRules.Charge();
         final Set<UUID> viewers=new HashSet<>();
         long next;
         Sword(RaikiriActionObserver.Session s,Vec3 pos,long now) {
@@ -94,15 +94,19 @@ public final class RaikiriFieldService {
         AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
                 AwakenedBladeVfxPacket.STEP,from.add(0,0.1,0),to.add(0,0.1,0),1);
         double radius=RaikiriConfig.RESONANCE_RADIUS.get();
-        for(Sword sword:SWORDS) {
+        if(trail==null) return;
+        for(Sword sword:List.copyOf(SWORDS)) {
             if(sword.session!=s || !validSword(p,sword)) continue;
             RaikiriRules.Point close=RaikiriRules.closest(point(sword.pos),point(from),point(to));
             Vec3 near=new Vec3(close.x(),close.y(),close.z());
             if(RaikiriRules.distanceSquared(point(sword.pos),point(from),point(to))<=radius*radius
                     && clearPath(p.serverLevel(),near.add(0,0.4,0),sword.pos.add(0,0.4,0),p)
-                    && sword.charge.resonate(action))
-                AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
-                        AwakenedBladeVfxPacket.RESONANCE,sword.pos,sword.pos,sword.visual);
+                    && (trail.burst==null || trail.burst.accepts(toTick))) {
+                if(trail.burst==null) trail.burst=new RaikiriNeedleBurst(sword.pos,toTick);
+                trail.burst.collect(p,sword.pos);
+                remove(sword,p.serverLevel());
+                SoulActivityService.triggered(p,p.getMainHandItem(),SoulLegacyState.Legacy.RAIKIRI);
+            }
         }
     }
     static void finish(UUID action) { for(Trail trail:TRAILS) if(trail.action.equals(action)) trail.sealed=true; }
@@ -124,6 +128,7 @@ public final class RaikiriFieldService {
         for(int i=0;i<owned.size()-RaikiriConfig.SWORDS.get()+1;i++) remove(owned.get(i),p.serverLevel());
         if(SWORDS.size()>=RaikiriConfig.ANCHORS.get()) return;
         Sword sword=new Sword(s,pos,p.level().getGameTime());SWORDS.add(sword);
+        SoulActivityService.triggered(p,p.getMainHandItem(),SoulLegacyState.Legacy.RAIKIRI);
         syncNewViewers(p.serverLevel(),sword);
     }
     private static boolean validSword(ServerPlayer p,Sword sword) {
@@ -140,10 +145,12 @@ public final class RaikiriFieldService {
             Trail t=trails.next();ServerPlayer p=RaikiriActionObserver.owner(server,t.session);
             if(!t.session.valid(p)) { trails.remove();continue; }
             long now=p.level().getGameTime();
+            if(t.burst!=null) t.burst.tick(p,now);
             if(t.index<t.strikes.size() && now>=t.strikes.get(t.index).due) {
                 Vec3 at=t.strikes.get(t.index).position.add(0,0.4,0);
                 t.index++;
                 if(RaikiriActionObserver.loaded(p.serverLevel(),new AABB(at,at).inflate(0.2))) {
+                    SoulActivityService.triggered(p,p.getMainHandItem(),SoulLegacyState.Legacy.RAIKIRI);
                     AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
                             AwakenedBladeVfxPacket.BOLT,at.add(0,2.4,0),at,0);
                     double radius=RaikiriConfig.STRIKE_RADIUS.get();
@@ -153,7 +160,7 @@ public final class RaikiriFieldService {
                     }
                 }
             }
-            if(t.sealed && t.index>=t.strikes.size() || now>t.expires) trails.remove();
+            if(t.sealed && t.index>=t.strikes.size() && (t.burst==null || t.burst.resolved()) || now>t.expires) trails.remove();
         }
         Iterator<Sword> swords=SWORDS.iterator();
         while(swords.hasNext()) {
@@ -167,9 +174,7 @@ public final class RaikiriFieldService {
             if(now%20==0) syncNewViewers(p.serverLevel(),s);
             if(now<s.next) continue;
             s.next=now+RaikiriConfig.PERIOD.get();
-            boolean charged=s.charge.consume();
-            float round=RaikiriConfig.ROUND_BUDGET.get().floatValue()
-                    *(charged?RaikiriConfig.RESONANCE_MULTIPLIER.get().floatValue():1F);
+            float round=RaikiriConfig.ROUND_BUDGET.get().floatValue();
             List<LivingEntity> targets=targets(p,s.pos.add(0,0.5,0),RaikiriConfig.SWORD_RANGE.get(),RaikiriConfig.TARGETS.get());
             if(targets.isEmpty()) continue;
             for(LivingEntity target:targets) {
@@ -177,7 +182,7 @@ public final class RaikiriFieldService {
                 if(amount<=0) break;
                 if(damage(p,target,amount,DamageKind.SWORD_DISCHARGE))
                     AwakenedBladeCombat.visual(p.serverLevel(),SoulLegacyState.Legacy.RAIKIRI,
-                            AwakenedBladeVfxPacket.BOLT,s.pos.add(0,0.8,0),target.getBoundingBox().getCenter(),charged?1:0);
+                            AwakenedBladeVfxPacket.BOLT,s.pos.add(0,0.8,0),target.getBoundingBox().getCenter(),0);
             }
         }
     }
@@ -217,6 +222,7 @@ public final class RaikiriFieldService {
             landed=InheritedCombatDamage.apply(()->SoulLegacyDamageGuard.apply(()->
                     target.hurt(p.level().damageSources().playerAttack(p),amount)));
             landed=landed && target.getHealth()<before;
+            if(landed) SoulActivityService.triggered(p,p.getMainHandItem(),SoulLegacyState.Legacy.RAIKIRI);
             return landed;
         } finally {
             IMPACT.remove();if(!landed) target.invulnerableTime=previous;
@@ -275,7 +281,8 @@ public final class RaikiriFieldService {
         return TRAILS.stream().filter(t->t.session.owner.equals(owner))
                 .flatMap(t->t.strikes.stream()).map(Strike::position).toList();
     }
-    static boolean charged(UUID owner) { return SWORDS.stream().anyMatch(s->s.session.owner.equals(owner) && s.charge.charged()); }
+    static boolean bursting(UUID owner) { return TRAILS.stream().anyMatch(t->t.session.owner.equals(owner)
+            && t.burst!=null && !t.burst.resolved()); }
     static void forgetViewer(UUID viewer) { for(Sword sword:SWORDS) sword.viewers.remove(viewer); }
     static void reset() { TRAILS.clear();SWORDS.clear(); }
     private RaikiriFieldService() {}

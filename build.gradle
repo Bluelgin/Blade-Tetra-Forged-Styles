@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('soulGuideReview')) {
+                workingDirectory project.file('build/soul-guide-review')
+                property 'blade_tetra.soulGuideReview', 'true'
+            }
             if (project.hasProperty('sakuraCombatSmoke')) {
                 workingDirectory project.file('build/sakura-combat-smoke')
                 property 'blade_tetra.sakuraCombatSmoke', 'true'
@@ -45,6 +49,14 @@ minecraft {
             if (project.hasProperty('mirrorRitualReview')) {
                 workingDirectory project.file('build/mirror-ritual-review')
                 property 'blade_tetra.mirrorRitualReview', 'true'
+            }
+            if (project.hasProperty('bloodBladeReview')) {
+                workingDirectory project.file('build/blood-blade-review')
+                property 'blade_tetra.bloodBladeReview', 'true'
+            }
+            if (project.hasProperty('bloodThreadReview')) {
+                workingDirectory project.file('build/blood-thread-review')
+                property 'blade_tetra.bloodThreadReview', 'true'
             }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
@@ -123,6 +135,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('bloodBladeReview')) {
+                args '--width', '1360', '--height', '768'
+            }
             if (project.hasProperty('mirrorRitualReview')) {
                 args '--width', '960', '--height', '540'
             }

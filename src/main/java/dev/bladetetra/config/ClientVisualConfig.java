@@ -5,6 +5,8 @@ import net.minecraftforge.common.ForgeConfigSpec;
 /** Client-owned controls for material and soul visual effects. */
 public final class ClientVisualConfig {
     public static final ForgeConfigSpec SPEC;
+    public static final ForgeConfigSpec.BooleanValue ANIMATE_SOUL_FRAGMENT_TITLES;
+    public static final ForgeConfigSpec.BooleanValue ANIMATE_SOUL_FRAGMENT_TEXT;
 
     public static final ForgeConfigSpec.BooleanValue ENABLE_EMISSIVE_TEXTURES;
     public static final ForgeConfigSpec.DoubleValue EMISSIVE_INTENSITY;
@@ -43,6 +45,7 @@ public final class ClientVisualConfig {
     public static final ForgeConfigSpec.DoubleValue SWORD_AURA_DECORATION_DISTANCE;
     public static final ForgeConfigSpec.IntValue SWORD_AURA_MAX_DECORATIONS;
     public static final ForgeConfigSpec.BooleanValue SHOW_SOUL_SWITCH_HUD;
+    public static final ForgeConfigSpec.BooleanValue AUTO_HIDE_SOUL_SWITCH_HUD;
     public static final ForgeConfigSpec.BooleanValue SHOW_SOUL_SWITCH_KEY;
     public static final ForgeConfigSpec.BooleanValue REDUCE_SOUL_SWITCH_MOTION;
     public static final ForgeConfigSpec.IntValue SOUL_SWITCH_ICON_SIZE;
@@ -53,6 +56,10 @@ public final class ClientVisualConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         builder.push("visuals");
+        ANIMATE_SOUL_FRAGMENT_TITLES = builder.comment("Subtle engraved-title wave and moving glint on soul fragment guides. Body text stays still.")
+                .define("animateSoulFragmentTitles", true);
+        ANIMATE_SOUL_FRAGMENT_TEXT = builder.comment("Animate only emphasized guide words; controls, numbers and restrictions remain still.")
+                .define("animateSoulFragmentText", true);
         SWORD_AURA_DETAIL = builder
                 .comment("Lifeng sword aura detail: 0 = main layer only, 1 = balanced, 2 = full.",
                         "Balanced halves the decoration distance and per-frame budget. Damage is unchanged.")
@@ -202,6 +209,8 @@ public final class ClientVisualConfig {
 
         builder.push("soulSwitchHud");
         SHOW_SOUL_SWITCH_HUD = builder.define("enabled", true);
+        AUTO_HIDE_SOUL_SWITCH_HUD = builder.comment("Show soul seals only for confirmed skills or a short soul-switch preview.")
+                .define("autoHide", true);
         SHOW_SOUL_SWITCH_KEY = builder.define("showKey", true);
         REDUCE_SOUL_SWITCH_MOTION = builder.define("reduceMotion", false);
         SOUL_SWITCH_ICON_SIZE = builder.defineInRange("iconSize", 22, 16, 32);

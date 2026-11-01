@@ -54,12 +54,13 @@ public final class SoulSwitchService {
         if (!SoulLegacyState.isActive(blade, next)) {
             reply(p, request, current.ordinal(), SoulSwitchReply.DORMANT); return;
         }
-        if (AkatsukiExecution.switchBlocked(p) || SakuraInfiniteDanceSA.phase(p) != SakuraInfiniteDanceSA.Phase.IDLE
+        if (AkatsukiBloodTendrils.active(p) || AkatsukiExecution.switchBlocked(p) || SakuraInfiniteDanceSA.phase(p) != SakuraInfiniteDanceSA.Phase.IDLE
                 || KyoukaMirrorSessions.switchBlocked(p) || SakuraShardAttackService.switchBlocked(p)) {
             reply(p, request, current.ordinal(), SoulSwitchReply.BUSY); return;
         }
         // Existing controllers own cleanup and cooldowns; selection never resets native Rank or combo state.
-        KyoukaMirrorSessions.releaseForSwitch(p);
+        if (!SoulSkillState.customLinked(blade) || !SoulSkillState.allowsStyle(blade, SoulLegacyState.Legacy.KYOUKA))
+            KyoukaMirrorSessions.releaseForSwitch(p);
         RaikiriActionObserver.clear(p.getUUID(), p.getServer());
         tag.putInt(SoulSkillState.SELECTED, next.ordinal());
         tag.putLong(NEXT, now + SoulSkillState.SWITCH_TICKS);

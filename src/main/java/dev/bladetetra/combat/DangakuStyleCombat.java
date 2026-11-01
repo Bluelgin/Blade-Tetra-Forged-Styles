@@ -1,6 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.easteregg.AkatsukiBloodBlade;
 import dev.bladetetra.visual.MaterialSlashEffectResolver;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -50,11 +51,11 @@ final class DangakuStyleCombat {
         if (isCircle(combo) || DangakuSpinCombos.SPIN.getId().equals(combo)) return true;
         if (isSlash(combo)) {
             return StyleTargeting.isInsideFrontArc(
-                    attacker, target, CLEAVE_RANGE, CLEAVE_MIN_DOT);
+                    attacker, target, CLEAVE_RANGE + AkatsukiBloodBlade.extraReach(attacker), CLEAVE_MIN_DOT);
         }
         if (isSweep(combo)) {
             return StyleTargeting.isInsideFrontArc(
-                    attacker, target, SWEEP_RANGE, SWEEP_MIN_DOT);
+                    attacker, target, SWEEP_RANGE + AkatsukiBloodBlade.extraReach(attacker), SWEEP_MIN_DOT);
         }
         return true;
     }

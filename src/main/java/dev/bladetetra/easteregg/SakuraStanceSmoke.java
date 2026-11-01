@@ -47,7 +47,7 @@ public final class SakuraStanceSmoke {
             check(state.progressCombo(actor,true).equals(ComboStateRegistry.AERIAL_CLEAVE.getId()),"real aerial input selects native cleave");
             end(actor);check(!SakuraStanceController.dispersed(blade),"virtual query cannot disperse");
             state.progressCombo(actor);end(actor);
-            check(SakuraStanceController.dispersed(blade),"committed cleave disperses without a hit");
+            check(!SakuraStanceController.dispersed(blade),"committed cleave no longer bypasses fracture");
             long began=level.getGameTime();
             for(int t=0;t<4;t++) {
                 advanceTo(level,began+t);victim.invulnerableTime=0;
@@ -55,11 +55,11 @@ public final class SakuraStanceSmoke {
             }
             check(victim.getHealth()<1000,"native cleave area attack still damages a real victim");
             check(actor.getDeltaMovement().y<0,"native cleave fall callback preserved");
-            check(SakuraStanceController.dispersed(blade),"cleave loop cannot toggle back");
+            check(!SakuraStanceController.dispersed(blade),"cleave loop retains condensed stance");
             actor.setOnGround(true);victim.invulnerableTime=0;
             ComboStateRegistry.REGISTRY.get().getValue(state.getComboSeq()).tickAction(actor);end(actor);
             check(probe.slashes.stream().anyMatch(d->Math.abs(d-.44)<1e-5),"native landing slash damage retained");
-            check(SakuraStanceController.dispersed(blade),"landing is not another form switch");
+            check(!SakuraStanceController.dispersed(blade),"landing retains condensed stance");
             actor.setShiftKeyDown(true);
             for(boolean dispersed:new boolean[]{true,false}) {
                 tag.putBoolean(SakuraStanceRules.DISPERSED,dispersed);
@@ -120,17 +120,17 @@ public final class SakuraStanceSmoke {
                 if(stage<4) {
                     SakuraStanceController.fractureHit(actor,blade);
                     check(SakuraStanceController.fracture(blade)==stage,"same-tick repeated hits cannot fracture again");
-                    advance(level,39);SakuraStanceController.fractureHit(actor,blade);
+                    advance(level,SakuraStanceController.FRACTURE_COOLDOWN-1);SakuraStanceController.fractureHit(actor,blade);
                     check(SakuraStanceController.fracture(blade)==stage&&!SakuraStanceController.canFracture(actor,blade),
-                            "fracture cooldown blocks the first 39 ticks");
+                            "fracture cooldown blocks the cooldown interval");
                     advance(level,1);
-                    check(SakuraStanceController.canFracture(actor,blade),"fracture cooldown ends at tick 40");
+                    check(SakuraStanceController.canFracture(actor,blade),"fracture cooldown ends at configured boundary");
                 }
                 check(SakuraStanceController.dispersed(blade)==(stage==4),"only final fracture changes stance");
             }
             state.updateComboSeq(actor,ComboStateRegistry.UPPERSLASH.getId());end(actor);
             check(SakuraStanceController.fracture(blade)==4,"reassembly cannot instantly reset fracture");
-            advance(level,14);end(actor);
+            advance(level,145);end(actor);
             check(SakuraStanceController.fracture(blade)==0&&!SakuraStanceController.dispersed(blade),"completed reassembly restores full blade");
             LogUtils.getLogger().info("SAKURA_STANCE_SMOKE_PASS: actual native input/commit, air miss, cleave area damage and landing, upper .50, B6 tail at zero Rank, idempotence, virtual/canceled commit, swap, lifecycle cleanup, unawakened/other-style exclusion, Shift+SA removed");
         } finally {MinecraftForge.EVENT_BUS.unregister(probe);victim.discard();actor.setShiftKeyDown(false);}

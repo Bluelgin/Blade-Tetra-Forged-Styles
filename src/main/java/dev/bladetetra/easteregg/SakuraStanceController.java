@@ -26,17 +26,21 @@ import java.util.UUID;
 /** A post-commit observer, never a combo router or a hit/callback replacement. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
 public final class SakuraStanceController {
-    private record Pending(ItemStack blade, ResourceKey<Level> dimension, int slot, int action, long at) {}
+    private record Pending(ItemStack blade, ResourceKey<Level> dimension, int slot, long at) {}
     public static final String FRACTURE="blade_tetra_sakura_fracture";
     private static final String LAST_FRACTURE="blade_tetra_sakura_last_fracture";
-    static final int FRACTURE_COOLDOWN=40;
-    static final float FRACTURE_CHANCE=.10F;
-    private record Reassembly(ItemStack blade,int slot,long at) {}
+    static final int FRACTURE_COOLDOWN=20;
+    static final float FRACTURE_CHANCE=.20F;
+    private record Reassembly(ItemStack blade,int slot,long at,int duration) {}
     private static final Map<UUID,Reassembly> REASSEMBLY=new HashMap<>();
     public static int fracture(ItemStack blade) {
         return blade.hasTag()?Math.max(0,Math.min(4,blade.getTag().getInt(FRACTURE))):0;
     }
     public static float fraction(ItemStack blade) { return dispersed(blade)?0:1-fracture(blade)/4F; }
+    static void returnRecall(ServerPlayer p,int ticks) {
+        var old=REASSEMBLY.get(p.getUUID());
+        if(old!=null)REASSEMBLY.put(p.getUUID(),new Reassembly(old.blade,old.slot,p.level().getGameTime(),ticks));
+    }
     public static boolean reassembling(ServerPlayer p) {return REASSEMBLY.containsKey(p.getUUID());}
     static boolean canFracture(ServerPlayer p,ItemStack blade) {
         if(!supported(blade)||dispersed(blade)||reassembling(p)) return false;
@@ -51,6 +55,7 @@ public final class SakuraStanceController {
         blade.getOrCreateTag().putLong(LAST_FRACTURE,p.level().getGameTime());
         int stage=Math.min(4,fracture(blade)+1);
         blade.getOrCreateTag().putInt(FRACTURE,stage);
+        SoulActivityService.triggered(p,blade,SoulLegacyState.Legacy.SENBONZAKURA);
         if(stage==4) {
             blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED,true);
             p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.blade_tetra.sakura.dispersed"),true);
@@ -61,8 +66,8 @@ public final class SakuraStanceController {
     }
     private static final Map<UUID, Pending> PENDING = new HashMap<>();
     public static boolean supported(ItemStack blade) {
-        return AwakenedBladeCombat.replacesLegacy() && StyleResolver.resolve(blade) == BladeStyle.RENGEKI
-                && SoulSkillState.enabled(blade, SoulLegacyState.Legacy.SENBONZAKURA);
+        return AwakenedBladeCombat.replacesLegacy() && (StyleResolver.resolve(blade) == BladeStyle.RENGEKI || StyleResolver.resolve(blade) == BladeStyle.CUSTOM)
+                && SoulSkillState.available(blade, SoulLegacyState.Legacy.SENBONZAKURA);
     }
     public static boolean dispersed(ItemStack blade) {
         return blade.getTag() != null && blade.getTag().getBoolean(SakuraStanceRules.DISPERSED);
@@ -71,16 +76,13 @@ public final class SakuraStanceController {
     public static void motion(BladeMotionEvent e) {
         if (!(e.getEntity() instanceof ServerPlayer player) || !player.isAlive()) return;
         int action = SakuraStanceRules.action(e.getCombo());
+        if(action!=SakuraStanceRules.CONDENSE)return;
         ItemStack blade = player.getMainHandItem();
         if (!supported(blade)) return;
-        Pending previous = PENDING.get(player.getUUID());
-        if (previous != null && previous.blade == blade && previous.action == SakuraStanceRules.DISPERSE
-                && e.getCombo().toString().equals("slashblade:aerial_cleave_loop")
-                && player.level().getGameTime() <= previous.at + 1) return;
         // BladeMotionEvent is posted BEFORE updateComboSeq commits and can still
         // be canceled/rewritten by another listener. Verify it at PlayerTick.END.
         PENDING.put(player.getUUID(), new Pending(blade, player.level().dimension(),
-                player.getInventory().selected, action, player.level().getGameTime()));
+                player.getInventory().selected, player.level().getGameTime()));
     }
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void tick(TickEvent.PlayerTickEvent e) {
@@ -90,9 +92,10 @@ public final class SakuraStanceController {
             if(!player.isAlive() || player.getMainHandItem()!=rebuilding.blade
                     ||player.getInventory().selected!=rebuilding.slot ||!supported(rebuilding.blade)
                     ||dispersed(rebuilding.blade)) REASSEMBLY.remove(player.getUUID());
-            else if(player.level().getGameTime()>=rebuilding.at+14) {
+            else if(player.level().getGameTime()>=rebuilding.at+rebuilding.duration) {
                 rebuilding.blade.getOrCreateTag().putInt(FRACTURE,0);
                 REASSEMBLY.remove(player.getUUID());player.containerMenu.broadcastChanges();
+                player.serverLevel().playSound(null,player.blockPosition(),net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,net.minecraft.sounds.SoundSource.PLAYERS,.5F,1.4F);
             }
         }
         Pending p = PENDING.remove(player.getUUID());
@@ -102,20 +105,23 @@ public final class SakuraStanceController {
         var state = p.blade.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
         if (state == null) return;
         int action = SakuraStanceRules.action(state.getComboSeq());
-        if (action == 0 && p.action == SakuraStanceRules.DISPERSE) action = p.action;
-        if (!SakuraStanceRules.changes(action, dispersed(p.blade))
+        if (!(SakuraStanceRules.changes(action, dispersed(p.blade))
+                ||action==SakuraStanceRules.CONDENSE&&fracture(p.blade)>0&&!reassembling(player))
                 || !SakuraStanceRules.committed(action, state.getComboSeq(), p.at, state.getLastActionTime())) return;
-        p.blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED, action == SakuraStanceRules.DISPERSE);
+        var strike=dispersed(p.blade)?SakuraShardAttackService.recall(player,p.blade):null;
+        p.blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED, false);
+        SoulActivityService.triggered(player,p.blade,SoulLegacyState.Legacy.SENBONZAKURA);
         if(action==SakuraStanceRules.CONDENSE)
-            REASSEMBLY.put(player.getUUID(),new Reassembly(p.blade,p.slot,player.level().getGameTime()));
+            REASSEMBLY.put(player.getUUID(),new Reassembly(p.blade,p.slot,player.level().getGameTime(),strike==null?14:SakuraRecallService.duration(player)));
         else REASSEMBLY.remove(player.getUUID());
         var tag = p.blade.getTag();
         String id = tag.getString("id");
-        if (!id.isBlank()) {
+        if (strike==null&&!id.isBlank()) {
             var at = player.getEyePosition();
-            var packet = new AwakenedBladeVfxPacket(3, action + 4, at.x, at.y, at.z, at.x, at.y, at.z, 0,
+            var end=strike==null?at:strike.getBoundingBox().getCenter();
+            var packet = new AwakenedBladeVfxPacket(3, action + 4, at.x, at.y, at.z, end.x, end.y, end.z, 0,
                     new AwakenedBladeVfxPacket.SakuraCue(player.getUUID(), id, p.slot,
-                            p.dimension.location(), action, SakuraCombatVisuals.nextSequence(), p.at, -1));
+                            p.dimension.location(), action, SakuraCombatVisuals.nextSequence(), player.level().getGameTime(), strike==null?-1:strike.getId()));
             if (packet.valid()) ModNetwork.CHANNEL.send(
                     PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
         }

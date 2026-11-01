@@ -69,3 +69,14 @@ tools/art/*
 !art/soul-switch/
 !art/soul-switch/**
 !tools/art/export_soul_switch.cjs
+
+# Editable awakening guide fragments and reproducible item icons
+!art/soul-fragments/
+!art/soul-fragments/**
+!tools/art/export_soul_fragments.py
+
+# Preserve original art studies and previews; exclude Python bytecode caches.
+!art-previews/soul-fragment-candidates/**/*.png
+!art-previews/soul-fragment-candidates/*.png
+__pycache__/
+*.pyc

@@ -80,6 +80,8 @@ public final class MaterialTextureManager {
     private MaterialTextureManager() {
     }
 
+    static boolean internalPass() { return RENDERING_INTERNAL_PASS.get(); }
+
     @SubscribeEvent
     public static void onRenderOverride(RenderOverrideEvent event) {
         if (RENDERING_INTERNAL_PASS.get()

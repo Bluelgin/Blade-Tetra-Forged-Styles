@@ -27,6 +27,7 @@ final class RaikiriThunderArmor {
         if(!p.addEffect(new MobEffectInstance(RaikiriThunderArmorEffect.ARMOR.get(),160,0,false,false,true))) return;
         rank.addRankPoint(p,-cost);
         expires=now+160;next=now+20;
+        SoulActivityService.triggered(p,p.getMainHandItem(),SoulLegacyState.Legacy.RAIKIRI);
         p.displayClientMessage(Component.translatable("message.blade_tetra.raikiri.armor_start"),true);
     }
     void stop(ServerPlayer p) {

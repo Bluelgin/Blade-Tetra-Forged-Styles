@@ -76,6 +76,13 @@ public final class AkatsukiExecution {
     private static final Map<UUID, Execution> EXECUTIONS = new HashMap<>();
     private static final List<PendingStart> PENDING = new ArrayList<>();
 
+    public static boolean executing(ServerPlayer player) {
+        var blade = player.getMainHandItem();
+        return blade.hasTag() && blade.getTag().hasUUID(BLADE_ID)
+                && EXECUTIONS.values().stream().anyMatch(e -> e.attackerId.equals(player.getUUID())
+                    && e.bladeId.equals(blade.getTag().getUUID(BLADE_ID)));
+    }
+
     public static boolean switchBlocked(ServerPlayer player) {
         UUID owner = player.getUUID();
         return PENDING.stream().anyMatch(p -> p.attackerId.equals(owner))
@@ -216,6 +223,7 @@ public final class AkatsukiExecution {
                     pending.targetId, pending.bladeId, now, now,
                     now, now, pending.threshold, resonantPulseDamage);
             EXECUTIONS.put(target.getUUID(), execution);
+            SoulActivityService.triggered(attacker, blade, SoulLegacyState.Legacy.AKATSUKI);
             blade.getOrCreateTag().putLong(COOLDOWN_UNTIL,
                     now + GameplayConfig.AKATSUKI_EXECUTION_COOLDOWN_TICKS.get());
             sendVfx(level, attacker, target,
@@ -379,7 +387,7 @@ public final class AkatsukiExecution {
                 && direct instanceof ServerPlayer player ? player : null;
     }
 
-    private static boolean canAffect(ServerPlayer attacker, LivingEntity target) {
+    static boolean canAffect(ServerPlayer attacker, LivingEntity target) {
         if (target == attacker || !target.isAlive() || target instanceof Player
                 || attacker.isAlliedTo(target) || target.isAlliedTo(attacker)) return false;
         if (target instanceof TamableAnimal || target instanceof AbstractVillager
@@ -399,6 +407,23 @@ public final class AkatsukiExecution {
                 GameplayConfig.AKATSUKI_THRESHOLD_MAX_FRACTION.get());
         return AkatsukiExecutionMath.threshold(target.getMaxHealth(), representative,
                 GameplayConfig.AKATSUKI_THRESHOLD_HIT_MULTIPLIER.get(), minimum, maximum);
+    }
+    /** The full-blood channel pays its own admission; share the threshold and immunity, not Final Moon's build-up. */
+    static boolean threadFinish(ServerPlayer attacker,LivingEntity target,float representative) {
+        var blade=attacker.getMainHandItem();long now=attacker.level().getGameTime();
+        if(!canAffect(attacker,target)||target.getType().is(IMMUNE)||EXECUTIONS.containsKey(target.getUUID())
+                ||PENDING.stream().anyMatch(p->p.targetId.equals(target.getUUID()))
+                ||!SoulSkillState.enabled(blade,SoulLegacyState.Legacy.AKATSUKI)
+                ||blade.getOrCreateTag().getLong(COOLDOWN_UNTIL)>now
+                ||target.getHealth()>dynamicThreshold(target,representative))return false;
+        var key=ResourceKey.create(Registries.DAMAGE_TYPE,new ResourceLocation(BladeTetra.MOD_ID,"akatsuki_thread_execution"));
+        var source=new DamageSource(attacker.serverLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key),attacker);
+        AkatsukiBloodTendrils.damage(attacker,target,target.getHealth()+target.getAbsorptionAmount()+1,source);
+        return !target.isAlive();
+    }
+    static void threadFinished(ServerPlayer attacker) {
+        attacker.getMainHandItem().getOrCreateTag().putLong(COOLDOWN_UNTIL,
+                attacker.level().getGameTime()+GameplayConfig.AKATSUKI_EXECUTION_COOLDOWN_TICKS.get());
     }
 
     private static boolean holdsBlade(ServerPlayer player, UUID expectedId) {

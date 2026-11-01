@@ -77,6 +77,10 @@ public final class RaikiriActionObserver {
                         .map(mod->"1.9.63".equals(mod.getModInfo().getVersion().toString())).orElse(false)
                 && SoulSkillState.enabled(stack,SoulLegacyState.Legacy.RAIKIRI);
     }
+    static boolean thunderArmored(ServerPlayer p) {
+        Session s = SESSIONS.get(p.getUUID());
+        return s != null && s.valid(p) && s.armor.active() && p.hasEffect(RaikiriThunderArmorEffect.ARMOR.get());
+    }
     static Session session(ServerPlayer p) {
         Session s=SESSIONS.get(p.getUUID());
         if (s!=null && !s.valid(p)) { clear(p.getUUID(),p.getServer()); s=null; }

@@ -63,19 +63,8 @@ class RaikiriRulesTest {
         assertEquals(3,budget.reserve(target,3)); // cancelled attempt is still consumed
         assertEquals(0,budget.reserve(target,3));
     }
-    @Test void oneSwordRespondsOncePerStepAndChargeSaturates() {
-        var charge=new RaikiriRules.Charge();UUID step=UUID.randomUUID();
-        assertTrue(charge.resonate(step));assertFalse(charge.resonate(step));
-        assertTrue(charge.consume());assertFalse(charge.consume());
-        assertFalse(charge.resonate(step));assertTrue(charge.resonate(UUID.randomUUID()));
-        assertFalse(charge.resonate(step));
-        assertTrue(charge.resonate(UUID.randomUUID()));assertTrue(charge.consume());assertFalse(charge.consume());
-    }
-    @Test void swordsAndPlayersHaveIndependentChargeAndDamage() {
-        UUID step=UUID.randomUUID(),target=UUID.randomUUID();
-        var first=new RaikiriRules.Charge();var second=new RaikiriRules.Charge();
-        assertTrue(first.resonate(step));assertTrue(second.resonate(step));
-        assertTrue(first.consume());assertTrue(second.consume());
+    @Test void ownersAndDamageStreamsHaveIndependentBudgets() {
+        UUID target=UUID.randomUUID();
         var a=new RaikiriRules.Budget(3,3);var b=new RaikiriRules.Budget(3,3);
         assertEquals(3,a.reserve(target,3));assertEquals(3,b.reserve(target,3));
     }

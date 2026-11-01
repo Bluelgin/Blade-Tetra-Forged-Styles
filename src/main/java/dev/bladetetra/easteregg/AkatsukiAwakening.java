@@ -94,6 +94,8 @@ public final class AkatsukiAwakening {
                     .withStyle(ChatFormatting.DARK_RED));
             tooltip.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution")
                     .withStyle(ChatFormatting.RED));
+            if (AwakenedBladeCombat.replacesLegacy())
+                tooltip.add(Component.translatable("tooltip.blade_tetra.akatsuki.blood_blade").withStyle(ChatFormatting.DARK_RED));
             if (ContractBladeCompat.hasAkatsuki(stack)) {
                 tooltip.add(Component.translatable(
                                 "tooltip.blade_tetra.akatsuki.spirit_bound")
@@ -139,12 +141,21 @@ public final class AkatsukiAwakening {
                 ) return;
         ItemStack blade = event.player.getMainHandItem();
         if (!isUnlocked(blade)) return;
+        if (ensurePower(blade)) event.player.containerMenu.broadcastChanges();
         boolean active = SoulSkillState.enabled(blade, SoulLegacyState.Legacy.AKATSUKI);
         ContractBladeCompat.syncAkatsuki(event.player, blade, active);
     }
 
+    static boolean ensurePower(ItemStack blade) {
+        if (net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(
+                net.minecraft.world.item.enchantment.Enchantments.POWER_ARROWS, blade)>0) return false;
+        blade.enchant(net.minecraft.world.item.enchantment.Enchantments.POWER_ARROWS,1);
+        return true;
+    }
+
     private static void awaken(ServerPlayer player, ItemStack blade, ServerLevel level) {
         blade.getOrCreateTag().putBoolean(TAG_UNLOCKED, true);
+        ensurePower(blade);
         blade.getOrCreateTag().remove(TAG_LAST_SA);
         ContractBladeCompat.syncAkatsuki(player, blade, true);
         AwakenedBladeCombat.awakening(player, SoulLegacyState.Legacy.AKATSUKI);

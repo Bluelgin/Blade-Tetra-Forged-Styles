@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+<polygon points="16,2 20,6 18,10 20,14 18,20 16,24 14,30 12,24 14,18 12,12 14,6" fill="#435866"/>
+<polygon points="16,4 18,6 16,12 18,16 16,20 14,26 14,20 14,16 14,10" fill="#91b7b5"/>
+<polygon points="16,8 16,14 18,16 16,20 14,22 14,16 14,12" fill="#bfd0c6"/>
+<polygon points="16,10 16,14 17.0,16 16,20 14,18 14,14" fill="#e6dfcf"/>
+<rect x="14" y="12" width="2" height="8" fill="#fff0df"/>
+<polygon points="20,4 22,6 20,10 22,14 20,18 20,14 18,10" fill="#6e9299"/>
+<rect x="20" y="8" width="2" height="2" fill="#bfd0c6"/>
+<polygon points="2,16 6,12 10,12 12,16 8,20 4,18" fill="#435866"/>
+<polygon points="4,16 6,14 10,14 8,16 6,18" fill="#91b7b5"/>
+<rect x="6" y="14" width="2" height="2" fill="#bfd0c6"/>
+<polygon points="20,16 24,14 28,12 30,16 26,18 22,20" fill="#435866"/>
+<polygon points="20,16 24,16 28,14 28,16 24,18 22,18" fill="#91b7b5"/>
+<rect x="24" y="16" width="2" height="2" fill="#bfd0c6"/>
+<polygon points="8,22 12,20 12,24 10,26 8,24" fill="#6e9299"/>
+<rect x="10" y="22" width="2" height="2" fill="#bfd0c6"/>
+<rect x="24" y="8" width="2" height="2" fill="#6e9299"/>
+<rect x="22" y="24" width="2" height="2" fill="#91b7b5"/>
+<rect x="15" y="7" width="1" height="1" fill="#e6dfcf"/>
+<rect x="15" y="24" width="1" height="1" fill="#e6dfcf"/>
+<rect x="26" y="16" width="1" height="1" fill="#e6dfcf"/>
+</svg>

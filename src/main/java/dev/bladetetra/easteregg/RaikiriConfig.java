@@ -7,7 +7,8 @@ public final class RaikiriConfig {
     public static ForgeConfigSpec.IntValue TRAIL_SAMPLES, DELAY_START, DELAY_END, TRAILS,
             SWORDS, LIFETIME, PERIOD, TARGETS, ANCHORS, MAX_OBSERVE_TICKS;
     public static ForgeConfigSpec.DoubleValue TRAIL_BUDGET, TRAIL_TARGET_CAP, STRIKE_RADIUS,
-            SWORD_RANGE, ROUND_BUDGET, LIFE_BUDGET, RESONANCE_RADIUS, RESONANCE_MULTIPLIER, MAX_SEGMENT, MAX_PATH, SAMPLE_SPACING;
+            SWORD_RANGE, ROUND_BUDGET, LIFE_BUDGET, RESONANCE_RADIUS, MAX_SEGMENT, MAX_PATH, SAMPLE_SPACING,
+            BURST_RADIUS, BURST_BUDGET, BURST_TARGET_CAP;
     public static void define(ForgeConfigSpec.Builder b) {
         b.push("raikiri3");
         MAX_OBSERVE_TICKS=b.defineInRange("maxObservationTicks",40,8,40);
@@ -30,7 +31,9 @@ public final class RaikiriConfig {
         ROUND_BUDGET=b.defineInRange("roundDamageBudget",3D,0D,16D);
         LIFE_BUDGET=b.defineInRange("lifetimeDamageBudget",12D,0D,64D);
         RESONANCE_RADIUS=b.defineInRange("resonanceRadius",2D,0.25D,3D);
-        RESONANCE_MULTIPLIER=b.defineInRange("resonanceMultiplier",1.5D,1D,2D);
+        BURST_RADIUS=b.defineInRange("needleBurstRadius",3D,1D,4D);
+        BURST_BUDGET=b.defineInRange("needleBurstDamageBudget",8D,0D,24D);
+        BURST_TARGET_CAP=b.defineInRange("needleBurstTargetCap",6D,0D,12D);
         b.pop();
     }
     private RaikiriConfig() {}

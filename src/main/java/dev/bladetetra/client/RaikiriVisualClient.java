@@ -26,6 +26,10 @@ final class RaikiriVisualClient {
         double distance=ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         if(eye.distanceToSqr(pos)>distance*distance) return;
         int quality=ClientVisualConfig.BLADE_COMBAT_VFX_QUALITY.get();
+        if(data.type()==AwakenedBladeVfxPacket.NEEDLE_CHARGE || data.type()==AwakenedBladeVfxPacket.NEEDLE_BURST) {
+            RaikiriBurstVisual.draw(b,m,eye,data,age,alpha,quality);
+            return;
+        }
         if(data.type()==AwakenedBladeVfxPacket.BOLT) {
             Vec3 end=new Vec3(data.endX(),data.endY(),data.endZ());
             int count=quality==0?2:quality==1?4:6;

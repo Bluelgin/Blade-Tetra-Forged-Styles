@@ -1,6 +1,8 @@
 package dev.bladetetra.easteregg;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.StyleResolver;
 import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -33,7 +35,7 @@ public final class SakuraEndlessFlow {
     /** Also called before SA admission/payment so same-tick native credits cannot fund it. */
     public static void reconcile(ServerPlayer player) {
         ItemStack blade = player.getMainHandItem();
-        if (!player.isAlive() || !eligible(blade)) { CEILINGS.remove(player.getUUID()); return; }
+        if (!player.isAlive() || !SakuraInfiniteDanceSA.active(player, blade)) { CEILINGS.remove(player.getUUID()); return; }
         player.getCapability(CapabilityConcentrationRank.RANK_POINT).ifPresent(rank -> {
             long now = player.level().getGameTime(), points = Math.max(0, rank.getRankPoint(now));
             Ceiling old = CEILINGS.get(player.getUUID());

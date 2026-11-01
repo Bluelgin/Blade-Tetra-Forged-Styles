@@ -62,6 +62,10 @@ final class AwakenedIntegrationSmoke {
                 check(SoulLegacyState.inscribed(saved).size() == 2, "dual inscription save retained: " + pair);
             }
             SoulSwitchSmoke.verify(level, actor);
+            dev.bladetetra.kyouka.CustomSoulSmoke.verify(level, actor);
+            SoulActivitySmoke.verify(level, actor);
+            AkatsukiBloodSmoke.verify(level, actor);
+            dev.bladetetra.lore.AwakenedGuideSmoke.verify(level);
             check(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                     .containsKey(new ResourceLocation("blade_tetra", "akatsuki_execution")),
                     "legacy Akatsuki damage type retained");
