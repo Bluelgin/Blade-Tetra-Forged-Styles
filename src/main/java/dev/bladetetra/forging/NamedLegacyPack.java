@@ -121,6 +121,18 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 "✦ This blade's form can be imprinted");
         zh.addProperty("tooltip.blade_tetra.imprint.researchable",
                 "✦ 此刀形制可被映录");
+        en.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
+                "✦ Can extract a named blade ingot (8 broken Proud Souls)");
+        zh.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
+                "✦ 可提取名刀锭（需8个破碎的耀魂）");
+        en.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
+                "Repair the blade before extracting a named ingot");
+        zh.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
+                "名刀耐久不足，修复后才能提取名刀锭");
+        en.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
+                "Visual imprint unsupported: named fittings will use a fallback model");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
+                "此刀模型不支持完整映锻，名刀刀装将回退为普通模型");
         en.addProperty("tooltip.blade_tetra.imprint.catalog_id",
                 "Blade Tetra · Catalog: %1$s");
         zh.addProperty("tooltip.blade_tetra.imprint.catalog_id",
