@@ -113,10 +113,10 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 "%1$s cannot be studied: unsupported model (%2$s).");
         zh.addProperty("message.blade_tetra.imprint.unsupported_model",
                 "%1$s无法映录：模型结构暂不支持（%2$s）。");
-        en.addProperty("tooltip.blade_tetra.imprint.researchable",
-                "✦ This blade's form can be imprinted");
-        zh.addProperty("tooltip.blade_tetra.imprint.researchable",
-                "✦ 此刀形制可被映录");
+        en.addProperty("tooltip.blade_tetra.imprint.model_supported",
+                "✦ Named-ingot fittings support this blade's model");
+        zh.addProperty("tooltip.blade_tetra.imprint.model_supported",
+                "✦ 名刀锭刀装支持此刀模型");
         en.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
                 "✦ Can extract a named blade ingot (8 broken Proud Souls)");
         zh.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
@@ -126,13 +126,13 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
                 "名刀耐久不足，修复后才能提取名刀锭");
         en.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "Visual imprint unsupported: named fittings will use a fallback model");
+                "Model adaptation unsupported: named fittings will use a fallback model");
         zh.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "此刀模型不支持完整映锻，名刀刀装将回退为普通模型");
+                "此刀模型暂不支持完整适配，名刀刀装将回退为普通模型");
         en.addProperty("tooltip.blade_tetra.imprint.catalog_id",
-                "Blade Tetra · Catalog: %1$s");
+                "Blade Tetra · Source: %1$s");
         zh.addProperty("tooltip.blade_tetra.imprint.catalog_id",
-                "Blade Tetra · 映锻目录：%1$s");
+                "Blade Tetra · 名刀来源：%1$s");
 
         putUnique("assets/blade_tetra/lang/en_us.json", en.toString());
         putUnique("assets/blade_tetra/lang/zh_cn.json", zh.toString());

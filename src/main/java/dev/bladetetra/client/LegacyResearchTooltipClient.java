@@ -9,7 +9,7 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Positive-only player/tester hint for named blades that can actually be researched. */
+/** Extraction eligibility and independent model-support hints for named blades. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT,
         bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LegacyResearchTooltipClient {
@@ -24,10 +24,10 @@ public final class LegacyResearchTooltipClient {
         LegacyResearchabilityClient.Result visual =
                 LegacyResearchabilityClient.inspect(extraction.kind());
         if (visual.researchable()) {
-            // Preserve the existing positive hint for independently renderable
-            // models: old gameplay and other mods can continue relying on it.
+            // Geometry support remains useful to named-ingot fittings. It no longer
+            // advertises the retired research gameplay.
             event.getToolTip().add(Component.translatable(
-                    "tooltip.blade_tetra.imprint.researchable")
+                    "tooltip.blade_tetra.imprint.model_supported")
                     .withStyle(ChatFormatting.AQUA));
         }
         if (extraction.extractable()) {

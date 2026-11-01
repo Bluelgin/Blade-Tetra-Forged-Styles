@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-/** Blank consumable used to study a named SlashBlade on an adjacent blade stand. */
+/** Inert historical item. Its registry ID is retained so old stacks survive upgrades. */
 public final class LegacyImprintScrollItem extends Item {
     public LegacyImprintScrollItem() {
         super(new Properties().stacksTo(16));
@@ -26,7 +26,9 @@ public final class LegacyImprintScrollItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.retired")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.subtitle")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.memory")
                 .withStyle(ChatFormatting.GRAY));
     }
 }
