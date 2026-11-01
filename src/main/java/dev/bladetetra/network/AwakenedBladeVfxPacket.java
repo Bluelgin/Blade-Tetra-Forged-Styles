@@ -35,13 +35,19 @@ public record AwakenedBladeVfxPacket(int soul, int type,
     public static final int SAKURA_SWING = 9;
     public static final int SAKURA_HIT = 10;
     public static final int SAKURA_DISPERSE = 11, SAKURA_CONDENSE = 12;
+    public static final int NEEDLE_CHARGE = 13, NEEDLE_BURST = 14;
     public boolean valid() {
+        if(type==NEEDLE_CHARGE || type==NEEDLE_BURST)
+            return soul==4 && sakura==null && variant>=1 && variant<=3
+                    && finitePosition(x,y,z) && finitePosition(endX,endY,endZ)
+                    && squaredSpan() <= (type==NEEDLE_BURST?16:1024);
         return soul >= 1 && soul <= 4 && type >= 0 && type <= SAKURA_CONDENSE
                 && finitePosition(x, y, z) && finitePosition(endX, endY, endZ)
                 && (type < SAKURA_SWING ? sakura == null && (type < GROUND_SWORD || soul == 4)
                     : soul == 3 && sakura != null && sakura.valid()
                         && (type <= SAKURA_HIT ? sakura.stage() <= 6 : sakura.stage() == type - 4));
     }
+    private double squaredSpan() { return (x-endX)*(x-endX)+(y-endY)*(y-endY)+(z-endZ)*(z-endZ); }
     private static boolean finitePosition(double x, double y, double z) {
         return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z)
                 && Math.abs(x) <= 30_000_000 && Math.abs(z) <= 30_000_000 && Math.abs(y) <= 4096;

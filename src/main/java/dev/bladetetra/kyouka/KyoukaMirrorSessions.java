@@ -52,8 +52,7 @@ public final class KyoukaMirrorSessions {
     }
     public static boolean eligible(ItemStack blade) {
         return GameplayConfig.ENABLE_AWAKENED_V2.get() && blade.getItem() instanceof ModularSlashBladeItem
-                && SoulLegacyState.active(blade) == SoulLegacyState.Legacy.KYOUKA
-                && SoulLegacyState.isActive(blade, SoulLegacyState.Legacy.KYOUKA)
+                && dev.bladetetra.easteregg.SoulSkillState.available(blade, SoulLegacyState.Legacy.KYOUKA)
                 && blade.getCapability(ItemSlashBlade.BLADESTATE).map(s -> !s.isBroken()).orElse(false);
     }
     public static boolean legal(ServerPlayer owner, LivingEntity target) {
@@ -87,7 +86,8 @@ public final class KyoukaMirrorSessions {
         if (s == null) return;
         var combo = nativeState.getComboSeq();
         if (combo.getPath().equals("none") || combo.getPath().equals("standby")) return;
-        s.action = new Action(p.getMainHandItem(), weapon(p.getMainHandItem()), combo, nativeState.getLastActionTime());
+        s.action = SoulSkillState.acceptsAction(p.getMainHandItem(), SoulLegacyState.Legacy.KYOUKA, combo)
+                ? new Action(p.getMainHandItem(), weapon(p.getMainHandItem()), combo, nativeState.getLastActionTime()) : null;
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void spawned(EntityJoinLevelEvent event) {
@@ -103,6 +103,7 @@ public final class KyoukaMirrorSessions {
         return !p.isRemoved() && p.isAlive() && !p.isSpectator()
                 && p.level().dimension().location().equals(s.dimension)
                 && a != null && p.getMainHandItem() == a.blade && eligible(a.blade)
+                && SoulSkillState.acceptsAction(a.blade, SoulLegacyState.Legacy.KYOUKA, a.combo)
                 && a.blade.hasTag() && a.blade.getTag().hasUUID(WEAPON)
                 && a.weapon.equals(a.blade.getTag().getUUID(WEAPON));
     }
@@ -115,18 +116,31 @@ public final class KyoukaMirrorSessions {
                 && s.armorWeapon.equals(s.armorBlade.getTag().getUUID(WEAPON));
     }
     static void activate(ServerPlayer p, Set<EntitySpiralSwords> ignored) {
-        if (!p.isAlive() || p.isRemoved() || p.isSpectator() || p.getAirSupply() <= 0 || !eligible(p.getMainHandItem())) return;
+        if (!p.isAlive() || p.isRemoved() || p.isSpectator() || p.getAirSupply() <= 0 || !eligible(p.getMainHandItem())
+                || !SoulSkillState.enabled(p.getMainHandItem(), SoulLegacyState.Legacy.KYOUKA)) return;
         State s = state(p);
         if (s == null || armored(p)) return;
         cancelPending(s); s.last = null; s.promotion = -1; s.replayUntil = 0;
         s.armorBlade = p.getMainHandItem(); s.armorWeapon = weapon(s.armorBlade);
         p.addEffect(new MobEffectInstance(WaterMirrorEffect.ARMOR.get(), -1, 0, false, false, true));
+        if (armored(p)) SoulActivityService.triggered(p,s.armorBlade,SoulLegacyState.Legacy.KYOUKA);
     }
     public static void rankChanged(LivingEntity user, int before, int after) {
+        rankChanged(user, before, after, null);
+    }
+    public static void rankChanged(LivingEntity user, int before, int after, DamageSource source) {
         if (!(user instanceof ServerPlayer p) || before >= IConcentrationRank.ConcentrationRanks.SSS.level
                 || after < IConcentrationRank.ConcentrationRanks.SSS.level || !eligible(p.getMainHandItem())) return;
         State s = state(p);
-        if (s != null && !armored(p)) s.promotion = p.level().getGameTime();
+        if (s == null || armored(p)) return;
+        if (StyleResolver.resolve(p.getMainHandItem()) == BladeStyle.CUSTOM) {
+            if (source != null) {
+                Action action = source.getDirectEntity() instanceof EntitySlashEffect slash ? SHOTS.get(slash) : s.action;
+                if (!validAction(s, action)) return;
+            } else if (!p.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
+                    .map(b -> SoulSkillState.acceptsAction(p.getMainHandItem(), SoulLegacyState.Legacy.KYOUKA, b.getComboSeq())).orElse(false)) return;
+        }
+        s.promotion = p.level().getGameTime();
     }
     static void hit(ServerPlayer p, LivingEntity target, float baseline, DamageSource source) {
         State s = STATES.get(p.getUUID());
@@ -146,6 +160,7 @@ public final class KyoukaMirrorSessions {
         if (armored(p)) {
             if (s.pending.size() < 8) {
                 s.pending.add(new Pending(last, now + 14, true, UUID.randomUUID()));
+                SoulActivityService.triggered(p,a.blade,SoulLegacyState.Legacy.KYOUKA);
                 WaterMirrorCombat.visual(p, target, KyoukaVfxPacket.WATER_GATHER, 14);
             }
         } else s.last = last;
@@ -173,6 +188,18 @@ public final class KyoukaMirrorSessions {
                 l.anchor.x, l.anchor.y, l.anchor.z, 96, net.minecraft.resources.ResourceKey.create(
                         net.minecraft.core.registries.Registries.DIMENSION, s.dimension))), packet(s,h,stop));
     }
+    public static boolean hasPendingAttack(ServerPlayer p) {
+        State s = STATES.get(p.getUUID());
+        return s != null && s.pending.stream().anyMatch(h -> validAction(s,h.slash.action) && (!h.water || armored(p)));
+    }
+    public static boolean switchBlocked(ServerPlayer p) {
+        State s = STATES.get(p.getUUID());
+        return s != null && !s.pending.isEmpty();
+    }
+    public static void releaseForSwitch(ServerPlayer p) {
+        State s = STATES.remove(p.getUUID());
+        if (s != null) { endArmor(s); cancelPending(s); }
+    }
     private static void cancelPending(State s) {
         for (var h : s.pending) if (!h.water) mirrorPacket(s, h, true);
         s.pending.clear();
@@ -197,7 +224,9 @@ public final class KyoukaMirrorSessions {
                         && clock(p) >= persisted(p).getLong(COOLDOWN)) {
                     var h = new Pending(s.last, now + 10, false, UUID.randomUUID());
                     persisted(p).putLong(COOLDOWN, clock(p) + 600);
-                    s.pending.add(h); WaterMirrorCombat.visual(p, p, KyoukaVfxPacket.WATER_DEFLECT, 10); s.replayUntil = now + 30; mirrorPacket(s, h, false);
+                    s.pending.add(h);
+                    SoulActivityService.triggered(p,h.slash.action.blade,SoulLegacyState.Legacy.KYOUKA);
+                    WaterMirrorCombat.visual(p, p, KyoukaVfxPacket.WATER_DEFLECT, 10); s.replayUntil = now + 30; mirrorPacket(s, h, false);
                 }
                 s.promotion = -1;
             }

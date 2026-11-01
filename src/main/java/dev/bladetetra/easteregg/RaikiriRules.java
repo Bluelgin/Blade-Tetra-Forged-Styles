@@ -36,17 +36,6 @@ public final class RaikiriRules {
     public static boolean landing(boolean armed, boolean ground, boolean supported, long age) {
         return armed && ground && supported && age >= 0 && age <= 100;
     }
-    public static final class Charge {
-        private final java.util.Set<UUID> steps=new java.util.HashSet<>();
-        private boolean charged;
-        public boolean resonate(UUID sequence) {
-            if (sequence == null || steps.size() >= 64 || !steps.add(sequence)) return false;
-            charged=true; // Saturates at one; never extends anchor lifetime.
-            return true;
-        }
-        public boolean charged() { return charged; }
-        public boolean consume() { boolean value=charged; charged=false; return value; }
-    }
     /** Attempts consume budget even if protected/cancelled: cannot retry into unlimited work. */
     public static final class Budget {
         private float remaining;
@@ -63,6 +52,13 @@ public final class RaikiriRules {
             return amount;
         }
         public float remaining() { return remaining; }
+    }
+    static boolean armorCanStart(long points,long unit,int grade,int cost) {
+        return cost>=0 && unit>0 && grade>=4 && points/(double)unit>=4
+                && points>=cost && (points-cost)/(double)unit>=3;
+    }
+    static boolean armorCanSustain(long points,long unit,int grade) {
+        return unit>0 && grade>=3 && points/(double)unit>=3;
     }
     private RaikiriRules() {}
 }

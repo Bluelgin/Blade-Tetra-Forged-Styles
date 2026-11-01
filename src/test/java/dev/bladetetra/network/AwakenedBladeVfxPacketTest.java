@@ -6,6 +6,22 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AwakenedBladeVfxPacketTest {
+    @Test void needleEffectsRequireRaikiriBoundedEndpointsAndOneToThreeNeedles() {
+        for(int type:new int[]{AwakenedBladeVfxPacket.NEEDLE_CHARGE,AwakenedBladeVfxPacket.NEEDLE_BURST}) {
+            for(int needles=1;needles<=3;needles++) {
+                var packet=new AwakenedBladeVfxPacket(4,type,1,2,3,4,2,3,needles);
+                assertTrue(packet.valid());
+                var buf=new FriendlyByteBuf(Unpooled.buffer());
+                try {AwakenedBladeVfxPacket.encode(packet,buf);assertEquals(packet,AwakenedBladeVfxPacket.decode(buf));}
+                finally {buf.release();}
+            }
+            assertFalse(new AwakenedBladeVfxPacket(3,type,0,0,0,3,0,0,1).valid());
+            assertFalse(new AwakenedBladeVfxPacket(4,type,0,0,0,3,0,0,0).valid());
+            assertFalse(new AwakenedBladeVfxPacket(4,type,0,0,0,3,0,0,4).valid());
+            assertFalse(new AwakenedBladeVfxPacket(4,type,Double.NaN,0,0,3,0,0,1).valid());
+        }
+        assertFalse(new AwakenedBladeVfxPacket(4,AwakenedBladeVfxPacket.NEEDLE_BURST,0,0,0,20,0,0,1).valid());
+    }
     @Test void encodesAllFourSoulEventsAndNegativeYaw() {
         for (int soul = 1; soul <= 4; soul++) {
             for (int type = 0; type <= (soul == 4 ? AwakenedBladeVfxPacket.RESONANCE : 4); type++) {

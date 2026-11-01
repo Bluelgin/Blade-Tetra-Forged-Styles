@@ -1,6 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.easteregg.AkatsukiBloodBlade;
 import dev.bladetetra.network.IaidoImpactPacket;
 import dev.bladetetra.network.ModNetwork;
 import dev.bladetetra.visual.MaterialSlashEffectResolver;
@@ -80,7 +81,7 @@ final class IaidoStyleCombat {
         if (!ModComboStates.isIaidoAttack(combo)) {
             return true;
         }
-        if (!StyleTargeting.isInsideFrontArc(attacker, target, RANGE, MIN_DOT)
+        if (!StyleTargeting.isInsideFrontArc(attacker, target, RANGE + AkatsukiBloodBlade.extraReach(attacker), MIN_DOT)
                 || !lockTarget(attacker, target)) {
             return false;
         }

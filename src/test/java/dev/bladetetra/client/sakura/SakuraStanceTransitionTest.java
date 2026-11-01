@@ -5,6 +5,45 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SakuraStanceTransitionTest {
+    @Test void strikeRecallUsesExistingPoolAndRebuildsOnlyAfterTheAttack() {
+        var pool=new SakuraShardPool(48,FRAME,0);
+        var identities=pool.shards.clone();
+        pool.beginStance(false,0,GRIP,TIP,0);
+        Vec3 target=new Vec3(0,1,5);
+        pool.strikeRecall(target,3,3);
+        for(int t=0;t<=8;t++)pool.tick(FRAME,t,GRIP,TIP);
+        assertEquals(0,pool.stance().fraction(8));
+        for(var shard:pool.shards) {
+            assertTrue(shard.position.distanceToSqr(target)>1.5,"charge holds outside the target");
+            assertTrue(shard.position.y>target.y+2);
+            assertTrue(shard.direction.y<-.99);
+        }
+        assertTrue(pool.chargeGlow(0,8)>0);
+        for(int t=9;t<=70;t++)pool.tick(FRAME,t,GRIP,TIP);
+        for(var shard:pool.shards)assertTrue(shard.position.distanceToSqr(target)<.2);
+        assertEquals(0,pool.stance().fraction(70));
+        for(int t=71;t<=85;t++)pool.tick(FRAME,t,GRIP,TIP);
+        assertEquals(1,pool.stance().fraction(85));
+        for(int i=0;i<48;i++) {
+            assertSame(identities[i],pool.shards[i]);
+            assertEquals(0,pool.shards[i].visibility);
+            assertTrue(pool.shards[i].position.distanceToSqr(GRIP)<1.1);
+        }
+    }
+    @Test void targetTrackingLocksAtReleaseAndCancellationReturnsWithoutRetargeting() {
+        var pool=new SakuraShardPool(48,FRAME,0);
+        pool.beginStance(false,0,GRIP,TIP,0);pool.strikeRecall(new Vec3(0,1,5),0,3);
+        for(int t=0;t<=10;t++) {pool.trackRecall(new Vec3(.5,1,5),t);pool.tick(FRAME,t,GRIP,TIP);}
+        Vec3 locked=pool.recallTarget();
+        pool.trackRecall(new Vec3(1,1,5),26);pool.tick(FRAME,26,GRIP,TIP);
+        assertEquals(locked,pool.recallTarget());
+        Vec3 position=pool.shards[0].position;
+        pool.abortRecall(26);pool.tick(FRAME,26,GRIP,TIP);
+        assertEquals(position,pool.shards[0].position);
+        assertEquals(0,pool.chargeGlow(0,26));
+        for(int t=27;t<=38;t++)pool.tick(FRAME,t,GRIP,TIP);
+        for(var shard:pool.shards)assertEquals(0,shard.visibility);
+    }
     private static final SakuraShardFormation.Frame FRAME=new SakuraShardFormation.Frame(Vec3.ZERO,0,1.62);
     private static final Vec3 GRIP=new Vec3(.3,1,.3),TIP=new Vec3(.3,2,.3);
     @Test void bladeDoesNotDisappearAtCommitAndRestoresFromHiltToTip() {

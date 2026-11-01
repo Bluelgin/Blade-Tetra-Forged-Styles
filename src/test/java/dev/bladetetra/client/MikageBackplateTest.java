@@ -11,7 +11,7 @@ class MikageBackplateTest {
         String manager = java.nio.file.Files.readString(java.nio.file.Path.of(
                 "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
         int start = manager.indexOf("if (\"base\".equals(event.getOriginalTarget()))");
-        int frame = manager.indexOf("DefaultResources.resourceDurabilityTexture,", start);
+        int frame = manager.indexOf("event.getTarget(),", start);
         int reset = manager.indexOf("BladeRenderState.resetCol();", start);
         int portrait = manager.indexOf("event.getModel(), \"portrait\"", start);
         assertTrue(frame > start && reset > frame && reset < portrait);
@@ -30,16 +30,24 @@ class MikageBackplateTest {
     }
 
     @Test
-    void ActiveAkatsukiSelectsPortraitAndOtherBladesSelectFlowWithSeparateCacheKeys() throws Exception {
-        String manager = java.nio.file.Files.readString(java.nio.file.Path.of(
-                "src/main/java/dev/bladetetra/client/MaterialTextureManager.java"));
-        assertTrue(manager.contains("AkatsukiAwakening.isActive(event.getStack())"));
-        assertTrue(manager.contains("akatsuki ? \"|mikage\" : \"|flow\""));
-        assertTrue(manager.contains("if (textureLayout == TextureLayout.ITEM)"));
-        String cache = java.nio.file.Files.readString(java.nio.file.Path.of(
-                "src/main/java/dev/bladetetra/client/MaterialTextureCache.java"));
-        assertTrue(cache.contains("akatsuki ? portraitTemplate : flowTemplate"));
-        assertTrue(cache.contains("flowTemplate.close()"));
+    void PaintedBackplatesHaveTransparentMarginsAndStayInsideTheNativeOpening() throws Exception {
+        for(var theme:AwakenedWeaponArt.Theme.values()) {
+            if(theme==AwakenedWeaponArt.Theme.NONE) continue;
+            String path="/assets/blade_tetra/textures/item/awakened_"+theme.name().toLowerCase(java.util.Locale.ROOT)+"_backplate.png";
+            try(var stream=getClass().getResourceAsStream(path)) {
+                assertNotNull(stream,path);
+                var image=ImageIO.read(stream);
+                assertEquals(image.getWidth(),image.getHeight());
+                assertTrue(image.getWidth()>=256);
+                assertTrue((image.getRGB(0,0)>>>24)<=1);
+                assertTrue((image.getRGB(image.getWidth()/2,image.getHeight()/2)>>>24)>=240);
+            }
+        }
+        for(int y=0;y<256;y++) for(int x=0;x<256;x++)
+            if(AwakenedWeaponArt.insideBackplate(x,y,256,256))
+                assertTrue(Math.abs((x+.5)/256-.5)+Math.abs((y+.5)/256-.5)<.5);
+        assertFalse(AwakenedWeaponArt.insideBackplate(128,0,256,256));
+        assertTrue(AwakenedWeaponArt.insideBackplate(128,128,256,256));
     }
 
     @Test

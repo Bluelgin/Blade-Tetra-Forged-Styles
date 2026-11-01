@@ -2,6 +2,7 @@ package dev.bladetetra.combat;
 
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.easteregg.AkatsukiBloodBlade;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -120,7 +121,7 @@ public final class RengekiMomentumHandler {
                 ignored -> new RengekiRuntimeState.SprintChainState());
 
         double speedScale = speedScale(speed);
-        double range = sprintSlashRangeForSpeed(speed);
+        double range = sprintSlashRangeForSpeed(speed) + AkatsukiBloodBlade.extraReach(player);
         float visualSize = (float) lerp(
                 SPRINT_SLASH_MIN_VISUAL_SIZE,
                 SPRINT_SLASH_MAX_VISUAL_SIZE,

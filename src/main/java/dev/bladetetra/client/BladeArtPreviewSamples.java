@@ -71,6 +71,24 @@ final class BladeArtPreviewSamples {
         return result;
     }
 
+    static List<Sample> createAwakened() {
+        List<Sample> result=new ArrayList<>();
+        String[] names={"赤月","千本樱","镜花水月","雷切"};
+        String[] materials={"blood_crystal","sakura_crystal","proudsoul_sphere","raikiri"};
+        String[] keys={"akatsuki","senbonzakura","kyouka","raikiri"};
+        for(String metal:List.of("iron","gold","netherite"))
+            for(String guard:List.of("simple_tsuba","light_tsuba","guard_tsuba"))
+                for(int i=0;i<4;i++) {
+                    ItemStack stack=blade(i==1?"wakizashi_blade":"katana_blade",metal);
+                    stack=part(stack,"tsuba",guard,metal);
+                    stack=part(stack,"inscription","awakened_soul_inscription",materials[i]);
+                    stack.getOrCreateTag().putBoolean("blade_tetra_"+keys[i]+"_unlocked",true);
+                    if(i==0) SayaPresetSkin.apply(stack,SayaPresetSkin.AKATSUKI);
+                    add(result,names[i]+" / "+guard.replace("_tsuba",""),metal+" · 觉醒刀装与背板",stack);
+                }
+        return result;
+    }
+
     private static void add(List<Sample> list, String label, String detail, ItemStack stack) {
         if (stack.isEmpty()) throw new IllegalStateException("Empty art sample: " + label);
         IModularItem.updateIdentifier(stack);

@@ -21,7 +21,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue KYOUKA_RANGE;
 
     public static final ForgeConfigSpec.IntValue SAKURA_SA_MAX_TICKS, SAKURA_CONCERTO_INTERVAL;
-    public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE, SAKURA_RECALL_DAMAGE_SCALE;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -144,8 +144,8 @@ public final class GameplayConfig {
         KYOUKA_WORLD_SESSIONS = builder.defineInRange("worldSessions", 32, 1, 128);
         builder.pop();
         ENABLE_AWAKENED_RANK_COSTS = builder
-                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA only.",
-                        "Kyouka 4 and Raikiri 3.1 never use extra Rank payments.")
+                .comment("Spend native SlashBlade Rank during Senbonzakura infinite dance SA and Raikiri thunder armor.",
+                        "Kyouka 4 and native Raikiri attacks never use extra Rank payments.")
                 .define("enableAwakenedRankCosts", true);
         builder
                 .comment("Deprecated V2 replay price; ignored by Three Mirrors.")
@@ -163,6 +163,8 @@ public final class GameplayConfig {
                 .defineInRange("sakuraConcertoInterval", 8, 6, 40);
         SAKURA_CONCERTO_FRACTION = builder.defineInRange("sakuraConcertoDamageFraction", .25, 0., .5);
         SAKURA_CONCERTO_CAP = builder.defineInRange("sakuraConcertoDamageCap", 6., 0., 20.);
+        SAKURA_RECALL_DAMAGE_SCALE = builder.comment("Trial multiplier for charged Sakura recall (base attack x 4/6.5/10/14). No fixed damage ceiling.")
+                .defineInRange("sakuraRecallDamageScale", 1., .1, 10.);
         SAKURA_SA_STAGE_DAMAGE = builder.comment("Total additional damage budget per SA stage, split across its pulses.")
                 .defineInRange("sakuraSaStageDamage", 8., 0., 32.);
         builder

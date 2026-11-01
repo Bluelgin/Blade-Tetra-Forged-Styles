@@ -72,7 +72,7 @@ public final class AwakenedBladeVfxClient {
             return;
         }
         if (!packet.valid() || packet.soul() < 1 || packet.soul() > 4
-                || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.RESONANCE) return;
+                || packet.type() < 0 || packet.type() > AwakenedBladeVfxPacket.NEEDLE_BURST) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
         if (currentLevel != minecraft.level) {
@@ -85,6 +85,7 @@ public final class AwakenedBladeVfxClient {
             return;
         }
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
+        RaikiriThunderArmorClient.discharge(packet);
         double max = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
         if (minecraft.player != null
                 && minecraft.player.distanceToSqr(packet.x(), packet.y(), packet.z())
@@ -226,6 +227,8 @@ public final class AwakenedBladeVfxClient {
         float alpha = Mth.clamp(age / 4.0F, 0, 1)
                 * Mth.clamp((fx.duration - age) / 8.0F, 0, 1)
                 * Mth.clamp(intensity, 0, 1);
+        if(data.type()==AwakenedBladeVfxPacket.NEEDLE_CHARGE || data.type()==AwakenedBladeVfxPacket.NEEDLE_BURST)
+            alpha=Mth.clamp(intensity,0,1)*Mth.clamp((fx.duration-age)/4,0,1);
         if (alpha <= 0) return;
         if (data.soul() == 4 && data.type() >= AwakenedBladeVfxPacket.GROUND_SWORD) {
             RaikiriVisualClient.atlas(buffer, matrix, eye, data, age, fx.duration, alpha);
@@ -554,6 +557,8 @@ public final class AwakenedBladeVfxClient {
                 case AwakenedBladeVfxPacket.GROUND_SWORD -> (int)Math.max(1,Math.min(200,data.endX()));
                 case AwakenedBladeVfxPacket.BOLT -> 8;
                 case AwakenedBladeVfxPacket.RESONANCE -> 12;
+                case AwakenedBladeVfxPacket.NEEDLE_CHARGE -> 3;
+                case AwakenedBladeVfxPacket.NEEDLE_BURST -> 12;
                 case AwakenedBladeVfxPacket.STEP -> data.soul() == 4 ? 26 : 12;
                 case AwakenedBladeVfxPacket.MARK -> 18;
                 default -> 18;

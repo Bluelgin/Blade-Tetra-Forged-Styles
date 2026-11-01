@@ -21,6 +21,14 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('bladeStorageSmoke')) {
+                workingDirectory project.file('build/blade-storage-smoke')
+                property 'blade_tetra.storageSmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
+            }
+            if (project.hasProperty('soulGuideReview')) {
+                workingDirectory project.file('build/soul-guide-review')
+                property 'blade_tetra.soulGuideReview', 'true'
+            }
             if (project.hasProperty('sakuraCombatSmoke')) {
                 workingDirectory project.file('build/sakura-combat-smoke')
                 property 'blade_tetra.sakuraCombatSmoke', 'true'
@@ -46,10 +54,19 @@ minecraft {
                 workingDirectory project.file('build/mirror-ritual-review')
                 property 'blade_tetra.mirrorRitualReview', 'true'
             }
+            if (project.hasProperty('bloodBladeReview')) {
+                workingDirectory project.file('build/blood-blade-review')
+                property 'blade_tetra.bloodBladeReview', 'true'
+            }
+            if (project.hasProperty('bloodThreadReview')) {
+                workingDirectory project.file('build/blood-thread-review')
+                property 'blade_tetra.bloodThreadReview', 'true'
+            }
             if (project.hasProperty('artPreview')) {
                 workingDirectory project.file('build/art-preview')
                 property 'blade_tetra.artPreview', 'true'
-                property 'blade_tetra.artPreviewOutput', project.file('art-previews/inventory-update').absolutePath
+                property 'blade_tetra.artPreviewOutput', project.file(project.hasProperty('awakenedArtPreview') ? 'art-previews/awakened-upgrade' : 'art-previews/inventory-update').absolutePath
+                if (project.hasProperty('awakenedArtPreview')) property 'blade_tetra.awakenedArtPreview', 'true'
                 if (project.hasProperty('artInventoryBenchmark')) property 'blade_tetra.artInventoryBenchmark', 'true'
             }
             if (project.hasProperty('providerEffectSmoke')) {
@@ -126,6 +143,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('bloodBladeReview')) {
+                args '--width', '1360', '--height', '768'
+            }
             if (project.hasProperty('mirrorRitualReview')) {
                 args '--width', '960', '--height', '540'
             }

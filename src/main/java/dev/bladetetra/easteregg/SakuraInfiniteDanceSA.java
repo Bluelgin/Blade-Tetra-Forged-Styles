@@ -51,7 +51,8 @@ public final class SakuraInfiniteDanceSA {
     }
     @SubscribeEvent(priority=EventPriority.LOWEST)
     public static void art(SlashBladeEvent.PerformSlashArtEvent e) {
-        if(!(e.getEntityLiving() instanceof ServerPlayer p)||!SakuraEndlessFlow.eligible(p.getMainHandItem())) return;
+        if(!(e.getEntityLiving() instanceof ServerPlayer p)||!SakuraEndlessFlow.eligible(p.getMainHandItem())
+                ||!SoulSkillState.enabled(p.getMainHandItem(),SoulLegacyState.Legacy.SENBONZAKURA)) return;
         if(SESSIONS.containsKey(p.getUUID())) {e.setComboState(ComboStateRegistry.NONE.getId());return;}
         if(e.getType()==null||e.getType()==SlashArts.ArtsType.Fail) return;
         SakuraEndlessFlow.reconcile(p);
@@ -72,6 +73,7 @@ public final class SakuraInfiniteDanceSA {
             Request r=REQUESTS.remove(p.getUUID());
             if(stage!=1||r==null||!matches(p,r)||r.at!=p.level().getGameTime()) return;
             s=new Session(r);SESSIONS.put(p.getUUID(),s);
+            SoulActivityService.triggered(p,r.blade,SoulLegacyState.Legacy.SENBONZAKURA);
             SakuraShardAttackService.cancel(p);
             var speed=p.getAttribute(Attributes.MOVEMENT_SPEED);
             if(speed!=null) {speed.removeModifier(SLOW);speed.addTransientModifier(new AttributeModifier(SLOW,

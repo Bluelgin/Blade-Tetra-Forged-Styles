@@ -40,6 +40,14 @@ public final class SakuraShardRenderer {
                         center.add(across).add(along),shard.index%3,3,alpha);
                 budget--;
             }
+            float glow=pool.chargeGlow(shard.index,pool.time()+partial);
+            if(glow>0&&budget>0) {
+                Vec3 point=center.add(direction.scale(size*.62));
+                Vec3 along=direction.scale(.07+glow*.06),across=side.scale(.025+glow*.025);
+                solid(buffer,matrix,point.add(along),point.add(across),point.subtract(along),point.subtract(across),
+                        alpha*glow,0xFFF5FB);
+                budget--;
+            }
             if(!shard.flying()) continue;
             int history=Math.min(shard.history,quality==0?2:quality==1?4:6);
             Vec3 from=center;
@@ -55,6 +63,7 @@ public final class SakuraShardRenderer {
                 budget--; from=to;
             }
         }
+        budget=SakuraRecallVisual.draw(buffer,matrix,pool,pool.time()+partial,baseAlpha,quality,budget);
         // Only server-confirmed hits add a brief thin cross; misses have no hit flash.
         for(var group:pool.groups) {
             if(group==null||!group.confirmed) continue;
@@ -81,7 +90,7 @@ public final class SakuraShardRenderer {
         solid(b,m,base.add(thick),base.subtract(thick),right.subtract(thick),right.add(thick),alpha,0xD792B0);
         solid(b,m,right.add(thick),right.subtract(thick),tip.subtract(thick),tip.add(thick),alpha,0xFFFFFF);
     }
-    private static void solid(BufferBuilder b,Matrix4f m,Vec3 a,Vec3 c,Vec3 d,Vec3 e,float alpha,int color) {
+    static void solid(BufferBuilder b,Matrix4f m,Vec3 a,Vec3 c,Vec3 d,Vec3 e,float alpha,int color) {
         VfxPrimitives.texturedQuad(b,m,a,c,d,e,WHITE_U,WHITE_V,WHITE_U,WHITE_V,alpha,color);
     }
     private SakuraShardRenderer() {}
