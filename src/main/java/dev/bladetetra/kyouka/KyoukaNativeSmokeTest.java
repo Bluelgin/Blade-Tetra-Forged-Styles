@@ -172,6 +172,7 @@ public final class KyoukaNativeSmokeTest {
             check(!KyoukaMirrorSessions.STATES.containsKey(player.getUUID()),"re-equipping at SSS does not create a recall or form");
             check(recallCooldown==player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG)
                     .getLong("blade_tetra_mirror_recall_until"),"weapon session cleanup preserves persisted recall cooldown");
+            KyoukaAfterimageSmoke.verify(player);
             LogUtils.getLogger().info("KYOUKA_NATIVE_SMOKE_PASS: {} checks; actual native casts, commits, managed hits, rank promotion and Forge breathing; no visual claims",checks);
         } catch(Throwable failure) {
             LogUtils.getLogger().error("KYOUKA_NATIVE_SMOKE_FAIL",failure); throw new IllegalStateException(failure);

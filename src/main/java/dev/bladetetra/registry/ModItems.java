@@ -11,6 +11,7 @@ import dev.bladetetra.item.NamedBladeRecordItem;
 import dev.bladetetra.item.SayaPatternItem;
 import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
+import dev.bladetetra.item.AwakenedSoulFragmentItem;
 import dev.bladetetra.challenge.BrokenOniMaskItem;
 import dev.bladetetra.challenge.BoundaryGateCharmItem;
 import dev.bladetetra.challenge.DeadThoughtSoulSealItem;
@@ -66,6 +67,14 @@ public final class ModItems {
             ITEMS.register("smithing_clue", SmithingClueItem::new);
     public static final RegistryObject<SmithingJournalItem> SMITHING_JOURNAL =
             ITEMS.register("smithing_journal", SmithingJournalItem::new);
+    public static final RegistryObject<AwakenedSoulFragmentItem> AKATSUKI_SOUL_FRAGMENT =
+            ITEMS.register("akatsuki_soul_fragment", () -> new AwakenedSoulFragmentItem("akatsuki"));
+    public static final RegistryObject<AwakenedSoulFragmentItem> SENBONZAKURA_SOUL_FRAGMENT =
+            ITEMS.register("senbonzakura_soul_fragment", () -> new AwakenedSoulFragmentItem("senbonzakura"));
+    public static final RegistryObject<AwakenedSoulFragmentItem> RAIKIRI_SOUL_FRAGMENT =
+            ITEMS.register("raikiri_soul_fragment", () -> new AwakenedSoulFragmentItem("raikiri"));
+    public static final RegistryObject<AwakenedSoulFragmentItem> KYOUKA_SOUL_FRAGMENT =
+            ITEMS.register("kyouka_soul_fragment", () -> new AwakenedSoulFragmentItem("kyouka"));
     public static final RegistryObject<NamedBladeRecordItem> NAMED_BLADE_RECORD =
             ITEMS.register("named_blade_record", NamedBladeRecordItem::new);
     public static final RegistryObject<LegacyImprintScrollItem> LEGACY_IMPRINT_SCROLL =
@@ -103,6 +112,10 @@ public final class ModItems {
                         output.accept(KARMIC_PUPPET.get());
                         output.accept(DEAD_THOUGHT_SOUL_SEAL.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
+                        output.accept(AKATSUKI_SOUL_FRAGMENT.get());
+                        output.accept(SENBONZAKURA_SOUL_FRAGMENT.get());
+                        output.accept(RAIKIRI_SOUL_FRAGMENT.get());
+                        output.accept(KYOUKA_SOUL_FRAGMENT.get());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
                         output.accept(LEGACY_IMPRINT_SCROLL.get());
                         output.accept(LIFENG_SCROLL.get());

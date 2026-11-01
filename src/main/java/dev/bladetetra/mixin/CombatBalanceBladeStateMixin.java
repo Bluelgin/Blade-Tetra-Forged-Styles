@@ -18,7 +18,10 @@ public abstract class CombatBalanceBladeStateMixin implements ISlashBladeState {
     }
     @Override public void updateComboSeq(LivingEntity user, ResourceLocation next) {
         CombatBalanceRuntime.prepareCombo(this, user, next);
-        ISlashBladeState.super.updateComboSeq(user, next);
+        try (var motion=dev.bladetetra.easteregg.AkatsukiBloodBlade.observe(user)) {
+            ISlashBladeState.super.updateComboSeq(user, next);
+            motion.committed(this);
+        }
     }
     @Override public ResourceLocation progressCombo(LivingEntity user, boolean virtual) {
         if (!virtual) CombatBalanceRuntime.ordinaryCombo(user);

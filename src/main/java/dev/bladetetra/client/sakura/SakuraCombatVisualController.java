@@ -52,11 +52,7 @@ public final class SakuraCombatVisualController {
     }
     private static boolean eligible(Player player) {
         var mc=Minecraft.getInstance();
-        View existing=VIEWS.get(player.getUUID());
-        boolean transition=existing!=null&&existing.bladeId.equals(bladeId(player))
-                &&existing.pool.stance()!=null&&existing.pool.stance().active(player.level().getGameTime());
         return player.isAlive() && SakuraStanceController.supported(player.getMainHandItem())
-                && (SakuraStanceController.dispersed(player.getMainHandItem()) || transition)
                 && !AwakeningVisualController.presenting(player) && !bladeId(player).isBlank()
                 && (mc.player==null||mc.player.distanceToSqr(player)<=distance()*distance());
     }
@@ -67,12 +63,12 @@ public final class SakuraCombatVisualController {
     }
     private static float fraction(View v,double now) {
         var t=v.pool.stance();
-        return t==null?(SakuraStanceController.dispersed(v.owner.getMainHandItem())?0:1):t.fraction(now);
+        return t==null?v.pool.partialFraction(now):t.fraction(now);
     }
     public static float bladeFraction(Player owner,float partial) {
         View v=VIEWS.get(owner.getUUID());
         return v!=null&&v.bladeId.equals(bladeId(owner))?fraction(v,owner.level().getGameTime()+partial)
-                :SakuraStanceController.dispersed(owner.getMainHandItem())?0:1;
+                :SakuraStanceController.fraction(owner.getMainHandItem());
     }
     public static void capture(Player owner,mods.flammpfeil.slashblade.event.client.RenderOverrideEvent e,boolean firstPerson) {
         View v=VIEWS.get(owner.getUUID());
@@ -102,6 +98,37 @@ public final class SakuraCombatVisualController {
         if(age < -5 || age > 24) return;
         if(!apply(packet)&&PENDING.size()<32) PENDING.add(new Pending(packet,world.getGameTime()+6));
     }
+    public static void acceptRecall(dev.bladetetra.network.SakuraRecallPacket p) {
+        syncWorld();
+        if(world==null||!enabled()||!p.valid()||!p.dimension().equals(world.dimension().location()))return;
+        Player owner=world.getPlayerByUUID(p.owner());
+        if(owner==null||!stanceEligible(owner)||!p.bladeId().equals(bladeId(owner))
+                ||owner==Minecraft.getInstance().player&&owner.getInventory().selected!=p.slot())return;
+        long now=world.getGameTime();
+        if(now-p.at()>12||now-p.at() < -5)return;
+        View v=view(owner);if(v==null)return;
+        if(p.kind()==dev.bladetetra.network.SakuraRecallPacket.Kind.START) {
+            if(p.sequence()<=v.stanceSequence||p.anchor().distanceToSqr(owner.position())>144)return;
+            float from=fraction(v,now);v.stanceSequence=p.sequence();v.recallSequence=p.sequence();
+            v.recallUpdateAt=p.at();v.recallKind=0;
+            v.pool.beginStance(false,now,v.anchor.grip(owner),v.anchor.tip(owner),from);
+            v.pool.strikeRecall(p.anchor(),p.tier(),p.height(),p.releaseTicks());
+            v.recallEnemy=world.getEntity(p.target()) instanceof LivingEntity enemy?enemy:null;
+            java.util.Arrays.fill(v.targets,null);
+        } else {
+            if(v.recallSequence!=p.sequence()||v.pool.stance()==null||p.at()<v.recallUpdateAt
+                    ||p.at()==v.recallUpdateAt&&p.kind().ordinal()<=v.recallKind)return;
+            v.recallUpdateAt=p.at();v.recallKind=p.kind().ordinal();
+            switch(p.kind()) {
+                case STAGE->v.pool.recallStage(p.tier());
+                case RELEASE->{v.pool.releaseRecall(p.anchor(),v.pool.stance().startedAt()+p.at()-p.started(),p.tier());v.recallEnemy=null;}
+                case HIT->v.pool.confirmRecall(now);
+                case BLOOM->v.pool.confirmBloom(now);
+                case CANCEL->{v.pool.abortRecall(now);v.recallEnemy=null;}
+                default->{}
+            }
+        }
+    }
     private static boolean apply(AwakenedBladeVfxPacket packet) {
         var cue=packet.sakura();
         Player owner=world.getPlayerByUUID(cue.owner());
@@ -114,14 +141,20 @@ public final class SakuraCombatVisualController {
         if(stance) {
             if(cue.sequence()<=view.stanceSequence) return true;
             view.stanceSequence=cue.sequence();
-            float from=view.pool.stance()==null
-                    ?(packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE?1:0):fraction(view,world.getGameTime());
+            float from=fraction(view,world.getGameTime());
             boolean disperse=packet.type()==AwakenedBladeVfxPacket.SAKURA_DISPERSE;
-            if(disperse&&view.pool.stance()==null) view.pool.hide();
+            if(disperse&&view.pool.stance()==null&&from>=.999F) view.pool.hide();
             if(!existed&&!disperse) for(var shard:view.pool.shards) shard.visibility=shard.previousVisibility=1;
             // Start locally from current positions; never fast-forward skipped flight
             // into a teleport when an authoritative packet arrives late.
             view.pool.beginStance(disperse,world.getGameTime(),view.anchor.grip(owner),view.anchor.tip(owner),from);
+            view.recallEnemy=null;
+            if(!disperse&&cue.targetId()>=0) {
+                Vec3 goal=new Vec3(packet.endX(),packet.endY(),packet.endZ());
+                if(goal.distanceToSqr(owner.position())<=144&&world.getEntity(cue.targetId()) instanceof LivingEntity enemy) {
+                    view.pool.strikeRecall(goal,0,3);view.recallEnemy=enemy;
+                }
+            }
             java.util.Arrays.fill(view.targets,null);
             return true;
         }
@@ -150,7 +183,10 @@ public final class SakuraCombatVisualController {
             if(group.targetId<0) continue;
             // Capture the entity object once; ID reuse after unload cannot retarget a volley.
             if(view.targets[i]==null&&world.getEntity(group.targetId) instanceof LivingEntity living)
-                view.targets[i]=living;
+                {
+                    view.targets[i]=living;
+                    if(group.concerto) group.targetOffset=group.goal.subtract(living.getBoundingBox().getCenter());
+                }
         }
     }
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e) {
@@ -180,7 +216,9 @@ public final class SakuraCombatVisualController {
         for(View v:VIEWS.values()) {
             if(v.owner.position().distanceToSqr(v.lastRoot)>64) {
                 // Teleports/world corrections cancel the view instead of drawing a long ribbon.
+                v.recallEnemy=null;
                 v.pool=new SakuraShardPool(count(),frame(v.owner),now);
+                v.pool.initialFraction(SakuraStanceController.fraction(v.owner.getMainHandItem()));
                 java.util.Arrays.fill(v.targets,null);
             }
             v.lastRoot=v.owner.position();
@@ -198,10 +236,41 @@ public final class SakuraCombatVisualController {
                     v.targets[i]=null;
                     group.goal=group.center;
                 }
-                else group.goal=target.getBoundingBox().getCenter();
+                else group.goal=target.getBoundingBox().getCenter().add(group.concerto?group.targetOffset:Vec3.ZERO);
+            }
+            if(v.recallEnemy!=null&&v.pool.stance()!=null
+                    &&!v.pool.charging(now)&&now-v.pool.stance().startedAt()>dev.bladetetra.easteregg.SakuraRecallSequence.APPROACH) v.recallEnemy=null;
+            if(v.recallEnemy!=null) {
+                var enemy=v.recallEnemy;
+                if(!enemy.isAlive()||enemy.isRemoved()||world.getEntity(enemy.getId())!=enemy
+                        ||enemy.distanceToSqr(v.owner)>64||!v.owner.hasLineOfSight(enemy)) {
+                    v.pool.abortRecall(now);v.recallEnemy=null;
+                } else v.pool.trackRecall(enemy.getBoundingBox().getCenter(),now);
+            }
+            float desired=SakuraStanceController.fraction(v.owner.getMainHandItem());
+            if(desired!=v.lastFraction) {
+                if(v.pool.stance()==null||!v.pool.stance().active(now))
+                    v.pool.partial(fraction(v,now),desired,now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
+                v.lastFraction=desired;
             }
             v.pool.tick(frame(v.owner),now,v.anchor.grip(v.owner),v.anchor.tip(v.owner));
         }
+    }
+    @SubscribeEvent public static void camera(net.minecraftforge.client.event.ViewportEvent.ComputeCameraAngles e) {
+        var mc=Minecraft.getInstance();
+        if(world==null||mc.player==null||mc.isPaused()||!enabled()
+                ||!ClientVisualConfig.ENABLE_BLADE_COMBAT_CAMERA_IMPACT.get())return;
+        double now=world.getGameTime()+e.getPartialTick(),strength=0;
+        for(View v:VIEWS.values()) {
+            double age=v.pool.recallBloomAge(now);
+            Vec3 center=v.pool.recallTarget();
+            if(center==null||v.pool.recallTier()!=3||age<0||age>=4)continue;
+            double distance=mc.player.getEyePosition().distanceTo(center);
+            strength=Math.max(strength,Math.max(0,1-distance/8)*(1-age/4));
+        }
+        float pulse=(float)(strength*Math.min(1,ClientVisualConfig.BLADE_COMBAT_CAMERA_INTENSITY.get()));
+        e.setPitch(e.getPitch()+(float)Math.sin(now*2.7)*pulse*.3F);
+        e.setRoll(e.getRoll()+(float)Math.cos(now*3.2)*pulse*.2F);
     }
     public static void draw(BufferBuilder buffer,Matrix4f matrix,Vec3 eye,float partial,
             float intensity,Frustum frustum) {
@@ -211,6 +280,7 @@ public final class SakuraCombatVisualController {
         for(View view:DRAW_ORDER) {
             if(!eligible(view.owner)||view.owner.distanceToSqr(eye)>distance()*distance()) continue;
             var bounds=view.owner.getBoundingBox().inflate(3);
+            if(view.pool.recallTarget()!=null)bounds=bounds.minmax(new net.minecraft.world.phys.AABB(view.pool.recallTarget(),view.pool.recallTarget()).inflate(2).expandTowards(0,16,0));
             for(var group:view.pool.groups) if(group!=null)
                 bounds=bounds.minmax(new net.minecraft.world.phys.AABB(group.center,group.center).inflate(2));
             if(!frustum.isVisible(bounds)) continue;
@@ -222,18 +292,22 @@ public final class SakuraCombatVisualController {
         final Player owner;
         final String bladeId;
         final int slot;
-        long stanceSequence;
+        long stanceSequence,recallSequence,recallUpdateAt;
+        int recallKind;
         final SakuraBladeAnchor anchor=new SakuraBladeAnchor();
         SakuraShardPool pool;
         final LivingEntity[] targets=new LivingEntity[SakuraShardPool.MAX_GROUPS];
         final SakuraShardPool.Group[] boundGroups=new SakuraShardPool.Group[SakuraShardPool.MAX_GROUPS];
+        LivingEntity recallEnemy;
         Vec3 lastRoot;
         long predictedAt=Long.MIN_VALUE;
         int predictedStage;
+        float lastFraction;
         View(Player owner,String id,long time) {
             this.owner=owner; bladeId=id; slot=owner.getInventory().selected;
             lastRoot=owner.position(); pool=new SakuraShardPool(count(),frame(owner),time);
-            if(!SakuraStanceController.dispersed(owner.getMainHandItem())) pool.hide();
+            lastFraction=SakuraStanceController.fraction(owner.getMainHandItem());
+            pool.initialFraction(lastFraction);
         }
     }
     private record Pending(AwakenedBladeVfxPacket packet,long expires) {}

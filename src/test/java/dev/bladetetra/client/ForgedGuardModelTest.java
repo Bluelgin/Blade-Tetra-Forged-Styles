@@ -30,6 +30,31 @@ class ForgedGuardModelTest {
             }
         }
     }
+    @Test void awakenedGuardsKeepOtherPartsAndStayWithinExistingFaceBudget() throws Exception {
+        var source=model();
+        java.util.Set<String> shapes=new java.util.HashSet<>();
+        for(var theme:AwakenedWeaponArt.Theme.values()) {
+            var result=ForgedGuardModel.forProfile(source,TsubaProfile.MARU,theme);
+            var original=source.groupObjects.stream().filter(g->g.name.equals("item_blade")).findFirst().orElseThrow();
+            var group=result.groupObjects.stream().filter(g->g.name.equals("item_blade")).findFirst().orElseThrow();
+            assertEquals(RuntimeWavefrontViewFactory.serialize("other",original.faces.stream().filter(f->!InventoryGuardGeometry.isGuard(f)).toList()),
+                    RuntimeWavefrontViewFactory.serialize("other",group.faces.stream().filter(f->!InventoryGuardGeometry.isGuard(f)).toList()));
+            var faces=group.faces.stream().filter(InventoryGuardGeometry::isGuard).toList();
+            assertTrue(faces.size()<=288);
+            shapes.add(RuntimeWavefrontViewFactory.serialize("guard",faces));
+            assertSame(result,ForgedGuardModel.forProfile(source,TsubaProfile.MARU,theme));
+            var none=ForgedGuardModel.forProfile(source,TsubaProfile.NONE,theme);
+            assertTrue(none.groupObjects.stream().flatMap(g->g.faces.stream()).noneMatch(InventoryGuardGeometry::isGuard));
+        }
+        assertEquals(4,shapes.size(),"Akatsuki preserves the original shape; the other three have unique outlines");
+    }
+    @Test void kyoukaGuardIsSymmetricForEveryComponentProfile() {
+        for(var profile:TsubaProfile.values()) for(int i=0;i<64;i++) {
+            double angle=i*Math.PI*2/64;
+            assertEquals(ForgedGuardModel.outline(profile,angle,AwakenedWeaponArt.Theme.KYOUKA),
+                    ForgedGuardModel.outline(profile,-angle,AwakenedWeaponArt.Theme.KYOUKA),1e-9);
+        }
+    }
     @Test void all108VariantsKeepEveryOtherComponentUnchanged() throws Exception {
         int count=0;
         try(var paths=Files.list(Path.of("src/main/resources/assets/blade_tetra/model/modular/alpha9"))) {

@@ -56,11 +56,12 @@ final class SakuraConcertoSmoke {
             state.setComboSeq(ComboStateRegistry.COMBO_B1.getId());state.setLastActionTime(at);
             AttackManager.doMeleeAttack(actor,target,true,false,.244F);
             check(probe.meleeDamage>0,"real native melee damages target");
-            for(int t=1;t<=5;t++) {time(level,at+t);service(actor);}
+            for(int t=1;t<=SakuraShardAttackRules.FIRE_TICK;t++) {time(level,at+t);service(actor);}
             check(probe.swords.size()==1,"one native summoned sword emitted after real melee");
             EntityAbstractSummonedSword sword=probe.swords.get(0);
+            check(sword.getY()>target.getBoundingBox().maxY,"projectile starts above enemy head");
             check(SoulLegacyDamageGuard.isSecondary(sword.damageSources().indirectMagic(sword,actor)),"explicit secondary source marker");
-            for(int t=6;t<=12;t++) {
+            for(int t=SakuraShardAttackRules.FIRE_TICK+1;t<=12;t++) {
                 time(level,at+t);if(!sword.isRemoved()) sword.tick();service(actor);
                 SakuraShardAttackService.serverTick(new TickEvent.ServerTickEvent(TickEvent.Phase.END,()->true,level.getServer()));
             }
@@ -97,10 +98,56 @@ final class SakuraConcertoSmoke {
                 check(probe.saDamage>0&&probe.saDamage<=8.001,"SA extra damage has independent per-stage budget");
                 check(probe.swords.size()==1,"SA and normal projectile scheduling are mutually exclusive");
             } finally {victim.discard();SakuraInfiniteDanceSA.end(actor);probe.slashes.forEach(mods.flammpfeil.slashblade.entity.EntitySlashEffect::discard);}
+            verifyRecallAndCondensed(level,actor,blade);
             LogUtils.getLogger().info("SAKURA_CONCERTO_SMOKE_PASS: native melee, real summoned sword collision, associated damage cap, explicit secondary source, multihit deduplication, no recursive projectile, removed-target cancellation");
         } finally {
             SakuraShardAttackService.cancel(actor);target.discard();probe.swords.forEach(EntityAbstractSummonedSword::discard);
             damage.setBaseValue(before);MinecraftForge.EVENT_BUS.unregister(probe);
+        }
+    }
+    private static void verifyRecallAndCondensed(ServerLevel level,ServerPlayer actor,ItemStack blade) {
+        var victim=new Zombie(level);victim.setNoAi(true);victim.setNoGravity(true);
+        victim.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);victim.setHealth(1000);
+        victim.moveTo(0,100,3,0,0);level.addFreshEntity(victim);
+        var state=blade.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
+        var tick=new TickEvent.PlayerTickEvent(TickEvent.Phase.END,actor);
+        var shots=new ArrayList<EntityAbstractSummonedSword>();
+        java.util.function.Consumer<EntityJoinLevelEvent> observer=e->{
+            if(e.getEntity() instanceof EntityAbstractSummonedSword sword&&sword.getOwner()==actor
+                    &&sword.getPersistentData().getBoolean("blade_tetra_sakura_concerto"))shots.add(sword);
+        };
+        MinecraftForge.EVENT_BUS.addListener(observer);
+        try {
+            time(level,level.getGameTime()+100);SakuraShardAttackService.cancel(actor);
+            blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED,false);
+            blade.getOrCreateTag().putInt(SakuraStanceController.FRACTURE,0);
+            state.setComboSeq(ComboStateRegistry.COMBO_B1.getId());state.setLastActionTime(level.getGameTime());
+            AttackManager.doMeleeAttack(actor,victim,true,false,1F);
+            SakuraShardAttackService.condensedShot(actor,blade,victim,20);
+            SakuraShardAttackService.condensedShot(actor,blade,victim,20);
+            long start=level.getGameTime();
+            for(int t=1;t<=14;t++) {
+                time(level,start+t);service(actor);
+                for(var shot:shots)if(!shot.isRemoved())shot.tick();
+            }
+            check(shots.size()==1,"condensed shot uses real projectile and shares cooldown across repeated requests");
+            check(!SakuraStanceController.dispersed(blade),"condensed projectile does not bypass fracture");
+            time(level,level.getGameTime()+100);
+            blade.getOrCreateTag().putBoolean(SakuraStanceRules.DISPERSED,true);
+            state.setComboSeq(ComboStateRegistry.COMBO_B2.getId());state.setLastActionTime(level.getGameTime());
+            var rank=actor.getCapability(mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank.RANK_POINT)
+                    .orElseThrow(IllegalStateException::new);
+            rank.setRawRankPoint(1000);rank.setLastUpdte(level.getGameTime());
+            rank.addRankPoint(actor.damageSources().playerAttack(actor));
+            long earned=rank.getRawRankPoint();
+            check(earned>1000,"dispersed ordinary action earns reduced native Rank");
+            rank.addRankPoint(actor.damageSources().playerAttack(actor));SakuraEndlessFlow.reconcile(actor);
+            check(rank.getRawRankPoint()==earned,"multihit action shares Rank allowance and reconciliation preserves earnings");
+            LogUtils.getLogger().info("SAKURA_RANK_SMOKE_PASS: ordinary gain={}, repeated action suppressed, earned Rank retained",earned-1000);
+            victim.discard();SakuraRecallSmoke.verify(level,actor,blade);
+        } finally {
+            MinecraftForge.EVENT_BUS.unregister(observer);victim.discard();shots.forEach(EntityAbstractSummonedSword::discard);
+            SakuraShardAttackService.cancel(actor);
         }
     }
     private static void service(ServerPlayer p) {SakuraShardAttackService.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}

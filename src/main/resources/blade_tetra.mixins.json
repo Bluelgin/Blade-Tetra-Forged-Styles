@@ -5,6 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
+    "KyoukaNativeTrickMixin",
+    "AkatsukiThreadTeleportMixin",
     "ProviderEffectCompatMixin",
     "AwakenedRankConstraintMixin",
     "NativeBladeCommitMixin",

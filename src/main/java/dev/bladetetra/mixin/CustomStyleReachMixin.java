@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class CustomStyleReachMixin {
     @Inject(method = "getResolvedReach", at = @At("RETURN"), cancellable = true)
     private static void customLength(LivingEntity user, CallbackInfoReturnable<Double> callback) {
-        callback.setReturnValue(CustomBladeLength.resolvedMeleeReach(user, callback.getReturnValue()));
+        callback.setReturnValue(CustomBladeLength.resolvedMeleeReach(user, callback.getReturnValue())
+                + dev.bladetetra.easteregg.AkatsukiBloodBlade.extraReach(user));
     }
 }

@@ -1,5 +1,7 @@
 # Raikiri 3.1 — observe native motion, leave lightning behind
 
+> The former swept-path 1.5x charge interaction is superseded by [Needle Burst](RAIKIRI_NEEDLE_BURST.md): consumed needles gather into one short-delay burst per native Rapid Slash. Untouched needles retain their periodic and lifetime budgets. The sections below retain the original native-observation history.
+
 ## Baseline and correction
 
 PR #48 stays on `codex/raikiri-3-thunder-resonance`, based directly on #41
@@ -148,3 +150,11 @@ Incremental tests cover delayed final settlement after the former +12 deadline, 
 200-tick expiry/whole-life budget, real hurt velocity behavior (sword versus trail/ordinary), and saturated
 client queue admission/removal. Existing native action/landing/resonance and cleanup smoke remains.
 Graphical readability, fade, natural input/movement and multi-client timing still require manual client QA.
+
+## Optional thunder armor extension
+
+The Rank-free native action guarantees above still apply to Rapid Slash, trails
+and grounded swords. A successful sneak-forward-right-click can additionally
+activate the Rank-burning Thunder Armor buff at Rank A. Its separate entry/upkeep
+costs, vanilla status tracking, rain hop and body arcs are documented in
+[RAIKIRI_THUNDER_ARMOR.md](RAIKIRI_THUNDER_ARMOR.md).

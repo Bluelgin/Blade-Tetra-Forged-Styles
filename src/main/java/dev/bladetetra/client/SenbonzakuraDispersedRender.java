@@ -46,7 +46,9 @@ public final class SenbonzakuraDispersedRender {
         handPass = false;
     }
 
-    private static Player owner(ItemStack stack) {
+    static boolean firstPersonPass() { return handPass&&renderingPlayer==null; }
+
+    static Player owner(ItemStack stack) {
         Player owner=renderingPlayer;
         if(owner==null&&handPass) owner=Minecraft.getInstance().player;
         return owner!=null&&owner.getMainHandItem()==stack?owner:null;

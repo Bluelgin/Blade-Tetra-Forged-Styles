@@ -9,20 +9,16 @@ public final class SakuraStanceRules {
     public static int action(ResourceLocation combo) {
         if (combo == null || !"slashblade".equals(combo.getNamespace())) return 0;
         return switch (combo.getPath()) {
-            case "aerial_cleave" -> DISPERSE;
+            case "aerial_cleave" -> 0;
             case "upperslash" -> CONDENSE;
             default -> 0;
         };
     }
     public static boolean changes(int action, boolean dispersed) {
-        return action == DISPERSE && !dispersed || action == CONDENSE && dispersed;
+        return action == CONDENSE && dispersed;
     }
     public static boolean committed(int action, ResourceLocation current, long startedAt, long actualAt) {
-        if ((action != DISPERSE && action != CONDENSE) || startedAt < 0 || actualAt < startedAt) return false;
-        if (action(current) == action && actualAt == startedAt) return true;
-        // Native cleave advances into its looping fall on tick 1, even without a target.
-        return action == DISPERSE && actualAt <= startedAt + 1 && current != null
-                && current.toString().equals("slashblade:aerial_cleave_loop");
+        return action == CONDENSE && startedAt >= 0 && actualAt == startedAt && action(current) == CONDENSE;
     }
     private SakuraStanceRules() {}
 }
