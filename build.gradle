@@ -21,6 +21,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('bladeStorageSmoke')) {
+                workingDirectory project.file('build/blade-storage-smoke')
+                property 'blade_tetra.storageSmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
+            }
             if (project.hasProperty('soulGuideReview')) {
                 workingDirectory project.file('build/soul-guide-review')
                 property 'blade_tetra.soulGuideReview', 'true'

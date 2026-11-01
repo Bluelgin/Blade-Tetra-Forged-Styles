@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
+    "BladeStackStorageMixin",
     "KyoukaNativeTrickMixin",
     "AkatsukiThreadTeleportMixin",
     "ProviderEffectCompatMixin",
