@@ -237,6 +237,7 @@
   "item.blade_tetra.saya_pattern_seigaiha": "Saya Pattern: Seigaiha",
   "item.blade_tetra.saya_pattern_sakura": "Saya Pattern: Falling Sakura",
   "item.blade_tetra.saya_pattern_purple_lightning": "Saya Pattern: Purple Lightning",
+  "itemGroup.blade_tetra.named_ingots": "Named Blade Ingots",
   "itemGroup.blade_tetra": "Blade Tetra",
   "enchantment.blade_tetra.soul_contract": "Soul Contract",
   "name.blade_tetra.pattern.basic": "%1$s %2$s",

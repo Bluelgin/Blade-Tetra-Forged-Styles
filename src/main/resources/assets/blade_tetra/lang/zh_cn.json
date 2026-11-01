@@ -248,6 +248,7 @@
   "item.blade_tetra.saya_pattern_seigaiha": "鞘绘卷·青海波",
   "item.blade_tetra.saya_pattern_sakura": "鞘绘卷·樱吹雪",
   "item.blade_tetra.saya_pattern_purple_lightning": "鞘绘卷·紫电裂纹",
+  "itemGroup.blade_tetra.named_ingots": "名刀锭",
   "itemGroup.blade_tetra": "模块化拔刀剑",
   "enchantment.blade_tetra.soul_contract": "魂契",
   "name.blade_tetra.pattern.basic": "%1$s%2$s",

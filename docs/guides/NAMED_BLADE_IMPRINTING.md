@@ -43,7 +43,7 @@
 - 资源包可提供 `assets/blade_tetra/named_ingot_visuals/<来源命名空间>/<来源路径>.json`，格式例如 `{"texture":"example:textures/item/backplate.png","region":[0,0,1,1]}`。`texture` 和 `region` 均可省略，区域采用左上原点的归一化图片 UV；显式纹理未指定区域时取整图。错误配置回退自动取样。
 - 全息球无来源通用锭继续使用原来的黑芯红问号贴图，不受此生成流程影响。
 - 最多缓存 96 个来源图标，资源重载释放 GPU 缓存并重新读取取样配置；服务器不解码图片、不分析 OBJ。
-- `./gradlew runClient -PnamedIngotArtReview` 在独立 `build/named-ingot-art-review` 目录创建临时创造世界，打开真正的 BladeTetra 创造页（名刀锭集中排列于其中），保存 `named-ingot-creative.png` 后退出。它不重建界面、不打开玩家存档。当前分支没有另一个独立名刀锭标签页。
+- `./gradlew runClient -PnamedIngotArtReview` 在独立 `build/named-ingot-art-review` 目录创建临时创造世界，打开真正的「名刀锭」独立创造标签页，保存 `named-ingot-creative.png` 后退出。它不重建界面、不打开玩家存档。页面内仅展示有来源的名刀锭，问号锭只用作标签图标；原 BladeTetra 主标签页不再重复展示名刀锭。排序以拔刀剑本体优先，其余按来源模组及来源路径稳定排列；标签声明排在主标签之后，分页位置由 Forge 决定。
 
 ## 兼容与验收
 

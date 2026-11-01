@@ -67,7 +67,29 @@ public final class NamedIngotArtReview {
                                 && java.util.Arrays.equals(m.getParameterTypes(), new Class<?>[]{CreativeModeTab.class}))
                         .findFirst().orElseThrow();
                 select.setAccessible(true);
-                select.invoke(this, ModItems.MAIN_TAB.get());
+                select.invoke(this, ModItems.NAMED_INGOTS_TAB.get());
+                // Also navigate the real Forge tab page, so the selected tab's
+                // question-mark icon is visible in the screenshot.
+                for (int page = 0; page < 32 && !getCurrentPage().getVisibleTabs()
+                        .contains(ModItems.NAMED_INGOTS_TAB.get()); page++) {
+                    var next = children().stream()
+                            .filter(widget -> widget instanceof net.minecraft.client.gui.components.Button b
+                                    && b.getMessage().getString().equals(">"))
+                            .map(widget -> (net.minecraft.client.gui.components.Button) widget)
+                            .findFirst().orElseThrow();
+                    next.onPress();
+                }
+                if (!getCurrentPage().getVisibleTabs().contains(ModItems.NAMED_INGOTS_TAB.get()))
+                    throw new IllegalStateException("Named ingot tab icon not visible");
+                var contents = ModItems.NAMED_INGOTS_TAB.get().getDisplayItems();
+                if (contents.size() != dev.bladetetra.forging.NamedLegacyCatalog.values().size()
+                        || contents.stream().anyMatch(stack -> NamedBladeIngotItem.sourceId(stack) == null))
+                    throw new IllegalStateException("Source list incomplete or contains catalog placeholder");
+                if (ModItems.MAIN_TAB.get().getDisplayItems().stream()
+                        .anyMatch(stack -> stack.getItem() instanceof NamedBladeIngotItem))
+                    throw new IllegalStateException("Source ingots duplicated in main tab");
+                if (NamedBladeIngotItem.sourceId(ModItems.NAMED_INGOTS_TAB.get().getIconItem()) != null)
+                    throw new IllegalStateException("Tab icon must be the question-mark ingot");
                 long ingots = menu.slots.stream().map(slot -> slot.getItem())
                         .filter(stack -> stack.getItem() instanceof NamedBladeIngotItem).count();
                 if (ingots < 2) throw new IllegalStateException("Named ingot section missing: " + ingots);

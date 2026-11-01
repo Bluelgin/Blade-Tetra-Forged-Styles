@@ -120,8 +120,6 @@ public final class ModItems {
                         output.accept(RAIKIRI_SOUL_FRAGMENT.get());
                         output.accept(KYOUKA_SOUL_FRAGMENT.get());
                         output.accept(NAMED_BLADE_RECORD.get().getDefaultInstance());
-                        dev.bladetetra.forging.NamedLegacyCatalog.values().forEach(kind ->
-                                output.accept(dev.bladetetra.item.NamedBladeIngotItem.create(kind)));
                         output.accept(LIFENG_SCROLL.get());
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.EDGE));
                         output.accept(ForgingScrolls.create(ForgingScrolls.Kind.CONSTRUCTION));
@@ -140,6 +138,22 @@ public final class ModItems {
                         output.accept(SAYA_PATTERN_AKATSUKI.get());
                         output.accept(SAYA_PATTERN_KYOUKA.get());
                     })
+                    .build());
+
+    public static final RegistryObject<CreativeModeTab> NAMED_INGOTS_TAB =
+            CREATIVE_TABS.register("named_ingots", () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup.blade_tetra.named_ingots"))
+                    .icon(() -> NamedBladeIngotItem.create(null))
+                    .withTabsBefore(MAIN_TAB.getId())
+                    .displayItems((parameters, output) -> dev.bladetetra.forging.NamedLegacyCatalog.values()
+                            .stream()
+                            .sorted(java.util.Comparator
+                                    .comparingInt((dev.bladetetra.forging.LegacyImprintKind kind) ->
+                                            kind.name().getNamespace().equals("slashblade") ? 0 : 1)
+                                    .thenComparing(kind -> kind.name().getNamespace())
+                                    .thenComparing(kind -> kind.name().getPath())
+                                    .thenComparing(dev.bladetetra.forging.LegacyImprintKind::id))
+                            .forEach(kind -> output.accept(NamedBladeIngotItem.create(kind))))
                     .build());
 
     private static RegistryObject<SayaPatternItem> registerSayaPattern(
