@@ -4,6 +4,7 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.bladetetra.forging.LegacyImprintKind;
 import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -78,6 +79,8 @@ final class NamedIngotArtwork {
             if (model.groupObjects.size() > 4096) return WHOLE;
             Region best = WHOLE;
             double bestScore = 0;
+            Face bestFace = null;
+            java.util.List<Face> candidates = new java.util.ArrayList<>();
             int inspected = 0;
             for (var group : model.groupObjects) {
                 if (!group.name.equals("item_blade") && !group.name.equals("backplate")) continue;
@@ -93,15 +96,55 @@ final class NamedIngotArtwork {
                     var candidate = new Region(u0, v0, u1, v1);
                     double w = u1 - u0, h = v1 - v0;
                     if (!candidate.valid() || w * h < .015 || w * h > .8) continue;
-                    double score = w * h * Math.min(w, h) / Math.max(w, h);
+                    double score = projectedArea(face) * Math.min(w, h) / Math.max(w, h);
+                    candidates.add(face);
                     if (group.name.equals("backplate")) score *= 4;
-                    if (score > bestScore) { best = candidate; bestScore = score; }
+                    if (score > bestScore) { best = candidate; bestScore = score; bestFace = face; }
                 }
+            }
+            // OBJ exporters split the same backing quad into two triangles.
+            // Join its coplanar edge-sharing neighbor rather than cropping half
+            // the emblem, or choosing a large but physically tiny atlas patch.
+            if (bestFace != null) for (var face : candidates) {
+                if (!samePlaneAndEdge(bestFace, face)) continue;
+                double u0 = best.u0, v0 = best.v0, u1 = best.u1, v1 = best.v1;
+                for (var uv : face.textureCoordinates) {
+                    if (uv == null) continue;
+                    u0 = Math.min(u0, uv.u); v0 = Math.min(v0, uv.v);
+                    u1 = Math.max(u1, uv.u); v1 = Math.max(v1, uv.v);
+                }
+                var joined = new Region(u0, v0, u1, v1);
+                if (joined.valid() && (u1-u0)*(v1-v0) <= .8) best = joined;
             }
             return best;
         } catch (RuntimeException | LinkageError ignored) {
             return WHOLE;
         }
+    }
+
+    private static double projectedArea(Face face) {
+        if (face.vertices == null || face.vertices.length < 3) return 0;
+        var a = face.vertices[0];
+        double area = 0;
+        for (var v : face.vertices) if (Math.abs(v.z - a.z) > .001) return 0;
+        for (int i = 1; i + 1 < face.vertices.length; i++) {
+            var b = face.vertices[i]; var c = face.vertices[i + 1];
+            area += Math.abs((b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x)) / 2;
+        }
+        return area;
+    }
+
+    private static boolean samePlaneAndEdge(Face a, Face b) {
+        if (projectedArea(b) <= 0 || Math.abs(a.vertices[0].z - b.vertices[0].z) > .001) return false;
+        int shared = 0;
+        for (var v : a.vertices) {
+            for (var w : b.vertices) {
+                if (Math.abs(v.x-w.x)+Math.abs(v.y-w.y)+Math.abs(v.z-w.z) < .001) {
+                    shared++; break;
+                }
+            }
+        }
+        return shared >= 2;
     }
 
     static void compose(NativeImage iron, NativeImage source, NativeImage output) {
