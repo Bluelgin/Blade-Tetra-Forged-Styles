@@ -30,11 +30,13 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: 'true'
         run: |
           mkdir -p build/named-ingot-art-review run/test-libs
-          curl --fail --location --retry 2 --output run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar https://media.forgecdn.net/files/7264/677/Yakumoblade-1.1.4-1.20.1_Forge.jar
-          sha256sum run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar
           printf 'lang:zh_cn\nguiScale:4\n' > build/named-ingot-art-review/options.txt
           set -o pipefail
-          xvfb-run -a ./gradlew runClient -PnamedIngotArtReview -PsjapTest -PyakumoTest 2>&1 | tee build/named-ingot-art-review.log
+          {
+            curl --fail --location --retry 2 --output run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar https://edge.forgecdn.net/files/7264/677/Yakumoblade-1.1.4-1.20.1_Forge.jar
+            sha256sum run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar
+            xvfb-run -a ./gradlew runClient -PnamedIngotArtReview -PsjapTest -PyakumoTest
+          } 2>&1 | tee build/named-ingot-art-review.log
           grep -F 'NAMED_INGOT_ART_REVIEW_PASS' build/named-ingot-art-review.log
       - name: Upload named ingot creative inventory screenshot
         if: always() && github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
