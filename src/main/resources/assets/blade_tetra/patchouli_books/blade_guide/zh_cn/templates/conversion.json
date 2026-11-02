@@ -8,71 +8,85 @@
     },
     {
       "type": "patchouli:item",
-      "x": 8,
-      "y": 27,
+      "x": 7,
+      "y": 23,
       "item": "slashblade:slashblade_wood",
       "framed": true
     },
     {
       "type": "patchouli:item",
-      "x": 43,
-      "y": 27,
-      "item": "minecraft:iron_ingot#3",
+      "x": 30,
+      "y": 23,
+      "item": "minecraft:iron_ingot",
       "framed": true
     },
     {
       "type": "patchouli:item",
+      "x": 7,
+      "y": 46,
+      "item": "minecraft:iron_ingot",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 30,
+      "y": 46,
+      "item": "minecraft:iron_ingot",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 60,
+      "y": 39,
+      "text": "book.blade_tetra.diagram.text1",
+      "max_width": 14
+    },
+    {
+      "type": "patchouli:item",
       "x": 88,
-      "y": 27,
+      "y": 36,
       "item": "blade_tetra:modular_slashblade",
       "framed": true
     },
     {
       "type": "patchouli:text",
-      "x": 69,
-      "y": 30,
-      "text": "book.blade_tetra.diagram.text1",
-      "max_width": 14
-    },
-    {
-      "type": "patchouli:text",
       "x": 0,
-      "y": 55,
+      "y": 73,
       "text": "book.blade_tetra.diagram.text2",
       "max_width": 116
     },
     {
       "type": "patchouli:item",
       "x": 8,
-      "y": 94,
+      "y": 109,
       "item": "slashblade:slashblade",
       "framed": true
     },
     {
       "type": "patchouli:item",
       "x": 43,
-      "y": 94,
+      "y": 109,
       "item": "tetra:modular_sword",
-      "framed": true
-    },
-    {
-      "type": "patchouli:item",
-      "x": 88,
-      "y": 94,
-      "item": "blade_tetra:modular_slashblade",
       "framed": true
     },
     {
       "type": "patchouli:text",
       "x": 69,
-      "y": 97,
+      "y": 112,
       "text": "book.blade_tetra.diagram.text3",
       "max_width": 14
     },
     {
+      "type": "patchouli:item",
+      "x": 88,
+      "y": 109,
+      "item": "blade_tetra:modular_slashblade",
+      "framed": true
+    },
+    {
       "type": "patchouli:text",
       "x": 0,
-      "y": 121,
+      "y": 132,
       "text": "book.blade_tetra.diagram.text4",
       "max_width": 116
     }
