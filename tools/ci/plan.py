@@ -16,6 +16,12 @@ def load_config():
     for group in data["groups"].values():
         if not set(group) <= data["suites"].keys():
             raise ValueError("Unknown suite in group")
+    for name, suite in data["suites"].items():
+        if suite["kind"] not in {"client", "server"} or not suite["markers"]:
+            raise ValueError(f"Invalid runner/proof markers: {name}")
+    covered = set(data["groups"]["full"]) | set(data["groups"]["compat"])
+    if covered != set(data["suites"]):
+        raise ValueError("Every suite must belong to full or compat validation")
     return data
 
 
@@ -39,7 +45,7 @@ def select(config, paths, mode="auto", fallback=None):
         chosen.update(config["groups"]["full"])
         if mode == "compat":
             chosen.update(config["groups"]["compat"])
-        reasons.append({"path": "*", "reason": fallback or f"Requested {mode} validation"})
+        reasons.append({"path": "*", "reason": fallback or ("Empty diff: full native fallback" if mode == "auto" else f"Requested {mode} validation")})
     else:
         for path in sorted(set(paths)):
             # Unit tests follow the production package's native dependencies.
@@ -94,7 +100,7 @@ def main():
                          (", ".join(plan["suites"]) or "none (documentation only)") + "\n\n")
             for item in plan["reasons"]:
                 target.write(f"- `{item['path']}`: {item['reason']}\n")
-    print(json.dumps(plan, indent=2))
+    print(f"Validation plan: quick={plan['quick']}; {len(plan['reasons'])} path/reason entries; suites={','.join(plan['suites']) or 'none'}")
 
 
 if __name__ == "__main__":

@@ -333,6 +333,46 @@
     },
     {
       "paths": [
+        "src/main/resources/assets/blade_tetra/patchouli_books/**",
+        "src/main/resources/assets/blade_tetra/textures/gui/manual/**",
+        "src/main/resources/assets/blade_tetra/textures/item/bladecraft_manual.png",
+        "src/main/resources/assets/blade_tetra/models/item/bladecraft_manual.json"
+      ],
+      "suites": [
+        "manual"
+      ],
+      "reason": "Patchouli content or manual artwork"
+    },
+    {
+      "paths": [
+        "src/main/resources/assets/blade_tetra/lang/**"
+      ],
+      "suites": [
+        "manual",
+        "tooltip"
+      ],
+      "reason": "Translations affect book layout and soul tooltip formatting"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/client/*Tooltip*"
+      ],
+      "suites": [
+        "tooltip"
+      ],
+      "reason": "Soul tooltip layout/input"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/client/kyouka/**"
+      ],
+      "suites": [
+        "motion"
+      ],
+      "reason": "Kyouka client presentation"
+    },
+    {
+      "paths": [
         "src/main/java/dev/bladetetra/client/**",
         "src/main/resources/assets/**"
       ],

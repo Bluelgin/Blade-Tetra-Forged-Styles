@@ -12,7 +12,8 @@ class TestSelection(unittest.TestCase):
     def test_docs_are_cheap_but_runtime_books_are_not_docs(self):
         self.assertFalse(select(self.config, ['docs/guides/PATCHOULI_MANUAL.md'])['quick'])
         self.assertFalse(self.chosen('README.md'))
-        self.assertIn('manual', self.chosen('src/main/resources/assets/blade_tetra/lang/zh_cn.json'))
+        self.assertEqual({'manual', 'tooltip'}, self.chosen('src/main/resources/assets/blade_tetra/lang/zh_cn.json'))
+        self.assertEqual({'manual'}, self.chosen('src/main/resources/assets/blade_tetra/patchouli_books/blade_guide/zh_cn/entries/basics/first_blade.json'))
 
     def test_single_soul_and_shared_soul_dependencies(self):
         self.assertEqual({'raikiri'}, self.chosen('src/main/java/dev/bladetetra/easteregg/RaikiriCharge.java'))
