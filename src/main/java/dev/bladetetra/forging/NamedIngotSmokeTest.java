@@ -32,6 +32,7 @@ public final class NamedIngotSmokeTest {
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             verifyExtraction(player);
+            ManualFusionSmoke.verify(player);
             String[][] modules = {
                 {"blade", "katana_blade", "katana_blade"},
                 {"blade", "nodachi_blade", "nodachi_blade"},

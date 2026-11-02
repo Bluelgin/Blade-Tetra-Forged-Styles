@@ -33,5 +33,6 @@ public abstract class NamedMaterialSchematicMixin {
             boolean consume, String slot, Player player, CallbackInfoReturnable<ItemStack> cir) {
         // applyUpgrade is also the real workbench preview path, before crafting effects.
         NamedBladeMaterial.capture(cir.getReturnValue(), slot, materials);
+        dev.bladetetra.combat.ProgrammaticFusionAttunement.preserveUnchangedPair(target, cir.getReturnValue());
     }
 }

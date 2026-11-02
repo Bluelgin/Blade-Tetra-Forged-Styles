@@ -1,0 +1,23 @@
+{
+  "name": "book.blade_tetra.first_blade.name",
+  "category": "blade_tetra:basics",
+  "icon": "blade_tetra:modular_slashblade",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.first_blade.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.first_blade.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.first_blade.2"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:blade_guide"
+    }
+  ]
+}

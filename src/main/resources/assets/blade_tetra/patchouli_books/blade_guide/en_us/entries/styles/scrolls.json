@@ -1,0 +1,19 @@
+{
+  "name": "book.blade_tetra.scrolls.name",
+  "category": "blade_tetra:styles",
+  "icon": "blade_tetra:style_recorder",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.scrolls.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.scrolls.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.scrolls.2"
+    }
+  ]
+}

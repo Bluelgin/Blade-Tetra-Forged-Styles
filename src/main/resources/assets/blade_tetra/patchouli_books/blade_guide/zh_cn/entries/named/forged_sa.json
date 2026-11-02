@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.forged_sa.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:forged_slash_art_orb",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.forged_sa.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.forged_sa.1"
+    }
+  ]
+}

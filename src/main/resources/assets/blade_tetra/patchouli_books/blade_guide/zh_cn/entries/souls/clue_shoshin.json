@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_shoshin.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.shoshin.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:shoshin",
+      "text": "book.blade_tetra.completed_shoshin"
+    }
+  ],
+  "advancement": "blade_tetra:manual/shoshin"
+}

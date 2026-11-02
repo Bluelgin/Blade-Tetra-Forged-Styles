@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.style_standard.name",
+  "category": "blade_tetra:styles",
+  "icon": "blade_tetra:modular_slashblade",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "style.blade_tetra.standard.description"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "style.blade_tetra.standard.tradeoff"
+    }
+  ]
+}

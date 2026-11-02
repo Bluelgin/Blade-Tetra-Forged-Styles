@@ -1,0 +1,76 @@
+{
+  "name": "book.blade_tetra.soul_kyouka.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:kyouka_soul_fragment",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.verse"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.style"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.3"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.4"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.5"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.6"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.7"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.3"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.4"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.5"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.6"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.7"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "tooltip.blade_tetra.soul_fragment.defaults"
+    }
+  ],
+  "advancement": "blade_tetra:kyouka"
+}

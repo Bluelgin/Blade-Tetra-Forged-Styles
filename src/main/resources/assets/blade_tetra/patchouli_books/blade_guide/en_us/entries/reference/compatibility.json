@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.compatibility.name",
+  "category": "blade_tetra:reference",
+  "icon": "blade_tetra:legacy_imprint_scroll",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.compatibility.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.compatibility.1"
+    }
+  ]
+}

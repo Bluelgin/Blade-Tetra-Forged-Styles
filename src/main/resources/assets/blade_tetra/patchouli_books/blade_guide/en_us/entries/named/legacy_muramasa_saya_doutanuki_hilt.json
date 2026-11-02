@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.legacy_muramasa_saya_doutanuki_hilt.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "tetra.improvement.blade_tetra/legacy_fusion/muramasa_saya_doutanuki_hilt.description"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.authored_attunement"
+    }
+  ]
+}

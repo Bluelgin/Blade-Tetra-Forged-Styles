@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_raikiri.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.raikiri.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:raikiri",
+      "text": "book.blade_tetra.completed_raikiri"
+    }
+  ],
+  "advancement": "blade_tetra:manual/raikiri"
+}

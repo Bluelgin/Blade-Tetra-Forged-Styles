@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.controls.name",
+  "category": "blade_tetra:basics",
+  "icon": "blade_tetra:modular_slashblade",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.controls.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.controls.1"
+    }
+  ]
+}

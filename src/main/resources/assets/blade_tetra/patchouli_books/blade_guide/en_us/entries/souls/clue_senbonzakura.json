@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_senbonzakura.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.senbonzakura.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:senbonzakura",
+      "text": "book.blade_tetra.completed_senbonzakura"
+    }
+  ],
+  "advancement": "blade_tetra:manual/senbonzakura"
+}

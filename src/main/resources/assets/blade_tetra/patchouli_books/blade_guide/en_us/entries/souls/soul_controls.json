@@ -1,0 +1,15 @@
+{
+  "name": "book.blade_tetra.soul_controls.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_journal",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.soul_controls.0"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.soul_controls.1"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_nbt_sage.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.nbt_sage.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:nbt_sage",
+      "text": "book.blade_tetra.completed_nbt_sage"
+    }
+  ],
+  "advancement": "blade_tetra:manual/nbt_sage"
+}

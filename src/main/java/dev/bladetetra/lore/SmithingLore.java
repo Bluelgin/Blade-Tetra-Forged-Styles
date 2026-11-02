@@ -38,6 +38,7 @@ public final class SmithingLore {
             return false;
         }
         loreTag(player).putBoolean(clue, true);
+        if (player instanceof ServerPlayer serverPlayer) ManualDiscovery.sync(serverPlayer);
         return true;
     }
 

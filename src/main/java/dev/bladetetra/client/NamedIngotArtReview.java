@@ -121,11 +121,39 @@ public final class NamedIngotArtReview {
                     mouseScrolled(0, 0, capture == 1 ? -4 : -1000);
                     frames = 0;
                 } else {
+                    verifyManual(mc);
                     LogUtils.getLogger().info("NAMED_INGOT_ART_REVIEW_PASS: actual creative inventory, {} captures", capture);
                     mc.stop();
                 }
             }
         }
+    }
+
+    private static void verifyManual(Minecraft mc) {
+        if (!net.minecraftforge.fml.ModList.get().isLoaded("patchouli")) return;
+        try {
+            // Test-only reflection keeps the optional integration API-free.
+            var registryClass = Class.forName("vazkii.patchouli.common.book.BookRegistry");
+            var registry = registryClass.getField("INSTANCE").get(null);
+            var books = (java.util.Map<?, ?>) registryClass.getField("books").get(registry);
+            var book = books.get(new net.minecraft.resources.ResourceLocation("blade_tetra", "blade_guide"));
+            if (book == null) throw new IllegalStateException("Manual definition not loaded");
+            book.getClass().getMethod("reloadContents", Level.class, boolean.class).invoke(book, mc.level, false);
+            var contents = book.getClass().getMethod("getContents").invoke(book);
+            if ((boolean) contents.getClass().getMethod("isErrored").invoke(contents))
+                throw new IllegalStateException("Patchouli failed to compile manual", (Exception)
+                        contents.getClass().getMethod("getException").invoke(contents));
+            var entries = (java.util.Map<?, ?>) contents.getClass().getField("entries").get(contents);
+            var categories = (java.util.Map<?, ?>) contents.getClass().getField("categories").get(contents);
+            if (entries.size() < 30 || categories.size() != 6) throw new IllegalStateException("Manual contents incomplete");
+            var stack = (net.minecraft.world.item.ItemStack) book.getClass().getMethod("getBookItem").invoke(book);
+            if (ModItems.MAIN_TAB.get().getDisplayItems().stream().noneMatch(item ->
+                    net.minecraft.world.item.ItemStack.isSameItemSameTags(item, stack)))
+                throw new IllegalStateException("Manual missing from main creative tab");
+            if (mc.level.getRecipeManager().byKey(new net.minecraft.resources.ResourceLocation("blade_tetra", "blade_guide")).isEmpty())
+                throw new IllegalStateException("Manual recipe missing with Patchouli");
+            LogUtils.getLogger().info("PATCHOULI_MANUAL_PASS: {} entries, {} categories, native compilation, creative listing and recipe", entries.size(), categories.size());
+        } catch (ReflectiveOperationException failure) { throw new IllegalStateException(failure); }
     }
     private NamedIngotArtReview() {}
 }

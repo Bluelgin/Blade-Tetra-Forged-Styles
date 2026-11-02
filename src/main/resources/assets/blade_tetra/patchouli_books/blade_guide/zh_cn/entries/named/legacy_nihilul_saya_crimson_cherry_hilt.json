@@ -1,0 +1,16 @@
+{
+  "name": "book.blade_tetra.legacy_nihilul_saya_crimson_cherry_hilt.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "tetra.improvement.blade_tetra/legacy_fusion/nihilul_saya_crimson_cherry_hilt.description"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.authored_attunement"
+    }
+  ],
+  "flag": "mod:slashblade_addon"
+}

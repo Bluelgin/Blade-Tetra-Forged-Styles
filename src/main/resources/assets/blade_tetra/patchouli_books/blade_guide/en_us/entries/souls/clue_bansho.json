@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_bansho.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.bansho.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:bansho",
+      "text": "book.blade_tetra.completed_bansho"
+    }
+  ],
+  "advancement": "blade_tetra:manual/bansho"
+}

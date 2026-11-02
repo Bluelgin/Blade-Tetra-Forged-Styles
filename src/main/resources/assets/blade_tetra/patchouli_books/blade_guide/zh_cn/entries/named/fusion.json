@@ -1,0 +1,19 @@
+{
+  "name": "book.blade_tetra.fusion.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.named_blade_record.fusion_intro"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.fusion.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.fusion.2"
+    }
+  ]
+}

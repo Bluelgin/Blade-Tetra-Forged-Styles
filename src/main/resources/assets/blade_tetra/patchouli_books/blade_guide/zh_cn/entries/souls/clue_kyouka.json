@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_kyouka.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.kyouka.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:kyouka",
+      "text": "book.blade_tetra.completed_kyouka"
+    }
+  ],
+  "advancement": "blade_tetra:manual/kyouka"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "book.blade_tetra.clue_akatsuki.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "lore.blade_tetra.akatsuki.page"
+    },
+    {
+      "type": "patchouli:text",
+      "advancement": "blade_tetra:akatsuki",
+      "text": "book.blade_tetra.completed_akatsuki"
+    }
+  ],
+  "advancement": "blade_tetra:manual/akatsuki"
+}
