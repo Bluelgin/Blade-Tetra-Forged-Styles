@@ -1,7 +1,6 @@
 package dev.bladetetra.forging;
 
 import dev.bladetetra.combat.LegacyFusionHandler;
-import dev.bladetetra.combat.ProgrammaticFusionAttunement;
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.registry.ModItems;
@@ -14,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 
 /** Focused checks run inside the existing opt-in named-ingot integration suite. */
 final class ManualFusionSmoke {
-    static void verify(Player player) {
+    static void verify(Player player) throws se.mickelus.tetra.module.schematic.InvalidSchematicException {
         var sources = NamedLegacyCatalog.values().stream().toList();
         ItemStack input = null;
         outer: for (var saya : sources) for (var guard : sources) {
