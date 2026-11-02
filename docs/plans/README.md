@@ -7,3 +7,4 @@
 - [Blade Tetra Boss 开发路线](BOSS_DEVELOPMENT_ROADMAP.md)
 - [Blade Tetra 战斗特效优化方案](COMBAT_VFX_OPTIMIZATION_PLAN.md)
 - [名刀融合开发路线](NAMED_BLADE_FUSION_ROADMAP.md)
+- [名刀封存（Blade Exporter）长期开发路线](BLADE_EXPORTER_ROADMAP.md)
