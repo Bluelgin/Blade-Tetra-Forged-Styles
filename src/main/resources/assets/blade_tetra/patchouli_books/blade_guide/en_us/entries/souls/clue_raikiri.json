@@ -1,18 +1,32 @@
 {
-  "name": "book.blade_tetra.clue_raikiri.name",
+  "name": "book.blade_tetra.v2.clue_raikiri.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:smithing_clue",
+  "sortnum": 5,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.raikiri.page"
+      "text": "book.blade_tetra.v2.clue_raikiri.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
       "advancement": "blade_tetra:raikiri",
-      "text": "book.blade_tetra.completed_raikiri"
+      "text": "book.blade_tetra.v2.clue_raikiri.1",
+      "title": "book.blade_tetra.v2.clue_raikiri.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:raikiri",
+      "text": "book.blade_tetra.v2.clue_raikiri.2",
+      "title": "book.blade_tetra.v2.clue_raikiri.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/soul_raikiri",
+        "blade_tetra:souls/inscriptions"
+      ]
     }
   ],
-  "advancement": "blade_tetra:manual/raikiri",
-  "sortnum": 34
+  "advancement": "blade_tetra:manual/raikiri"
 }

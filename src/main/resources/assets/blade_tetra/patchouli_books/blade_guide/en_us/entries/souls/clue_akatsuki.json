@@ -1,18 +1,32 @@
 {
-  "name": "book.blade_tetra.clue_akatsuki.name",
+  "name": "book.blade_tetra.v2.clue_akatsuki.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:smithing_clue",
+  "sortnum": 6,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.akatsuki.page"
+      "text": "book.blade_tetra.v2.clue_akatsuki.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
       "advancement": "blade_tetra:akatsuki",
-      "text": "book.blade_tetra.completed_akatsuki"
+      "text": "book.blade_tetra.v2.clue_akatsuki.1",
+      "title": "book.blade_tetra.v2.clue_akatsuki.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:akatsuki",
+      "text": "book.blade_tetra.v2.clue_akatsuki.2",
+      "title": "book.blade_tetra.v2.clue_akatsuki.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/soul_akatsuki",
+        "blade_tetra:souls/inscriptions"
+      ]
     }
   ],
-  "advancement": "blade_tetra:manual/akatsuki",
-  "sortnum": 28
+  "advancement": "blade_tetra:manual/akatsuki"
 }

@@ -21,6 +21,7 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('manualArtReview')) property 'blade_tetra.manualArtReview', 'true'
             if (project.hasProperty('namedIngotArtReview')) {
                 workingDirectory project.file('build/named-ingot-art-review')
                 property 'blade_tetra.namedIngotArtReview', 'true'

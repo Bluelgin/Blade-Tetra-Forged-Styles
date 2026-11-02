@@ -1,81 +1,69 @@
 {
-  "name": "book.blade_tetra.soul_akatsuki.name",
+  "name": "book.blade_tetra.v2.soul_akatsuki.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:akatsuki_soul_fragment",
+  "sortnum": 10,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.verse"
+      "text": "book.blade_tetra.v2.soul_akatsuki.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.style"
+      "text": "book.blade_tetra.v2.soul_akatsuki.1",
+      "title": "book.blade_tetra.v2.soul_akatsuki.1.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.1"
+      "text": "book.blade_tetra.v2.soul_akatsuki.2",
+      "title": "book.blade_tetra.v2.soul_akatsuki.2.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.2"
+      "text": "book.blade_tetra.v2.soul_akatsuki.3",
+      "title": "book.blade_tetra.v2.soul_akatsuki.3.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.3"
+      "text": "book.blade_tetra.v2.soul_akatsuki.4",
+      "title": "book.blade_tetra.v2.soul_akatsuki.4.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.4"
+      "text": "book.blade_tetra.v2.soul_akatsuki.5",
+      "title": "book.blade_tetra.v2.soul_akatsuki.5.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.5"
+      "text": "book.blade_tetra.v2.soul_akatsuki.6",
+      "title": "book.blade_tetra.v2.soul_akatsuki.6.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.6"
+      "text": "book.blade_tetra.v2.soul_akatsuki.7",
+      "title": "book.blade_tetra.v2.soul_akatsuki.7.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.skills.7"
+      "text": "book.blade_tetra.v2.soul_akatsuki.8",
+      "title": "book.blade_tetra.v2.soul_akatsuki.8.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.1"
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:akatsuki_soul_fragment",
+      "text": "book.blade_tetra.v2.soul_akatsuki.9"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.3"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.4"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.5"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.6"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.7"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.akatsuki.details.8"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.defaults"
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/clue_akatsuki",
+        "blade_tetra:souls/soul_controls",
+        "blade_tetra:basics/controls"
+      ]
     }
   ],
-  "advancement": "blade_tetra:akatsuki",
-  "sortnum": 37
+  "advancement": "blade_tetra:manual/guide/akatsuki",
+  "extra_recipe_mappings": {
+    "blade_tetra:akatsuki_soul_fragment": 0
+  }
 }

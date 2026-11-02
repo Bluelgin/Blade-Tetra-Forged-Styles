@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="160" viewBox="0 0 256 160">
+<title>Blade Tetra fitting index — a conceptual exploded view, not GUI slot positions</title>
+<g stroke="#51483e" stroke-width="2" stroke-linejoin="round">
+<path d="M102 40H237L226 52H102Z" fill="#d0d4d4"/><path d="M108 43H224" stroke="#fff5db"/>
+<rect x="43" y="38" width="43" height="15" rx="2" fill="#3b3d58"/><path d="m48 39 8 13m0-13 8 13m0-13 8 13m0-13 8 13" stroke="#a38863"/>
+<rect x="87" y="31" width="5" height="29" rx="2" fill="#a38b5b"/><rect x="96" y="39" width="6" height="13" fill="#bda36e"/><rect x="37" y="38" width="5" height="15" fill="#a38b5b"/>
+<path d="M72 101H236L227 116H72Z" fill="#4c3550"/><rect x="73" y="102" width="7" height="13" fill="#bda36e"/>
+<path d="M114 49H212" stroke="#858e97"/><path d="m137 66 7-7 7 7-7 7z" fill="#a15b68"/>
+</g>
+<g stroke="#8b7960" stroke-width="1" fill="none"><path d="M164 23V37M59 24V36M156 136V117M89 76V62M100 25V37M38 74V55M211 74V52M145 85V75"/></g>
+<g font-family="monospace" font-size="13" font-weight="bold" text-anchor="middle" fill="#3c3545"><text x="164" y="19">1</text><text x="59" y="20">2</text><text x="156" y="149">3</text><text x="89" y="90">4</text><text x="100" y="21">5</text><text x="38" y="87">6</text><text x="211" y="87">7</text><text x="145" y="99">8</text></g>
+</svg>

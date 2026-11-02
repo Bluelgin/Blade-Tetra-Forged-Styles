@@ -135,7 +135,7 @@ public final class NamedIngotArtReview {
                 } else {
                     verifyManual(mc);
                     LogUtils.getLogger().info("NAMED_INGOT_ART_REVIEW_PASS: actual creative inventory, {} captures", capture);
-                    mc.stop();
+                    if (!ManualArtReview.enabled()) mc.stop();
                 }
             }
         }
@@ -177,6 +177,7 @@ public final class NamedIngotArtReview {
             if (mc.level.getRecipeManager().byKey(new net.minecraft.resources.ResourceLocation("blade_tetra", "blade_guide")).isEmpty())
                 throw new IllegalStateException("Manual recipe missing with Patchouli");
             LogUtils.getLogger().info("PATCHOULI_MANUAL_PASS: {} entries, {} categories, native compilation, creative listing, recipe and shared discovery locks", entries.size(), categories.size());
+            ManualArtReview.begin(book);
         } catch (ReflectiveOperationException failure) { throw new IllegalStateException(failure); }
     }
     private NamedIngotArtReview() {}

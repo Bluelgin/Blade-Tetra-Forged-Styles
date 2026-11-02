@@ -1,0 +1,25 @@
+{
+  "name": "book.blade_tetra.v2.maintenance.name",
+  "category": "blade_tetra:basics",
+  "icon": "minecraft:grindstone",
+  "sortnum": 3,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.maintenance.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.maintenance.1",
+      "title": "book.blade_tetra.v2.maintenance.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:basics/forging",
+        "blade_tetra:souls/clue_intro",
+        "blade_tetra:named/fusion"
+      ]
+    }
+  ]
+}

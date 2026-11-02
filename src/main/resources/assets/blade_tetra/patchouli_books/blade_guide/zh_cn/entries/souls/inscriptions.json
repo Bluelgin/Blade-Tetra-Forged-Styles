@@ -1,0 +1,39 @@
+{
+  "name": "book.blade_tetra.v2.inscriptions.name",
+  "category": "blade_tetra:souls",
+  "icon": "slashblade:proudsoul_sphere",
+  "sortnum": 1,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.inscriptions.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "blade_tetra:blood_crystal",
+      "link_recipe": true,
+      "text": "book.blade_tetra.v2.inscriptions.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.inscriptions.mapping"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:blood_crystal",
+      "text": "book.blade_tetra.v2.inscriptions.2"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:sakura_soul_crystal",
+      "text": "book.blade_tetra.v2.inscriptions.3"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/clue_intro",
+        "blade_tetra:souls/soul_controls"
+      ]
+    }
+  ]
+}

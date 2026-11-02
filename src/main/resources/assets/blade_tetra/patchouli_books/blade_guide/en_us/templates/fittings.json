@@ -1,0 +1,27 @@
+{
+  "components": [
+    {
+      "type": "patchouli:header",
+      "x": -1,
+      "y": 0,
+      "text": "book.blade_tetra.diagram.parts"
+    },
+    {
+      "type": "patchouli:image",
+      "x": 0,
+      "y": 18,
+      "image": "blade_tetra:textures/gui/manual/fittings.png",
+      "width": 116,
+      "height": 75,
+      "texture_width": 256,
+      "texture_height": 160
+    },
+    {
+      "type": "patchouli:text",
+      "x": 0,
+      "y": 100,
+      "text": "book.blade_tetra.diagram.text7",
+      "max_width": 116
+    }
+  ]
+}

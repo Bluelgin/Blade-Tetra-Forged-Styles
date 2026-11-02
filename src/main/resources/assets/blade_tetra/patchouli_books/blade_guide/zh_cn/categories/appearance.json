@@ -1,6 +1,6 @@
 {
   "name": "book.blade_tetra.category.appearance",
-  "description": "book.blade_tetra.category.appearance",
+  "description": "book.blade_tetra.category.appearance.description",
   "icon": "minecraft:white_banner",
   "sortnum": 4
 }

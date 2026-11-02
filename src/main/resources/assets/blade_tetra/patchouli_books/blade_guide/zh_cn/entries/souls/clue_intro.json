@@ -1,16 +1,18 @@
 {
-  "name": "book.blade_tetra.clue_intro.name",
+  "name": "book.blade_tetra.v2.clue_intro.name",
   "category": "blade_tetra:souls",
-  "icon": "blade_tetra:smithing_clue",
+  "icon": "blade_tetra:smithing_journal",
+  "sortnum": 0,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.journal.empty"
+      "text": "book.blade_tetra.v2.clue_intro.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.clue_intro.1"
+      "text": "book.blade_tetra.v2.clue_intro.1",
+      "title": "book.blade_tetra.v2.clue_intro.1.title",
+      "type": "patchouli:text"
     }
   ],
-  "sortnum": 0
+  "priority": true
 }

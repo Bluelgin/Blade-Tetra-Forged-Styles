@@ -1,69 +1,54 @@
 {
-  "name": "book.blade_tetra.soul_raikiri.name",
+  "name": "book.blade_tetra.v2.soul_raikiri.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:raikiri_soul_fragment",
+  "sortnum": 12,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.verse"
+      "text": "book.blade_tetra.v2.soul_raikiri.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.style"
+      "text": "book.blade_tetra.v2.soul_raikiri.1",
+      "title": "book.blade_tetra.v2.soul_raikiri.1.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.1"
+      "text": "book.blade_tetra.v2.soul_raikiri.2",
+      "title": "book.blade_tetra.v2.soul_raikiri.2.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.2"
+      "text": "book.blade_tetra.v2.soul_raikiri.3",
+      "title": "book.blade_tetra.v2.soul_raikiri.3.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.3"
+      "text": "book.blade_tetra.v2.soul_raikiri.4",
+      "title": "book.blade_tetra.v2.soul_raikiri.4.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.4"
+      "text": "book.blade_tetra.v2.soul_raikiri.5",
+      "title": "book.blade_tetra.v2.soul_raikiri.5.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.5"
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:raikiri_soul_fragment",
+      "text": "book.blade_tetra.v2.soul_raikiri.6"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.skills.6"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.1"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.3"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.4"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.5"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.raikiri.details.6"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.defaults"
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/clue_raikiri",
+        "blade_tetra:souls/soul_controls",
+        "blade_tetra:basics/controls"
+      ]
     }
   ],
-  "advancement": "blade_tetra:raikiri",
-  "sortnum": 40
+  "advancement": "blade_tetra:manual/guide/raikiri",
+  "extra_recipe_mappings": {
+    "blade_tetra:raikiri_soul_fragment": 0
+  }
 }

@@ -1,18 +1,25 @@
 {
-  "name": "book.blade_tetra.clue_nbt_sage.name",
+  "name": "book.blade_tetra.v2.clue_nbt_sage.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:smithing_clue",
+  "sortnum": 9,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.nbt_sage.page"
+      "text": "book.blade_tetra.v2.clue_nbt_sage.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
       "advancement": "blade_tetra:nbt_sage",
-      "text": "book.blade_tetra.completed_nbt_sage"
+      "text": "book.blade_tetra.v2.clue_nbt_sage.1",
+      "title": "book.blade_tetra.v2.clue_nbt_sage.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:nbt_sage",
+      "text": "book.blade_tetra.v2.clue_nbt_sage.2",
+      "title": "book.blade_tetra.v2.clue_nbt_sage.2.title",
+      "type": "patchouli:text"
     }
   ],
-  "advancement": "blade_tetra:manual/nbt_sage",
-  "sortnum": 33
+  "advancement": "blade_tetra:manual/nbt_sage"
 }

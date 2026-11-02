@@ -1,21 +1,42 @@
 {
-  "name": "book.blade_tetra.named_ingots.name",
+  "name": "book.blade_tetra.v2.named_ingots.name",
   "category": "blade_tetra:named",
   "icon": "blade_tetra:named_blade_ingot",
+  "sortnum": 0,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.named_blade_record.imprinting"
+      "text": "book.blade_tetra.v2.named_ingots.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.named_ingots.1"
+      "type": "blade_tetra:ingot_extraction"
+    },
+    {
+      "text": "book.blade_tetra.v2.named_ingots.2",
+      "title": "book.blade_tetra.v2.named_ingots.2.title",
+      "type": "patchouli:text"
     },
     {
       "type": "patchouli:spotlight",
       "item": "blade_tetra:named_blade_ingot",
-      "text": "book.blade_tetra.ingot_unknown"
+      "link_recipe": true,
+      "text": "book.blade_tetra.v2.named_ingots.3"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.named_ingots.workbench"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/inheritance",
+        "blade_tetra:named/fusion",
+        "blade_tetra:reference/faq_named"
+      ]
     }
   ],
-  "sortnum": 0
+  "priority": true,
+  "extra_recipe_mappings": {
+    "blade_tetra:named_blade_ingot": 0
+  }
 }

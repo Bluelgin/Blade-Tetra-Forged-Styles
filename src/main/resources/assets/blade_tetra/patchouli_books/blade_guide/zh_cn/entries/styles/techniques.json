@@ -1,0 +1,24 @@
+{
+  "name": "book.blade_tetra.v2.techniques.name",
+  "category": "blade_tetra:styles",
+  "icon": "minecraft:paper",
+  "sortnum": 8,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.techniques.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.techniques.1",
+      "title": "book.blade_tetra.v2.techniques.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/lifeng",
+        "blade_tetra:reference/compatibility"
+      ]
+    }
+  ]
+}

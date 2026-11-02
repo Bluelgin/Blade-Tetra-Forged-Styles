@@ -1,24 +1,42 @@
 {
-  "name": "book.blade_tetra.first_blade.name",
+  "name": "book.blade_tetra.v2.first_blade.name",
   "category": "blade_tetra:basics",
   "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 0,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.first_blade.0"
+      "text": "book.blade_tetra.v2.first_blade.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.first_blade.1"
+      "text": "book.blade_tetra.v2.first_blade.1",
+      "title": "book.blade_tetra.v2.first_blade.1.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.first_blade.2"
+      "type": "blade_tetra:conversion"
     },
     {
-      "type": "patchouli:crafting",
-      "recipe": "blade_tetra:blade_guide"
+      "text": "book.blade_tetra.v2.first_blade.3",
+      "title": "book.blade_tetra.v2.first_blade.3.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.first_blade.4",
+      "title": "book.blade_tetra.v2.first_blade.4.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:basics/parts",
+        "blade_tetra:styles/style_standard",
+        "blade_tetra:basics/maintenance"
+      ]
     }
   ],
-  "sortnum": 0
+  "priority": true,
+  "extra_recipe_mappings": {
+    "blade_tetra:modular_slashblade": 0
+  }
 }

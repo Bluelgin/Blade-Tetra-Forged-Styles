@@ -1,6 +1,6 @@
 {
   "name": "book.blade_tetra.category.reference",
-  "description": "book.blade_tetra.category.reference",
+  "description": "book.blade_tetra.category.reference.description",
   "icon": "minecraft:paper",
   "sortnum": 5
 }

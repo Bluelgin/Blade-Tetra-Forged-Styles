@@ -1,6 +1,6 @@
 {
   "name": "book.blade_tetra.category.basics",
-  "description": "book.blade_tetra.category.basics",
+  "description": "book.blade_tetra.category.basics.description",
   "icon": "minecraft:anvil",
   "sortnum": 0
 }

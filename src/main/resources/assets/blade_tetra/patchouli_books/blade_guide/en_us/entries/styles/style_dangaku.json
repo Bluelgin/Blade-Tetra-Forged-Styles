@@ -1,16 +1,24 @@
 {
-  "name": "book.blade_tetra.style_dangaku.name",
+  "name": "book.blade_tetra.v2.style_dangaku.name",
   "category": "blade_tetra:styles",
   "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 3,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.dangaku.description"
+      "text": "book.blade_tetra.v2.style_dangaku.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.dangaku.tradeoff"
+      "text": "book.blade_tetra.v2.style_dangaku.1",
+      "title": "book.blade_tetra.v2.style_dangaku.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_custom",
+        "blade_tetra:basics/parts"
+      ]
     }
-  ],
-  "sortnum": 3
+  ]
 }

@@ -1,18 +1,19 @@
 {
-  "name": "book.blade_tetra.clue_bansho.name",
+  "name": "book.blade_tetra.v2.clue_bansho.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:smithing_clue",
+  "sortnum": 4,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "lore.blade_tetra.bansho.page"
+      "text": "book.blade_tetra.v2.clue_bansho.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
       "advancement": "blade_tetra:bansho",
-      "text": "book.blade_tetra.completed_bansho"
+      "text": "book.blade_tetra.v2.clue_bansho.1",
+      "title": "book.blade_tetra.v2.clue_bansho.1.title",
+      "type": "patchouli:text"
     }
   ],
-  "advancement": "blade_tetra:manual/bansho",
-  "sortnum": 30
+  "advancement": "blade_tetra:manual/bansho"
 }

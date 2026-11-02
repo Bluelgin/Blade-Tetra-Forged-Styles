@@ -1,0 +1,25 @@
+{
+  "name": "book.blade_tetra.v2.wraps.name",
+  "category": "blade_tetra:appearance",
+  "icon": "minecraft:leather",
+  "sortnum": 2,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.wraps.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "minecraft:red_carpet",
+      "link_recipe": false,
+      "text": "book.blade_tetra.v2.wraps.1"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:appearance/sockets",
+        "blade_tetra:basics/parts"
+      ]
+    }
+  ]
+}

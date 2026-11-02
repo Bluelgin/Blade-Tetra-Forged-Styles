@@ -35,10 +35,11 @@ jobs:
           {
             curl --fail --location --retry 2 --output run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar https://edge.forgecdn.net/files/7264/677/Yakumoblade-1.1.4-1.20.1_Forge.jar
             sha256sum run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar
-            xvfb-run -a ./gradlew runClient -PnamedIngotArtReview -PsjapTest -PyakumoTest -PpatchouliTest
+            xvfb-run -a ./gradlew runClient -PnamedIngotArtReview -PmanualArtReview -PsjapTest -PyakumoTest -PpatchouliTest
           } 2>&1 | tee build/named-ingot-art-review.log
           grep -F 'NAMED_INGOT_ART_REVIEW_PASS' build/named-ingot-art-review.log
           grep -F 'PATCHOULI_MANUAL_PASS' build/named-ingot-art-review.log
+          grep -F 'MANUAL_ART_REVIEW_PASS' build/named-ingot-art-review.log
       - name: Upload named ingot creative inventory screenshot
         if: always() && github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
         uses: actions/upload-artifact@v4
@@ -46,6 +47,7 @@ jobs:
           name: named-ingot-creative-art
           path: |
             build/named-ingot-art-review/named-ingot-creative*.png
+            build/named-ingot-art-review/manual-*.png
             build/named-ingot-art-review.log
             build/named-ingot-art-review/logs/**
           retention-days: 14

@@ -1,16 +1,39 @@
 {
-  "name": "book.blade_tetra.appearance.name",
+  "name": "book.blade_tetra.v2.appearance.name",
   "category": "blade_tetra:appearance",
-  "icon": "minecraft:white_banner",
+  "icon": "blade_tetra:saya_pattern_sakura",
+  "sortnum": 0,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.appearance.0"
+      "text": "book.blade_tetra.v2.appearance.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.appearance.1"
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:saya_pattern_sakura",
+      "text": "book.blade_tetra.v2.appearance.1"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:saya_pattern_kyouka",
+      "text": "book.blade_tetra.v2.appearance.2"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:saya_pattern_akatsuki",
+      "text": "book.blade_tetra.v2.appearance.3"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:saya_pattern_purple_lightning",
+      "text": "book.blade_tetra.v2.appearance.4"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:appearance/banner",
+        "blade_tetra:souls/inscriptions"
+      ]
     }
-  ],
-  "sortnum": 10
+  ]
 }

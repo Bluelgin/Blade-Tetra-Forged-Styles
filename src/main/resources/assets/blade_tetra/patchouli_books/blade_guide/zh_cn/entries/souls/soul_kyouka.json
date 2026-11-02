@@ -1,77 +1,64 @@
 {
-  "name": "book.blade_tetra.soul_kyouka.name",
+  "name": "book.blade_tetra.v2.soul_kyouka.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:kyouka_soul_fragment",
+  "sortnum": 13,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.verse"
+      "text": "book.blade_tetra.v2.soul_kyouka.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.style"
+      "text": "book.blade_tetra.v2.soul_kyouka.1",
+      "title": "book.blade_tetra.v2.soul_kyouka.1.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.1"
+      "text": "book.blade_tetra.v2.soul_kyouka.2",
+      "title": "book.blade_tetra.v2.soul_kyouka.2.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.2"
+      "text": "book.blade_tetra.v2.soul_kyouka.3",
+      "title": "book.blade_tetra.v2.soul_kyouka.3.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.3"
+      "text": "book.blade_tetra.v2.soul_kyouka.4",
+      "title": "book.blade_tetra.v2.soul_kyouka.4.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.4"
+      "text": "book.blade_tetra.v2.soul_kyouka.5",
+      "title": "book.blade_tetra.v2.soul_kyouka.5.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.5"
+      "text": "book.blade_tetra.v2.soul_kyouka.6",
+      "title": "book.blade_tetra.v2.soul_kyouka.6.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.6"
+      "text": "book.blade_tetra.v2.soul_kyouka.7",
+      "title": "book.blade_tetra.v2.soul_kyouka.7.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.skills.7"
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:kyouka_soul_fragment",
+      "text": "book.blade_tetra.v2.soul_kyouka.8"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.1"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.3"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.4"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.5"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.6"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.kyouka.details.7"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.defaults"
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/clue_kyouka",
+        "blade_tetra:souls/soul_controls",
+        "blade_tetra:basics/controls"
+      ]
     }
   ],
-  "advancement": "blade_tetra:kyouka",
-  "sortnum": 39
+  "advancement": "blade_tetra:manual/guide/kyouka",
+  "extra_recipe_mappings": {
+    "blade_tetra:kyouka_soul_fragment": 0
+  }
 }

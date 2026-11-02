@@ -1,0 +1,29 @@
+{
+  "name": "book.blade_tetra.v2.materials.name",
+  "category": "blade_tetra:basics",
+  "icon": "minecraft:iron_ingot",
+  "sortnum": 2,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.materials.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.materials.1",
+      "title": "book.blade_tetra.v2.materials.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.materials.2",
+      "title": "book.blade_tetra.v2.materials.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:basics/maintenance",
+        "blade_tetra:named/named_ingots"
+      ]
+    }
+  ]
+}

@@ -1,16 +1,25 @@
 {
-  "name": "book.blade_tetra.legacy_black_saya_sange_hilt.name",
+  "name": "book.blade_tetra.v2.legacy_black_saya_sange_hilt.name",
   "category": "blade_tetra:named",
   "icon": "blade_tetra:named_blade_record",
+  "sortnum": 12,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "tetra.improvement.blade_tetra/legacy_fusion/black_saya_sange_hilt.description"
+      "text": "book.blade_tetra.v2.legacy_black_saya_sange_hilt.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.authored_attunement"
+      "type": "patchouli:spotlight",
+      "item": "slashblade:proudsoul_sphere",
+      "link_recipe": true,
+      "text": "book.blade_tetra.v2.legacy_black_saya_sange_hilt.1"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/fusion",
+        "blade_tetra:named/legacy_index"
+      ]
     }
-  ],
-  "sortnum": 17
+  ]
 }

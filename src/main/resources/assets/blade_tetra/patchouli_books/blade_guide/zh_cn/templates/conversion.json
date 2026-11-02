@@ -1,0 +1,80 @@
+{
+  "components": [
+    {
+      "type": "patchouli:header",
+      "x": -1,
+      "y": 0,
+      "text": "book.blade_tetra.diagram.conversion"
+    },
+    {
+      "type": "patchouli:item",
+      "x": 8,
+      "y": 27,
+      "item": "slashblade:slashblade_wood",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 43,
+      "y": 27,
+      "item": "minecraft:iron_ingot#3",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 88,
+      "y": 27,
+      "item": "blade_tetra:modular_slashblade",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 69,
+      "y": 30,
+      "text": "book.blade_tetra.diagram.text1",
+      "max_width": 14
+    },
+    {
+      "type": "patchouli:text",
+      "x": 0,
+      "y": 55,
+      "text": "book.blade_tetra.diagram.text2",
+      "max_width": 116
+    },
+    {
+      "type": "patchouli:item",
+      "x": 8,
+      "y": 94,
+      "item": "slashblade:slashblade",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 43,
+      "y": 94,
+      "item": "tetra:modular_sword",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 88,
+      "y": 94,
+      "item": "blade_tetra:modular_slashblade",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 69,
+      "y": 97,
+      "text": "book.blade_tetra.diagram.text3",
+      "max_width": 14
+    },
+    {
+      "type": "patchouli:text",
+      "x": 0,
+      "y": 121,
+      "text": "book.blade_tetra.diagram.text4",
+      "max_width": 116
+    }
+  ]
+}

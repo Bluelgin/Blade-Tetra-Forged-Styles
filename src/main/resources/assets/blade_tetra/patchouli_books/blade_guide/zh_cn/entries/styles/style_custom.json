@@ -1,16 +1,24 @@
 {
-  "name": "book.blade_tetra.style_custom.name",
+  "name": "book.blade_tetra.v2.style_custom.name",
   "category": "blade_tetra:styles",
   "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 4,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.custom.description"
+      "text": "book.blade_tetra.v2.style_custom.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.custom.tradeoff"
+      "text": "book.blade_tetra.v2.style_custom.1",
+      "title": "book.blade_tetra.v2.style_custom.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/scrolls",
+        "blade_tetra:styles/scroll_editor"
+      ]
     }
-  ],
-  "sortnum": 4
+  ]
 }

@@ -1,16 +1,24 @@
 {
-  "name": "book.blade_tetra.controls.name",
+  "name": "book.blade_tetra.v2.controls.name",
   "category": "blade_tetra:basics",
   "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 5,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.controls.0"
+      "text": "book.blade_tetra.v2.controls.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "book.blade_tetra.controls.1"
+      "text": "book.blade_tetra.v2.controls.1",
+      "title": "book.blade_tetra.v2.controls.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_iaido",
+        "blade_tetra:souls/soul_controls"
+      ]
     }
-  ],
-  "sortnum": 1
+  ]
 }

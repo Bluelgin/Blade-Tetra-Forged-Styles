@@ -1,16 +1,24 @@
 {
-  "name": "book.blade_tetra.style_rengeki.name",
+  "name": "book.blade_tetra.v2.style_rengeki.name",
   "category": "blade_tetra:styles",
   "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 2,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.rengeki.description"
+      "text": "book.blade_tetra.v2.style_rengeki.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "style.blade_tetra.rengeki.tradeoff"
+      "text": "book.blade_tetra.v2.style_rengeki.1",
+      "title": "book.blade_tetra.v2.style_rengeki.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_custom",
+        "blade_tetra:basics/parts"
+      ]
     }
-  ],
-  "sortnum": 2
+  ]
 }

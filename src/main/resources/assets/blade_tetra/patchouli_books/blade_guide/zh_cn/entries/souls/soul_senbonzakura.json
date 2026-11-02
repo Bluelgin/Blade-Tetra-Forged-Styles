@@ -1,81 +1,59 @@
 {
-  "name": "book.blade_tetra.soul_senbonzakura.name",
+  "name": "book.blade_tetra.v2.soul_senbonzakura.name",
   "category": "blade_tetra:souls",
   "icon": "blade_tetra:senbonzakura_soul_fragment",
+  "sortnum": 11,
   "pages": [
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.verse"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.0",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.style"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.1",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.1.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.1"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.2",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.2.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.2"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.3",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.3.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.3"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.4",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.4.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.4"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.5",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.5.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.5"
+      "text": "book.blade_tetra.v2.soul_senbonzakura.6",
+      "title": "book.blade_tetra.v2.soul_senbonzakura.6.title",
+      "type": "patchouli:text"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.6"
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:senbonzakura_soul_fragment",
+      "text": "book.blade_tetra.v2.soul_senbonzakura.7"
     },
     {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.skills.7"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.1"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.3"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.4"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.5"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.6"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.7"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.senbonzakura.details.8"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "tooltip.blade_tetra.soul_fragment.defaults"
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/clue_senbonzakura",
+        "blade_tetra:souls/soul_controls",
+        "blade_tetra:basics/controls"
+      ]
     }
   ],
-  "advancement": "blade_tetra:senbonzakura",
-  "sortnum": 41
+  "advancement": "blade_tetra:manual/guide/senbonzakura",
+  "extra_recipe_mappings": {
+    "blade_tetra:senbonzakura_soul_fragment": 0
+  }
 }
