@@ -31,7 +31,8 @@
       "entries": [
         "blade_tetra:basics/parts",
         "blade_tetra:styles/style_standard",
-        "blade_tetra:basics/maintenance"
+        "blade_tetra:basics/maintenance",
+        "blade_tetra:named/named_ingots"
       ]
     }
   ],

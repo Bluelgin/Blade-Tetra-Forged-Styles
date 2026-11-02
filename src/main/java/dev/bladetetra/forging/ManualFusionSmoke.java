@@ -63,6 +63,10 @@ final class ManualFusionSmoke {
         var authored = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
         fit(authored, "saya", LegacyImprintKind.BLACK_FOX); fit(authored, "tsuba", LegacyImprintKind.WHITE_FOX);
         check(ProgrammaticFusionPlan.candidate(authored) == null && !schematic.isRelevant(authored), "Authored fusion bypassed");
+        check(player.level().getRecipeManager().byKey(new ResourceLocation("blade_tetra", "modular_slashblade")).isEmpty(),
+                "Retired sword conversion recipe still loaded");
+        check(player.level().getRecipeManager().byKey(new ResourceLocation("blade_tetra", "iron_katana")).isPresent(),
+                "Wooden Puppet entry recipe missing");
         var recipe = player.level().getRecipeManager().byKey(new ResourceLocation("blade_tetra", "blade_guide"));
         check(recipe.isPresent() == net.minecraftforge.fml.ModList.get().isLoaded("patchouli"), "Optional book recipe condition failed");
         dev.bladetetra.lore.SmithingLore.discover(player, "akatsuki");
