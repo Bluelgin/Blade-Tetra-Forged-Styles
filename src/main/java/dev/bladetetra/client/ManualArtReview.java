@@ -150,6 +150,7 @@ public final class ManualArtReview {
     @SubscribeEvent public static void frame(TickEvent.RenderTickEvent event) {
         if (active && event.phase == TickEvent.Phase.START) {
             Minecraft.getInstance().getToasts().clear();
+            Minecraft.getInstance().gui.getChat().clearMessages(true);
             return;
         }
         if (!active || event.phase != TickEvent.Phase.END || warmup < 60 || reload != null || advance) return;
