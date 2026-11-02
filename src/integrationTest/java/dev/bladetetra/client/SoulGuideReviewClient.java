@@ -22,8 +22,8 @@ import java.util.List;
 public final class SoulGuideReviewClient {
     private static int phase,ticks,capture=-1;
     private static boolean started;
-    static boolean enabled(){return Boolean.getBoolean("blade_tetra.soulGuideReview");}
-    static boolean expanded(){return enabled()&&started&&phase%4!=0;}
+    public static boolean enabled(){return Boolean.getBoolean("blade_tetra.soulGuideReview");}
+    public static boolean expanded(){return enabled()&&started&&phase%4!=0;}
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if(!enabled()||event.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();

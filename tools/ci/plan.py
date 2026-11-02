@@ -62,7 +62,7 @@ def select(config, paths, mode="auto", fallback=None):
             chosen.update(selected)
             reasons.append({"path": path, "reason": rule["reason"] if rule else
                             "Unclassified change: full native fallback", "suites": sorted(selected)})
-    return {"version": 1, "mode": mode, "quick": quick, "suites": sorted(chosen), "reasons": reasons}
+    return {"version": 1, "mode": mode, "quick": quick, "suites": [name for name in config["suites"] if name in chosen], "reasons": reasons}
 
 
 def main():

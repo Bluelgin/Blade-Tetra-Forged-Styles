@@ -2,9 +2,12 @@
 """Run one manifest suite in an isolated build directory and require proof markers."""
 import argparse
 import hashlib
+import os
+import signal
 import re
 import shutil
 import subprocess
+import threading
 import urllib.request
 from plan import ROOT, load_config
 
@@ -33,17 +36,32 @@ def main():
         with urllib.request.urlopen('https://edge.forgecdn.net/files/7264/677/Yakumoblade-1.1.4-1.20.1_Forge.jar', timeout=60) as response:
             jar.write_bytes(response.read())
         print('Yakumo fixture SHA-256:', hashlib.sha256(jar.read_bytes()).hexdigest(), flush=True)
-    command = ['./gradlew', 'runClient' if suite['kind'] == 'client' else 'runServer']
+    command = ['./gradlew', '--no-daemon', 'runClient' if suite['kind'] == 'client' else 'runServer']
     command.extend('-P' + prop for prop in properties)
     if suite['kind'] == 'client':
         command = ['xvfb-run', '-a', *command]
     log = ROOT / 'build' / (suite['directory'] + '.log')
     with log.open('w') as target:
-        process = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        for line in process.stdout:
-            print(line, end='', flush=True)
-            target.write(line)
-        status = process.wait()
+        process = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+        expired = threading.Event()
+        def terminate():
+            expired.set()
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        watchdog = threading.Timer(600, terminate)
+        watchdog.daemon = True
+        watchdog.start()
+        try:
+            for line in process.stdout:
+                print(line, end='', flush=True)
+                target.write(line)
+            status = process.wait()
+        finally:
+            watchdog.cancel()
+        if expired.is_set():
+            status = -1
     missing = [marker for marker in suite['markers'] if marker not in log.read_text()]
     if status or missing:
         raise SystemExit(f'Suite {args.suite} failed: process={status}; missing markers={missing}')

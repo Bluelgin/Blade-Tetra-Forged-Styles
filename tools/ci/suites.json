@@ -39,6 +39,38 @@
     ]
   },
   "suites": {
+    "tooltip": {
+      "kind": "client",
+      "property": "soulGuideReview",
+      "directory": "soul-guide-review",
+      "markers": [
+        "SOUL_GUIDE_REVIEW_PASS"
+      ],
+      "flags": []
+    },
+    "manual": {
+      "kind": "client",
+      "property": "namedIngotArtReview",
+      "directory": "named-ingot-art-review",
+      "markers": [
+        "NAMED_INGOT_ART_REVIEW_PASS",
+        "PATCHOULI_MANUAL_PASS",
+        "MANUAL_ART_REVIEW_PASS"
+      ],
+      "flags": [
+        "manualArtReview",
+        "patchouliTest"
+      ]
+    },
+    "motion": {
+      "kind": "client",
+      "property": "kyoukaMotionSmoke",
+      "directory": "kyouka-motion-smoke",
+      "markers": [
+        "KYOUKA_MOTION_SMOKE_PASS"
+      ],
+      "flags": []
+    },
     "forging": {
       "kind": "server",
       "property": "namedIngotSmoke",
@@ -46,6 +78,15 @@
       "markers": [
         "NAMED_INGOT_SMOKE_PASS",
         "MANUAL_FUSION_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "storage": {
+      "kind": "server",
+      "property": "bladeStorageSmoke",
+      "directory": "blade-storage-smoke",
+      "markers": [
+        "BLADE_STORAGE_SMOKE_PASS"
       ],
       "flags": []
     },
@@ -113,47 +154,6 @@
       "directory": "lifeng-smoke",
       "markers": [
         "LIFENG_CUSTOM_SMOKE_PASS"
-      ],
-      "flags": []
-    },
-    "storage": {
-      "kind": "server",
-      "property": "bladeStorageSmoke",
-      "directory": "blade-storage-smoke",
-      "markers": [
-        "BLADE_STORAGE_SMOKE_PASS"
-      ],
-      "flags": []
-    },
-    "manual": {
-      "kind": "client",
-      "property": "namedIngotArtReview",
-      "directory": "named-ingot-art-review",
-      "markers": [
-        "NAMED_INGOT_ART_REVIEW_PASS",
-        "PATCHOULI_MANUAL_PASS",
-        "MANUAL_ART_REVIEW_PASS"
-      ],
-      "flags": [
-        "manualArtReview",
-        "patchouliTest"
-      ]
-    },
-    "motion": {
-      "kind": "client",
-      "property": "kyoukaMotionSmoke",
-      "directory": "kyouka-motion-smoke",
-      "markers": [
-        "KYOUKA_MOTION_SMOKE_PASS"
-      ],
-      "flags": []
-    },
-    "tooltip": {
-      "kind": "client",
-      "property": "soulGuideReview",
-      "directory": "soul-guide-review",
-      "markers": [
-        "SOUL_GUIDE_REVIEW_PASS"
       ],
       "flags": []
     },

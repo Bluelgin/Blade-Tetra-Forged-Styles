@@ -14,7 +14,8 @@ smoke tests, screenshot tools, sample builders and benchmarks live in
   `runClient`, `runServer`, data generation and release JARs do not include it.
 - `python3 tools/ci/run_suite.py forging`: run a single named suite, require a
   successful process and every expected proof marker. Client suites use Xvfb.
-  These commands erase only their isolated directory below `build/`.
+  These commands erase only their isolated directory below `build/`. A ten-minute
+  process watchdog ends stalled games before the job timeout so logs can upload.
 - Actions manual **Validation** input: `auto`, `full` (base suites), or `compat`
   (full base plus the pinned-version SJAP/Yakumo profiles).
 
@@ -23,6 +24,8 @@ smoke tests, screenshot tools, sample builders and benchmarks live in
 `tools/ci/suites.json` owns suite launch arguments, proof markers, dependency
 families and ordered path rules. First matching rule wins for each changed file;
 multiple files union their requirements. Put narrow rules before broad rules.
+Suite-definition order prioritizes early matrix jobs; client/input boundary checks
+run early so isolation failures are found before long compatibility validation.
 JUnit changes follow their production package; fixtures and unknown paths fall
 back to the full base set. Git diff disables rename detection so removed and added
 paths are both considered. Missing/unreadable diff bases also run the full base
