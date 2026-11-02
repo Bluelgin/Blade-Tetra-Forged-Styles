@@ -80,3 +80,8 @@ tools/art/*
 !art-previews/soul-fragment-candidates/*.png
 __pycache__/
 *.pyc
+
+# Versioned validation infrastructure (local one-off tools remain ignored)
+!tools/ci/
+!tools/ci/**
+tools/ci/__pycache__/
