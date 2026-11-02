@@ -38,6 +38,9 @@ public final class ManualArtReview {
         try { entryClass = Class.forName("vazkii.patchouli.client.book.BookEntry"); }
         catch (ClassNotFoundException e) { throw new IllegalStateException(e); }
         var mc = Minecraft.getInstance();
+        mc.getTutorial().setStep(net.minecraft.client.tutorial.TutorialSteps.NONE);
+        mc.options.hideGui = true;
+        mc.gui.getChat().clearMessages(true);
         var server = mc.getSingleplayerServer();
         var uuid = mc.player.getUUID();
         server.execute(() -> {
@@ -145,6 +148,10 @@ public final class ManualArtReview {
     }
 
     @SubscribeEvent public static void frame(TickEvent.RenderTickEvent event) {
+        if (active && event.phase == TickEvent.Phase.START) {
+            Minecraft.getInstance().getToasts().clear();
+            return;
+        }
         if (!active || event.phase != TickEvent.Phase.END || warmup < 60 || reload != null || advance) return;
         var mc = Minecraft.getInstance();
         if (mc.getOverlay() != null || mc.screen == null || !mc.screen.getClass().getName().startsWith("vazkii.patchouli.")) return;
