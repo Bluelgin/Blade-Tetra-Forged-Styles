@@ -66,7 +66,7 @@
       "type": "patchouli:item",
       "x": 43,
       "y": 109,
-      "item": "tetra:modular_sword",
+      "item": "tetra:modular_sword{\"sword/blade\":\"sword/basic_blade\",\"sword/basic_blade_material\":\"basic_blade/iron\",\"sword/hilt\":\"sword/basic_hilt\",\"sword/basic_hilt_material\":\"basic_hilt/stick\"}",
       "framed": true
     },
     {
