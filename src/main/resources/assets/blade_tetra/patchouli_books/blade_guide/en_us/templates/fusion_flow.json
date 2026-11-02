@@ -11,10 +11,11 @@
       "x": 0,
       "y": 20,
       "image": "blade_tetra:textures/gui/manual/fusion.png",
-      "width": 116,
-      "height": 90,
+      "width": 256,
+      "height": 200,
       "texture_width": 256,
-      "texture_height": 200
+      "texture_height": 200,
+      "scale": 0.453125
     },
     {
       "type": "patchouli:text",

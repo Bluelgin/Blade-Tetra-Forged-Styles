@@ -11,10 +11,11 @@
       "x": 0,
       "y": 18,
       "image": "blade_tetra:textures/gui/manual/fittings.png",
-      "width": 116,
-      "height": 75,
+      "width": 256,
+      "height": 160,
       "texture_width": 256,
-      "texture_height": 160
+      "texture_height": 160,
+      "scale": 0.453125
     },
     {
       "type": "patchouli:text",
