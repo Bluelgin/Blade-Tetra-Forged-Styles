@@ -64,5 +64,6 @@
       "text": "tooltip.blade_tetra.soul_fragment.defaults"
     }
   ],
-  "advancement": "blade_tetra:raikiri"
+  "advancement": "blade_tetra:raikiri",
+  "sortnum": 40
 }

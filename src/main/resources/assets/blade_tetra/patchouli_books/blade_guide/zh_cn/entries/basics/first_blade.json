@@ -19,5 +19,6 @@
       "type": "patchouli:crafting",
       "recipe": "blade_tetra:blade_guide"
     }
-  ]
+  ],
+  "sortnum": 0
 }

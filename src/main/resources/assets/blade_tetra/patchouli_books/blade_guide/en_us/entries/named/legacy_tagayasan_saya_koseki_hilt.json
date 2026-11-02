@@ -11,5 +11,6 @@
       "type": "patchouli:text",
       "text": "book.blade_tetra.authored_attunement"
     }
-  ]
+  ],
+  "sortnum": 23
 }

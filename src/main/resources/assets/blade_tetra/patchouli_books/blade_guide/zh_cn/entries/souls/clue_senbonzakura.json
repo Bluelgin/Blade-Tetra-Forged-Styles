@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_senbonzakura"
     }
   ],
-  "advancement": "blade_tetra:manual/senbonzakura"
+  "advancement": "blade_tetra:manual/senbonzakura",
+  "sortnum": 35
 }

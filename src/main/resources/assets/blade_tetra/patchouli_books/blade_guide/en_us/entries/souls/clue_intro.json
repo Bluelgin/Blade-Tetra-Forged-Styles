@@ -11,5 +11,6 @@
       "type": "patchouli:text",
       "text": "book.blade_tetra.clue_intro.1"
     }
-  ]
+  ],
+  "sortnum": 0
 }

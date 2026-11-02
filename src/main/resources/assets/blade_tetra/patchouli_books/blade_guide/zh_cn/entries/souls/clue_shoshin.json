@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_shoshin"
     }
   ],
-  "advancement": "blade_tetra:manual/shoshin"
+  "advancement": "blade_tetra:manual/shoshin",
+  "sortnum": 36
 }

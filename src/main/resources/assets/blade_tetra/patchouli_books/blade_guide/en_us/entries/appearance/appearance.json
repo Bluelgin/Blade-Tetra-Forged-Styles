@@ -11,5 +11,6 @@
       "type": "patchouli:text",
       "text": "book.blade_tetra.appearance.1"
     }
-  ]
+  ],
+  "sortnum": 10
 }

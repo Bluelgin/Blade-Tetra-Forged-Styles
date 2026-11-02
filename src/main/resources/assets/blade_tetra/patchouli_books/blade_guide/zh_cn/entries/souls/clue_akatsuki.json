@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_akatsuki"
     }
   ],
-  "advancement": "blade_tetra:manual/akatsuki"
+  "advancement": "blade_tetra:manual/akatsuki",
+  "sortnum": 28
 }

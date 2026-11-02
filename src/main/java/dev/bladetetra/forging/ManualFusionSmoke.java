@@ -30,6 +30,8 @@ final class ManualFusionSmoke {
         check(ProgrammaticFusionPlan.from(blade) == null, "New pair automatically activated");
         var schematic = SchematicRegistry.getSchematic(new ResourceLocation("tetra", ProgrammaticFusionSchematic.KEY));
         check(schematic != null && schematic.isApplicableForSlot(ModularSlashBladeItem.BLADE_SLOT, blade), "Missing blade operation");
+        check(java.util.Arrays.stream(SchematicRegistry.getSchematics(blade, ModularSlashBladeItem.BLADE_SLOT))
+                .anyMatch(entry -> entry.getKey().equals(schematic.getKey())), "Native menu omitted fusion operation");
         check(!schematic.isApplicableForSlot(ModularSlashBladeItem.SAYA_SLOT, blade), "Operation exposed on saya");
         var preview = schematic.applyUpgrade(blade, new ItemStack[0], false, ModularSlashBladeItem.BLADE_SLOT, player);
         check(ProgrammaticFusionPlan.from(preview) != null && ProgrammaticFusionPlan.from(blade) == null, "Preview mutated input or failed");
@@ -38,15 +40,19 @@ final class ManualFusionSmoke {
         check(ProgrammaticFusionPlan.from(result) != null && !schematic.isRelevant(result), "Fusion confirmation not durable");
         var saved = ItemStack.of(result.save(new net.minecraft.nbt.CompoundTag()));
         check(ProgrammaticFusionPlan.from(saved) != null, "Fusion lost on save/reload");
-        var samePair = result.copy();
-        ProgrammaticFusionAttunement.preserveUnchangedPair(result, samePair);
+        var definition = se.mickelus.tetra.data.DataManager.instance.schematicData.getData(
+                new ResourceLocation("tetra", "slashblade/basic_saya"));
+        var replacement = new se.mickelus.tetra.module.schematic.ConfigSchematic(definition);
+        var sameIngot = dev.bladetetra.item.NamedBladeIngotItem.create(NamedLegacyParts.fromStack(result).saya());
+        sameIngot.setCount(64);
+        var samePair = replacement.applyUpgrade(result, new ItemStack[]{sameIngot}, false, ModularSlashBladeItem.SAYA_SLOT, player);
         check(ProgrammaticFusionPlan.from(samePair) != null, "Unchanged pair lost attunement");
-        var changed = result.copy();
-        fit(changed, "tsuba", NamedLegacyParts.fromStack(changed).saya());
-        ProgrammaticFusionAttunement.invalidateChangedPair(changed);
+        var differentIngot = dev.bladetetra.item.NamedBladeIngotItem.create(NamedLegacyParts.fromStack(result).tsuba());
+        differentIngot.setCount(64);
+        var changed = replacement.applyUpgrade(result, new ItemStack[]{differentIngot}, false, ModularSlashBladeItem.SAYA_SLOT, player);
         check(ProgrammaticFusionPlan.from(changed) == null, "Changed source retained fusion");
-        fit(changed, "tsuba", NamedLegacyParts.fromStack(result).tsuba());
-        check(ProgrammaticFusionPlan.from(changed) == null, "Restoring a source silently reactivated removed fusion");
+        var restored = replacement.applyUpgrade(changed, new ItemStack[]{sameIngot}, false, ModularSlashBladeItem.SAYA_SLOT, player);
+        check(ProgrammaticFusionPlan.from(restored) == null, "Restoring a source silently reactivated removed fusion");
         var old = blade.copy();
         old.getTag().remove("blade_tetra_fusion_confirmation_version");
         old.getTag().putString("blade_tetra_named_ability_owner", "programmatic:" + ProgrammaticFusionPlan.candidate(old).key());

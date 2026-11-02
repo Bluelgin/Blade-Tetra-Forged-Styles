@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_kyouka"
     }
   ],
-  "advancement": "blade_tetra:manual/kyouka"
+  "advancement": "blade_tetra:manual/kyouka",
+  "sortnum": 32
 }

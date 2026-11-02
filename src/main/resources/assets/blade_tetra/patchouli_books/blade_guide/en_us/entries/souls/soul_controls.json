@@ -11,5 +11,6 @@
       "type": "patchouli:text",
       "text": "book.blade_tetra.soul_controls.1"
     }
-  ]
+  ],
+  "sortnum": 1
 }

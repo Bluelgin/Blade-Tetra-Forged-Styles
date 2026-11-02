@@ -76,5 +76,6 @@
       "text": "tooltip.blade_tetra.soul_fragment.defaults"
     }
   ],
-  "advancement": "blade_tetra:senbonzakura"
+  "advancement": "blade_tetra:senbonzakura",
+  "sortnum": 41
 }

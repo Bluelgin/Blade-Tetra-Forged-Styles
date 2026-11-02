@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_raikiri"
     }
   ],
-  "advancement": "blade_tetra:manual/raikiri"
+  "advancement": "blade_tetra:manual/raikiri",
+  "sortnum": 34
 }

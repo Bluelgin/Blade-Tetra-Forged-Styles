@@ -60,7 +60,7 @@ public final class BladeDetailTooltip {
                     && !SoulSkillState.allowsStyle(stack, selected)) lines.add(Component.translatable(
                     "hud.blade_tetra.soul.requires", Component.translatable(
                             SoulSkillState.requiredStyle(selected).getTranslationKey())).withStyle(ChatFormatting.DARK_GRAY));
-            else if (SoulLegacyState.isUnlocked(stack, selected)) lines.add(Component.translatable(
+            else if (AwakenedBladeCombat.replacesLegacy() && SoulLegacyState.isUnlocked(stack, selected)) lines.add(Component.translatable(
                     "tooltip.blade_tetra.soul.brief." + selected.name().toLowerCase(java.util.Locale.ROOT))
                     .withStyle(ChatFormatting.GRAY));
         }

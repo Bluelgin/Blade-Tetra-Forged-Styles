@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_nbt_sage"
     }
   ],
-  "advancement": "blade_tetra:manual/nbt_sage"
+  "advancement": "blade_tetra:manual/nbt_sage",
+  "sortnum": 33
 }

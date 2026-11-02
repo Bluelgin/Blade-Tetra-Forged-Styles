@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_bansho"
     }
   ],
-  "advancement": "blade_tetra:manual/bansho"
+  "advancement": "blade_tetra:manual/bansho",
+  "sortnum": 30
 }

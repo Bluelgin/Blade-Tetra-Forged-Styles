@@ -76,5 +76,6 @@
       "text": "tooltip.blade_tetra.soul_fragment.defaults"
     }
   ],
-  "advancement": "blade_tetra:akatsuki"
+  "advancement": "blade_tetra:akatsuki",
+  "sortnum": 37
 }

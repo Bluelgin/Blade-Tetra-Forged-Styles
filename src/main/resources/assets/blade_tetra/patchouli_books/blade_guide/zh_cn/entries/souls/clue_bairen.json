@@ -13,5 +13,6 @@
       "text": "book.blade_tetra.completed_bairen"
     }
   ],
-  "advancement": "blade_tetra:manual/bairen"
+  "advancement": "blade_tetra:manual/bairen",
+  "sortnum": 29
 }

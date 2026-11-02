@@ -72,5 +72,6 @@
       "text": "tooltip.blade_tetra.soul_fragment.defaults"
     }
   ],
-  "advancement": "blade_tetra:kyouka"
+  "advancement": "blade_tetra:kyouka",
+  "sortnum": 39
 }

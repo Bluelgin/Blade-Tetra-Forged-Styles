@@ -11,5 +11,6 @@
       "type": "patchouli:text",
       "text": "style.blade_tetra.iaido.tradeoff"
     }
-  ]
+  ],
+  "sortnum": 1
 }

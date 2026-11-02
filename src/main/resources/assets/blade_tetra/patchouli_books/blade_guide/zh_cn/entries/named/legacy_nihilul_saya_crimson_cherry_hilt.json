@@ -12,5 +12,6 @@
       "text": "book.blade_tetra.authored_attunement"
     }
   ],
-  "flag": "mod:slashblade_addon"
+  "flag": "mod:slashblade_addon",
+  "sortnum": 20
 }
