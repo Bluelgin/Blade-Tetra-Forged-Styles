@@ -1,0 +1,32 @@
+{
+  "name": "book.blade_tetra.v2.lifeng.name",
+  "category": "blade_tetra:styles",
+  "icon": "blade_tetra:lifeng_scroll",
+  "sortnum": 9,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.lifeng.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:lifeng_scroll",
+      "text": "book.blade_tetra.v2.lifeng.1"
+    },
+    {
+      "text": "book.blade_tetra.v2.lifeng.2",
+      "title": "book.blade_tetra.v2.lifeng.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_custom",
+        "blade_tetra:basics/materials"
+      ]
+    }
+  ],
+  "extra_recipe_mappings": {
+    "blade_tetra:lifeng_scroll": 0
+  }
+}

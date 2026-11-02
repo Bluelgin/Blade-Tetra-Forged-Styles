@@ -24,6 +24,7 @@ final class LegacyFusionAbilitySync {
     private static final String OWNED_SPECIAL_EFFECTS = "blade_tetra_named_owned_effects";
 
     static void sync(ItemStack blade, ISlashBladeState state) {
+        ProgrammaticFusionAttunement.reconcile(blade, state);
         LegacyFusion active = LegacyFusion.active(blade);
         ForgedSlashArtPlan forged = ForgedSlashArtPlan.from(blade);
         CompoundTag tag = blade.getOrCreateTag();
@@ -37,7 +38,7 @@ final class LegacyFusionAbilitySync {
         ResourceLocation piercing = ModSlashBladeAbilities.TWIN_FOX_PIERCING.getId();
         NamedLegacyParts parts = NamedLegacyParts.fromStack(blade);
         ProgrammaticFusionPlan programmatic = active == null
-                ? ProgrammaticFusionPlan.from(parts) : null;
+                ? ProgrammaticFusionPlan.from(blade) : null;
         LegacyImprintKind orthodox = active == null && programmatic == null
                 ? parts.completeSet() : null;
         if (orthodox != null && !orthodox.supportsOrthodoxInheritance()) {

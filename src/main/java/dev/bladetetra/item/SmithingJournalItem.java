@@ -184,7 +184,6 @@ public final class SmithingJournalItem extends WrittenBookItem {
         persisted.putBoolean(NAMED_BLADE_GIFT, true);
         root.put(Player.PERSISTED_NBT_TAG, persisted);
         giveOrDrop(player, ModItems.NAMED_BLADE_RECORD.get().getDefaultInstance());
-        giveOrDrop(player, ModItems.LEGACY_IMPRINT_SCROLL.get().getDefaultInstance());
         player.displayClientMessage(Component.translatable(
                         "message.blade_tetra.named_blade_record.gift")
                 .withStyle(ChatFormatting.GOLD), false);

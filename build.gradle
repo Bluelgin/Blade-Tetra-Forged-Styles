@@ -21,6 +21,15 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('manualArtReview')) property 'blade_tetra.manualArtReview', 'true'
+            if (project.hasProperty('namedIngotArtReview')) {
+                workingDirectory project.file('build/named-ingot-art-review')
+                property 'blade_tetra.namedIngotArtReview', 'true'
+            }
+            if (project.hasProperty('bladeStorageSmoke')) {
+                workingDirectory project.file('build/blade-storage-smoke')
+                property 'blade_tetra.storageSmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
+            }
             if (project.hasProperty('soulGuideReview')) {
                 workingDirectory project.file('build/soul-guide-review')
                 property 'blade_tetra.soulGuideReview', 'true'
@@ -110,6 +119,10 @@ minecraft {
                 workingDirectory project.file("build/speed-efficiency-smoke-${tetra_file_id}")
                 property 'blade_tetra.speedEfficiencySmoke', 'true'
             }
+            if (project.hasProperty('namedIngotSmoke')) {
+                workingDirectory project.file('build/named-ingot-smoke')
+                property 'blade_tetra.namedIngotSmoke', 'true'
+            }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
                         ? '-sjap-yakumo'
@@ -135,6 +148,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('namedIngotArtReview')) {
+                args '--width', '1600', '--height', '1000'
+            }
             if (project.hasProperty('bloodBladeReview')) {
                 args '--width', '1360', '--height', '768'
             }
@@ -206,6 +222,10 @@ repositories {
 }
 
 dependencies {
+    // Opt-in validation only; no compile-time API or release dependency.
+    if (project.hasProperty('patchouliTest')) {
+        runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:1.20.1-84.1-FORGE")
+    }
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     testImplementation platform('org.junit:junit-bom:5.10.2')

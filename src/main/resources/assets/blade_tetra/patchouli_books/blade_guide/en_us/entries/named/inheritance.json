@@ -1,0 +1,24 @@
+{
+  "name": "book.blade_tetra.v2.inheritance.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "sortnum": 1,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.inheritance.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.inheritance.1",
+      "title": "book.blade_tetra.v2.inheritance.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/fusion",
+        "blade_tetra:reference/faq_named"
+      ]
+    }
+  ]
+}

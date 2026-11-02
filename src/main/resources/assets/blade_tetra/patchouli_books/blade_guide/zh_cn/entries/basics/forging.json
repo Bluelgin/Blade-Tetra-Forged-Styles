@@ -1,0 +1,24 @@
+{
+  "name": "book.blade_tetra.v2.forging.name",
+  "category": "blade_tetra:basics",
+  "icon": "minecraft:anvil",
+  "sortnum": 4,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.forging.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.forging.1",
+      "title": "book.blade_tetra.v2.forging.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:basics/parts",
+        "blade_tetra:basics/materials"
+      ]
+    }
+  ]
+}

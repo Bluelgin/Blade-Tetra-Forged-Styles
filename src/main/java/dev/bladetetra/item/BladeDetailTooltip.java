@@ -2,23 +2,17 @@ package dev.bladetetra.item;
 
 import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.BladeTechniqueHandler;
-import dev.bladetetra.combat.ComponentEffectResolver;
 import dev.bladetetra.combat.ConductiveBladeHandler;
 import dev.bladetetra.combat.StyleResolver;
-import dev.bladetetra.compat.ContractBladeCompat;
-import dev.bladetetra.easteregg.AkatsukiAwakening;
 import dev.bladetetra.easteregg.AwakenedBladeCombat;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
-import dev.bladetetra.easteregg.KyoukaAwakening;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
-import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.easteregg.SoulResonance;
 import dev.bladetetra.easteregg.SoulSkillState;
 import dev.bladetetra.visual.SayaBannerSkin;
 import dev.bladetetra.visual.SayaPresetSkin;
 import dev.bladetetra.forging.FoxLegacyParts;
-import dev.bladetetra.forging.ImprintAffinity;
 import dev.bladetetra.forging.LegacyFusion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -26,7 +20,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 
 /** Builds one ordered, deduplicated Alt view for Blade Tetra information. */
@@ -40,129 +33,41 @@ public final class BladeDetailTooltip {
 
     private static List<Component> styleSection(ItemStack stack) {
         BladeStyle style = StyleResolver.resolve(stack);
-        return List.of(
-                Component.translatable("tooltip.blade_tetra.section.style",
-                                Component.translatable(style.getTranslationKey()),
-                                Component.translatable(style.getRoleTranslationKey()))
-                        .withStyle(ChatFormatting.GOLD),
-                Component.translatable(style.getTranslationKey() + ".summary")
-                        .withStyle(ChatFormatting.GRAY),
-                Component.translatable("tooltip.blade_tetra.style.common_form.compact")
-                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        return List.of(Component.translatable("tooltip.blade_tetra.section.style",
+                Component.translatable(style.getTranslationKey()),
+                Component.translatable(style.getRoleTranslationKey())).withStyle(ChatFormatting.GOLD));
     }
 
     private static List<Component> soulSection(ItemStack stack) {
-        EnumSet<SoulLegacyState.Legacy> souls = SoulLegacyState.inscribed(stack);
-        if (souls.isEmpty()) {
-            if (ComponentEffectResolver.hasModule(
-                    stack,
-                    ModularSlashBladeItem.INSCRIPTION_SLOT,
-                    ModularSlashBladeItem.SOUL_INSCRIPTION_MODULE)) {
-                return List.of(Component.translatable(
-                                "tooltip.blade_tetra.soul.proudsoul_ingot")
-                        .withStyle(ChatFormatting.DARK_PURPLE));
-            }
-            return List.of();
-        }
+        var souls = SoulLegacyState.inscribed(stack);
+        if (souls.isEmpty()) return List.of();
         List<Component> lines = new ArrayList<>();
-        List<SoulLegacyState.Legacy> ordered = souls.stream().toList();
-        Component names = joinSoulNames(ordered);
-        lines.add(Component.translatable(ordered.size() > 1
-                        ? "tooltip.blade_tetra.section.soul.fusion"
-                        : "tooltip.blade_tetra.section.soul.single", names)
-                .withStyle(ordered.size() > 1
-                        ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.DARK_PURPLE));
-
+        lines.add(Component.translatable(souls.size() > 1
+                ? "tooltip.blade_tetra.section.soul.fusion" : "tooltip.blade_tetra.section.soul.single",
+                joinSoulNames(souls.stream().toList())).withStyle(ChatFormatting.LIGHT_PURPLE));
         if (SoulLegacyState.isBroken(stack)) {
-            lines.add(Component.translatable("tooltip.blade_tetra.soul.dormant.broken")
-                    .withStyle(ChatFormatting.RED));
-        } else {
-            List<SoulLegacyState.Legacy> sleeping = ordered.stream()
-                    .filter(soul -> !SoulLegacyState.isUnlocked(stack, soul)).toList();
-            if (!sleeping.isEmpty()) {
-                lines.add(Component.translatable("tooltip.blade_tetra.soul.dormant.unawakened",
-                                joinSoulNames(sleeping))
-                        .withStyle(ChatFormatting.DARK_GRAY));
-            }
-        }
-
-        if (AwakenedBladeCombat.replacesLegacy() && SoulSkillState.fusion(stack)) {
-            var selected = SoulSkillState.selected(stack);
-            lines.add(Component.translatable("tooltip.blade_tetra.soul.selected", SoulLegacyState.displayName(selected))
-                    .withStyle(ChatFormatting.GOLD));
-            lines.add(Component.translatable("tooltip.blade_tetra.soul.switch")
-                    .withStyle(ChatFormatting.GRAY));
-            if (!SoulSkillState.allowsStyle(stack, selected))
-                lines.add(Component.translatable("hud.blade_tetra.soul.requires", Component.translatable(
-                        SoulSkillState.requiredStyle(selected).getTranslationKey()))
-                        .withStyle(ChatFormatting.DARK_GRAY));
-            if (SoulSkillState.customLinked(stack))
-                lines.add(Component.translatable("tooltip.blade_tetra.soul.custom_linked").withStyle(ChatFormatting.AQUA));
-            if (AwakenedBladeCombat.isV2CombatSoul(selected))
-                lines.add(Component.translatable("tooltip.blade_tetra.awakened.v2."
-                        + selected.name().toLowerCase(java.util.Locale.ROOT)).withStyle(ChatFormatting.GRAY));
-            else {
-                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution").withStyle(ChatFormatting.RED));
-                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.blood_blade").withStyle(ChatFormatting.DARK_RED));
-            }
+            lines.add(Component.translatable("tooltip.blade_tetra.soul.dormant.broken").withStyle(ChatFormatting.RED));
             return lines;
         }
-        if (!AwakenedBladeCombat.replacesLegacy()
-                || !AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack)))
-            SoulResonance.appendTooltip(stack, lines);
-        appendAwakenedAbilities(stack, ordered, lines);
+        var sleeping = souls.stream().filter(soul -> !SoulLegacyState.isUnlocked(stack, soul)).toList();
+        if (!sleeping.isEmpty()) lines.add(Component.translatable("tooltip.blade_tetra.soul.dormant.unawakened",
+                joinSoulNames(sleeping)).withStyle(ChatFormatting.DARK_GRAY));
+        var selected = SoulSkillState.fusion(stack) ? SoulSkillState.selected(stack) : SoulLegacyState.active(stack);
+        if (selected != SoulLegacyState.Legacy.NONE) {
+            lines.add(Component.translatable("tooltip.blade_tetra.soul.selected",
+                    SoulLegacyState.displayName(selected)).withStyle(ChatFormatting.GOLD));
+            if ((SoulSkillState.fusion(stack) || StyleResolver.resolve(stack) == BladeStyle.CUSTOM)
+                    && !SoulSkillState.allowsStyle(stack, selected)) lines.add(Component.translatable(
+                    "hud.blade_tetra.soul.requires", Component.translatable(
+                            SoulSkillState.requiredStyle(selected).getTranslationKey())).withStyle(ChatFormatting.DARK_GRAY));
+            else if (AwakenedBladeCombat.replacesLegacy() && SoulLegacyState.isUnlocked(stack, selected)) lines.add(Component.translatable(
+                    "tooltip.blade_tetra.soul.brief." + selected.name().toLowerCase(java.util.Locale.ROOT))
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        if (SoulSkillState.customLinked(stack)) lines.add(Component.translatable(
+                "tooltip.blade_tetra.soul.custom_linked").withStyle(ChatFormatting.AQUA));
+        if (!AwakenedBladeCombat.replacesLegacy()) SoulResonance.appendTooltip(stack, lines);
         return lines;
-    }
-
-    private static void appendAwakenedAbilities(ItemStack stack,
-            List<SoulLegacyState.Legacy> souls, List<Component> lines) {
-        if (AwakenedBladeCombat.replacesLegacy()
-                && AwakenedBladeCombat.isV2CombatSoul(SoulLegacyState.active(stack))) {
-            SoulLegacyState.Legacy primary = SoulLegacyState.active(stack);
-            if (primary != SoulLegacyState.Legacy.NONE) {
-                lines.add(Component.translatable(
-                        "tooltip.blade_tetra.awakened.v2."
-                                + primary.name().toLowerCase(java.util.Locale.ROOT))
-                        .withStyle(ChatFormatting.GOLD));
-                if (souls.size() == 2) {
-                    lines.add(Component.translatable("tooltip.blade_tetra.awakened.v2.primary_only")
-                            .withStyle(ChatFormatting.GRAY));
-                }
-            }
-            return;
-        }
-        if (souls.contains(SoulLegacyState.Legacy.AKATSUKI)
-                && AkatsukiAwakening.isActive(stack)) {
-            lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.execution")
-                    .withStyle(ChatFormatting.RED));
-            if (AwakenedBladeCombat.replacesLegacy())
-                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.blood_blade").withStyle(ChatFormatting.DARK_RED));
-            if (ContractBladeCompat.hasAkatsuki(stack)) {
-                lines.add(Component.translatable("tooltip.blade_tetra.akatsuki.spirit_bound")
-                        .withStyle(ChatFormatting.DARK_RED));
-            }
-        }
-        if (souls.contains(SoulLegacyState.Legacy.KYOUKA)
-                && KyoukaAwakening.isActive(stack)) {
-            lines.add(Component.translatable(AwakenedBladeCombat.replacesLegacy()
-                    ? "tooltip.blade_tetra.awakened.v2.kyouka" : "tooltip.blade_tetra.kyouka.awakened")
-                    .withStyle(ChatFormatting.AQUA));
-        }
-        if (souls.contains(SoulLegacyState.Legacy.SENBONZAKURA)
-                && SenbonzakuraAwakening.isActive(stack)) {
-            int marks = SenbonzakuraAwakening.petalMarks(stack);
-            lines.add((marks > 0
-                    ? Component.translatable(
-                            "tooltip.blade_tetra.senbonzakura.awakened.with_marks",
-                            marks, 3)
-                    : Component.translatable("tooltip.blade_tetra.senbonzakura.awakened"))
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
-        }
-        if (souls.contains(SoulLegacyState.Legacy.RAIKIRI)
-                && SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.RAIKIRI)) {
-            lines.add(Component.translatable("tooltip.blade_tetra.raikiri.unlocked")
-                    .withStyle(ChatFormatting.AQUA));
-        }
     }
 
     private static List<Component> techniqueAndLegacySection(ItemStack stack) {
@@ -196,44 +101,16 @@ public final class BladeDetailTooltip {
         List<Component> lines = new ArrayList<>();
         FoxLegacyParts fox = FoxLegacyParts.fromStack(stack);
         var namedParts = dev.bladetetra.forging.NamedLegacyParts.fromStack(stack);
-        if (namedParts.present()) {
+        var namedBlade = dev.bladetetra.forging.NamedLegacyParts.bladeFromStack(stack);
+        if (namedParts.present() || namedBlade != null) {
             for (var part : java.util.List.of(
+                    new Object[]{"blade", namedBlade},
                     new Object[]{"saya", namedParts.saya()},
                     new Object[]{"hilt", namedParts.tsuba()})) {
                 if (part[1] instanceof dev.bladetetra.forging.LegacyImprintKind kind)
                     lines.add(Component.translatable("tooltip.blade_tetra.named.part",
                             Component.translatable("screen.blade_tetra.imprint." + part[0]),
                             Component.translatable(kind.translationKey())).withStyle(ChatFormatting.GRAY));
-            }
-            var orthodox = namedParts.completeSet();
-            if (orthodox != null
-                    && stack.getItem() instanceof ModularSlashBladeItem blade) {
-                ImprintAffinity affinity = blade.getImprintAffinity(stack);
-                if (affinity != null) {
-                    lines.add(Component.translatable(
-                                    "tooltip.blade_tetra.named.affinity",
-                                    Component.translatable(orthodox.translationKey()),
-                                    Component.translatable("tooltip.blade_tetra.named.grade."
-                                            + affinity.grade()),
-                                    percent(affinity.attackRatio()),
-                                    percent(affinity.durabilityRatio()))
-                            .withStyle(ChatFormatting.GOLD));
-                }
-                if (orthodox.supportsOrthodoxInheritance()) {
-                    lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox",
-                                    Component.translatable(orthodox.translationKey()))
-                            .withStyle(ChatFormatting.DARK_AQUA));
-                    if (orthodox.slashArt() != null) {
-                        lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox_sa",
-                                        abilityName("slash_art", orthodox.slashArt()))
-                                .withStyle(ChatFormatting.AQUA));
-                    }
-                    for (var effect : orthodox.specialEffects()) {
-                        lines.add(Component.translatable("tooltip.blade_tetra.named.orthodox_se",
-                                        abilityName("se", effect))
-                                .withStyle(ChatFormatting.BLUE));
-                    }
-                }
             }
             LegacyFusion fusion = LegacyFusion.installed(namedParts);
             if (fusion != null) {
@@ -247,13 +124,13 @@ public final class BladeDetailTooltip {
                                 name)
                         .withStyle(activeFusion
                                 ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GRAY));
-                if (activeFusion
-                        && fusion == LegacyFusion.SEALED_AGITO_SAYA_OROTIAGITO_HILT) {
-                    lines.add(Component.translatable(
-                                    "tooltip.blade_tetra.legacy_fusion.rust_release.details")
-                            .withStyle(ChatFormatting.DARK_GREEN));
-                }
             }
+        }
+        var candidate = dev.bladetetra.combat.ProgrammaticFusionPlan.candidate(stack);
+        if (candidate != null && LegacyFusion.active(stack) == null) {
+            lines.add(Component.translatable(dev.bladetetra.combat.ProgrammaticFusionPlan.from(stack) == null
+                    ? "tooltip.blade_tetra.fusion.available" : "tooltip.blade_tetra.fusion.confirmed")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         for (var missing : dev.bladetetra.forging.NamedLegacyParts.missing(stack)) {
             lines.add(Component.translatable("tooltip.blade_tetra.named.missing",
@@ -294,14 +171,6 @@ public final class BladeDetailTooltip {
     private static Component foxPart(FoxLegacyParts.Color color) {
         return Component.translatable("tooltip.blade_tetra.fox." +
                 color.name().toLowerCase(java.util.Locale.ROOT));
-    }
-
-    private static Component abilityName(String type, net.minecraft.resources.ResourceLocation id) {
-        return Component.translatable(type + "." + id.getNamespace() + "." + id.getPath());
-    }
-
-    private static String percent(double ratio) {
-        return String.format(java.util.Locale.ROOT, "%.1f%%", ratio * 100.0D);
     }
 
     private static Component joinSoulNames(List<SoulLegacyState.Legacy> souls) {

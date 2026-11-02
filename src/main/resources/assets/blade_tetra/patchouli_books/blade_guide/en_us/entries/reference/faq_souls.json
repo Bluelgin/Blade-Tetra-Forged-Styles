@@ -1,0 +1,18 @@
+{
+  "name": "book.blade_tetra.v2.faq_souls.name",
+  "category": "blade_tetra:reference",
+  "icon": "minecraft:paper",
+  "sortnum": 2,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.faq_souls.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/soul_controls"
+      ]
+    }
+  ]
+}

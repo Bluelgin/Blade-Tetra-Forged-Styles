@@ -1,0 +1,43 @@
+{
+  "name": "book.blade_tetra.v2.legacy_index.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "sortnum": 3,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.legacy_index.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/legacy_black_saya_white_hilt",
+        "blade_tetra:named/legacy_white_saya_black_hilt",
+        "blade_tetra:named/legacy_yasha_saya_kikouku_hilt",
+        "blade_tetra:named/legacy_sealed_agito_saya_orotiagito_hilt"
+      ]
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/legacy_muramasa_saya_doutanuki_hilt",
+        "blade_tetra:named/legacy_sange_saya_yamato_hilt",
+        "blade_tetra:named/legacy_agito_saya_yuzukitukumo_hilt",
+        "blade_tetra:named/legacy_tagayasan_saya_koseki_hilt"
+      ]
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/legacy_black_saya_sange_hilt"
+      ]
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/legacy_nihilul_saya_crimson_cherry_hilt"
+      ],
+      "flag": "mod:slashblade_addon"
+    }
+  ]
+}

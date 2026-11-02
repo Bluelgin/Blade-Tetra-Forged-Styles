@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "dev.bladetetra.mixin.ProviderEffectCompatPlugin",
   "mixins": [
+    "BladeStackStorageMixin",
     "KyoukaNativeTrickMixin",
     "AkatsukiThreadTeleportMixin",
     "ProviderEffectCompatMixin",
@@ -28,7 +29,10 @@
     "MikageNativeSwordImpactMixin",
     "MikageGateReflectionMixin",
     "MirrorIceMixin",
-    "SwordTypeMixin"
+    "SwordTypeMixin",
+    "NamedMaterialVariantMixin",
+    "NamedMaterialSchematicMixin",
+    "NamedMaterialRegistryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

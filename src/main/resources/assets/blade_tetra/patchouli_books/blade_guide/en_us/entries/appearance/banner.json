@@ -1,0 +1,25 @@
+{
+  "name": "book.blade_tetra.v2.banner.name",
+  "category": "blade_tetra:appearance",
+  "icon": "minecraft:white_banner",
+  "sortnum": 1,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.banner.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "minecraft:white_banner",
+      "link_recipe": false,
+      "text": "book.blade_tetra.v2.banner.1"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:appearance/appearance",
+        "blade_tetra:reference/faq_appearance"
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 
 /**
  * Stable storage for named-imprint identity.
@@ -20,6 +21,7 @@ import java.util.List;
 public final class NamedLegacyImprintStorage {
     public static final String ROOT = "blade_tetra_named_imprints";
     private static final String SAYA = "saya";
+    private static final String BLADE = "blade";
     private static final String TSUBA = "tsuba";
     private static final String SNAPSHOT_SUFFIX = "_snapshot";
     private static final String NAME = "name";
@@ -38,6 +40,7 @@ public final class NamedLegacyImprintStorage {
 
     public static String partForSlot(String slot) {
         return switch (slot) {
+            case "slashblade/blade" -> BLADE;
             case "slashblade/saya" -> SAYA;
             case "slashblade/tsuba" -> TSUBA;
             default -> null;
@@ -58,7 +61,7 @@ public final class NamedLegacyImprintStorage {
         }
         String material = tag.getString(module + "_material");
         String prefix = "legacy_" + part + "/";
-        if (material.equals(genericVariant(part))) {
+        if (material.equals(genericVariant(part)) || NamedBladeMaterial.namedVariant(material)) {
             if (!tag.contains(ROOT, Tag.TAG_COMPOUND)) {
                 return null;
             }
@@ -79,6 +82,17 @@ public final class NamedLegacyImprintStorage {
      */
     public static LegacyImprintKind snapshot(ItemStack stack, String part) {
         return stack == null ? null : snapshot(stack.getTag(), part);
+    }
+
+    /** Stat queries need only attack, without rebuilding models, profiles and effect lists. */
+    public static OptionalDouble snapshotAttack(ItemStack stack, String part) {
+        String source = sourceId(stack, part);
+        if (source == null || stack.getTag() == null) return OptionalDouble.empty();
+        CompoundTag value = stack.getTag().getCompound(ROOT).getCompound(snapshotKey(part));
+        if (!source.equals(value.getString("id")) || !value.contains(BASE_ATTACK, Tag.TAG_DOUBLE))
+            return OptionalDouble.empty();
+        double attack = value.getDouble(BASE_ATTACK);
+        return Double.isFinite(attack) ? OptionalDouble.of(attack) : OptionalDouble.empty();
     }
 
     static LegacyImprintKind snapshot(CompoundTag tag, String part) {
@@ -182,7 +196,7 @@ public final class NamedLegacyImprintStorage {
     }
 
     /**
-     * Migrates 1.5.x per-blade Tetra variants to the two generic V2 variants.
+     * Migrates 1.5.x per-blade Tetra variants to the generic V2 variants (blade, saya and composite hilt).
      * Unknown/removed addon ids are intentionally retained as soft references.
      */
     public static boolean migrateStackTag(CompoundTag tag) {
@@ -190,7 +204,7 @@ public final class NamedLegacyImprintStorage {
             return false;
         }
         boolean changed = false;
-        for (String part : new String[]{SAYA, TSUBA}) {
+        for (String part : new String[]{BLADE, SAYA, TSUBA}) {
             String module = tag.getString("slashblade/" + part);
             if (module.isEmpty()) {
                 changed |= clearSource(tag, part);
@@ -206,7 +220,7 @@ public final class NamedLegacyImprintStorage {
                     tag.putString(materialKey, genericVariant(part));
                     changed = true;
                 }
-            } else if (!material.equals(genericVariant(part))) {
+            } else if (!material.equals(genericVariant(part)) && !NamedBladeMaterial.namedVariant(material)) {
                 changed |= clearSource(tag, part);
             }
         }
@@ -236,7 +250,7 @@ public final class NamedLegacyImprintStorage {
         if (source != null) {
             return genericInstalled ? putSource(tag, part, source) : clearSource(tag, part);
         }
-        return genericInstalled ? false : clearSource(tag, part);
+        return genericInstalled || sourceId(tag, part) != null ? false : clearSource(tag, part);
     }
 
     public static String sourceFromSchematic(String schematicKey, String part) {
@@ -307,7 +321,7 @@ public final class NamedLegacyImprintStorage {
     }
 
     private static boolean validPart(String part) {
-        return SAYA.equals(part) || TSUBA.equals(part);
+        return BLADE.equals(part) || SAYA.equals(part) || TSUBA.equals(part);
     }
 
     private NamedLegacyImprintStorage() {

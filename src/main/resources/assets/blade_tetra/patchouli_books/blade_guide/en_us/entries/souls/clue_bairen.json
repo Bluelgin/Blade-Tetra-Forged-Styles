@@ -1,0 +1,19 @@
+{
+  "name": "book.blade_tetra.v2.clue_bairen.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "sortnum": 3,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.clue_bairen.0",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:bairen",
+      "text": "book.blade_tetra.v2.clue_bairen.1",
+      "title": "book.blade_tetra.v2.clue_bairen.1.title",
+      "type": "patchouli:text"
+    }
+  ],
+  "advancement": "blade_tetra:manual/bairen"
+}

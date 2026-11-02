@@ -190,6 +190,7 @@ public final class NamedLegacyCatalog {
             }
         }
 
+        accepted.putIfAbsent(LegacyImprintKind.WOODEN_PUPPET.id(), LegacyImprintKind.WOODEN_PUPPET);
         entries = Map.copyOf(accepted);
         diagnostics = List.copyOf(foundDiagnostics);
         Map<DiagnosticReason, Integer> counts = diagnosticCountsNoLoad(foundDiagnostics);

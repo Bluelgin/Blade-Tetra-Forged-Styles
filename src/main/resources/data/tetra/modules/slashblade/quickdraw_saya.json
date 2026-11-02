@@ -1,11 +1,17 @@
 {
   "replace": true,
-  "slots": [ "slashblade/saya" ],
+  "slots": [
+    "slashblade/saya"
+  ],
   "type": "tetra:basic_module",
   "renderLayer": "lower",
   "variants": [
     {
-      "materials": [ "tetra:wood/", "tetra:metal/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:metal/",
+        "tetra:bone/"
+      ],
       "key": "quickdraw_saya/",
       "attributes": {
         "generic.attack_speed": 0.08
@@ -14,7 +20,31 @@
       "extract": {
         "durability": 0.15,
         "magicCapacity": 0.5,
-        "glyph": { "textureX": 24, "textureY": 112 }
+        "glyph": {
+          "textureX": 24,
+          "textureY": 112
+        }
+      }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "quickdraw_saya/",
+      "attributes": {
+        "generic.attack_speed": 0.08
+      },
+      "durability": 5,
+      "extract": {
+        "durability": 0.15,
+        "magicCapacity": 0.5,
+        "glyph": {
+          "textureX": 24,
+          "textureY": 112
+        },
+        "primaryAttributes": {
+          "generic.attack_damage": 0.25
+        }
       }
     }
   ]

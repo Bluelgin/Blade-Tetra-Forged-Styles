@@ -1,6 +1,10 @@
 {
   "replace": true,
-  "glyph": {"textureLocation": "blade_tetra:textures/gui/custom_style/workbench_glyphs.png", "textureX": 48, "textureY": 0},
+  "glyph": {
+    "textureLocation": "blade_tetra:textures/gui/custom_style/workbench_glyphs.png",
+    "textureX": 48,
+    "textureY": 0
+  },
   "slots": [
     "slashblade/blade"
   ],
@@ -27,6 +31,16 @@
       "countFactor": 3,
       "moduleKey": "slashblade/custom_long_blade",
       "moduleVariant": "custom_long_blade/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "countFactor": 3,
+      "moduleKey": "slashblade/custom_long_blade",
+      "moduleVariant": "custom_long_blade/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ],
   "requirement": {

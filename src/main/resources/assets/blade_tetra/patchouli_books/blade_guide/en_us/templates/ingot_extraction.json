@@ -1,0 +1,101 @@
+{
+  "components": [
+    {
+      "type": "patchouli:header",
+      "x": -1,
+      "y": 0,
+      "text": "book.blade_tetra.diagram.extraction"
+    },
+    {
+      "type": "patchouli:item",
+      "x": 5,
+      "y": 25,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 28,
+      "y": 25,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 51,
+      "y": 25,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 5,
+      "y": 48,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 28,
+      "y": 48,
+      "item": "slashblade:slashblade_wood",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 51,
+      "y": 48,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 5,
+      "y": 71,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 28,
+      "y": 71,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 51,
+      "y": 71,
+      "item": "slashblade:proudsoul_tiny",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 94,
+      "y": 49,
+      "item": "blade_tetra:named_blade_ingot{blade_tetra_ingot_source:\"slashblade/slashblade_wood\"}",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 79,
+      "y": 51,
+      "text": "book.blade_tetra.diagram.text5",
+      "max_width": 12
+    },
+    {
+      "type": "patchouli:item",
+      "x": 7,
+      "y": 113,
+      "item": "slashblade:slashblade_wood",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 33,
+      "y": 107,
+      "text": "book.blade_tetra.diagram.text6",
+      "max_width": 80
+    }
+  ]
+}

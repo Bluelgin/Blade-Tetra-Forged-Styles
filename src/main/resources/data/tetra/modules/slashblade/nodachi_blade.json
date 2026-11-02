@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/blade" ],
+  "slots": [
+    "slashblade/blade"
+  ],
   "type": "tetra:basic_major_module",
   "improvements": [
     "tetra:sword/basic_blade/",
@@ -11,7 +13,13 @@
   ],
   "variants": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:gem/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:gem/",
+        "tetra:bone/"
+      ],
       "key": "nodachi_blade/",
       "attributes": {
         "generic.attack_speed": -2.2
@@ -20,17 +28,59 @@
         "sweeping": 2
       },
       "tools": {
-        "cut": [ 1, 3 ]
+        "cut": [
+          1,
+          3
+        ]
       },
       "aspects": {
         "edged_weapon": 2,
         "breakable": 2
       },
       "durability": -10,
-      "tags": [ "forge:swords" ],
+      "tags": [
+        "forge:swords"
+      ],
       "extract": {
         "primaryAttributes": {
           "generic.attack_damage": 1.18
+        },
+        "durability": 1.05,
+        "integrity": -2,
+        "magicCapacity": 1,
+        "glyph": {
+          "textureX": 0
+        }
+      }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "nodachi_blade/",
+      "attributes": {
+        "generic.attack_speed": -2.2
+      },
+      "effects": {
+        "sweeping": 2
+      },
+      "tools": {
+        "cut": [
+          1,
+          3
+        ]
+      },
+      "aspects": {
+        "edged_weapon": 2,
+        "breakable": 2
+      },
+      "durability": -10,
+      "tags": [
+        "forge:swords"
+      ],
+      "extract": {
+        "primaryAttributes": {
+          "generic.attack_damage": 0.5
         },
         "durability": 1.05,
         "integrity": -2,

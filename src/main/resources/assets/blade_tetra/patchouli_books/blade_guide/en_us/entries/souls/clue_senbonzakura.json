@@ -1,0 +1,32 @@
+{
+  "name": "book.blade_tetra.v2.clue_senbonzakura.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_clue",
+  "sortnum": 8,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.clue_senbonzakura.0",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:senbonzakura",
+      "text": "book.blade_tetra.v2.clue_senbonzakura.1",
+      "title": "book.blade_tetra.v2.clue_senbonzakura.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "advancement": "blade_tetra:senbonzakura",
+      "text": "book.blade_tetra.v2.clue_senbonzakura.2",
+      "title": "book.blade_tetra.v2.clue_senbonzakura.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:souls/soul_senbonzakura",
+        "blade_tetra:souls/inscriptions"
+      ]
+    }
+  ],
+  "advancement": "blade_tetra:manual/senbonzakura"
+}

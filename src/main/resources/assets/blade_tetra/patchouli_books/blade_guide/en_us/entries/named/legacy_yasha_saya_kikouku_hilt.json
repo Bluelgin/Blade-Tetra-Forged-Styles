@@ -1,0 +1,25 @@
+{
+  "name": "book.blade_tetra.v2.legacy_yasha_saya_kikouku_hilt.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "sortnum": 6,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.legacy_yasha_saya_kikouku_hilt.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "slashblade:proudsoul_sphere",
+      "link_recipe": true,
+      "text": "book.blade_tetra.v2.legacy_yasha_saya_kikouku_hilt.1"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/fusion",
+        "blade_tetra:named/legacy_index"
+      ]
+    }
+  ]
+}

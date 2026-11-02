@@ -1,0 +1,24 @@
+{
+  "name": "book.blade_tetra.v2.style_iaido.name",
+  "category": "blade_tetra:styles",
+  "icon": "blade_tetra:modular_slashblade",
+  "sortnum": 1,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.style_iaido.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.style_iaido.1",
+      "title": "book.blade_tetra.v2.style_iaido.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_custom",
+        "blade_tetra:basics/parts"
+      ]
+    }
+  ]
+}

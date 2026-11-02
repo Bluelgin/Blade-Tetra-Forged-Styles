@@ -1,0 +1,25 @@
+{
+  "name": "book.blade_tetra.v2.ability_priority.name",
+  "category": "blade_tetra:reference",
+  "icon": "blade_tetra:forged_slash_art_orb",
+  "sortnum": 4,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.ability_priority.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.ability_priority.1",
+      "title": "book.blade_tetra.v2.ability_priority.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/fusion",
+        "blade_tetra:named/forged_sa",
+        "blade_tetra:souls/soul_controls"
+      ]
+    }
+  ]
+}

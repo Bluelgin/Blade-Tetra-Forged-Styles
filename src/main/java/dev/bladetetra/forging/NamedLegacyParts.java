@@ -61,6 +61,18 @@ public record NamedLegacyParts(LegacyImprintKind saya, LegacyImprintKind tsuba,
         }
     }
 
+    /** Optional independent blade silhouette; hilt and grip always remain the existing pair. */
+    public static LegacyImprintKind bladeFromStack(ItemStack stack) {
+        LegacyImprintKind snapshot = NamedLegacyImprintStorage.snapshot(stack, "blade");
+        if (snapshot != null) return snapshot;
+        String id = NamedLegacyImprintStorage.sourceId(stack, "blade");
+        return id == null ? null : safeCatalogGet(id);
+    }
+
+    public static LegacyImprintKind visualBladeFromStack(ItemStack stack) {
+        return visible(bladeFromStack(stack));
+    }
+
     public boolean present() {
         return saya != null || tsuba != null || tsuka != null;
     }

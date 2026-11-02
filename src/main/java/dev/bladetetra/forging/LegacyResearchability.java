@@ -2,6 +2,7 @@ package dev.bladetetra.forging;
 
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * Shared semantic eligibility for named-blade research.
@@ -39,8 +40,12 @@ public final class LegacyResearchability {
                     if (!stateAllowsResearch(state.isBroken(), state.isSealed())) {
                         return new Result(Status.DEGRADED_STATE, null);
                     }
-                    LegacyImprintKind kind = LegacyImprintKind.fromTranslationKey(
-                            state.getTranslationKey());
+                    LegacyImprintKind kind =
+                            "slashblade:slashblade_wood".equals(String.valueOf(
+                                    ForgeRegistries.ITEMS.getKey(stack.getItem())))
+                                    ? LegacyImprintKind.WOODEN_PUPPET
+                                    : LegacyImprintKind.fromTranslationKey(
+                                            state.getTranslationKey());
                     return kind == null
                             ? new Result(Status.UNKNOWN_BLADE, null)
                             : new Result(Status.RESEARCHABLE, kind);

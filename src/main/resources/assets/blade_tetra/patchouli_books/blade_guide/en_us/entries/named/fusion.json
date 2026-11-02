@@ -1,0 +1,33 @@
+{
+  "name": "book.blade_tetra.v2.fusion.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_record",
+  "sortnum": 2,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.fusion.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "blade_tetra:fusion_flow"
+    },
+    {
+      "text": "book.blade_tetra.v2.fusion.2",
+      "title": "book.blade_tetra.v2.fusion.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.fusion.3",
+      "title": "book.blade_tetra.v2.fusion.3.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:named/legacy_index",
+        "blade_tetra:named/forged_sa",
+        "blade_tetra:reference/ability_priority"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 package dev.bladetetra.item;
 
-import dev.bladetetra.forging.LegacyImprinting;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -13,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-/** Blank consumable used to study a named SlashBlade on an adjacent blade stand. */
+/** Inert historical item. Its registry ID is retained so old stacks survive upgrades. */
 public final class LegacyImprintScrollItem extends Item {
     public LegacyImprintScrollItem() {
         super(new Properties().stacksTo(16));
@@ -21,15 +20,15 @@ public final class LegacyImprintScrollItem extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        return LegacyImprinting.tryBegin(context);
+        return InteractionResult.PASS;
     }
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.use")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.subtitle")
+                .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.memory")
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.blade_tetra.legacy_imprint_scroll.risk")
-                .withStyle(ChatFormatting.DARK_RED));
     }
 }

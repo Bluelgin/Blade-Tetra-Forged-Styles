@@ -1,0 +1,66 @@
+{
+  "components": [
+    {
+      "type": "patchouli:header",
+      "x": -1,
+      "y": 0,
+      "text": "book.blade_tetra.diagram.conversion"
+    },
+    {
+      "type": "patchouli:item",
+      "x": 7,
+      "y": 23,
+      "item": "slashblade:slashblade_wood",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 30,
+      "y": 23,
+      "item": "minecraft:iron_ingot",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 7,
+      "y": 46,
+      "item": "minecraft:iron_ingot",
+      "framed": true
+    },
+    {
+      "type": "patchouli:item",
+      "x": 30,
+      "y": 46,
+      "item": "minecraft:iron_ingot",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 60,
+      "y": 39,
+      "text": "book.blade_tetra.diagram.text1",
+      "max_width": 14
+    },
+    {
+      "type": "patchouli:item",
+      "x": 88,
+      "y": 36,
+      "item": "blade_tetra:modular_slashblade",
+      "framed": true
+    },
+    {
+      "type": "patchouli:text",
+      "x": 0,
+      "y": 73,
+      "text": "book.blade_tetra.diagram.text2",
+      "max_width": 116
+    },
+    {
+      "type": "patchouli:text",
+      "x": 0,
+      "y": 108,
+      "text": "book.blade_tetra.diagram.text4",
+      "max_width": 116
+    }
+  ]
+}

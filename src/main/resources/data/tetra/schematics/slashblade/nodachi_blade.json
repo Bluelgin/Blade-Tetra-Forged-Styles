@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/blade" ],
+  "slots": [
+    "slashblade/blade"
+  ],
   "materialSlotCount": 1,
   "displayType": "major",
   "translation": {
@@ -14,10 +16,26 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:gem/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:gem/",
+        "tetra:bone/"
+      ],
       "countFactor": 3,
       "moduleKey": "slashblade/nodachi_blade",
       "moduleVariant": "nodachi_blade/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "countFactor": 3,
+      "moduleKey": "slashblade/nodachi_blade",
+      "moduleVariant": "nodachi_blade/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ]
 }

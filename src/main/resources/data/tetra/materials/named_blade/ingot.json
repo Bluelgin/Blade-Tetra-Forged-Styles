@@ -1,0 +1,30 @@
+{
+  "key": "named_blade_ingot",
+  "category": "metal",
+  "primary": 0,
+  "secondary": 0,
+  "tertiary": 0,
+  "durability": 0,
+  "integrityCost": 0,
+  "integrityGain": 0,
+  "magicCapacity": 0,
+  "toolLevel": 0,
+  "toolEfficiency": 0,
+  "tints": {
+    "glyph": "ff5555",
+    "texture": "ffffff"
+  },
+  "textures": [
+    "default"
+  ],
+  "material": {
+    "items": [
+      "blade_tetra:named_blade_ingot"
+    ],
+    "count": 1
+  },
+  "requiredTools": {
+    "hammer_dig": 3
+  },
+  "experienceCost": 3
+}

@@ -1,6 +1,8 @@
 {
   "replace": true,
-  "slots": [ "slashblade/blade" ],
+  "slots": [
+    "slashblade/blade"
+  ],
   "materialSlotCount": 1,
   "displayType": "major",
   "translation": {
@@ -14,9 +16,24 @@
   },
   "outcomes": [
     {
-      "materials": [ "tetra:wood/", "tetra:stone/", "tetra:metal/", "tetra:gem/", "tetra:bone/" ],
+      "materials": [
+        "tetra:wood/",
+        "tetra:stone/",
+        "tetra:metal/",
+        "tetra:gem/",
+        "tetra:bone/"
+      ],
       "moduleKey": "slashblade/wakizashi_blade",
       "moduleVariant": "wakizashi_blade/"
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "moduleKey": "slashblade/wakizashi_blade",
+      "moduleVariant": "wakizashi_blade/",
+      "toolFactor": 0,
+      "toolOffset": 3
     }
   ]
 }

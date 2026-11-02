@@ -14,6 +14,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NamedLegacyImprintStorageTest {
     @Test
+    void ordinaryNamedMaterialRetainsIdentityThroughRefinementAndMigration() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("slashblade/blade", "slashblade/nodachi_blade");
+        tag.putString("slashblade/nodachi_blade_material", "nodachi_blade/named_blade_ingot");
+        NamedLegacyImprintStorage.putSource(tag, "blade", "missing_addon/remembered");
+        assertFalse(NamedLegacyImprintStorage.migrateStackTag(tag));
+        assertFalse(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "othermod:polish"));
+        assertEquals("missing_addon/remembered", NamedLegacyImprintStorage.sourceId(tag, "blade"));
+        tag.putString("slashblade/nodachi_blade_material", "nodachi_blade/iron");
+        assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "slashblade/nodachi_blade"));
+        assertNull(NamedLegacyImprintStorage.sourceId(tag, "blade"));
+    }
+
+    @Test
+    void namedIngotBladeSlotIsIndependentFromUnchangedCompositeHilt() {
+        CompoundTag tag = new CompoundTag();
+        assertEquals("blade", NamedLegacyImprintStorage.partForSlot("slashblade/blade"));
+        assertEquals("saya", NamedLegacyImprintStorage.partForSlot("slashblade/saya"));
+        assertEquals("tsuba", NamedLegacyImprintStorage.partForSlot("slashblade/tsuba"));
+        assertNull(NamedLegacyImprintStorage.partForSlot("slashblade/tsuka"));
+
+        tag.putString("slashblade/blade", "slashblade/legacy_blade");
+        tag.putString("slashblade/legacy_blade_material", "legacy_blade/imprinted");
+        assertTrue(NamedLegacyImprintStorage.putSource(tag, "blade", "slashblade/wooden"));
+        assertEquals("slashblade/wooden", NamedLegacyImprintStorage.sourceId(tag, "blade"));
+        assertFalse(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "othermod:blade_polish"));
+        assertEquals("slashblade/wooden", NamedLegacyImprintStorage.sourceId(tag, "blade"));
+
+        tag.putString("slashblade/blade", "slashblade/katana_blade");
+        tag.putString("slashblade/katana_blade_material", "katana_blade/iron");
+        assertTrue(NamedLegacyImprintStorage.applyCraftResultTag(tag,
+                "slashblade/blade", "slashblade/katana_blade"));
+        assertNull(NamedLegacyImprintStorage.sourceId(tag, "blade"));
+    }
+
+    @Test
     void migratesPerBladeVariantsToGenericVariantsAndKeepsSoftIds() {
         CompoundTag tag = new CompoundTag();
         tag.putString("slashblade/saya", "slashblade/legacy_saya");

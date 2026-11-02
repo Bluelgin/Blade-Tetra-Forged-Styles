@@ -1,0 +1,22 @@
+{
+  "name": "book.blade_tetra.v2.compatibility.name",
+  "category": "blade_tetra:reference",
+  "icon": "blade_tetra:legacy_imprint_scroll",
+  "sortnum": 5,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.compatibility.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.compatibility.1",
+      "title": "book.blade_tetra.v2.compatibility.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.compatibility.2",
+      "title": "book.blade_tetra.v2.compatibility.2.title",
+      "type": "patchouli:text"
+    }
+  ]
+}

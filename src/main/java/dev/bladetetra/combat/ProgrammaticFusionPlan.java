@@ -26,6 +26,12 @@ public record ProgrammaticFusionPlan(String key,
     private static final double RESPONSE_BUDGET_WITH_DIRECT_PRIMARY = 0.55D;
 
     public static ProgrammaticFusionPlan from(ItemStack stack) {
+        ProgrammaticFusionPlan plan = candidate(stack);
+        return ProgrammaticFusionAttunement.matches(stack, plan) ? plan : null;
+    }
+
+    /** Workbench discovery does not activate a combat ability. */
+    public static ProgrammaticFusionPlan candidate(ItemStack stack) {
         return stack == null ? null : from(NamedLegacyParts.fromStack(stack));
     }
 
@@ -36,7 +42,7 @@ public record ProgrammaticFusionPlan(String key,
      * have an exact lifecycle audit.
      */
     public static boolean hasUnadaptedThirdPartyArt(ItemStack stack) {
-        return stack != null && hasUnadaptedThirdPartyArt(NamedLegacyParts.fromStack(stack));
+        return from(stack) != null && hasUnadaptedThirdPartyArt(NamedLegacyParts.fromStack(stack));
     }
 
     static boolean hasUnadaptedThirdPartyArt(NamedLegacyParts parts) {

@@ -30,10 +30,8 @@ import java.util.Set;
 /**
  * Required in-memory Tetra data pack.
  *
- * <p>V2 keeps per-blade schematic ids for old scroll compatibility and for a
- * clear source choice in Tetra's UI, but all named blades share only two module
- * variants. The source blade id is written to Blade Tetra NBT by a crafting
- * effect, so addon count no longer expands Tetra's module-variant table.</p>
+ * <p>Compatibility-only modules and improvements keep historical stacks readable.
+ * New equipment uses the shared named ingot material in ordinary Tetra modules.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class NamedLegacyPack extends AbstractPackResources {
@@ -61,9 +59,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
 
         for (LegacyImprintKind kind : discovered) {
             try {
-                Map<String, byte[]> staged = buildKindResources(kind);
-                ensureNoCollisions(staged);
-                resources.putAll(staged);
+                if (kind.id() == null || kind.id().isBlank()) throw new IllegalArgumentException("blank kind id");
                 accepted.add(kind);
                 appendKindLanguage(kind, en, zh);
 
@@ -81,9 +77,30 @@ public final class NamedLegacyPack extends AbstractPackResources {
         }
 
         putHistoricalImprovements(historicalImprovements);
+        putGenericModule("blade");
         putGenericModule("saya");
         putGenericModule("tsuba");
 
+        en.addProperty("tetra.module.slashblade/legacy_blade.name", "Imprinted blade");
+        zh.addProperty("tetra.module.slashblade/legacy_blade.name", "名刀刀身");
+        en.addProperty("tetra.variant.legacy_blade/imprinted", "Named blade");
+        zh.addProperty("tetra.variant.legacy_blade/imprinted", "名刀刀身");
+        for (String part : List.of("blade", "saya", "tsuba")) {
+            String enPart = part.equals("blade") ? "Blade" : part.equals("saya") ? "Saya" : "Complete hilt";
+            String zhPart = part.equals("blade") ? "刀身" : part.equals("saya") ? "刀鞘" : "镡柄一体刀装";
+            en.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".name", "Named ingot · " + enPart);
+            zh.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".name", "名刀锭 · " + zhPart);
+            en.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".description", "Uses the named blade ingot in the Tetra workbench; source identity comes from the ingot.");
+            zh.addProperty("tetra/schematic/slashblade/legacy_ingot_" + part + ".description", "消耗名刀锭进行锻造，刀型来源由名刀锭决定。");
+        }
+        en.addProperty("item.blade_tetra.named_blade_ingot", "Named blade ingot");
+        zh.addProperty("item.blade_tetra.named_blade_ingot", "名刀锭");
+        en.addProperty("item.blade_tetra.named_blade_ingot.named", "%s ingot");
+        zh.addProperty("item.blade_tetra.named_blade_ingot.named", "%s锭");
+        en.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "Tetra: blade, saya and complete hilt only");
+        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "仅可用于 Tetra 刀身、刀鞘与镡柄一体刀装");
+        en.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "Missing named blade source: %s");
+        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "来源名刀未加载：%s");
         en.addProperty("tetra.module.slashblade/legacy_saya.name", "Imprinted saya");
         zh.addProperty("tetra.module.slashblade/legacy_saya.name", "映锻刀鞘");
         en.addProperty("tetra.module.slashblade/legacy_tsuba.name", "Imprinted hilt");
@@ -96,19 +113,31 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 "%1$s cannot be studied: unsupported model (%2$s).");
         zh.addProperty("message.blade_tetra.imprint.unsupported_model",
                 "%1$s无法映录：模型结构暂不支持（%2$s）。");
-        en.addProperty("tooltip.blade_tetra.imprint.researchable",
-                "✦ This blade's form can be imprinted");
-        zh.addProperty("tooltip.blade_tetra.imprint.researchable",
-                "✦ 此刀形制可被映录");
+        en.addProperty("tooltip.blade_tetra.imprint.model_supported",
+                "✦ Named-ingot fittings support this blade's model");
+        zh.addProperty("tooltip.blade_tetra.imprint.model_supported",
+                "✦ 名刀锭刀装支持此刀模型");
+        en.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
+                "✦ Can extract a named blade ingot (8 broken Proud Souls)");
+        zh.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
+                "✦ 可提取名刀锭（需8个破碎的耀魂）");
+        en.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
+                "Repair the blade before extracting a named ingot");
+        zh.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
+                "名刀耐久不足，修复后才能提取名刀锭");
+        en.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
+                "Model adaptation unsupported: named fittings will use a fallback model");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
+                "此刀模型暂不支持完整适配，名刀刀装将回退为普通模型");
         en.addProperty("tooltip.blade_tetra.imprint.catalog_id",
-                "Blade Tetra · Catalog: %1$s");
+                "Blade Tetra · Source: %1$s");
         zh.addProperty("tooltip.blade_tetra.imprint.catalog_id",
-                "Blade Tetra · 映锻目录：%1$s");
+                "Blade Tetra · 名刀来源：%1$s");
 
         putUnique("assets/blade_tetra/lang/en_us.json", en.toString());
         putUnique("assets/blade_tetra/lang/zh_cn.json", zh.toString());
         LogUtils.getLogger().info(
-                "Blade Tetra named-pattern pack staged {} blades using 2 generic module variants",
+                "Blade Tetra named-pattern pack retained {} historical blade records; new crafts use native named ingot material",
                 accepted.size());
     }
 
@@ -122,59 +151,6 @@ public final class NamedLegacyPack extends AbstractPackResources {
         LogUtils.getLogger().debug(
                 "Blade Tetra split {} historical named-imprint improvements into {} sync-safe resources",
                 historicalImprovements.size(), chunks.size());
-    }
-
-    private Map<String, byte[]> buildKindResources(LegacyImprintKind kind) {
-        if (kind == null || kind.id() == null || kind.id().isBlank()) {
-            throw new IllegalArgumentException("blank kind id");
-        }
-        Map<String, byte[]> staged = new LinkedHashMap<>();
-        for (String part : List.of("saya", "tsuba")) {
-            String schema = kind.schematic(part);
-            ResourceLocation schemaId = ResourceLocation.tryParse("tetra:" + schema);
-            if (schemaId == null) {
-                throw new IllegalArgumentException("invalid schematic id " + schema);
-            }
-            JsonObject root = JsonParser.parseString("""
-                    {"replace":true,"materialSlotCount":2,"displayType":"minor",
-                     "glyph":{"textureX":24,"textureY":112},
-                     "outcomes":[]}
-                    """).getAsJsonObject();
-            JsonArray slots = new JsonArray();
-            slots.add("slashblade/" + part);
-            root.add("slots", slots);
-
-            JsonObject requirement = new JsonObject();
-            requirement.addProperty("type", "blade_tetra:legacy_pattern");
-            requirement.addProperty("id", kind.id());
-            requirement.addProperty("part", part);
-            root.add("requirement", requirement);
-
-            JsonObject core = JsonParser.parseString("""
-                    {"material":{"items":["slashblade:proudsoul_ingot"],"count":1},
-                     "materialSlot":0,"requiredTools":{"hammer_dig":"minecraft:iron"}}
-                    """).getAsJsonObject();
-            core.addProperty("moduleKey", "slashblade/legacy_" + part);
-            core.addProperty("moduleVariant", NamedLegacyImprintStorage.genericVariant(part));
-
-            JsonObject feature = new JsonObject();
-            JsonObject material = new JsonObject();
-            JsonArray items = new JsonArray();
-            ResourceLocation featureId = ResourceLocation.tryParse(kind.material());
-            if (featureId == null) {
-                throw new IllegalArgumentException("invalid source material " + kind.material());
-            }
-            items.add(featureId.toString());
-            material.add("items", items);
-            material.addProperty("count", 1);
-            feature.add("material", material);
-            feature.addProperty("materialSlot", 1);
-
-            root.getAsJsonArray("outcomes").add(core);
-            root.getAsJsonArray("outcomes").add(feature);
-            stage(staged, "data/tetra/schematics/" + schema + ".json", root.toString());
-        }
-        return staged;
     }
 
     private static void appendKindLanguage(LegacyImprintKind kind, JsonObject en, JsonObject zh) {
@@ -212,13 +188,13 @@ public final class NamedLegacyPack extends AbstractPackResources {
         en.addProperty(scroll + ".prefix", "Imprinting pattern");
         zh.addProperty(scroll + ".prefix", "映锻刀谱");
         en.addProperty(scroll + ".description",
-                "Unlocks this named blade's fittings. Unroll beside a Tetra workbench.");
+                "Retired pattern. Use named ingots in ordinary Tetra forging.");
         zh.addProperty(scroll + ".description",
-                "解锁对应名刀的刀装仿造，展开并放在Tetra工作台附近。");
+                "旧刀谱已退役；请在普通Tetra锻造中使用名刀锭。");
         en.addProperty(scroll + ".details",
-                "Reproduce the saya and complete hilt while the blade remains modular. Matching fittings grant affinity and registered SA/SE inheritance.");
+                "Kept for historical saves. Matching named-material fittings retain registered SA/SE inheritance.");
         zh.addProperty(scroll + ".details",
-                "可仿造刀鞘和完整镡柄刀装，刀身仍由模块化锻造；同源形制形成动态契合，并继承原刀登记的SA或SE。");
+                "保留旧存档记录；同源名刀锭刀装仍可继承原刀登记的SA或SE。");
     }
 
     private void putGenericModule(String part) {
@@ -227,31 +203,25 @@ public final class NamedLegacyPack extends AbstractPackResources {
         JsonArray slots = new JsonArray();
         slots.add("slashblade/" + part);
         module.add("slots", slots);
-        module.addProperty("type", "tetra:basic_module");
+        module.addProperty("type", part.equals("blade") ? "tetra:basic_major_module" : "tetra:basic_module");
+        if (part.equals("blade")) {
+            module.add("improvements", JsonParser.parseString("[\"tetra:sword/basic_blade/\",\"tetra:sword/shared_blade/\",\"tetra:sword/shared/\",\"tetra:shared/\",\"tetra:slashblade/blade/\"]"));
+        }
         module.addProperty("renderLayer", part.equals("saya") ? "lower" : "higher");
         JsonArray variants = new JsonArray();
         JsonObject variant = new JsonObject();
         variant.addProperty("key", NamedLegacyImprintStorage.genericVariant(part));
-        variant.addProperty("durability", part.equals("saya") ? 24 : 0);
+        variant.addProperty("durability", part.equals("blade") ? 120 : part.equals("saya") ? 24 : 0);
+        if (part.equals("blade")) {
+            variant.add("attributes", JsonParser.parseString("{\"generic.attack_speed\":-1.9,\"generic.attack_damage\":4}"));
+            variant.add("tools", JsonParser.parseString("{\"cut\":[1,2]}"));
+            variant.add("aspects", JsonParser.parseString("{\"edged_weapon\":2,\"breakable\":2}"));
+            variant.add("tags", JsonParser.parseString("[\"forge:swords\"]"));
+        }
         variant.addProperty("integrity", part.equals("saya") ? 1 : 0);
         variants.add(variant);
         module.add("variants", variants);
         putUnique("data/tetra/modules/slashblade/legacy_" + part + ".json", module.toString());
-    }
-
-    private void ensureNoCollisions(Map<String, byte[]> staged) {
-        for (String path : staged.keySet()) {
-            if (resources.containsKey(path)) {
-                throw new IllegalStateException("duplicate generated resource " + path);
-            }
-        }
-    }
-
-    private static void stage(Map<String, byte[]> target, String path, String value) {
-        if (path.contains("..") || target.putIfAbsent(path,
-                value.getBytes(StandardCharsets.UTF_8)) != null) {
-            throw new IllegalArgumentException("unsafe or duplicate generated path " + path);
-        }
     }
 
     private void putUnique(String path, String value) {

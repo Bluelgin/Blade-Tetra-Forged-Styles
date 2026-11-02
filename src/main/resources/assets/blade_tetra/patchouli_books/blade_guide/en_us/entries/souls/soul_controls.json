@@ -1,0 +1,24 @@
+{
+  "name": "book.blade_tetra.v2.soul_controls.name",
+  "category": "blade_tetra:souls",
+  "icon": "blade_tetra:smithing_journal",
+  "sortnum": 14,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.soul_controls.0",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.soul_controls.1",
+      "title": "book.blade_tetra.v2.soul_controls.1.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:styles/style_custom",
+        "blade_tetra:reference/faq_souls"
+      ]
+    }
+  ]
+}

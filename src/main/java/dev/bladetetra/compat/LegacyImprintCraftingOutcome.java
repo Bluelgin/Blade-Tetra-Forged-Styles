@@ -3,6 +3,7 @@ package dev.bladetetra.compat;
 import dev.bladetetra.forging.LegacyImprintKind;
 import dev.bladetetra.forging.NamedLegacyCatalog;
 import dev.bladetetra.forging.NamedLegacyImprintStorage;
+import dev.bladetetra.item.NamedBladeIngotItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -30,7 +31,7 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             Map<ToolAction, Integer> tools, Level world, UpgradeSchematic schematic,
             BlockPos pos, BlockState blockState, boolean consumeResources,
             ItemStack[] postMaterials) {
-        return applyImprint(upgradedStack, slot, schematic);
+        return applyImprint(upgradedStack, slot, schematic, preMaterials);
     }
 
     /**
@@ -47,15 +48,38 @@ public final class LegacyImprintCraftingOutcome implements CraftingEffectOutcome
             Map<ToolAction, Integer> tools, Level world, UpgradeSchematic schematic,
             BlockPos pos, BlockState blockState, boolean consumeResources,
             ItemStack[] postMaterials, float severity) {
-        return applyImprint(upgradedStack, slot, schematic);
+        return applyImprint(upgradedStack, slot, schematic, preMaterials);
     }
 
     private static boolean applyImprint(
             ItemStack upgradedStack,
             String slot,
-            UpgradeSchematic schematic) {
+            UpgradeSchematic schematic,
+            ItemStack[] preMaterials) {
         String key = schematic == null ? null : schematic.getKey();
         boolean changed = NamedLegacyImprintStorage.applyCraftResult(upgradedStack, slot, key);
+        changed |= dev.bladetetra.forging.NamedBladeMaterial.capture(upgradedStack, slot, preMaterials);
+        String dynamicPart = NamedLegacyImprintStorage.partForSlot(slot);
+        if (dynamicPart != null && key != null
+                && (key.equals("slashblade/legacy_ingot_" + dynamicPart)
+                    || key.equals("tetra:slashblade/legacy_ingot_" + dynamicPart))) {
+            // Only the consumed source ingot may determine the installed identity.
+            // No source is ever inferred from a tooltip, translated name or client geometry.
+            String ingotSource = null;
+            if (preMaterials != null) for (ItemStack ingredient : preMaterials) {
+                if (ingotSource == null) ingotSource = NamedBladeIngotItem.sourceId(ingredient);
+            }
+            if (ingotSource != null) {
+                // Missing addon sources remain soft references, like historical imprints.
+                changed |= NamedLegacyImprintStorage.putSource(
+                        upgradedStack.getOrCreateTag(), dynamicPart, ingotSource);
+                try {
+                    LegacyImprintKind kind = NamedLegacyCatalog.get(ingotSource);
+                    changed |= NamedLegacyImprintStorage.putSnapshot(upgradedStack, dynamicPart, kind);
+                } catch (RuntimeException | LinkageError ignored) { /* fallback retains soft ref */ }
+            }
+            return changed;
+        }
         String part = NamedLegacyImprintStorage.partForSlot(slot);
         String source = NamedLegacyImprintStorage.sourceFromSchematic(key, part);
         if (part == null || source == null

@@ -1,0 +1,47 @@
+{
+  "name": "book.blade_tetra.v2.forged_sa.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:forged_slash_art_orb",
+  "sortnum": 14,
+  "pages": [
+    {
+      "text": "book.blade_tetra.v2.forged_sa.0",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:forged_slash_art_orb",
+      "text": "book.blade_tetra.v2.forged_sa.1"
+    },
+    {
+      "text": "book.blade_tetra.v2.forged_sa.2",
+      "title": "book.blade_tetra.v2.forged_sa.2.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.forged_sa.3",
+      "title": "book.blade_tetra.v2.forged_sa.3.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.forged_sa.4",
+      "title": "book.blade_tetra.v2.forged_sa.4.title",
+      "type": "patchouli:text"
+    },
+    {
+      "text": "book.blade_tetra.v2.forged_sa.5",
+      "title": "book.blade_tetra.v2.forged_sa.5.title",
+      "type": "patchouli:text"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "blade_tetra:reference/ability_priority",
+        "blade_tetra:named/fusion"
+      ]
+    }
+  ],
+  "extra_recipe_mappings": {
+    "blade_tetra:forged_slash_art_orb": 0
+  }
+}

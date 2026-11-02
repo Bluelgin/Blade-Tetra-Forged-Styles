@@ -54,6 +54,45 @@
           "textureY": 0
         }
       }
+    },
+    {
+      "materials": [
+        "tetra:named_blade/"
+      ],
+      "key": "custom_standard_blade/",
+      "attributes": {
+        "generic.attack_speed": -1.8
+      },
+      "effects": {
+        "sweeping": 1
+      },
+      "tools": {
+        "cut": [
+          1,
+          2
+        ]
+      },
+      "aspects": {
+        "edged_weapon": 2,
+        "breakable": 2
+      },
+      "durability": -20,
+      "tags": [
+        "forge:swords"
+      ],
+      "extract": {
+        "primaryAttributes": {
+          "generic.attack_damage": 0.5
+        },
+        "durability": 0.95,
+        "integrity": -1,
+        "magicCapacity": 1,
+        "glyph": {
+          "textureLocation": "blade_tetra:textures/gui/custom_style/workbench_glyphs.png",
+          "textureX": 0,
+          "textureY": 0
+        }
+      }
     }
   ]
 }
