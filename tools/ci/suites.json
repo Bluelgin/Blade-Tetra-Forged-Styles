@@ -1,0 +1,422 @@
+{
+  "version": 1,
+  "groups": {
+    "full": [
+      "forging",
+      "aura",
+      "kyouka",
+      "sakura",
+      "raikiri",
+      "mikage",
+      "custom_style",
+      "lifeng",
+      "storage",
+      "manual",
+      "motion",
+      "tooltip"
+    ],
+    "compat": [
+      "addon_ingots",
+      "addon_art"
+    ],
+    "combat": [
+      "aura",
+      "kyouka",
+      "sakura",
+      "raikiri",
+      "lifeng"
+    ],
+    "client": [
+      "manual",
+      "motion",
+      "tooltip"
+    ],
+    "souls": [
+      "kyouka",
+      "sakura",
+      "raikiri",
+      "tooltip"
+    ]
+  },
+  "suites": {
+    "tooltip": {
+      "kind": "client",
+      "property": "soulGuideReview",
+      "directory": "soul-guide-review",
+      "markers": [
+        "SOUL_GUIDE_REVIEW_PASS"
+      ],
+      "flags": []
+    },
+    "manual": {
+      "kind": "client",
+      "property": "namedIngotArtReview",
+      "directory": "named-ingot-art-review",
+      "markers": [
+        "NAMED_INGOT_ART_REVIEW_PASS",
+        "PATCHOULI_MANUAL_PASS",
+        "MANUAL_ART_REVIEW_PASS"
+      ],
+      "flags": [
+        "manualArtReview",
+        "patchouliTest"
+      ]
+    },
+    "raikiri": {
+      "kind": "server",
+      "property": "raikiriCombatSmoke",
+      "directory": "raikiri-combat-smoke",
+      "markers": [
+        "RAIKIRI_COMBAT_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "motion": {
+      "kind": "client",
+      "property": "kyoukaMotionSmoke",
+      "directory": "kyouka-motion-smoke",
+      "markers": [
+        "KYOUKA_MOTION_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "forging": {
+      "kind": "server",
+      "property": "namedIngotSmoke",
+      "directory": "named-ingot-smoke",
+      "markers": [
+        "NAMED_INGOT_SMOKE_PASS",
+        "MANUAL_FUSION_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "storage": {
+      "kind": "server",
+      "property": "bladeStorageSmoke",
+      "directory": "blade-storage-smoke",
+      "markers": [
+        "BLADE_STORAGE_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "aura": {
+      "kind": "server",
+      "property": "swordAuraHitSmoke",
+      "directory": "sword-aura-hit-smoke",
+      "markers": [
+        "SWORD_AURA_HIT_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "kyouka": {
+      "kind": "server",
+      "property": "kyoukaNativeSmoke",
+      "directory": "kyouka-native-smoke",
+      "markers": [
+        "KYOUKA_NATIVE_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "sakura": {
+      "kind": "server",
+      "property": "sakuraCombatSmoke",
+      "directory": "sakura-combat-smoke",
+      "markers": [
+        "AWAKENED_INTEGRATION_SMOKE_PASS",
+        "SAKURA_COMBAT_SMOKE_PASS",
+        "SAKURA_STANCE_SMOKE_PASS",
+        "SAKURA_SA_SMOKE_PASS",
+        "SAKURA_CONCERTO_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "mikage": {
+      "kind": "server",
+      "property": "mikageNativeSmoke",
+      "directory": "mikage-native-smoke",
+      "markers": [
+        "MIKAGE_NATIVE_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "custom_style": {
+      "kind": "server",
+      "property": "customStyleSmoke",
+      "directory": "custom-style-smoke",
+      "markers": [
+        "CUSTOM_STYLE_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "lifeng": {
+      "kind": "server",
+      "property": "lifengSmoke",
+      "directory": "lifeng-smoke",
+      "markers": [
+        "LIFENG_CUSTOM_SMOKE_PASS"
+      ],
+      "flags": []
+    },
+    "addon_ingots": {
+      "kind": "server",
+      "property": "legacySmokeTest",
+      "directory": "legacy-smoke-sjap-yakumo",
+      "markers": [
+        "NAMED_INGOT_SMOKE_PASS"
+      ],
+      "flags": [
+        "sjapTest",
+        "yakumoTest"
+      ]
+    },
+    "addon_art": {
+      "kind": "client",
+      "property": "namedIngotArtReview",
+      "directory": "named-ingot-art-review",
+      "markers": [
+        "NAMED_INGOT_ART_REVIEW_PASS",
+        "PATCHOULI_MANUAL_PASS",
+        "MANUAL_ART_REVIEW_PASS"
+      ],
+      "flags": [
+        "manualArtReview",
+        "patchouliTest",
+        "sjapTest",
+        "yakumoTest"
+      ]
+    }
+  },
+  "docs": [
+    "README*",
+    "LICENSE*",
+    "CHANGELOG*",
+    "docs/**",
+    ".github/ISSUE_TEMPLATE/**",
+    "art-previews/**"
+  ],
+  "rules": [
+    {
+      "paths": [
+        "build.gradle",
+        "settings.gradle",
+        "gradle.properties",
+        "gradle/**",
+        "gradlew*"
+      ],
+      "suites": [
+        "@full",
+        "@compat"
+      ],
+      "reason": "Build or dependency configuration"
+    },
+    {
+      "paths": [
+        ".github/workflows/**",
+        "tools/ci/**"
+      ],
+      "suites": [
+        "@full"
+      ],
+      "reason": "CI or development-test infrastructure"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/dev/mixin/**",
+        "src/integrationTest/resources/blade_tetra.dev.mixins.json"
+      ],
+      "suites": [
+        "@client"
+      ],
+      "reason": "Development-only client injection boundary"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/mixin/**",
+        "src/main/java/dev/bladetetra/storage/**",
+        "src/main/java/dev/bladetetra/network/**",
+        "src/main/java/dev/bladetetra/registry/**",
+        "src/main/java/dev/bladetetra/item/ModularSlashBladeItem.java",
+        "src/main/java/dev/bladetetra/item/ModularBladeStateSync.java",
+        "src/main/java/dev/bladetetra/item/BladeModuleMigration.java",
+        "src/main/resources/*mixins*.json",
+        "src/main/resources/META-INF/**"
+      ],
+      "suites": [
+        "@full"
+      ],
+      "reason": "Shared lifecycle, storage, network or registry boundary"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/forging/**",
+        "src/main/java/dev/bladetetra/recipe/**",
+        "src/main/resources/data/tetra/**",
+        "src/main/resources/data/blade_tetra/recipes/**"
+      ],
+      "suites": [
+        "forging",
+        "@combat"
+      ],
+      "reason": "Forging/materials can change damage, inheritance and fusion"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/combat/**",
+        "src/main/java/dev/bladetetra/config/**",
+        "src/main/java/dev/bladetetra/BladeTetra.java"
+      ],
+      "suites": [
+        "forging",
+        "@combat",
+        "motion"
+      ],
+      "reason": "Shared combat/configuration dependency"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/kyouka/**"
+      ],
+      "suites": [
+        "kyouka",
+        "motion"
+      ],
+      "reason": "Kyouka behavior"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/easteregg/Raikiri*"
+      ],
+      "suites": [
+        "raikiri"
+      ],
+      "reason": "Raikiri behavior"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/easteregg/Sakura*",
+        "src/main/java/dev/bladetetra/easteregg/Senbonzakura*"
+      ],
+      "suites": [
+        "sakura"
+      ],
+      "reason": "Sakura behavior"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/easteregg/**"
+      ],
+      "suites": [
+        "@souls",
+        "lifeng"
+      ],
+      "reason": "Shared soul state and awakening lifecycle"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/aura/**"
+      ],
+      "suites": [
+        "aura",
+        "lifeng"
+      ],
+      "reason": "Sword aura and Lifeng"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/customstyle/**"
+      ],
+      "suites": [
+        "custom_style",
+        "lifeng"
+      ],
+      "reason": "Custom style and Lifeng access"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/challenge/**"
+      ],
+      "suites": [
+        "mikage"
+      ],
+      "reason": "Archived Mikage behavior touched explicitly"
+    },
+    {
+      "paths": [
+        "src/main/resources/assets/blade_tetra/patchouli_books/**",
+        "src/main/resources/assets/blade_tetra/textures/gui/manual/**",
+        "src/main/resources/assets/blade_tetra/textures/item/bladecraft_manual.png",
+        "src/main/resources/assets/blade_tetra/models/item/bladecraft_manual.json"
+      ],
+      "suites": [
+        "manual"
+      ],
+      "reason": "Patchouli content or manual artwork"
+    },
+    {
+      "paths": [
+        "src/main/resources/assets/blade_tetra/lang/**"
+      ],
+      "suites": [
+        "manual",
+        "tooltip"
+      ],
+      "reason": "Translations affect book layout and soul tooltip formatting"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/client/*Tooltip*",
+        "src/main/java/dev/bladetetra/client/SoulGuideReviewClient.java"
+      ],
+      "suites": [
+        "tooltip"
+      ],
+      "reason": "Soul tooltip layout/input"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/client/kyouka/**"
+      ],
+      "suites": [
+        "motion"
+      ],
+      "reason": "Kyouka client presentation"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/client/**",
+        "src/main/resources/assets/**"
+      ],
+      "suites": [
+        "@client"
+      ],
+      "reason": "Client rendering, localization, models or book assets"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/lore/**",
+        "src/main/java/dev/bladetetra/item/*Record*",
+        "src/main/java/dev/bladetetra/item/*Journal*",
+        "src/main/java/dev/bladetetra/item/*SoulFragment*",
+        "src/main/resources/data/blade_tetra/patchouli_books/**",
+        "src/main/resources/data/blade_tetra/advancements/**"
+      ],
+      "suites": [
+        "manual",
+        "tooltip",
+        "sakura"
+      ],
+      "reason": "Lore/guide discovery and soul ownership"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/compat/**"
+      ],
+      "suites": [
+        "forging",
+        "@combat",
+        "@compat"
+      ],
+      "reason": "Optional provider compatibility"
+    }
+  ]
+}

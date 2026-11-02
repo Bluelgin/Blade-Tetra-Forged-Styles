@@ -22,8 +22,8 @@ import java.util.List;
 public final class SoulGuideReviewClient {
     private static int phase,ticks,capture=-1;
     private static boolean started;
-    static boolean enabled(){return Boolean.getBoolean("blade_tetra.soulGuideReview");}
-    static boolean expanded(){return enabled()&&started&&phase%4!=0;}
+    public static boolean enabled(){return Boolean.getBoolean("blade_tetra.soulGuideReview");}
+    public static boolean expanded(){return enabled()&&started&&phase%4!=0;}
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if(!enabled()||event.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();
@@ -49,8 +49,8 @@ public final class SoulGuideReviewClient {
             if(phase>=16)return;
             g.renderTooltip(font,stacks.get(phase/4),Math.max(5,width/2-100),height/2);
             if(appliedPhase!=phase) {
-                if(phase%4==3)SoulFragmentTooltipRenderer.reviewScrollEnd(this);
-                if(phase%4==2)SoulFragmentTooltipRenderer.reviewScrollSkills(this);
+                if(phase%4==3)reviewScroll(this,-1000);
+                if(phase%4==2)reviewScroll(this,-3);
                 appliedPhase=phase;
             }
         }
@@ -62,9 +62,25 @@ public final class SoulGuideReviewClient {
         try {
             var path=mc.gameDirectory.toPath().resolve("evidence");Files.createDirectories(path);
             try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(path.resolve("guide-"+capture+".png"));}
-            if(capture%4==3&&!SoulFragmentTooltipRenderer.reviewAtEnd())throw new IllegalStateException("Guide scroll did not reach its final lines");
+            if(capture%4==3&&!reviewAtEnd())throw new IllegalStateException("Guide scroll did not reach its final lines");
             capture=-1;
         }catch(java.io.IOException error){throw new IllegalStateException(error);}
+    }
+    private static Object scrollState() throws ReflectiveOperationException {
+        var field=SoulFragmentTooltipRenderer.class.getDeclaredField("SCROLL");
+        field.setAccessible(true);return field.get(null);
+    }
+    private static Number value(Object state,String name) throws ReflectiveOperationException {
+        var field=state.getClass().getDeclaredField(name);field.setAccessible(true);return (Number)field.get(state);
+    }
+    private static void reviewScroll(Screen screen,double delta) {
+        try {var state=scrollState();SoulFragmentTooltipRenderer.scroll(new net.minecraftforge.client.event.ScreenEvent.MouseScrolled.Pre(
+                screen,value(state,"mouseX").doubleValue(),value(state,"mouseY").doubleValue(),delta));}
+        catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
+    }
+    private static boolean reviewAtEnd() {
+        try {var state=scrollState();return value(state,"max").intValue()>0&&value(state,"offset").intValue()==value(state,"max").intValue();}
+        catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
     }
     private SoulGuideReviewClient(){}
 }

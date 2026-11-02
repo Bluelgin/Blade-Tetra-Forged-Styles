@@ -82,13 +82,6 @@ public final class SoulFragmentTooltipRenderer {
         SCROLL.lastScroll=Util.getMillis();
         event.setCanceled(true);
     }
-    static void reviewScrollEnd(Screen screen) {
-        if(SoulGuideReviewClient.enabled()) scroll(new ScreenEvent.MouseScrolled.Pre(screen,SCROLL.mouseX,SCROLL.mouseY,-1000));
-    }
-    static void reviewScrollSkills(Screen screen) {
-        if(SoulGuideReviewClient.enabled()) scroll(new ScreenEvent.MouseScrolled.Pre(screen,SCROLL.mouseX,SCROLL.mouseY,-3));
-    }
-    static boolean reviewAtEnd(){return SCROLL.max>0&&SCROLL.offset==SCROLL.max;}
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static final class Factories {
         @SubscribeEvent public static void register(RegisterClientTooltipComponentFactoriesEvent event) { event.register(Data.class, View::new); }

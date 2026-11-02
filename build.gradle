@@ -14,6 +14,28 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+// Forge-only smoke tests and visual reviews are a separate, non-published source set.
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+def developmentProfiles = [
+    'devTools', 'manualArtReview', 'namedIngotArtReview', 'bladeStorageSmoke',
+    'soulGuideReview', 'sakuraCombatSmoke', 'raikiriCombatSmoke', 'swordAuraHitSmoke',
+    'lifengSmoke', 'customStyleInputReview', 'mirrorRitualReview', 'bloodBladeReview',
+    'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
+    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
+    'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
+    'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest'
+]
+def developmentTools = developmentProfiles.any { project.hasProperty(it) }
+
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
     copyIdeResources = true
@@ -139,10 +161,12 @@ minecraft {
             // Development class directories have no production jar manifest.
             // Register the same config explicitly so userdev tests exercise our hooks.
             args '--mixin', 'blade_tetra.mixins.json'
+            if (developmentTools) args '--mixin', 'blade_tetra.dev.mixins.json'
 
             mods {
                 "${mod_id}" {
                     source sourceSets.main
+                    if (developmentTools) source sourceSets.integrationTest
                 }
             }
         }
@@ -439,3 +463,28 @@ tasks.register('kyoukaNativeApiAudit') {
         }
     }
 }
+
+// Check the actual deliverable, including when a developer builds with -PdevTools.
+tasks.register('verifyProductionJar') {
+    dependsOn tasks.named('jar')
+    inputs.file(tasks.named('jar').flatMap { it.archiveFile })
+    doLast {
+        def archive = tasks.named('jar').get().archiveFile.get().asFile
+        def names = new java.util.zip.ZipFile(archive)
+        try {
+            def forbidden = sourceSets.integrationTest.allJava.files.collect { file ->
+                def text = file.getText('UTF-8')
+                def matcher = text =~ /(?m)^package\s+([\w.]+);/
+                if (!matcher.find()) throw new GradleException("Missing package in ${file}")
+                matcher.group(1).replace('.', '/') + '/' + file.name.replace('.java', '')
+            }
+            def leaked = names.entries().findAll { entry ->
+                entry.name == 'blade_tetra.dev.mixins.json' || forbidden.any { name ->
+                    entry.name == name + '.class' || entry.name.startsWith(name + '$')
+                }
+            }
+            if (!leaked.isEmpty()) throw new GradleException("Development tools in production JAR: ${leaked}")
+        } finally { names.close() }
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyProductionJar') }
