@@ -1,4 +1,6 @@
-package dev.bladetetra.client;
+package dev.bladetetra.dev.mixin;
+
+import dev.bladetetra.client.SoulGuideReviewClient;
 
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;

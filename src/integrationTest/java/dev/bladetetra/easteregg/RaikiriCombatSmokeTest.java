@@ -242,6 +242,8 @@ public final class RaikiriCombatSmokeTest {
                 var session=RaikiriActionObserver.session(actor);
                 boolean rain=scenario==0 || scenario==2;
                 level.setWeatherParameters(rain?0:1000,rain?1000:0,rain,false);level.setRainLevel(rain?1:0);
+                if(scenario==0) check(enemies.stream().allMatch(enemy -> level.isRainingAt(enemy.blockPosition())),
+                        "rain fixture requires exposed plains targets before testing conduction");
                 for(var enemy:enemies) {enemy.setHealth(200);enemy.invulnerableTime=17;enemy.removeAllEffects();}
                 int needles=scenario==0?3:1;
                 for(int n=0;n<needles;n++) {

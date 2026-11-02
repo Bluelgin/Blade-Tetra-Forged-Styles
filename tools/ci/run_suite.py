@@ -2,6 +2,7 @@
 """Run one manifest suite in an isolated build directory and require proof markers."""
 import argparse
 import hashlib
+import json
 import os
 import signal
 import re
@@ -25,6 +26,13 @@ def main():
     directory.mkdir(parents=True)
     if suite['kind'] == 'server':
         (directory / 'eula.txt').write_text('eula=true\n')
+        terrain = {'biome': 'minecraft:plains', 'layers': [
+            {'block': 'minecraft:bedrock', 'height': 1},
+            {'block': 'minecraft:dirt', 'height': 2},
+            {'block': 'minecraft:grass_block', 'height': 1}]}
+        (directory / 'server.properties').write_text(
+            'level-seed=158\nlevel-type=minecraft:flat\ngenerate-structures=false\n'
+            + 'generator-settings=' + json.dumps(terrain, separators=(',', ':')) + '\n')
     else:
         (directory / 'options.txt').write_text('lang:zh_cn\nguiScale:4\n')
     properties = [suite['property'], *suite['flags']]

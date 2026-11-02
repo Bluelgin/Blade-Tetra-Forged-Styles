@@ -14,7 +14,8 @@ smoke tests, screenshot tools, sample builders and benchmarks live in
   `runClient`, `runServer`, data generation and release JARs do not include it.
 - `python3 tools/ci/run_suite.py forging`: run a single named suite, require a
   successful process and every expected proof marker. Client suites use Xvfb.
-  These commands erase only their isolated directory below `build/`. A ten-minute
+  Server suites use a seeded flat plains world, keeping rain/sky assertions independent
+  of random terrain or snowy biomes. These commands erase only their isolated directory below `build/`. A ten-minute
   process watchdog ends stalled games before the job timeout so logs can upload.
 - Actions manual **Validation** input: `auto`, `full` (base suites), or `compat`
   (full base plus the pinned-version SJAP/Yakumo profiles).
@@ -61,7 +62,7 @@ multiplayer, AE2 compatibility or every provider unless explicitly exercised.
 
 ## Release boundary
 
-Tooltip review input is a development-only client Mixin plus reflection in the
+Tooltip review input is a development-only client Mixin in its own reserved package, plus reflection in the
 review tool. Production tooltip code reads actual Shift input and scroll events;
 it has no reference to a review class. `verifyProductionJar` checks concrete helper
 class names (including inner classes) and the development Mixin config in the JAR,
