@@ -14,7 +14,7 @@ final class MikageChallengeAccessSmokeTest {
     static void run(ServerPlayer player, ServerPlayer outsider) throws Exception {
         check(!gateModeAvailable(GateMode.NORMAL) && !gateModeAvailable(GateMode.REMINISCENCE),
                 "both combat entry modes are sealed");
-        check(gateModeAvailable(GateMode.VISITOR), "non-combat visitor mode remains available");
+        check(!gateModeAvailable(GateMode.VISITOR), "new visitor entries are sealed");
         var data = player.getPersistentData();
         var persisted = data.getCompound(Player.PERSISTED_NBT_TAG);
         persisted.putBoolean("blade_tetra_mikage_cleared", true);
@@ -45,8 +45,9 @@ final class MikageChallengeAccessSmokeTest {
         var gatesField = ChallengeManager.class.getDeclaredField("GATES"); gatesField.setAccessible(true);
         int before = ((List<?>) gatesField.get(null)).size();
         openGate(player, GateMode.NORMAL); openGate(player, GateMode.REMINISCENCE);
+        openGate(player, GateMode.VISITOR);
         check(((List<?>) gatesField.get(null)).size() == before,
-                "server entry API creates no gates for sealed combat modes");
+                "server entry API creates no gates for any sealed entry mode");
         var blocked = new ChallengeSession(Long.MIN_VALUE + 71, GateMode.NORMAL, 51);
         blocked.join(player, server);
         check(blocked.participants.isEmpty() && player.level() == server.overworld()

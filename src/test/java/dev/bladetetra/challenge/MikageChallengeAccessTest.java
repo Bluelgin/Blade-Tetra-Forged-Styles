@@ -8,8 +8,9 @@ class MikageChallengeAccessTest {
         assertFalse(MikageChallengeAccess.combatOpen());
         assertFalse(MikageChallengeAccess.allowsGate(false));
     }
-    @Test void nonCombatVisitsRemainAvailable() {
-        assertTrue(MikageChallengeAccess.allowsGate(true));
+    @Test void newVisitsAreSealedWithoutSuspendingExistingVisits() {
+        assertFalse(MikageChallengeAccess.visitorOpen());
+        assertFalse(MikageChallengeAccess.allowsGate(true));
         assertFalse(MikageChallengeAccess.shouldSuspend(true, false));
     }
     @Test void onlyUnfinishedCombatIsSuspended() {

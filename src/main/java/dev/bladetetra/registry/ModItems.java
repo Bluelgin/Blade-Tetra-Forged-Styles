@@ -109,11 +109,6 @@ public final class ModItems {
                         output.accept(STYLE_RECORDER.get());
                         output.accept(BLOOD_CRYSTAL.get());
                         output.accept(SAKURA_SOUL_CRYSTAL.get());
-                        output.accept(BOUNDARY_GATE_CHARM.get());
-                        output.accept(SWORD_GHOST_REMNANT.get());
-                        output.accept(BROKEN_ONI_MASK.get());
-                        output.accept(KARMIC_PUPPET.get());
-                        output.accept(DEAD_THOUGHT_SOUL_SEAL.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
                         output.accept(AKATSUKI_SOUL_FRAGMENT.get());
                         output.accept(SENBONZAKURA_SOUL_FRAGMENT.get());
