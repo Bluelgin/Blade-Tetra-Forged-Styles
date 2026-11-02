@@ -102,6 +102,14 @@ public final class ManualArtReview {
         var contents = bookClass.getMethod("getContents").invoke(book);
         if ((boolean) contents.getClass().getMethod("isErrored").invoke(contents))
             throw new IllegalStateException("Manual compilation failed", (Exception) contents.getClass().getMethod("getException").invoke(contents));
+        // I18n uses String.format even without arguments; a bare percent can corrupt a page.
+        var language = new ResourceLocation("blade_tetra", "lang/" + (english ? "en_us" : "zh_cn") + ".json");
+        try (var reader = mc.getResourceManager().getResource(language).orElseThrow().openAsReader()) {
+            var translations = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+            for (String key : translations.keySet()) if (key.startsWith("book.blade_tetra.v2.")
+                    && net.minecraft.client.resources.language.I18n.get(key).startsWith("Format error:"))
+                throw new IllegalStateException("Manual translation format error: " + key);
+        } catch (java.io.IOException e) { throw new IllegalStateException(e); }
         var entries = (Map<?, ?>) contents.getClass().getField("entries").get(contents);
         views.clear(); index = 0;
         views.add(new View(null, 0, "00-index"));
