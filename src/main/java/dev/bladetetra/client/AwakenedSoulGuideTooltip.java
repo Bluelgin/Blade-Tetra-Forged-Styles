@@ -19,7 +19,7 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT)
 public final class AwakenedSoulGuideTooltip {
     static final String PREFIX = "tooltip.blade_tetra.soul_fragment.";
-    static boolean expanded() { return Screen.hasShiftDown() || SoulGuideReviewClient.expanded(); }
+    static boolean expanded() { return Screen.hasShiftDown(); }
 
     @SubscribeEvent public static void tooltip(ItemTooltipEvent event) {
         if (!(event.getItemStack().getItem() instanceof AwakenedSoulFragmentItem item)) return;

@@ -1,178 +1,131 @@
-name: Build
+name: Validation
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Validation scope (compat includes full base validation)
+        type: choice
+        options: [auto, full, compat]
+        default: full
 
 permissions:
   contents: read
 
+concurrency:
+  group: validation-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  plan:
+    name: Plan validation
+    runs-on: ubuntu-latest
+    outputs:
+      quick: ${{ steps.plan.outputs.quick }}
+      native: ${{ steps.plan.outputs.native }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select suites and explain coverage
+        id: plan
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+          MODE: ${{ inputs.scope || 'auto' }}
+        run: |
+          python3 tools/ci/plan.py --base "$BASE" --head "$GITHUB_SHA" --mode "$MODE" \
+            --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" || \
+          python3 tools/ci/plan.py --mode full --reason 'Planner failed; full fallback' \
+            --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-plan
+          path: build/ci-plan.json
+
+  quick:
+    name: Build and unit tests
+    needs: plan
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - name: Test suite-selection boundaries
+        run: |
+          python3 -m unittest discover -s tools/ci -p 'test_*.py'
+          python3 tools/ci/check_resources.py
+      - uses: actions/setup-java@v4
+        if: needs.plan.outputs.quick == 'true'
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: Build
-        run: ./gradlew build kyoukaNativeApiAudit
-      - name: Named ingot creative inventory art review
-        if: github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
-        timeout-minutes: 8
-        env:
-          LIBGL_ALWAYS_SOFTWARE: 'true'
-        run: |
-          mkdir -p build/named-ingot-art-review run/test-libs
-          printf 'lang:zh_cn\nguiScale:4\n' > build/named-ingot-art-review/options.txt
-          set -o pipefail
-          {
-            curl --fail --location --retry 2 --output run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar https://edge.forgecdn.net/files/7264/677/Yakumoblade-1.1.4-1.20.1_Forge.jar
-            sha256sum run/test-libs/Yakumoblade-1.1.4-1.20.1_Forge.jar
-            xvfb-run -a ./gradlew runClient -PnamedIngotArtReview -PmanualArtReview -PsjapTest -PyakumoTest -PpatchouliTest
-          } 2>&1 | tee build/named-ingot-art-review.log
-          grep -F 'NAMED_INGOT_ART_REVIEW_PASS' build/named-ingot-art-review.log
-          grep -F 'PATCHOULI_MANUAL_PASS' build/named-ingot-art-review.log
-          grep -F 'MANUAL_ART_REVIEW_PASS' build/named-ingot-art-review.log
-      - name: Upload named ingot creative inventory screenshot
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
-        uses: actions/upload-artifact@v4
+      - uses: gradle/actions/setup-gradle@v4
+        if: needs.plan.outputs.quick == 'true'
+      - name: Compile production and development tools; test; verify release JAR
+        if: needs.plan.outputs.quick == 'true'
+        run: ./gradlew build integrationTestClasses verifyProductionJar kyoukaNativeApiAudit
+      - uses: actions/upload-artifact@v4
+        if: always() && needs.plan.outputs.quick == 'true'
         with:
-          name: named-ingot-creative-art
-          path: |
-            build/named-ingot-art-review/named-ingot-creative*.png
-            build/named-ingot-art-review/manual-*.png
-            build/named-ingot-art-review.log
-            build/named-ingot-art-review/logs/**
-          retention-days: 14
-      - name: Upload review JAR and JUnit evidence
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: blade-tetra-review-build
+          name: build-and-unit-evidence
           path: |
             build/libs/*.jar
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
           retention-days: 14
-      - name: Named ingot three-slot Tetra smoke
-        if: github.event_name == 'pull_request' && github.head_ref == 'codex/named-ingot-rework'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/named-ingot-smoke
-          echo 'eula=true' > build/named-ingot-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PnamedIngotSmoke 2>&1 | tee build/named-ingot-smoke.log
-          grep -F 'NAMED_INGOT_SMOKE_PASS' build/named-ingot-smoke.log
-      - name: Sword aura hotfix hit smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/sword-aura-hit-smoke
-          echo 'eula=true' > build/sword-aura-hit-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PswordAuraHitSmoke 2>&1 | tee build/sword-aura-hit-smoke.log
-          grep -F 'SWORD_AURA_HIT_SMOKE_PASS' build/sword-aura-hit-smoke.log
-      - name: Kyouka independent native VMD client smoke
-        if: success()
-        timeout-minutes: 8
+
+  native:
+    name: Native / ${{ matrix.suite }}
+    needs: [plan, quick]
+    if: needs.plan.outputs.native == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run isolated suite and verify proof markers
+        run: python3 tools/ci/run_suite.py '${{ matrix.suite }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-${{ matrix.suite }}
+          path: |
+            build/*.log
+            build/*/logs/**
+            build/*/*.png
+            build/*/evidence/**
+          retention-days: 14
+
+  gate:
+    name: Validation gate
+    needs: [plan, quick, native]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the selected checks, including cancellation/failure reporting
         env:
-          LIBGL_ALWAYS_SOFTWARE: 'true'
+          PLAN: ${{ needs.plan.result }}
+          QUICK: ${{ needs.quick.result }}
+          NATIVE: ${{ needs.native.result }}
+          EXPECT_NATIVE: ${{ needs.plan.outputs.native }}
         run: |
-          mkdir -p build/kyouka-motion-smoke
-          xvfb-run -a ./gradlew runClient -PkyoukaMotionSmoke 2>&1 | tee build/kyouka-motion-smoke.log
-          grep -F 'KYOUKA_MOTION_SMOKE_PASS' build/kyouka-motion-smoke.log
-      - name: Upload Kyouka client motion evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kyouka4-native-motion
-          path: |
-            build/kyouka-motion-smoke.log
-            build/kyouka-motion-smoke/three-mirrors.png
-            build/kyouka-motion-smoke/logs/**
-          retention-days: 14
-      - name: Kyouka native Forge smoke
-        if: always()
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/kyouka-native-smoke
-          echo 'eula=true' > build/kyouka-native-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PkyoukaNativeSmoke 2>&1 | tee build/kyouka-native-smoke.log
-          grep -F 'KYOUKA_NATIVE_SMOKE_PASS' build/kyouka-native-smoke.log
-      - name: Upload Kyouka runtime evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kyouka4-native-evidence
-          path: |
-            build/kyouka-native-smoke.log
-            build/kyouka-native-smoke/logs/**
-            build/test-results/test/*.xml
-            build/kyouka-native-api.txt
-          retention-days: 14
-      - name: Sakura 3.0 ordinary combat, SA and native stance Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/sakura-combat-smoke
-          echo 'eula=true' > build/sakura-combat-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PsakuraCombatSmoke 2>&1 | tee build/sakura-combat-smoke.log
-          grep -F 'AWAKENED_INTEGRATION_SMOKE_PASS' build/sakura-combat-smoke.log
-          grep -F 'SAKURA_COMBAT_SMOKE_PASS' build/sakura-combat-smoke.log
-          grep -F 'SAKURA_STANCE_SMOKE_PASS' build/sakura-combat-smoke.log
-          grep -F 'SAKURA_SA_SMOKE_PASS' build/sakura-combat-smoke.log
-          grep -F 'SAKURA_CONCERTO_SMOKE_PASS' build/sakura-combat-smoke.log
-      - name: Raikiri 3 native Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 10
-        run: |
-          mkdir -p build/raikiri-combat-smoke
-          echo 'eula=true' > build/raikiri-combat-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PraikiriCombatSmoke 2>&1 | tee build/raikiri-combat-smoke.log
-          grep -F 'RAIKIRI_COMBAT_SMOKE_PASS' build/raikiri-combat-smoke.log
-      - name: Mikage native Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/mikage-native-smoke
-          echo 'eula=true' > build/mikage-native-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PmikageNativeSmoke 2>&1 | tee build/mikage-native-smoke.log
-          grep -F 'MIKAGE_NATIVE_SMOKE_PASS' build/mikage-native-smoke.log
-      - name: Custom style Tetra Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/custom-style-smoke
-          echo 'eula=true' > build/custom-style-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PcustomStyleSmoke 2>&1 | tee build/custom-style-smoke.log
-          grep -F 'CUSTOM_STYLE_SMOKE_PASS' build/custom-style-smoke.log
-      - name: Lifeng CUSTOM Forge smoke
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 8
-        run: |
-          mkdir -p build/lifeng-smoke
-          echo 'eula=true' > build/lifeng-smoke/eula.txt
-          set -o pipefail
-          ./gradlew runServer -PlifengSmoke 2>&1 | tee build/lifeng-smoke.log
-          grep -F 'LIFENG_CUSTOM_SMOKE_PASS' build/lifeng-smoke.log
-      - name: Upload integration smoke evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: awakened-integration-smoke
-          path: |
-            build/*smoke.log
-            build/*smoke/logs/**
-          retention-days: 14
+          test "$PLAN" = success
+          test "$QUICK" = success
+          if [ "$EXPECT_NATIVE" = true ]; then
+            test "$NATIVE" = success
+          else
+            test "$EXPECT_NATIVE" = false
+            test "$NATIVE" = skipped
+          fi
