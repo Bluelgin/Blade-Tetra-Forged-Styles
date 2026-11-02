@@ -124,7 +124,6 @@ public final class BladeDetailTooltip {
                                 name)
                         .withStyle(activeFusion
                                 ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GRAY));
-
             }
         }
         var candidate = dev.bladetetra.combat.ProgrammaticFusionPlan.candidate(stack);

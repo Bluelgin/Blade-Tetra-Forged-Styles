@@ -31,6 +31,8 @@ public final class ProgrammaticFusionSchematic extends BaseSchematic {
                 Component.translatable(parts.tsuba().translationKey())).getString();
     }
     @Override public int getNumMaterialSlots() { return 0; }
+    @Override public String getSlotName(ItemStack stack, int index) { return ""; }
+    @Override public ItemStack[] getSlotPlaceholders(ItemStack stack, int index) { return new ItemStack[0]; }
     @Override public int getRequiredQuantity(ItemStack stack, int index, ItemStack material) { return 0; }
     @Override public boolean isRelevant(ItemStack stack) {
         return stack != null && stack.getItem() instanceof ModularSlashBladeItem

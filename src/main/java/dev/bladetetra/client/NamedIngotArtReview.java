@@ -46,6 +46,18 @@ public final class NamedIngotArtReview {
         }
         if (!opened && mc.player != null && mc.level != null && mc.screen == null && ++ready > 40) {
             opened = true;
+            if (net.minecraftforge.fml.ModList.get().isLoaded("patchouli")) {
+                var server = mc.getSingleplayerServer();
+                var id = mc.player.getUUID();
+                server.execute(() -> {
+                    var player = server.getPlayerList().getPlayer(id);
+                    dev.bladetetra.lore.SmithingLore.discover(player, "akatsuki");
+                    var original = ModItems.SMITHING_JOURNAL.get().getDefaultInstance();
+                    dev.bladetetra.item.SmithingJournalItem.refresh(original, player);
+                    if (original.getTag().getInt("BladeTetraKnownClues") != 1)
+                        throw new IllegalStateException("Original journal did not share the discovery");
+                });
+            }
             mc.options.guiScale().set(4);
             mc.resizeDisplay();
             mc.setScreen(new Review(mc));
@@ -146,13 +158,21 @@ public final class NamedIngotArtReview {
             var entries = (java.util.Map<?, ?>) contents.getClass().getField("entries").get(contents);
             var categories = (java.util.Map<?, ?>) contents.getClass().getField("categories").get(contents);
             if (entries.size() < 30 || categories.size() != 6) throw new IllegalStateException("Manual contents incomplete");
+            book.getClass().getMethod("reloadLocks", boolean.class).invoke(book, true);
+            var known = entries.get(new net.minecraft.resources.ResourceLocation("blade_tetra", "souls/clue_akatsuki"));
+            var unknown = entries.get(new net.minecraft.resources.ResourceLocation("blade_tetra", "souls/clue_kyouka"));
+            var art = entries.get(new net.minecraft.resources.ResourceLocation("blade_tetra", "souls/soul_akatsuki"));
+            if ((boolean) known.getClass().getMethod("isLocked").invoke(known)
+                    || !(boolean) unknown.getClass().getMethod("isLocked").invoke(unknown)
+                    || !(boolean) art.getClass().getMethod("isLocked").invoke(art))
+                throw new IllegalStateException("Manual discovery/completion locks not synchronized");
             var stack = (net.minecraft.world.item.ItemStack) book.getClass().getMethod("getBookItem").invoke(book);
             if (ModItems.MAIN_TAB.get().getDisplayItems().stream().noneMatch(item ->
                     net.minecraft.world.item.ItemStack.isSameItemSameTags(item, stack)))
                 throw new IllegalStateException("Manual missing from main creative tab");
             if (mc.level.getRecipeManager().byKey(new net.minecraft.resources.ResourceLocation("blade_tetra", "blade_guide")).isEmpty())
                 throw new IllegalStateException("Manual recipe missing with Patchouli");
-            LogUtils.getLogger().info("PATCHOULI_MANUAL_PASS: {} entries, {} categories, native compilation, creative listing and recipe", entries.size(), categories.size());
+            LogUtils.getLogger().info("PATCHOULI_MANUAL_PASS: {} entries, {} categories, native compilation, creative listing, recipe and shared discovery locks", entries.size(), categories.size());
         } catch (ReflectiveOperationException failure) { throw new IllegalStateException(failure); }
     }
     private NamedIngotArtReview() {}
