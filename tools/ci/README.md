@@ -27,7 +27,7 @@ families and ordered path rules. First matching rule wins for each changed file;
 multiple files union their requirements. Put narrow rules before broad rules.
 Suite-definition order prioritizes early matrix jobs; client/input boundary checks
 run early so isolation failures are found before long compatibility validation.
-JUnit changes follow their production package; fixtures and unknown paths fall
+JUnit and integration Java changes follow their production package; fixtures and unknown paths fall
 back to the full base set. Git diff disables rename detection so removed and added
 paths are both considered. Missing/unreadable diff bases also run the full base
 set. If the planner itself cannot run, CI attempts full planning, then fails the

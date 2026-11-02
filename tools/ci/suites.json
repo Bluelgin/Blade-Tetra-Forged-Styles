@@ -212,13 +212,22 @@
     {
       "paths": [
         ".github/workflows/**",
-        "tools/ci/**",
-        "src/integrationTest/**"
+        "tools/ci/**"
       ],
       "suites": [
         "@full"
       ],
       "reason": "CI or development-test infrastructure"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/dev/mixin/**",
+        "src/integrationTest/resources/blade_tetra.dev.mixins.json"
+      ],
+      "suites": [
+        "@client"
+      ],
+      "reason": "Development-only client injection boundary"
     },
     {
       "paths": [
@@ -355,7 +364,8 @@
     },
     {
       "paths": [
-        "src/main/java/dev/bladetetra/client/*Tooltip*"
+        "src/main/java/dev/bladetetra/client/*Tooltip*",
+        "src/main/java/dev/bladetetra/client/SoulGuideReviewClient.java"
       ],
       "suites": [
         "tooltip"

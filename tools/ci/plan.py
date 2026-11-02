@@ -49,7 +49,8 @@ def select(config, paths, mode="auto", fallback=None):
     else:
         for path in sorted(set(paths)):
             # Unit tests follow the production package's native dependencies.
-            classified = path.replace("src/test/java/", "src/main/java/")
+            classified = path.replace("src/test/java/", "src/main/java/").replace(
+                "src/integrationTest/java/", "src/main/java/")
             if path.startswith("src/test/java/"):
                 classified = classified.removesuffix("Test.java") + ".java"
             if any(fnmatch.fnmatchcase(path, pattern) for pattern in config["docs"]):

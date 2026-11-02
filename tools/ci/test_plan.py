@@ -31,6 +31,8 @@ class TestSelection(unittest.TestCase):
 
     def test_tests_follow_package_and_mikage_is_not_universal(self):
         self.assertEqual({'raikiri'}, self.chosen('src/test/java/dev/bladetetra/easteregg/RaikiriChargeTest.java'))
+        self.assertEqual({'raikiri'}, self.chosen('src/integrationTest/java/dev/bladetetra/easteregg/RaikiriCombatSmokeTest.java'))
+        self.assertEqual({'tooltip'}, self.chosen('src/integrationTest/java/dev/bladetetra/client/SoulGuideReviewClient.java'))
         self.assertNotIn('mikage', self.chosen('src/main/resources/assets/blade_tetra/lang/en_us.json'))
         self.assertIn('mikage', self.chosen('src/main/java/dev/bladetetra/challenge/MikageEntity.java'))
 
