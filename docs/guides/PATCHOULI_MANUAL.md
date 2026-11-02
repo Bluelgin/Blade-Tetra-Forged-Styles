@@ -25,6 +25,6 @@ Patchouli 是可选依赖。安装时，主创造标签页提供「刀匠手册�
 
 ## 美术与验证
 
-封面仅为待用户确认的独立概念预览。本版暂用 Patchouli 默认棕色书模型，没有接入新贴图。
+封面使用已确认的手绘 SVG 像素稿，导出为透明 32×32 PNG，通过 Patchouli 的自定义物品模型接入。SVG 母版为 `art-previews/bladecraft_manual.svg`，贴图为 `assets/blade_tetra/textures/item/bladecraft_manual.png`。不依赖生图模型；书内页面继续使用 Patchouli 默认界面。
 
 `-PpatchouliTest` 仅给开发运行添加 Patchouli 1.20.1-84.1-FORGE。既有创造栏客户端验收增加原生手册编译、六分类、条目完整度、创造栏和配方检查。既有名刀锭服务端验收增加融合预览不污染输入、确认、保存重载、换来源失效、旧活动融合迁移、专属组合优先与可选配方条件检查。不以这些检查替代远程多人或所有第三方战斗兼容验收。

@@ -167,6 +167,10 @@ public final class NamedIngotArtReview {
                     || !(boolean) art.getClass().getMethod("isLocked").invoke(art))
                 throw new IllegalStateException("Manual discovery/completion locks not synchronized");
             var stack = (net.minecraft.world.item.ItemStack) book.getClass().getMethod("getBookItem").invoke(book);
+            var model = mc.getItemRenderer().getModel(stack, mc.level, mc.player, 0);
+            if (!model.getParticleIcon().contents().name().equals(
+                    new net.minecraft.resources.ResourceLocation("blade_tetra", "item/bladecraft_manual")))
+                throw new IllegalStateException("Approved manual cover did not resolve through Patchouli");
             if (ModItems.MAIN_TAB.get().getDisplayItems().stream().noneMatch(item ->
                     net.minecraft.world.item.ItemStack.isSameItemSameTags(item, stack)))
                 throw new IllegalStateException("Manual missing from main creative tab");
