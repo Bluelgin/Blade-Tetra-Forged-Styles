@@ -34,7 +34,7 @@ jobs:
       - name: Select suites and explain coverage
         id: plan
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
           MODE: ${{ inputs.scope || 'auto' }}
         run: |
           python3 tools/ci/plan.py --base "$BASE" --head "$GITHUB_SHA" --mode "$MODE" \
@@ -53,7 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test suite-selection boundaries
-        run: python3 -m unittest discover -s tools/ci -p 'test_*.py'
+        run: |
+          python3 -m unittest discover -s tools/ci -p 'test_*.py'
+          python3 tools/ci/check_resources.py
       - uses: actions/setup-java@v4
         if: needs.plan.outputs.quick == 'true'
         with:

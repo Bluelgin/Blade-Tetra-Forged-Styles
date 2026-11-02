@@ -7,6 +7,10 @@ smoke tests, screenshot tools, sample builders and benchmarks live in
 
 ## Running checks
 
+The suite runner targets Linux CI (Xvfb and POSIX process groups). Existing direct
+Gradle development launches remain available on their supported local platforms.
+
+- `python3 tools/ci/check_resources.py`: parse all runtime JSON/animation metadata.
 - `./gradlew build integrationTestClasses verifyProductionJar`: production build,
   all JUnit tests, development-tool compilation and actual JAR isolation check.
 - Existing launches such as `./gradlew runServer -PnamedIngotSmoke` still work.
@@ -26,7 +30,7 @@ smoke tests, screenshot tools, sample builders and benchmarks live in
 families and ordered path rules. First matching rule wins for each changed file;
 multiple files union their requirements. Put narrow rules before broad rules.
 Suite-definition order prioritizes early matrix jobs; client/input boundary checks
-run early so isolation failures are found before long compatibility validation.
+and weather-sensitive fixtures run early so isolation failures are found before long compatibility validation.
 JUnit and integration Java changes follow their production package; fixtures and unknown paths fall
 back to the full base set. Git diff disables rename detection so removed and added
 paths are both considered. Missing/unreadable diff bases also run the full base

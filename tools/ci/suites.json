@@ -62,6 +62,15 @@
         "patchouliTest"
       ]
     },
+    "raikiri": {
+      "kind": "server",
+      "property": "raikiriCombatSmoke",
+      "directory": "raikiri-combat-smoke",
+      "markers": [
+        "RAIKIRI_COMBAT_SMOKE_PASS"
+      ],
+      "flags": []
+    },
     "motion": {
       "kind": "client",
       "property": "kyoukaMotionSmoke",
@@ -118,15 +127,6 @@
         "SAKURA_STANCE_SMOKE_PASS",
         "SAKURA_SA_SMOKE_PASS",
         "SAKURA_CONCERTO_SMOKE_PASS"
-      ],
-      "flags": []
-    },
-    "raikiri": {
-      "kind": "server",
-      "property": "raikiriCombatSmoke",
-      "directory": "raikiri-combat-smoke",
-      "markers": [
-        "RAIKIRI_COMBAT_SMOKE_PASS"
       ],
       "flags": []
     },
