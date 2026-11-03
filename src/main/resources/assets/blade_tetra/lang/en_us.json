@@ -1533,7 +1533,7 @@
   "book.blade_tetra.v2.forged_sa.5": "Inscribing saves the current composition; later orb edits do not rewrite it. Sneak-use an orb to clear a forged inscription from the other hand’s blade.$(br2)Orthodox or attuned legacies may own the active SA while the forged spec remains stored.",
   "book.blade_tetra.v2.forged_sa.5.title": "Orb & Inscription",
   "book.blade_tetra.v2.clue_intro.name": "Awakened Blades",
-  "book.blade_tetra.v2.clue_intro.0": "Akatsuki lends blood to its edge. Senbonzakura dances in scattered petals. Raikiri leaves lightning in its wake. Kyouka wraps its wielder in a mantle of water.$(br2)Read smithing notes to reveal clues. Complete an inheritance or obtain its relic to unlock the blade’s arts.$(br2)$(l:blade_tetra:souls/soul_controls)Dual Souls$()",
+  "book.blade_tetra.v2.clue_intro.0": "Akatsuki extends its edge with blood. Senbonzakura scatters into petals. Raikiri leaves lightning trails. Kyouka wears a mantle of water.$(br2)Smithing notes reveal clues. Complete a rite or find its relic to unlock its arts.$(br2)$(l:blade_tetra:souls/soul_controls)Dual Souls$()",
   "book.blade_tetra.v2.inscriptions.name": "Inscribe a Soul",
   "book.blade_tetra.v2.inscriptions.0": "An inscription is a vessel; the rite awakens it.$(br2)ProudSoul Spheres, Blood Crystals, Sakura Crystals and Lightning Rods lead to different souls. Choose your goal, then inspect the inscription slot’s requirements.",
   "book.blade_tetra.v2.inscriptions.1": "Blood Crystal, Sakura Crystal, ProudSoul Sphere and Lightning Rod each lead toward a soul. Choose the name you seek before preparing.",
@@ -1648,7 +1648,7 @@
   "book.blade_tetra.v2.inscriptions.mapping": "Blood Crystal leads to Akatsuki, Sakura Crystal to Senbonzakura, ProudSoul Sphere to Kyouka, and Lightning Rod to Raikiri.$(br2)Discovered clues describe fittings and environment. Installing the inscription prepares the vessel; the rite still awaits.",
   "book.blade_tetra.v2.named.showcase.name": "Build a Named Blade",
   "book.blade_tetra.v2.styles.showcase.name": "Styles & Sword Scrolls",
-  "book.blade_tetra.v2.named.showcase.0": "Mix blade, saya, and guard from different swords. A matching saya and guard can carry on the original art. Mixed fittings can unlock a new one.$(br2)$(l:blade_tetra:named/named_ingots)Extract an Ingot$()$(br2)$(l:blade_tetra:named/inheritance)True Inheritance$()$(br2)$(l:blade_tetra:named/fusion)Fusion$()$(br2)$(l:blade_tetra:named/forged_sa)Forged Arts$()",
+  "book.blade_tetra.v2.named.showcase.0": "Mix blade, saya, and guard from different swords. Matching fittings can inherit an art. Mixed fittings can fuse a new one.$(br2)$(l:blade_tetra:named/named_ingots)Extract an Ingot$()$(br)$(l:blade_tetra:named/inheritance)True Inheritance$()$(br)$(l:blade_tetra:named/fusion)Fusion$()$(br)$(l:blade_tetra:named/forged_sa)Forged Arts$()",
   "book.blade_tetra.v2.styles.showcase.0": "Change the blade module and change how the sword fights.$(br2)$(l:blade_tetra:styles/style_standard)Standard$()$(br2)$(l:blade_tetra:styles/style_iaido)Iaido$()$(br2)$(l:blade_tetra:styles/style_rengeki)Rengeki$()$(br2)$(l:blade_tetra:styles/style_dangaku)Dangaku$()$(br2)$(l:blade_tetra:styles/style_custom)Sword Scrolls$()",
   "book.blade_tetra.v2.styles.showcase.scroll": "Sword Scrolls let you turn recorded moves into your own ground attack sequence.$(br2)$(l:blade_tetra:styles/style_custom)Sword Scrolls$()"
 }
