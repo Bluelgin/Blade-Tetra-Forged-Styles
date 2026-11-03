@@ -2,10 +2,12 @@ package dev.bladetetra.forging;
 
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.registry.ModItems;
+import dev.bladetetra.registry.ModSlashBladeAbilities;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -21,6 +23,7 @@ import net.minecraftforge.fml.common.Mod;
 import se.mickelus.tetra.data.DataManager;
 import se.mickelus.tetra.module.schematic.ConfigSchematic;
 
+import java.util.List;
 import java.util.Map;
 
 /** Opt-in, single-world Tetra integration smoke: does not run in player worlds. */
@@ -32,6 +35,7 @@ public final class NamedIngotSmokeTest {
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             verifyExtraction(player);
+            verifyAbilitySplit();
             ManualFusionSmoke.verify(player);
             String[][] modules = {
                 {"blade", "katana_blade", "katana_blade"},
@@ -93,6 +97,48 @@ public final class NamedIngotSmokeTest {
 
     private static void check(boolean condition, String message) {
         if (!condition) throw new IllegalStateException(message);
+    }
+
+    private static void verifyAbilitySplit() {
+        var bladeEffect = ModSlashBladeAbilities.TWIN_FOX_REFLECTION.getId();
+        var fittingsEffect = ModSlashBladeAbilities.SNAKE_MOLT.getId();
+        var fittings = withEffect(LegacyImprintKind.BLACK_FOX, fittingsEffect);
+        var edge = withEffect(LegacyImprintKind.WHITE_FOX, bladeEffect);
+        ItemStack stack = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+        var tag = stack.getOrCreateTag();
+        for (String part : List.of("saya", "tsuba", "blade")) {
+            var source = part.equals("blade") ? edge : fittings;
+            String module = tag.getString("slashblade/" + part);
+            tag.putString(module + "_material", NamedLegacyImprintStorage.genericVariant(part));
+            NamedLegacyImprintStorage.putSource(tag, part, source.id());
+            check(NamedLegacyImprintStorage.putSnapshot(stack, part, source),
+                    "Missing inheritance fixture: " + part);
+        }
+        var state = stack.getCapability(ItemSlashBlade.BLADESTATE).resolve().orElseThrow();
+        // Model a saved stack from the old matching-fittings SE rule.
+        state.addSpecialEffect(fittingsEffect);
+        tag.putString("blade_tetra_named_owned_effects", fittingsEffect.toString());
+        LegacyFusionHandler.sync(stack, state);
+        check(fittings.slashArt().equals(state.getSlashArtsKey()), "Matching fittings lost SA");
+        check(state.hasSpecialEffect(bladeEffect), "Blade SE was not inherited");
+        check(!state.hasSpecialEffect(fittingsEffect), "Old fittings SE remained applied");
+
+        NamedLegacyImprintStorage.clearSource(tag, "tsuba");
+        LegacyFusionHandler.sync(stack, state);
+        check(!fittings.slashArt().equals(state.getSlashArtsKey()), "Unmatched fittings retained SA");
+        check(state.hasSpecialEffect(bladeEffect), "Changing fittings removed independent blade SE");
+
+        state.addSpecialEffect(fittingsEffect);
+        NamedLegacyImprintStorage.clearSource(tag, "blade");
+        LegacyFusionHandler.sync(stack, state);
+        check(!state.hasSpecialEffect(bladeEffect), "Replacing the blade retained its old SE");
+        check(state.hasSpecialEffect(fittingsEffect), "Replacing the blade removed an external SE");
+    }
+
+    private static LegacyImprintKind withEffect(LegacyImprintKind source, ResourceLocation effect) {
+        return new LegacyImprintKind(source.id(), source.name(), source.model(), source.texture(),
+                source.material(), source.defaultProfile(), source.baseAttack(), source.maxDamage(),
+                source.slashArt(), List.of(effect));
     }
 
     private static void verifyCatalogPreviews(Player player, String[][] modules) throws Exception {
