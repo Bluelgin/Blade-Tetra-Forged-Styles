@@ -8,15 +8,43 @@ import signal
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import urllib.request
 from plan import ROOT, load_config
 
 
+TETRA_PROFILES = {
+    'tetra-6.3.0': ('5236744', '6.2.0'),
+    'tetra-6.9.0': ('6418957', '6.2.0'),
+    'tetra-6.13.0': ('7769412', '6.3.0'),
+    'tetra-6.17.0': ('8570756', '6.3.0'),
+}
+
+
+def audit(profile):
+    file_id, mutil = TETRA_PROFILES[profile]
+    extra = ['--tetra-file', file_id, '--mutil', mutil]
+    failed = []
+    for suite in ('addon_ingots', 'storage', 'sakura', 'kyouka', 'raikiri', 'custom_style', 'manual'):
+        print(f'::group::{profile} / {suite}', flush=True)
+        result = subprocess.run([sys.executable, __file__, suite, *extra], cwd=ROOT)
+        print(f'::endgroup::\nTETRA_AUDIT {profile} {suite}: {"FAIL" if result.returncode else "PASS"}', flush=True)
+        if result.returncode:
+            failed.append(suite)
+    if failed:
+        raise SystemExit(f'{profile}: failed suites: {", ".join(failed)}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('suite', choices=sorted(load_config()['suites']))
+    parser.add_argument('suite', choices=sorted([*load_config()['suites'], *TETRA_PROFILES]))
+    parser.add_argument('--tetra-file')
+    parser.add_argument('--mutil')
     args = parser.parse_args()
+    if args.suite in TETRA_PROFILES:
+        audit(args.suite)
+        return
     suite = load_config()['suites'][args.suite]
     directory = ROOT / 'build' / suite['directory']
     if not directory.resolve().is_relative_to((ROOT / 'build').resolve()) or directory == ROOT / 'build':
@@ -46,6 +74,8 @@ def main():
         print('Yakumo fixture SHA-256:', hashlib.sha256(jar.read_bytes()).hexdigest(), flush=True)
     command = ['./gradlew', '--no-daemon', 'runClient' if suite['kind'] == 'client' else 'runServer']
     command.extend('-P' + prop for prop in properties)
+    if args.tetra_file and args.mutil:
+        command.extend(['-Ptetra_file_id=' + args.tetra_file, '-Pmutil_version=1.20.1-' + args.mutil])
     if suite['kind'] == 'client':
         command = ['xvfb-run', '-a', *command]
     log = ROOT / 'build' / (suite['directory'] + '.log')

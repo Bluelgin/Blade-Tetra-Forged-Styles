@@ -91,7 +91,7 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(plan, indent=2) + "\n")
     if args.github_output:
-        matrix = {"include": [{"suite": s} for s in plan["suites"]] or [{"suite": "none"}]}
+        matrix = {"include": [{"suite": "tetra-" + v} for v in ("6.3.0", "6.9.0", "6.13.0", "6.17.0")]}
         with open(args.github_output, "a") as target:
             target.write(f"quick={str(plan['quick']).lower()}\nnative={str(bool(plan['suites'])).lower()}\n")
             target.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")

@@ -2,10 +2,12 @@ package dev.bladetetra.forging;
 
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.registry.ModItems;
+import dev.bladetetra.registry.ModSlashBladeAbilities;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -21,6 +23,7 @@ import net.minecraftforge.fml.common.Mod;
 import se.mickelus.tetra.data.DataManager;
 import se.mickelus.tetra.module.schematic.ConfigSchematic;
 
+import java.util.List;
 import java.util.Map;
 
 /** Opt-in, single-world Tetra integration smoke: does not run in player worlds. */
@@ -32,6 +35,7 @@ public final class NamedIngotSmokeTest {
         try {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             verifyExtraction(player);
+            verifyAbilitySplit();
             ManualFusionSmoke.verify(player);
             String[][] modules = {
                 {"blade", "katana_blade", "katana_blade"},
@@ -62,8 +66,11 @@ public final class NamedIngotSmokeTest {
                     ingot.setCount(64);
                     ItemStack[] materials = {ingot};
                     check(schematic.isMaterialsValid(stack, slot, materials), "Material rejected: " + spec[2]);
-                    check(schematic.getRequiredToolLevels(stack, materials).equals(
-                            Map.of(net.minecraftforge.common.ToolAction.get("hammer_dig"), 3)), "Hammer level: " + spec[2]);
+                    var hammer = net.minecraftforge.common.ToolAction.get("hammer_dig");
+                    int hammerLevel = source.baseAttack() >= 12 ? 4 : 3;
+                    check(schematic.getRequiredToolLevels(stack, materials).equals(Map.of(hammer, hammerLevel))
+                            && schematic.getRequiredToolLevel(stack, materials, hammer) == hammerLevel,
+                            "Hammer level: " + spec[2] + " / " + source.id());
                     ItemStack preview = schematic.applyUpgrade(stack, materials, false, slot, player);
                     check(source.equals(NamedLegacyImprintStorage.snapshot(preview, spec[0])), "Preview lacks snapshot");
                     var module = se.mickelus.tetra.module.ItemUpgradeRegistry.instance.getModule("slashblade/" + spec[1]);
@@ -83,7 +90,7 @@ public final class NamedIngotSmokeTest {
                 }
             }
             verifyMigrationAndMixedSources(player);
-            LogUtils.getLogger().info("NAMED_INGOT_SMOKE_PASS: {} native-material preview/craft pairs; level 3 hammer; exact part attack; migration and mixed sources", count);
+            LogUtils.getLogger().info("NAMED_INGOT_SMOKE_PASS: {} native-material preview/craft pairs; source-based hammer tiers; exact part attack; migration and mixed sources", count);
         } catch (Exception e) {
             LogUtils.getLogger().error("NAMED_INGOT_SMOKE_FAIL", e);
         } finally {
@@ -93,6 +100,48 @@ public final class NamedIngotSmokeTest {
 
     private static void check(boolean condition, String message) {
         if (!condition) throw new IllegalStateException(message);
+    }
+
+    private static void verifyAbilitySplit() {
+        var bladeEffect = ModSlashBladeAbilities.TWIN_FOX_REFLECTION.getId();
+        var fittingsEffect = ModSlashBladeAbilities.SNAKE_MOLT.getId();
+        var fittings = withEffect(LegacyImprintKind.BLACK_FOX, fittingsEffect);
+        var edge = withEffect(LegacyImprintKind.WHITE_FOX, bladeEffect);
+        ItemStack stack = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+        var tag = stack.getOrCreateTag();
+        for (String part : List.of("saya", "tsuba", "blade")) {
+            var source = part.equals("blade") ? edge : fittings;
+            String module = tag.getString("slashblade/" + part);
+            tag.putString(module + "_material", NamedLegacyImprintStorage.genericVariant(part));
+            NamedLegacyImprintStorage.putSource(tag, part, source.id());
+            check(NamedLegacyImprintStorage.putSnapshot(stack, part, source),
+                    "Missing inheritance fixture: " + part);
+        }
+        var state = stack.getCapability(ItemSlashBlade.BLADESTATE).resolve().orElseThrow();
+        // Model a saved stack from the old matching-fittings SE rule.
+        state.addSpecialEffect(fittingsEffect);
+        tag.putString("blade_tetra_named_owned_effects", fittingsEffect.toString());
+        LegacyFusionHandler.sync(stack, state);
+        check(fittings.slashArt().equals(state.getSlashArtsKey()), "Matching fittings lost SA");
+        check(state.hasSpecialEffect(bladeEffect), "Blade SE was not inherited");
+        check(!state.hasSpecialEffect(fittingsEffect), "Old fittings SE remained applied");
+
+        NamedLegacyImprintStorage.clearSource(tag, "tsuba");
+        LegacyFusionHandler.sync(stack, state);
+        check(!fittings.slashArt().equals(state.getSlashArtsKey()), "Unmatched fittings retained SA");
+        check(state.hasSpecialEffect(bladeEffect), "Changing fittings removed independent blade SE");
+
+        state.addSpecialEffect(fittingsEffect);
+        NamedLegacyImprintStorage.clearSource(tag, "blade");
+        LegacyFusionHandler.sync(stack, state);
+        check(!state.hasSpecialEffect(bladeEffect), "Replacing the blade retained its old SE");
+        check(state.hasSpecialEffect(fittingsEffect), "Replacing the blade removed an external SE");
+    }
+
+    private static LegacyImprintKind withEffect(LegacyImprintKind source, ResourceLocation effect) {
+        return new LegacyImprintKind(source.id(), source.name(), source.model(), source.texture(),
+                source.material(), source.defaultProfile(), source.baseAttack(), source.maxDamage(),
+                source.slashArt(), List.of(effect));
     }
 
     private static void verifyCatalogPreviews(Player player, String[][] modules) throws Exception {
