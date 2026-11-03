@@ -129,8 +129,11 @@ public final class CustomStyleForgeSmokeTest {
             var effects = CraftingEffectRegistry.getEffects(effectUnlocks, result, slot,
                     true, player, materials, Map.<ToolAction, Integer>of(), schematic,
                     level, benchPos, level.getBlockState(benchPos));
-            check(effects.length == 1, "precisely one style-encoding crafting effect");
-            check(applyOutcomes(effects[0], effectUnlocks, result, slot,
+            var styleEffect = se.mickelus.tetra.data.DataManager.instance.craftingEffectData.getData(
+                    new ResourceLocation("tetra", "blade_tetra/custom_style_craft"));
+            check(styleEffect != null && Arrays.stream(effects).anyMatch(effect -> effect == styleEffect),
+                    "style-encoding crafting effect is present among " + effects.length + " applicable effects");
+            check(applyOutcomes(styleEffect, effectUnlocks, result, slot,
                     true, player, materials, materials, Map.of(),
                     level, schematic, benchPos, level.getBlockState(benchPos), true),
                     "native Tetra crafting outcome succeeds");

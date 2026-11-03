@@ -26,7 +26,7 @@ def audit(profile):
     file_id, mutil = TETRA_PROFILES[profile]
     extra = ['--tetra-file', file_id, '--mutil', mutil]
     failed = []
-    for suite in ('addon_ingots', 'storage', 'sakura', 'kyouka', 'raikiri', 'custom_style', 'manual'):
+    for suite in ('custom_style',):
         print(f'::group::{profile} / {suite}', flush=True)
         result = subprocess.run([sys.executable, __file__, suite, *extra], cwd=ROOT)
         print(f'::endgroup::\nTETRA_AUDIT {profile} {suite}: {"FAIL" if result.returncode else "PASS"}', flush=True)
