@@ -21,8 +21,7 @@
     {
       "type": "patchouli:relations",
       "entries": [
-        "blade_tetra:styles/style_custom",
-        "blade_tetra:basics/materials"
+        "blade_tetra:styles/style_custom"
       ]
     }
   ],

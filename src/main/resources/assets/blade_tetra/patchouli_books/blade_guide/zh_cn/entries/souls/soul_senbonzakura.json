@@ -5,51 +5,17 @@
   "sortnum": 11,
   "pages": [
     {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.0",
-      "type": "patchouli:text"
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.soul_senbonzakura.0"
     },
     {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.1",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.1.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.2",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.2.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.3",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.3.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.4",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.4.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.5",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.5.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.soul_senbonzakura.6",
-      "title": "book.blade_tetra.v2.soul_senbonzakura.6.title",
-      "type": "patchouli:text"
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.soul_senbonzakura.1"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "blade_tetra:senbonzakura_soul_fragment",
       "text": "book.blade_tetra.v2.soul_senbonzakura.7"
-    },
-    {
-      "type": "patchouli:relations",
-      "entries": [
-        "blade_tetra:souls/clue_senbonzakura",
-        "blade_tetra:souls/soul_controls",
-        "blade_tetra:basics/controls"
-      ]
     }
   ],
   "advancement": "blade_tetra:manual/guide/senbonzakura",

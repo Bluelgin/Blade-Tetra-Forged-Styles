@@ -17,8 +17,7 @@
     {
       "type": "patchouli:relations",
       "entries": [
-        "blade_tetra:appearance/sockets",
-        "blade_tetra:basics/parts"
+        "blade_tetra:appearance/sockets"
       ]
     }
   ]

@@ -1,0 +1,16 @@
+{
+  "name": "book.blade_tetra.v2.named.showcase.name",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:named_blade_ingot",
+  "sortnum": -1,
+  "priority": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.named.showcase.0"
+    },
+    {
+      "type": "blade_tetra:fittings"
+    }
+  ]
+}

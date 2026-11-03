@@ -54,13 +54,6 @@
       "y": 73,
       "text": "book.blade_tetra.diagram.text2",
       "max_width": 116
-    },
-    {
-      "type": "patchouli:text",
-      "x": 0,
-      "y": 108,
-      "text": "book.blade_tetra.diagram.text4",
-      "max_width": 116
     }
   ]
 }

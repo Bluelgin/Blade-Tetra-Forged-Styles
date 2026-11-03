@@ -5,35 +5,7 @@
   "sortnum": 0,
   "pages": [
     {
-      "text": "book.blade_tetra.v2.first_blade.0",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.first_blade.1",
-      "title": "book.blade_tetra.v2.first_blade.1.title",
-      "type": "patchouli:text"
-    },
-    {
       "type": "blade_tetra:conversion"
-    },
-    {
-      "text": "book.blade_tetra.v2.first_blade.3",
-      "title": "book.blade_tetra.v2.first_blade.3.title",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.first_blade.4",
-      "title": "book.blade_tetra.v2.first_blade.4.title",
-      "type": "patchouli:text"
-    },
-    {
-      "type": "patchouli:relations",
-      "entries": [
-        "blade_tetra:basics/parts",
-        "blade_tetra:styles/style_standard",
-        "blade_tetra:basics/maintenance",
-        "blade_tetra:named/named_ingots"
-      ]
     }
   ],
   "priority": true,
