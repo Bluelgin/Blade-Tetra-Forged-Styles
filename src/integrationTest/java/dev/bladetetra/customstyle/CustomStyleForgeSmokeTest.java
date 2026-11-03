@@ -165,10 +165,11 @@ public final class CustomStyleForgeSmokeTest {
     }
 
     private static boolean applyOutcomes(Object effect, Object... arguments) {
+        int arity = arguments.length;
         var method = Arrays.stream(effect.getClass().getMethods())
                 .filter(candidate -> candidate.getName().equals("applyOutcomes"))
-                .filter(candidate -> candidate.getParameterCount() == arguments.length
-                        || candidate.getParameterCount() == arguments.length + 1)
+                .filter(candidate -> candidate.getParameterCount() == arity
+                        || candidate.getParameterCount() == arity + 1)
                 .findFirst().orElseThrow();
         if (method.getParameterCount() > arguments.length) {
             arguments = Arrays.copyOf(arguments, arguments.length + 1);
