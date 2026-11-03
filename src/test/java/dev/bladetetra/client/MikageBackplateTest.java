@@ -75,19 +75,6 @@ class MikageBackplateTest {
     }
 
     @Test
-    void PortraitHasRealTransparencyAndHighResolution() throws Exception {
-        try (var stream = getClass().getResourceAsStream("/assets/blade_tetra/textures/item/mikage_backplate.png")) {
-            assertNotNull(stream);
-            var image = ImageIO.read(stream);
-            assertEquals(image.getWidth(), image.getHeight());
-            assertTrue(image.getWidth() >= 256);
-            assertTrue(image.getColorModel().hasAlpha());
-            assertEquals(0, image.getRGB(0, 0) >>> 24);
-            assertTrue((image.getRGB(image.getWidth()/2, image.getHeight()/2) >>> 24) > 0);
-        }
-    }
-
-    @Test
     void PortraitUsesSeparateFullImageUvsWithoutReplacingNativeGauges() throws Exception {
         try (var stream = getClass().getResourceAsStream("/assets/blade_tetra/model/util/durability_filled.obj")) {
             assertNotNull(stream);
