@@ -408,14 +408,14 @@ public final class AkatsukiExecution {
         return AkatsukiExecutionMath.threshold(target.getMaxHealth(), representative,
                 GameplayConfig.AKATSUKI_THRESHOLD_HIT_MULTIPLIER.get(), minimum, maximum);
     }
-    /** The full-blood channel pays its own admission; share the threshold and immunity, not Final Moon's build-up. */
-    static boolean threadFinish(ServerPlayer attacker,LivingEntity target,float representative) {
+    /** A channel can execute several targets under one shared cooldown payment. */
+    static boolean threadFinish(ServerPlayer attacker, LivingEntity target, float attack, boolean alreadyExecuted) {
         var blade=attacker.getMainHandItem();long now=attacker.level().getGameTime();
         if(!canAffect(attacker,target)||target.getType().is(IMMUNE)||EXECUTIONS.containsKey(target.getUUID())
                 ||PENDING.stream().anyMatch(p->p.targetId.equals(target.getUUID()))
                 ||!SoulSkillState.enabled(blade,SoulLegacyState.Legacy.AKATSUKI)
-                ||blade.getOrCreateTag().getLong(COOLDOWN_UNTIL)>now
-                ||target.getHealth()>dynamicThreshold(target,representative))return false;
+                ||(!alreadyExecuted && blade.getOrCreateTag().getLong(COOLDOWN_UNTIL)>now)
+                ||!Float.isFinite(attack)||target.getHealth()>attack)return false;
         var key=ResourceKey.create(Registries.DAMAGE_TYPE,new ResourceLocation(BladeTetra.MOD_ID,"akatsuki_thread_execution"));
         var source=new DamageSource(attacker.serverLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key),attacker);
         AkatsukiBloodTendrils.damage(attacker,target,target.getHealth()+target.getAbsorptionAmount()+1,source);

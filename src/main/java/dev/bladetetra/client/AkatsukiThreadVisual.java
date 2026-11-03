@@ -32,6 +32,8 @@ public final class AkatsukiThreadVisual {
     private static int vertices;
     private static final class State {
         AkatsukiThreadPacket packet;long received,phaseAt;Vec3 rootOffset;long anchorAt=-100;
+        Vec3 deflectPoint;
+        long deflectAt;
         State(AkatsukiThreadPacket packet,long now){this.packet=packet;received=phaseAt=now;}
     }
     private record Mist(Vec3 center,float width,float height,long at,long seed,boolean lethal) {}
@@ -44,6 +46,18 @@ public final class AkatsukiThreadVisual {
         checkWorld();if(world==null||!packet.valid()||!world.dimension().location().equals(packet.dimension()))return;
         long now=world.getGameTime();var state=STATES.get(packet.owner());
         if(state!=null&&(packet.sequence()<state.packet.sequence()||packet.sequence()==state.packet.sequence()&&packet.age()<state.packet.age()))return;
+        if (packet.phase() == DEFLECT) {
+            if (state != null && packet.sequence() == state.packet.sequence() && !packet.targets().isEmpty()) {
+                Vec3 point = packet.targets().get(0).center();
+                state.deflectPoint = point;
+                state.deflectAt = now;
+                if (intensity() > 0) {
+                    world.playLocalSound(point.x, point.y, point.z, SoundEvents.PLAYER_ATTACK_SWEEP,
+                            net.minecraft.sounds.SoundSource.PLAYERS, .45F, 1.45F, false);
+                }
+            }
+            return;
+        }
         if(packet.phase()==MIST||packet.phase()==SNAP) {
             if(intensity()>0)for(var t:packet.targets()) {
                 if(MISTS.size()>=32)MISTS.remove(0);
@@ -120,6 +134,13 @@ public final class AkatsukiThreadVisual {
         fade*=grow*intensity();if(fade<=0)return;
         Vec3 position=new Vec3(net.minecraft.util.Mth.lerp(partial,owner.xOld,owner.getX()),net.minecraft.util.Mth.lerp(partial,owner.yOld,owner.getY()),net.minecraft.util.Mth.lerp(partial,owner.zOld,owner.getZ()));
         Vec3 root=position.add(s.rootOffset),forward=owner.getLookAngle();
+        double deflectAge = time - s.deflectAt;
+        if (s.deflectPoint != null && deflectAge < 6) {
+            float flash = (float) (1 - deflectAge / 6) * intensity();
+            Vec3 bend = root.lerp(s.deflectPoint, .5).add(0, .18, 0);
+            line(b, matrix, root, bend, .027F * flash, 190, 8, 35, (int) (210 * flash));
+            line(b, matrix, bend, s.deflectPoint, .018F * flash, 255, 75, 95, (int) (245 * flash));
+        }
         double advance=new Vec3(owner.getX()-owner.xOld,0,owner.getZ()-owner.zOld).dot(forward);
         double movementBend=Math.max(-.45,Math.min(.45,advance*1.5));
         Vec3 right=forward.cross(new Vec3(0,1,0)).normalize();if(right.lengthSqr()<.01)right=new Vec3(1,0,0);
