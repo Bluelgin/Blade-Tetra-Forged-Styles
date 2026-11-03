@@ -17,6 +17,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 // Forge-only smoke tests and visual reviews are a separate, non-published source set.
 sourceSets {
     integrationTest {
+        // The compatibility matrix uses the in-world manual client suite instead.
+        java.exclude '**/NamedMaterialSmokeClient.java'
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }

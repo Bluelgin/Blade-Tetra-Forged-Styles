@@ -130,7 +130,7 @@ public final class CustomStyleForgeSmokeTest {
                     true, player, materials, Map.<ToolAction, Integer>of(), schematic,
                     level, benchPos, level.getBlockState(benchPos));
             check(effects.length == 1, "precisely one style-encoding crafting effect");
-            check(effects[0].applyOutcomes(effectUnlocks, result, slot,
+            check(applyOutcomes(effects[0], effectUnlocks, result, slot,
                     true, player, materials, materials, Map.of(),
                     level, schematic, benchPos, level.getBlockState(benchPos), true),
                     "native Tetra crafting outcome succeeds");
@@ -162,6 +162,23 @@ public final class CustomStyleForgeSmokeTest {
         check(tile.addScroll(another), "Tetra permits a second scroll");
         check(CustomStyleScrollLookup.unique(level, benchPos) == null,
                 "ambiguous scrolls block forging rather than silently selecting one");
+    }
+
+    private static boolean applyOutcomes(Object effect, Object... arguments) {
+        var method = Arrays.stream(effect.getClass().getMethods())
+                .filter(candidate -> candidate.getName().equals("applyOutcomes"))
+                .filter(candidate -> candidate.getParameterCount() == arguments.length
+                        || candidate.getParameterCount() == arguments.length + 1)
+                .findFirst().orElseThrow();
+        if (method.getParameterCount() > arguments.length) {
+            arguments = Arrays.copyOf(arguments, arguments.length + 1);
+            arguments[arguments.length - 1] = 1.0F;
+        }
+        try {
+            return (Boolean) method.invoke(effect, arguments);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Native Tetra crafting effect failed", failure);
+        }
     }
 
     private static void verifyNativeCombo(net.minecraft.world.entity.player.Player player, ItemStack blade) {
