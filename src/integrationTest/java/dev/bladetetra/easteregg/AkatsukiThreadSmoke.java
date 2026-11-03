@@ -81,6 +81,21 @@ final class AkatsukiThreadSmoke {
             check(!AkatsukiBloodTendrils.active(p) && Math.abs(target.getHealth() - 95.2F) < .01F,
                     "fuel exhaustion releases without a bonus finishing hit");
 
+            state.setComboSeq(ComboStateRegistry.NONE.getId());
+            rank.setRawRankPoint(60); rank.setLastUpdte(level.getGameTime());
+            state.doChargeAction(p, 40); at = level.getGameTime();
+            for (int t = 1; t <= 12; t++) { time(level, at + t); tick(p); }
+            var orbit = p.getPassengers().stream()
+                    .filter(entity -> entity.getClass() == mods.flammpfeil.slashblade.entity.EntitySpiralSwords.class)
+                    .findFirst().orElseThrow();
+            long beforeOrbit = rank.getRankPoint(level.getGameTime());
+            rank.addRankPoint(p.damageSources().indirectMagic(orbit, p));
+            long nativeGain = rank.getRankPoint(level.getGameTime()) - beforeOrbit;
+            check(nativeGain == (long) (rank.getUnitCapacity() * .1F), "orbit gains native Rank once");
+            for (int t = 13; t <= 22; t++) { time(level, at + t); tick(p); }
+            check(AkatsukiBloodTendrils.active(p), "native orbit Rank extends channel past the starting budget");
+            AkatsukiBloodTendrils.cancel(p);
+
             target.setHealth(12);
             state.setComboSeq(ComboStateRegistry.NONE.getId());
             rank.setRawRankPoint(600); rank.setLastUpdte(level.getGameTime());

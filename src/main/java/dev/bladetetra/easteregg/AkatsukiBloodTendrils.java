@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.entity.ai.attributes.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.EntityHitResult;
@@ -156,7 +157,7 @@ public final class AkatsukiBloodTendrils {
         boolean pulse = elapsed > 0 && elapsed % PULSE_TICKS == 0;
         var surviving = new ArrayList<LivingEntity>(s.targets.size());
         for (var target : s.targets) {
-            if (execute(s, target)) continue;
+            if (!previousTargets.contains(target) && execute(s, target)) continue;
             if (pulse) {
                 damage(p, target, s.attack * .40F);
                 if (target.isAlive() && execute(s, target)) continue;
@@ -192,6 +193,7 @@ public final class AkatsukiBloodTendrils {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void interceptArrow(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)
+                || arrow instanceof ThrownTrident
                 || !(arrow.getOwner() instanceof LivingEntity shooter)
                 || !(event.getRayTraceResult() instanceof EntityHitResult hit)
                 || !(hit.getEntity() instanceof ServerPlayer player)
