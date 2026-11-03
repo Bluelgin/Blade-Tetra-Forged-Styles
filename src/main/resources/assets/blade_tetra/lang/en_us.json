@@ -1057,7 +1057,7 @@
   "tooltip.blade_tetra.named_blade_record.use": "Right-click to read; lists legacy fusions registered by this version",
   "message.blade_tetra.named_blade_record.gift": "A copy of the Named Blade Record slips out of the Smithing Journal.",
   "lore.blade_tetra.named_blade_record.cover": "Named Blade Record\n\n— Notes of an unknown bladesmith —\n\n'When you find a famed blade, do not rush to copy its edge.\nStudy the saya first, then the hilt.'\n\nForms and attunements observed on the road; the originals remain the work of their own makers.",
-  "lore.blade_tetra.named_blade_record.imprinting": "[Named ingots]\n\nSurround a named blade with 8 tiny Proud Souls in a crafting table. The blade is returned with wear; repair it first if needed.\n\nUse the ingot as a material in regular Tetra blade, saya or guard forging. All require a level 3 hammer. No research scroll is needed.",
+  "lore.blade_tetra.named_blade_record.imprinting": "[Named ingots]\n\nSurround a named blade with 8 tiny Proud Souls in a crafting table. The blade is returned with wear; repair it first if needed.\n\nUse the ingot as a material in regular Tetra blade, saya or guard forging. No research scroll is needed.",
   "lore.blade_tetra.named_blade_record.orthodox": "[Form and inheritance]\n\nBlade: 50% of source base attack. Saya and guard: 25% each. Sources may be mixed. Durability and capacity grow more slowly; speed follows the module.\n\nMatching saya and guard retain registered source SA/SE inheritance, without a second numerical affinity bonus.",
   "lore.blade_tetra.named_blade_record.fusion_intro": "[Legacy Fusion]\n\nDifferent saya and guard sources may yield a new art.\n\nAt a Tetra workbench, select the blade and Fuse SA, inspect the preview, then confirm. Changing a source requires a new fusion.\n\nAuthored legacies keep their own attunement conditions. Source order matters.",
   "lore.blade_tetra.named_blade_record.fusion_page": "Confirmed fusions",
@@ -1358,7 +1358,7 @@
   "tooltip.blade_tetra.soul_fragment.warning_words": "consumes|consuming|burning|cost|cooldown|interrupt|cancel|exhaustion|reserve|spends",
   "tooltip.blade_tetra.soul_fragment.benefit_words": "recover|restore|boosts|extends|speed|refund|returns",
   "tooltip.blade_tetra.legacy_imprint_scroll.retired": "Retired imprint scroll; use named blade ingots in regular forging.",
-  "tooltip.blade_tetra.named_blade_ingot.stats": "Stats derive from source base attack; requires a level 3 hammer",
+  "tooltip.blade_tetra.named_blade_ingot.stats": "Stats derive from source base attack",
   "tetra.material.named_blade_ingot.name": "Named blade ingot",
   "tetra.material.named_blade_ingot.prefix": "Named",
   "tooltip.blade_tetra.named_blade_ingot.unbound": "Without a name, its nature lies unformed.",
@@ -1756,6 +1756,6 @@
   "book.blade_tetra.diagram.text6": "Source returned with durability spent.",
   "book.blade_tetra.diagram.text7": "1 Blade · 2 Grip$(br)3 Saya · 4 Guard$(br)5 Habaki · 6 Pommel$(br)7 Fuller · 8 Inscription",
   "book.blade_tetra.diagram.text8": "Fit saya and guard first. Confirm fusion on the blade.",
-  "book.blade_tetra.v2.named_ingots.workbench": "Use a real source ingot in an ordinary blade, saya or guard material slot. It requires a tier-3 hammer and follows that module’s quantity.$(br2)Only those three slots accept named ingots; the grip material stays independent.",
+  "book.blade_tetra.v2.named_ingots.workbench": "Use a real source ingot in an ordinary blade, saya or guard material slot. The quantity follows that module’s recipe.$(br2)Only those three slots accept named ingots; the grip material stays independent.",
   "book.blade_tetra.v2.inscriptions.mapping": "Blood Crystal leads to Akatsuki, Sakura Crystal to Senbonzakura, ProudSoul Sphere to Kyouka, and Lightning Rod to Raikiri.$(br2)Discovered clues describe fittings and environment. Installing the inscription prepares the vessel; the rite still awaits."
 }

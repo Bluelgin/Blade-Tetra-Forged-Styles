@@ -62,8 +62,11 @@ public final class NamedIngotSmokeTest {
                     ingot.setCount(64);
                     ItemStack[] materials = {ingot};
                     check(schematic.isMaterialsValid(stack, slot, materials), "Material rejected: " + spec[2]);
-                    check(schematic.getRequiredToolLevels(stack, materials).equals(
-                            Map.of(net.minecraftforge.common.ToolAction.get("hammer_dig"), 3)), "Hammer level: " + spec[2]);
+                    var hammer = net.minecraftforge.common.ToolAction.get("hammer_dig");
+                    int hammerLevel = source.baseAttack() >= 12 ? 4 : 3;
+                    check(schematic.getRequiredToolLevels(stack, materials).equals(Map.of(hammer, hammerLevel))
+                            && schematic.getRequiredToolLevel(stack, materials, hammer) == hammerLevel,
+                            "Hammer level: " + spec[2] + " / " + source.id());
                     ItemStack preview = schematic.applyUpgrade(stack, materials, false, slot, player);
                     check(source.equals(NamedLegacyImprintStorage.snapshot(preview, spec[0])), "Preview lacks snapshot");
                     var module = se.mickelus.tetra.module.ItemUpgradeRegistry.instance.getModule("slashblade/" + spec[1]);
@@ -83,7 +86,7 @@ public final class NamedIngotSmokeTest {
                 }
             }
             verifyMigrationAndMixedSources(player);
-            LogUtils.getLogger().info("NAMED_INGOT_SMOKE_PASS: {} native-material preview/craft pairs; level 3 hammer; exact part attack; migration and mixed sources", count);
+            LogUtils.getLogger().info("NAMED_INGOT_SMOKE_PASS: {} native-material preview/craft pairs; source-based hammer tiers; exact part attack; migration and mixed sources", count);
         } catch (Exception e) {
             LogUtils.getLogger().error("NAMED_INGOT_SMOKE_FAIL", e);
         } finally {

@@ -16,6 +16,10 @@ public record NamedMaterialStats(double attack, int durability, int capacity,
                 Math.max(1, Math.min(4.5, 3 + .3 * log)));
     }
 
+    public static int requiredHammerLevel(double sourceAttack) {
+        return Double.isFinite(sourceAttack) && sourceAttack >= 12 ? 4 : 3;
+    }
+
     public double contribution(String part) {
         return attack * ("blade".equals(part) ? .5 : .25);
     }
