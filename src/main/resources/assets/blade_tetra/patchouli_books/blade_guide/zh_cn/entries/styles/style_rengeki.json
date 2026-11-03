@@ -5,7 +5,9 @@
   "sortnum": 2,
   "pages": [
     {
-      "type": "patchouli:text",
+      "type": "patchouli:spotlight",
+      "item": "blade_tetra:modular_slashblade{\"slashblade/blade\":\"slashblade/wakizashi_blade\",\"slashblade/wakizashi_blade_material\":\"wakizashi_blade/iron\",\"slashblade/saya\":\"slashblade/basic_saya\",\"slashblade/basic_saya_material\":\"basic_saya/oak\",\"slashblade/tsuba\":\"slashblade/simple_tsuba\",\"slashblade/simple_tsuba_material\":\"simple_tsuba/iron\",\"slashblade/tsuka\":\"slashblade/wrapped_tsuka\",\"slashblade/wrapped_tsuka_material\":\"wrapped_tsuka/stick\",\"slashblade/habaki\":\"slashblade/basic_habaki\",\"slashblade/basic_habaki_material\":\"basic_habaki/iron\",\"slashblade/kashira\":\"slashblade/simple_kashira\",\"slashblade/simple_kashira_material\":\"simple_kashira/iron\"}",
+      "title": "book.blade_tetra.v2.style_rengeki.module",
       "text": "book.blade_tetra.v2.style_rengeki.0"
     }
   ]

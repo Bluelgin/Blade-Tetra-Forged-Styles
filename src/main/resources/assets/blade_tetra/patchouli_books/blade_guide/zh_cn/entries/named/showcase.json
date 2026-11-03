@@ -10,7 +10,10 @@
       "text": "book.blade_tetra.v2.named.showcase.0"
     },
     {
-      "type": "blade_tetra:fittings"
+      "type": "patchouli:spotlight",
+      "item": "blade_tetra:modular_slashblade{\"slashblade/blade\":\"slashblade/katana_blade\",\"slashblade/katana_blade_material\":\"katana_blade/named_blade_ingot\",\"slashblade/saya\":\"slashblade/basic_saya\",\"slashblade/basic_saya_material\":\"basic_saya/named_blade_ingot\",\"slashblade/tsuba\":\"slashblade/simple_tsuba\",\"slashblade/simple_tsuba_material\":\"simple_tsuba/named_blade_ingot\",\"slashblade/tsuka\":\"slashblade/wrapped_tsuka\",\"slashblade/wrapped_tsuka_material\":\"wrapped_tsuka/stick\",\"slashblade/habaki\":\"slashblade/basic_habaki\",\"slashblade/basic_habaki_material\":\"basic_habaki/iron\",\"slashblade/kashira\":\"slashblade/simple_kashira\",\"slashblade/simple_kashira_material\":\"simple_kashira/iron\",blade_tetra_named_imprints:{blade:\"slashblade/slashblade_wood\",saya:\"fox_black\",tsuba:\"fox_white\"}}",
+      "title": "book.blade_tetra.v2.named.showcase.sample.title",
+      "text": "book.blade_tetra.v2.named.showcase.sample"
     }
   ]
 }

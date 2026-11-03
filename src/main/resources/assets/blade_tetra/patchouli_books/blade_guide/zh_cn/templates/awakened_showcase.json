@@ -1,0 +1,60 @@
+{
+  "components": [
+    {
+      "type": "patchouli:item",
+      "item": "blade_tetra:akatsuki_soul_fragment",
+      "framed": true,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.awakened.showcase.akatsuki",
+      "x": 25,
+      "y": 0,
+      "max_width": 91
+    },
+    {
+      "type": "patchouli:item",
+      "item": "blade_tetra:senbonzakura_soul_fragment",
+      "framed": true,
+      "x": 1,
+      "y": 38
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.awakened.showcase.senbonzakura",
+      "x": 25,
+      "y": 34,
+      "max_width": 91
+    },
+    {
+      "type": "patchouli:item",
+      "item": "blade_tetra:raikiri_soul_fragment",
+      "framed": true,
+      "x": 1,
+      "y": 72
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.awakened.showcase.raikiri",
+      "x": 25,
+      "y": 68,
+      "max_width": 91
+    },
+    {
+      "type": "patchouli:item",
+      "item": "blade_tetra:kyouka_soul_fragment",
+      "framed": true,
+      "x": 1,
+      "y": 106
+    },
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.awakened.showcase.kyouka",
+      "x": 25,
+      "y": 102,
+      "max_width": 91
+    }
+  ]
+}

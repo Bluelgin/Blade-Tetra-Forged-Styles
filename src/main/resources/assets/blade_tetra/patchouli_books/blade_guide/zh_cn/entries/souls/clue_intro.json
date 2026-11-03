@@ -7,6 +7,9 @@
     {
       "type": "patchouli:text",
       "text": "book.blade_tetra.v2.clue_intro.0"
+    },
+    {
+      "type": "blade_tetra:awakened_showcase"
     }
   ],
   "priority": true
