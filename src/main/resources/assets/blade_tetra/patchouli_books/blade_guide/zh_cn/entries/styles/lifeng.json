@@ -10,8 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "recipe": "blade_tetra:lifeng_scroll",
-      "text": "book.blade_tetra.v2.lifeng.1"
+      "recipe": "blade_tetra:lifeng_scroll"
     },
     {
       "text": "book.blade_tetra.v2.lifeng.2",
