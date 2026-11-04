@@ -191,7 +191,8 @@
       "property": "ae2KeySmoke",
       "directory": "ae2-key-smoke",
       "markers": [
-        "AE2_KEY_NBT_PASS"
+        "AE2_KEY_NBT_PASS",
+        "AE2_CELL_NBT_PASS"
       ],
       "flags": [
         "ae2StorageTest"

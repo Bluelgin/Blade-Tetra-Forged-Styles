@@ -18,7 +18,10 @@ Tetra version check:
 The dedicated `ae2_key` job loads actual AE2 + GuideME in a Forge server,
 converts each of the 11 blade fixtures through AE2's `AEItemKey`
 `toTag/fromTag/toStack`, and checks capabilities, shared tags and compact saves.
-**This is not an ME network or storage-cell round trip.** Any failed job is an
+It then inserts all 11 keys into a **real AE2 64k item storage cell**, persists
+and reloads the cell item, extracts each key and checks no duplicate remains.
+**This is a storage-cell NBT/data-layer test, not an in-world ME drive, terminal
+or connected-network round trip.** Any failed job is an
 unresolved finding; a green job proves only its stated assertions.
 
 ## Important outstanding tests not covered by this audit

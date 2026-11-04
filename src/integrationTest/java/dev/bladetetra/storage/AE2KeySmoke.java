@@ -5,7 +5,11 @@ import dev.bladetetra.item.ModularSlashBladeItem;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
@@ -36,6 +40,27 @@ public final class AE2KeySmoke {
             Method fromTag = keyType.getMethod("fromTag", CompoundTag.class);
             Method toStack = keyType.getMethod("toStack");
             Method matches = keyType.getMethod("matches", ItemStack.class);
+            // Real AE2 64k item storage cell: insert 11 distinct NBT-bearing
+            // blades, persist the cell ItemStack, reload, and extract each key.
+            Class<?> cellsType = Class.forName("appeng.api.storage.StorageCells");
+            Class<?> saveProviderType = Class.forName("appeng.api.storage.cells.ISaveProvider");
+            Class<?> cellType = Class.forName("appeng.api.storage.cells.StorageCell");
+            Class<?> aeKeyType = Class.forName("appeng.api.stacks.AEKey");
+            Class<?> meStorageType = Class.forName("appeng.api.storage.MEStorage");
+            Class<?> actionType = Class.forName("appeng.api.config.Actionable");
+            Class<?> sourceType = Class.forName("appeng.api.networking.security.IActionSource");
+            Method getCell = cellsType.getMethod("getCellInventory", ItemStack.class, saveProviderType);
+            Method insert = meStorageType.getMethod("insert", aeKeyType, long.class, actionType, sourceType);
+            Method extract = meStorageType.getMethod("extract", aeKeyType, long.class, actionType, sourceType);
+            Method persist = cellType.getMethod("persist");
+            Object mode = actionType.getField("MODULATE").get(null);
+            Object actionSource = sourceType.getMethod("empty").invoke(null);
+            var nativeCellItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("ae2", "item_storage_cell_64k"));
+            check(nativeCellItem != null, "AE2 64k storage cell missing");
+            ItemStack cellStack = new ItemStack(nativeCellItem);
+            Object cellStorage = getCell.invoke(null, cellStack, null);
+            check(cellStorage != null, "AE2 did not initialize a native cell");
+            List<Object> insertedKeys = new ArrayList<>();
             int count = 0;
             try (var input = Files.newInputStream(Path.of(fixture))) {
                 var items = NbtIo.readCompressed(input).getList("Inventory", Tag.TAG_COMPOUND);
@@ -64,10 +89,32 @@ public final class AE2KeySmoke {
                     restored.save(saved);
                     check(saved.getCompound("tag").contains(BladeStackStorage.KEY),
                             "AE2 reconstructed blade lost compact-save hook " + i);
+                    check(((Number) insert.invoke(cellStorage, decodedKey, 1L, mode, actionSource)).longValue() == 1L,
+                            "AE2 64k cell rejected blade " + i);
+                    insertedKeys.add(decodedKey);
                     count++;
                 }
             }
-            LogUtils.getLogger().info("AE2_KEY_NBT_PASS: {} saved blade fixtures survived real AE2 AEItemKey toTag/fromTag/toStack, capabilities and compact saves; ME network NOT tested", count);
+            LogUtils.getLogger().info("AE2_KEY_NBT_PASS: {} saved blade fixtures survived AEItemKey NBT, capabilities and compact saves", count);
+            persist.invoke(cellStorage);
+            CompoundTag cellData = new CompoundTag();
+            cellStack.save(cellData);
+            ItemStack restoredCell = ItemStack.of(cellData);
+            Object loadedStorage = getCell.invoke(null, restoredCell, null);
+            check(loadedStorage != null, "AE2 did not reload saved 64k cell");
+            for (int i = 0; i < insertedKeys.size(); i++) {
+                check(((Number) extract.invoke(loadedStorage, insertedKeys.get(i), 1L, mode, actionSource)).longValue() == 1L,
+                        "AE2 cell lost blade NBT/identity after save+reload " + i);
+            }
+            persist.invoke(loadedStorage);
+            ItemStack emptyReload = ItemStack.of(restoredCell.save(new CompoundTag()));
+            Object emptyStorage = getCell.invoke(null, emptyReload, null);
+            check(emptyStorage != null, "AE2 failed to reload emptied cell");
+            for (int i = 0; i < insertedKeys.size(); i++) {
+                check(((Number) extract.invoke(emptyStorage, insertedKeys.get(i), 1L, mode, actionSource)).longValue() == 0L,
+                        "AE2 cell retained duplicate blade after extraction " + i);
+            }
+            LogUtils.getLogger().info("AE2_CELL_NBT_PASS: {} different blade keys survived a real AE2 64k item storage cell insert / persist / ItemStack reload / extract cycle; live ME network NOT tested", count);
         } catch (Throwable failure) {
             LogUtils.getLogger().error("AE2_KEY_NBT_FAIL", failure);
             throw new IllegalStateException("AE2 item-key persistence regression failed", failure);
