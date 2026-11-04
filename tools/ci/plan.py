@@ -97,6 +97,11 @@ def main():
         suites = ('custom_style', 'forging', 'storage') if release_audit else ('custom_style',)
         matrix = {"include": [{"suite": "tetra-" + v, "audit_suite": s} for v in versions for s in suites]}
         if release_audit:
+            # The default-dependency production smoke suite still matters even
+            # when the cross-version Tetra checks are all green.
+            default_suites = [name for name in (config['groups']['full'] + config['groups']['compat'])
+                              if name not in ('custom_style', 'forging', 'storage', 'ae2_key')]
+            matrix['include'].extend({"suite": name, "audit_suite": ""} for name in default_suites)
             matrix['include'].append({"suite": "ae2_key", "audit_suite": ""})
         with open(args.github_output, "a") as target:
             target.write(f"quick={str(plan['quick']).lower()}\nnative={str(bool(plan['suites'])).lower()}\n")
