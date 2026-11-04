@@ -87,7 +87,8 @@ def main():
             paths = [p.decode("utf-8") for p in raw.split(b"\0") if p]
         except (subprocess.CalledProcessError, ValueError, UnicodeError) as error:
             fallback = f"Cannot determine changed paths: {type(error).__name__}"
-    plan = select(load_config(), paths, args.mode, fallback)
+    config = load_config()
+    plan = select(config, paths, args.mode, fallback)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(plan, indent=2) + "\n")
