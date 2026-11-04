@@ -81,10 +81,10 @@ jobs:
     needs: [plan, quick]
     if: needs.plan.outputs.native == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       LIBGL_ALWAYS_SOFTWARE: 'true'
@@ -96,7 +96,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run isolated suite and verify proof markers
-        run: python3 tools/ci/run_suite.py '${{ matrix.suite }}'
+        run: python3 tools/ci/run_suite.py '${{ matrix.suite }}' ${{ matrix.audit_suite && format('--audit-suite {0}', matrix.audit_suite) || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

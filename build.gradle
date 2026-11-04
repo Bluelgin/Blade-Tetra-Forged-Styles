@@ -33,6 +33,7 @@ def developmentProfiles = [
     'lifengSmoke', 'customStyleInputReview', 'mirrorRitualReview', 'bloodBladeReview',
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
+    'ae2KeySmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
     'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest'
 ]
@@ -53,6 +54,10 @@ minecraft {
             if (project.hasProperty('bladeStorageSmoke')) {
                 workingDirectory project.file('build/blade-storage-smoke')
                 property 'blade_tetra.storageSmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
+            }
+            if (project.hasProperty('ae2KeySmoke')) {
+                workingDirectory project.file('build/ae2-key-smoke')
+                property 'blade_tetra.ae2KeySmokeInput', project.file('src/test/resources/storage/awakened-inventory.nbt').absolutePath
             }
             if (project.hasProperty('soulGuideReview')) {
                 workingDirectory project.file('build/soul-guide-review')
@@ -301,6 +306,13 @@ dependencies {
     if (project.hasProperty('contractBladeTest')) {
         runtimeOnly fg.deobf("local:touhoulittlemaid:1.5.3-forge+mc1.20.1")
         runtimeOnly fg.deobf("local:contract-blade-forge-1.20.1:1.0.0")
+    }
+
+    // Isolated AE2 key-persistence regression: real AE2 + GuideME from Curse Maven.
+    // This is NOT an ME drive / terminal / network round-trip test.
+    if (project.hasProperty('ae2StorageTest')) {
+        runtimeOnly fg.deobf("curse.maven:guideme-1173950:7127447")
+        runtimeOnly fg.deobf("curse.maven:applied-energistics-2-223794:7096071")
     }
 
     // Storage/NBT pressure-test profile. These mods exist only in the userdev

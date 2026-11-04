@@ -3,6 +3,7 @@
 import argparse
 import fnmatch
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -91,7 +92,12 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(plan, indent=2) + "\n")
     if args.github_output:
-        matrix = {"include": [{"suite": "tetra-" + v} for v in ("6.13.0", "6.17.0")]}
+        release_audit = os.environ.get('GITHUB_HEAD_REF', '').startswith('codex/release-166-validation-')
+        versions = ('6.3.0', '6.9.0', '6.13.0', '6.17.0') if release_audit else ('6.13.0', '6.17.0')
+        suites = ('custom_style', 'forging', 'storage') if release_audit else ('custom_style',)
+        matrix = {"include": [{"suite": "tetra-" + v, "audit_suite": s} for v in versions for s in suites]}
+        if release_audit:
+            matrix['include'].append({"suite": "ae2_key", "audit_suite": ""})
         with open(args.github_output, "a") as target:
             target.write(f"quick={str(plan['quick']).lower()}\nnative={str(bool(plan['suites'])).lower()}\n")
             target.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")

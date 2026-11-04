@@ -22,11 +22,11 @@ TETRA_PROFILES = {
 }
 
 
-def audit(profile):
+def audit(profile, selected_suite):
     file_id, mutil = TETRA_PROFILES[profile]
     extra = ['--tetra-file', file_id, '--mutil', mutil]
     failed = []
-    for suite in ('custom_style',):
+    for suite in (selected_suite,):
         print(f'::group::{profile} / {suite}', flush=True)
         result = subprocess.run([sys.executable, __file__, suite, *extra], cwd=ROOT)
         print(f'::endgroup::\nTETRA_AUDIT {profile} {suite}: {"FAIL" if result.returncode else "PASS"}', flush=True)
@@ -41,10 +41,13 @@ def main():
     parser.add_argument('suite', choices=sorted([*load_config()['suites'], *TETRA_PROFILES]))
     parser.add_argument('--tetra-file')
     parser.add_argument('--mutil')
+    parser.add_argument('--audit-suite', choices=('custom_style', 'forging', 'storage'))
     args = parser.parse_args()
     if args.suite in TETRA_PROFILES:
-        audit(args.suite)
+        audit(args.suite, args.audit_suite or 'custom_style')
         return
+    if args.audit_suite:
+        parser.error('--audit-suite is only valid for Tetra profiles')
     suite = load_config()['suites'][args.suite]
     directory = ROOT / 'build' / suite['directory']
     if not directory.resolve().is_relative_to((ROOT / 'build').resolve()) or directory == ROOT / 'build':

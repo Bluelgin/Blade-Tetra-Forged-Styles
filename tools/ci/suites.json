@@ -17,7 +17,8 @@
     ],
     "compat": [
       "addon_ingots",
-      "addon_art"
+      "addon_art",
+      "ae2_key"
     ],
     "combat": [
       "aura",
@@ -183,6 +184,17 @@
         "patchouliTest",
         "sjapTest",
         "yakumoTest"
+      ]
+    },
+    "ae2_key": {
+      "kind": "server",
+      "property": "ae2KeySmoke",
+      "directory": "ae2-key-smoke",
+      "markers": [
+        "AE2_KEY_NBT_PASS"
+      ],
+      "flags": [
+        "ae2StorageTest"
       ]
     }
   },
