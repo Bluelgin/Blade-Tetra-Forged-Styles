@@ -5,6 +5,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class NamedMaterialStatsTest {
     @Test
+    void namedIngotsStepUpAtTwelveAndStayAtTierFour() {
+        assertEquals(3, NamedMaterialStats.requiredHammerLevel(2));
+        assertEquals(3, NamedMaterialStats.requiredHammerLevel(Math.nextDown(12.0)));
+        assertEquals(4, NamedMaterialStats.requiredHammerLevel(12));
+        assertEquals(4, NamedMaterialStats.requiredHammerLevel(99));
+        assertEquals(3, NamedMaterialStats.requiredHammerLevel(Double.NaN));
+    }
+
+    @Test
     void mixedPartsContributeIndependentlyWithoutASecondSetBonus() {
         assertEquals(10, NamedMaterialStats.of(20).contribution("blade"));
         assertEquals(2, NamedMaterialStats.of(8).contribution("saya"));

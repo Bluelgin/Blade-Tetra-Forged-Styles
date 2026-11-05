@@ -45,12 +45,7 @@ final class LegacyFusionAbilitySync {
             orthodox = null;
         }
 
-        // Structural named-blade identity wins over a forged inscription.
-        // A forged spec may stay on the item as a dormant player-authored preset,
-        // but it must never replace an authored/programmatic/inherited SA while
-        // leaving that fitting's coupled SE behind (for example Dead Thought).
-        //
-        // Priority:
+        // Slash Art priority:
         // authored fusion > programmatic mixed fusion > orthodox inheritance
         // > forged custom SA > previous/external SA.
         String owner = active != null
@@ -69,13 +64,15 @@ final class LegacyFusionAbilitySync {
                                         orthodox.slashArt())
                                 : forged == null ? null
                                         : ModSlashBladeAbilities.FORGED_SLASH_ART.getId();
-        List<ResourceLocation> desiredEffects = active != null
-                ? active.specialEffects()
-                : programmatic != null
-                        ? List.of()
-                        : orthodox == null ? List.of()
-                                : LegacyAbilityResolver.registeredSpecialEffects(
-                                        orthodox.specialEffects());
+        LegacyImprintKind bladeSource = NamedLegacyParts.bladeFromStack(blade);
+        List<ResourceLocation> bladeEffects = bladeSource == null ? List.of()
+                : LegacyAbilityResolver.registeredSpecialEffects(bladeSource.specialEffects());
+        List<ResourceLocation> desiredEffects = bladeEffects;
+        if (active != null && !active.specialEffects().isEmpty()) {
+            // Signature fusions can grant effects of their own alongside the blade material.
+            desiredEffects = new ArrayList<>(bladeEffects);
+            desiredEffects.addAll(active.specialEffects());
+        }
 
         String previousOwner = tag.getString(ABILITY_OWNER);
         // Migrate the first fusion build without losing the SA it displaced.
@@ -90,9 +87,7 @@ final class LegacyFusionAbilitySync {
 
         if (!owner.equals(previousOwner)) {
             restoreStructuralSlashArt(tag, state);
-            removeOwnedSpecialEffects(tag, state);
             reconcileStructuralSlashArt(tag, state, desiredSlashArt);
-            reconcileOwnedSpecialEffects(tag, state, desiredEffects);
             if (owner.isEmpty()) {
                 tag.remove(ABILITY_OWNER);
             } else {
@@ -103,6 +98,9 @@ final class LegacyFusionAbilitySync {
             // assembled, but registry/data changes must also be able to withdraw an
             // ability without requiring the player to disassemble the weapon first.
             reconcileStructuralSlashArt(tag, state, desiredSlashArt);
+        }
+
+        if (!desiredEffects.isEmpty() || tag.contains(OWNED_SPECIAL_EFFECTS)) {
             reconcileOwnedSpecialEffects(tag, state, desiredEffects);
         }
 
@@ -213,20 +211,6 @@ final class LegacyFusionAbilitySync {
             }
         }
         writeOwnedSpecialEffects(tag, owned);
-    }
-
-    private static void removeOwnedSpecialEffects(CompoundTag tag,
-            ISlashBladeState state) {
-        String stored = tag.getString(OWNED_SPECIAL_EFFECTS);
-        if (!stored.isEmpty()) {
-            for (String value : stored.split(",")) {
-                ResourceLocation effect = ResourceLocation.tryParse(value);
-                if (effect != null) {
-                    state.getSpecialEffects().removeIf(effect::equals);
-                }
-            }
-        }
-        tag.remove(OWNED_SPECIAL_EFFECTS);
     }
 
     private static void writeOwnedSpecialEffects(CompoundTag tag, List<String> owned) {
