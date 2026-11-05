@@ -5,20 +5,8 @@
   "sortnum": 4,
   "pages": [
     {
-      "text": "book.blade_tetra.v2.style_custom.0",
-      "type": "patchouli:text"
-    },
-    {
-      "text": "book.blade_tetra.v2.style_custom.1",
-      "title": "book.blade_tetra.v2.style_custom.1.title",
-      "type": "patchouli:text"
-    },
-    {
-      "type": "patchouli:relations",
-      "entries": [
-        "blade_tetra:styles/scrolls",
-        "blade_tetra:styles/scroll_editor"
-      ]
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.style_custom.0"
     }
   ]
 }

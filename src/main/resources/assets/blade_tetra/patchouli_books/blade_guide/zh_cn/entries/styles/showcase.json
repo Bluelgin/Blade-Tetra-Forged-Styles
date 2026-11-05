@@ -1,0 +1,18 @@
+{
+  "name": "book.blade_tetra.v2.styles.showcase.name",
+  "category": "blade_tetra:styles",
+  "icon": "blade_tetra:modular_slashblade",
+  "sortnum": -1,
+  "priority": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.styles.showcase.0"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "blade_tetra:style_recorder",
+      "text": "book.blade_tetra.v2.styles.showcase.scroll"
+    }
+  ]
+}

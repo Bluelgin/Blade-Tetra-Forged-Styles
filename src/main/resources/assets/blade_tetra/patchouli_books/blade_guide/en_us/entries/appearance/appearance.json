@@ -5,8 +5,8 @@
   "sortnum": 0,
   "pages": [
     {
-      "text": "book.blade_tetra.v2.appearance.0",
-      "type": "patchouli:text"
+      "type": "patchouli:text",
+      "text": "book.blade_tetra.v2.appearance.0"
     },
     {
       "type": "patchouli:crafting",
@@ -27,13 +27,6 @@
       "type": "patchouli:crafting",
       "recipe": "blade_tetra:saya_pattern_purple_lightning",
       "text": "book.blade_tetra.v2.appearance.4"
-    },
-    {
-      "type": "patchouli:relations",
-      "entries": [
-        "blade_tetra:appearance/banner",
-        "blade_tetra:souls/inscriptions"
-      ]
     }
   ]
 }

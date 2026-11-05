@@ -131,14 +131,15 @@ public final class ManualArtReview {
 
     private static String captureName(String id, int spread) {
         return switch (id + "/" + spread) {
-            case "blade_tetra:basics/first_blade/1" -> "01-conversion";
-            case "blade_tetra:basics/parts/0" -> "02-fittings";
-            case "blade_tetra:styles/style_iaido/0" -> "03-iaido";
+            case "blade_tetra:basics/first_blade/0" -> "01-conversion";
+            case "blade_tetra:named/showcase/0" -> "02-fittings";
+            case "blade_tetra:styles/showcase/0" -> "03-styles";
             case "blade_tetra:named/named_ingots/0" -> "04-extraction";
             case "blade_tetra:named/fusion/0" -> "05-fusion";
             case "blade_tetra:named/forged_sa/1" -> "06-forged-art";
-            case "blade_tetra:souls/soul_akatsuki/2" -> "07-akatsuki";
-            case "blade_tetra:souls/soul_kyouka/1" -> "08-kyouka";
+            case "blade_tetra:souls/soul_akatsuki/0" -> "07-akatsuki";
+            case "blade_tetra:souls/soul_kyouka/0" -> "08-kyouka";
+            case "blade_tetra:souls/clue_intro/0" -> "10-awakened";
             case "blade_tetra:appearance/appearance/0" -> "09-saya-pattern";
             default -> null;
         };
