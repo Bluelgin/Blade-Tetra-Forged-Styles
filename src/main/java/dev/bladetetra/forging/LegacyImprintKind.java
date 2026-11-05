@@ -68,7 +68,7 @@ public record LegacyImprintKind(String id, ResourceLocation name,
     }
 
     public boolean supportsOrthodoxInheritance() {
-        return slashArt != null || !specialEffects.isEmpty();
+        return slashArt != null;
     }
 
     public static LegacyImprintKind fromTranslationKey(String key) {

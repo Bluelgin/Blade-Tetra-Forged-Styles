@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 /** Bounded server snapshots; visuals never select victims or authorize damage. */
 public record AkatsukiThreadPacket(UUID owner,UUID binding,ResourceLocation dimension,long sequence,long age,
         Phase phase,float fuel,List<Target> targets) {
-    public enum Phase { BURN, BIND, SNAP, MIST, RETURN, END }
+    public enum Phase { BURN, BIND, SNAP, MIST, RETURN, END, DEFLECT }
     public record Target(int id,Vec3 center,float width,float height) {}
     public boolean valid() {
         return owner!=null&&binding!=null&&dimension!=null&&sequence>0&&age>=0&&age<=2400&&phase!=null

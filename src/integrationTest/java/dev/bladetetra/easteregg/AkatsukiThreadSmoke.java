@@ -54,29 +54,57 @@ final class AkatsukiThreadSmoke {
             reach.addTransientModifier(reachBonus);
             check(Math.abs(AkatsukiBloodTendrils.range(p)-baseRange-3)<.001,"reach bonuses scale by 1.5 during SA");
             target.setPos(p.getX(),p.getY(),p.getZ()+baseRange+1);target.setHealth(100);
-            time(level,((at+40)/40+1)*40);tick(p);
-            check(target.getHealth()<100,"extended range deals real damage");
-            reach.removeModifier(reachBonus);float health=target.getHealth();
-            time(level,level.getGameTime()+40);tick(p);
-            check(target.getHealth()==health&&AkatsukiBloodTendrils.active(p),"out of range releases target without canceling channel");
-            target.setPos(p.getX(),p.getY(),p.getZ()+3);target.setHealth(100);
-            // Restart so the entire contribution belongs to this channel, then exhaust real Rank.
-            AkatsukiBloodTendrils.cancel(p);state.setComboSeq(ComboStateRegistry.NONE.getId());
-            rank.setRawRankPoint(1200);rank.setLastUpdte(level.getGameTime());state.doChargeAction(p,40);at=level.getGameTime();
-            long points=1200;int elapsed=0;
-            for(int t=1;t<230;t++) {
-                elapsed=t;time(level,at+t);tick(p);long next=rank.getRankPoint(level.getGameTime());
-                check(next<=points,"channel never earns Rank");points=next;tick(p);
-                check(rank.getRankPoint(level.getGameTime())==next,"duplicate same-tick callback cannot debit again");
-                if(points==0)break;
-            }
-            check(points==0&&AkatsukiBloodTendrils.active(p),"exhaustion enters binding instead of disappearing");
-            check(target.getHealth()<40&&target.getHealth()>0,"real thread hits build contribution without duplicate credit");
-            target.setHealth(8);
-            time(level,at+elapsed+10);tick(p);
-            check(!target.isAlive(),"eligible enemy dies through final damage pipeline");
-            check(AkatsukiBloodBlade.full(p)&&p.getMaxHealth()==11,"finisher retains full blood escrow");
-            time(level,at+elapsed+20);tick(p);check(!AkatsukiBloodTendrils.active(p),"normal completion clears controller");
+            for (int t = 37; t <= 44; t++) { time(level, at + t); tick(p); }
+            check(Math.abs(target.getHealth() - 95.2F) < .01F, "extended range applies a 40% lash");
+            reach.removeModifier(reachBonus);
+            time(level, at + 45); tick(p);
+            check(!AkatsukiBloodTendrils.active(p), "losing the last target releases the channel");
+
+            target.setPos(p.getX(), p.getY(), p.getZ() + 3);
+            target.setHealth(100);
+            state.setComboSeq(ComboStateRegistry.NONE.getId());
+            rank.setRawRankPoint(54); rank.setLastUpdte(level.getGameTime());
+            state.doChargeAction(p, 40); at = level.getGameTime();
+            for (int t = 1; t <= 12; t++) { time(level, at + t); tick(p); }
+            var arrow = new net.minecraft.world.entity.projectile.Arrow(level, target);
+            var hit = new net.minecraft.world.phys.EntityHitResult(p);
+            long beforeArrow = rank.getRankPoint(level.getGameTime());
+            AkatsukiBloodTendrils.interceptArrow(new net.minecraftforge.event.entity.ProjectileImpactEvent(arrow, hit));
+            check(arrow.isRemoved() && rank.getRankPoint(level.getGameTime()) == beforeArrow + 30,
+                    "intercepted hostile arrow awards Rank");
+            var nextArrow = new net.minecraft.world.entity.projectile.Arrow(level, target);
+            AkatsukiBloodTendrils.interceptArrow(new net.minecraftforge.event.entity.ProjectileImpactEvent(nextArrow, hit));
+            check(!nextArrow.isRemoved(), "deflection interval rejects consecutive arrows");
+            for (int t = 13; t <= 20; t++) { time(level, at + t); tick(p); }
+            check(AkatsukiBloodTendrils.active(p), "deflection extends the original fuel budget");
+            for (int t = 21; t <= 30 && AkatsukiBloodTendrils.active(p); t++) { time(level, at + t); tick(p); }
+            check(!AkatsukiBloodTendrils.active(p) && Math.abs(target.getHealth() - 95.2F) < .01F,
+                    "fuel exhaustion releases without a bonus finishing hit");
+
+            state.setComboSeq(ComboStateRegistry.NONE.getId());
+            rank.setRawRankPoint(60); rank.setLastUpdte(level.getGameTime());
+            state.doChargeAction(p, 40); at = level.getGameTime();
+            for (int t = 1; t <= 12; t++) { time(level, at + t); tick(p); }
+            var orbit = p.getPassengers().stream()
+                    .filter(entity -> entity.getClass() == mods.flammpfeil.slashblade.entity.EntitySpiralSwords.class)
+                    .findFirst().orElseThrow();
+            long beforeOrbit = rank.getRankPoint(level.getGameTime());
+            rank.addRankPoint(p.damageSources().indirectMagic(orbit, p));
+            long nativeGain = rank.getRankPoint(level.getGameTime()) - beforeOrbit;
+            check(nativeGain == (long) (rank.getUnitCapacity() * .1F), "orbit gains native Rank once");
+            for (int t = 13; t <= 22; t++) { time(level, at + t); tick(p); }
+            check(AkatsukiBloodTendrils.active(p), "native orbit Rank extends channel past the starting budget");
+            AkatsukiBloodTendrils.cancel(p);
+
+            target.setHealth(12);
+            state.setComboSeq(ComboStateRegistry.NONE.getId());
+            rank.setRawRankPoint(600); rank.setLastUpdte(level.getGameTime());
+            state.doChargeAction(p, 40); at = level.getGameTime();
+            for (int t = 1; t <= 12; t++) { time(level, at + t); tick(p); }
+            check(!target.isAlive(), "first lock executes at the snapshotted attack threshold");
+            check(!AkatsukiBloodTendrils.active(p) && rank.getRankPoint(level.getGameTime()) > 0,
+                    "last target execution releases immediately and preserves unspent Rank");
+            check(AkatsukiBloodBlade.full(p) && p.getMaxHealth() == 11, "finisher retains full blood escrow");
             check(p.getAttribute(Attributes.MOVEMENT_SPEED).getValue()>0,"movement modifier released");
             rank.setRawRankPoint(600);rank.setLastUpdte(level.getGameTime());state.setComboSeq(ComboStateRegistry.NONE.getId());state.doChargeAction(p,40);
             p.setPos(p.getX()+3,p.getY(),p.getZ());time(level,level.getGameTime()+1);tick(p);
@@ -85,7 +113,7 @@ final class AkatsukiThreadSmoke {
             check(AkatsukiBloodTendrils.active(p),"subsequent channel allowed");
             p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,ItemStack.EMPTY);tick(p);
             check(!AkatsukiBloodTendrils.active(p),"weapon swap cancels without finisher");
-            LogUtils.getLogger().info("AKATSUKI_THREAD_SMOKE_PASS: native SA, preparation-only movement lock, walking/jumping/turning, attribute-scaled real reach hits, out-of-range release, teleport fallback, protection, Rank burn, real execution and weapon cancellation");
+            LogUtils.getLogger().info("AKATSUKI_THREAD_SMOKE_PASS: native SA, preparation-only movement lock, walking/jumping/turning, attribute-scaled real reach hits, out-of-range release, teleport fallback, protection, 40% lashes, arrow refuel, first-lock execution and weapon cancellation");
         } finally {
             MinecraftForge.EVENT_BUS.unregister(reject);MinecraftForge.EVENT_BUS.unregister(protect);AkatsukiBloodTendrils.cancel(p);
             target.discard();p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,blade);

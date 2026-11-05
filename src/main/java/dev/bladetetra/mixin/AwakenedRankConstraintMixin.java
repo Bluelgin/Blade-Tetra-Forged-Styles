@@ -3,6 +3,9 @@ package dev.bladetetra.mixin;
 import dev.bladetetra.kyouka.KyoukaMirrorSessions;
 import dev.bladetetra.combat.InheritedCombatDamage;
 import dev.bladetetra.easteregg.SoulLegacyDamageGuard;
+import dev.bladetetra.easteregg.AkatsukiBloodTendrils;
+import mods.flammpfeil.slashblade.entity.EntitySpiralSwords;
+import net.minecraft.server.level.ServerPlayer;
 import dev.bladetetra.easteregg.SakuraCombatVisuals;
 import mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRank;
 import mods.flammpfeil.slashblade.capability.concentrationrank.IConcentrationRank;
@@ -20,7 +23,15 @@ public abstract class AwakenedRankConstraintMixin implements IConcentrationRank 
         if(point>0&&bladeTetra$slowRank)point/=4;
         long now = user.level().getGameTime();
         int before = getRank(now).level;
+        boolean orbitingHit = point > 0 && user instanceof ServerPlayer player
+                && bladeTetra$rankSource != null
+                && bladeTetra$rankSource.getDirectEntity() instanceof EntitySpiralSwords sword
+                && sword.getClass() == EntitySpiralSwords.class && sword.getOwner() == player && !sword.itFired();
+        long beforePoints = orbitingHit ? Math.max(0, getRankPoint(now)) : 0;
         IConcentrationRank.super.addRankPoint(user, point);
+        if (orbitingHit) {
+            AkatsukiBloodTendrils.orbitingSwordRankGain((ServerPlayer) user, getRankPoint(now) - beforePoints);
+        }
         KyoukaMirrorSessions.rankChanged(user, before, getRank(now).level, bladeTetra$rankSource);
     }
     @Override public void addRankPoint(DamageSource source) {
