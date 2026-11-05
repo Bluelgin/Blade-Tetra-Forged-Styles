@@ -3,6 +3,7 @@ package dev.bladetetra.client;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.challenge.MikageChallengeAccess;
 import dev.bladetetra.config.ClientVisualConfig;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -52,7 +53,7 @@ public final class AudioPackReminderClient {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
+        if (event.phase != TickEvent.Phase.END || !MikageChallengeAccess.combatOpen()) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
