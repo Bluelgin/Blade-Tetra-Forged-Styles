@@ -7,8 +7,11 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.math.Axis;
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.client.kyouka.WaterMirrorVisuals;
 import dev.bladetetra.config.ClientVisualConfig;
+import dev.bladetetra.kyouka.WaterMirrorEffect;
 import dev.bladetetra.network.KyoukaVfxPacket;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -17,8 +20,10 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -48,7 +53,7 @@ public final class KyoukaVfxClient {
         if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
+            EFFECTS.clear(); SEEN.clear();
             activeLevel = minecraft.level;
         }
         if (minecraft.level == null || !packet.dimension().equals(minecraft.level.dimension().location())
@@ -66,35 +71,28 @@ public final class KyoukaVfxClient {
         if (packet.type() == KyoukaVfxPacket.REFLECTION_POOL
                 || packet.type() == KyoukaVfxPacket.BREAK_CHARGE) {
             EFFECTS.removeIf(effect -> effect.type != KyoukaVfxPacket.BREAK_SHATTER
+                    && effect.type < KyoukaVfxPacket.ARMOR_DEFLECT
                     && effect.sourceEntityId == packet.sourceEntityId()
                     && effect.targetEntityId == packet.targetEntityId());
         }
-        if (packet.type() == KyoukaVfxPacket.WATER_DEFLECT
-                && minecraft.level.getEntity(packet.sourceEntityId()) instanceof net.minecraft.client.player.AbstractClientPlayer p)
-            dev.bladetetra.client.kyouka.WaterMirrorLayer.impulse(p,packet.started());
-        Effect effect = new Effect(packet); effect.age = (int)Math.max(0,elapsed);
+        if (packet.type() == KyoukaVfxPacket.AFTERIMAGE_FADE) {
+            int kept = 0;
+            for (int i = EFFECTS.size() - 1; i >= 0; i--) {
+                Effect previous = EFFECTS.get(i);
+                if (previous.type == packet.type() && previous.sourceEntityId == packet.sourceEntityId()
+                        && ++kept >= 2) EFFECTS.remove(i);
+            }
+        }
+        Effect effect = new Effect(packet);
+        effect.age = (int) Math.max(0, elapsed);
+        if (packet.type() == KyoukaVfxPacket.ARMOR_DEFLECT
+                && packet.targetEntityId() >= 0) {
+            Entity attacker = minecraft.level.getEntity(packet.targetEntityId());
+            if (attacker != null) effect.direction = attacker.position().subtract(effect.position).normalize();
+        }
         EFFECTS.add(effect);
         int cap = Math.max(12, ClientVisualConfig.BLADE_COMBAT_VFX_MAX_EFFECTS.get());
         while (EFFECTS.size() > cap) EFFECTS.remove(0);
-    }
-
-    @SubscribeEvent
-    public static void arm(net.minecraftforge.client.event.RenderArmEvent e) {
-        var p = e.getPlayer();
-        if (!p.hasEffect(dev.bladetetra.kyouka.WaterMirrorEffect.ARMOR.get())
-                || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
-        var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(p);
-        if (!(renderer instanceof net.minecraft.client.renderer.entity.player.PlayerRenderer playerRenderer)) return;
-        var model = playerRenderer.getModel();
-        var arm = e.getArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
-        float x = arm.xRot, y = arm.yRot, z = arm.zRot;
-        try {
-            arm.xRot = 0; arm.yRot = 0; arm.zRot = 0;
-            float ratio = Math.max(0, Math.min(1, p.getAirSupply()/(float)Math.max(1,p.getMaxAirSupply())));
-            arm.render(e.getPoseStack(), e.getMultiBufferSource().getBuffer(net.minecraft.client.renderer.RenderType.entityTranslucent(
-                    dev.bladetetra.client.kyouka.WaterMirrorLayer.WATER)), e.getPackedLight(),
-                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, .65F, .88F, 1, .06F+.18F*ratio);
-        } finally { arm.xRot=x; arm.yRot=y; arm.zRot=z; }
     }
 
     @SubscribeEvent
@@ -102,7 +100,7 @@ public final class KyoukaVfxClient {
         Minecraft minecraft = Minecraft.getInstance();
         if (event.phase != TickEvent.Phase.END || minecraft.isPaused()) return;
         if (minecraft.level != activeLevel) {
-            EFFECTS.clear(); SEEN.clear(); dev.bladetetra.client.kyouka.WaterMirrorLayer.clear();
+            EFFECTS.clear(); SEEN.clear();
             activeLevel = minecraft.level;
         }
         if (activeLevel != null) SEEN.values().removeIf(until -> until < activeLevel.getGameTime());
@@ -117,8 +115,9 @@ public final class KyoukaVfxClient {
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
-                || EFFECTS.isEmpty()
                 || !ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get()) return;
+        renderFilm(event);
+        if (EFFECTS.isEmpty()) return;
         Camera camera = event.getCamera();
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
@@ -147,6 +146,115 @@ public final class KyoukaVfxClient {
         poses.popPose();
     }
 
+    private static void renderFilm(RenderLevelStageEvent event) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        var camera = event.getCamera();
+        var eye = camera.getPosition();
+        var pose = event.getPoseStack();
+        var buffers = mc.renderBuffers().bufferSource();
+        double distance = ClientVisualConfig.BLADE_COMBAT_VFX_DISTANCE.get();
+        float intensity = ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue();
+        float partial = event.getPartialTick();
+        boolean drew = false;
+        for (var player : mc.level.players()) {
+            if (!player.hasEffect(WaterMirrorEffect.ARMOR.get()) || !player.isAlive() || player.isInvisible()
+                    || (player == camera.getEntity() && !camera.isDetached())
+                    || eye.distanceToSqr(player.position()) > distance * distance
+                    || !event.getFrustum().isVisible(player.getBoundingBox().inflate(.8))) continue;
+            var pos = player.getPosition(partial).subtract(eye);
+            Effect hit = lastDeflection(player);
+            float ripple = hit == null ? 0 : Mth.clamp((hit.age + partial + 1) / hit.duration, 0, 1);
+            float angle = hit == null ? 0 : (float) Math.atan2(hit.direction.z, hit.direction.x) - .7F;
+            pose.pushPose();
+            try {
+                pose.translate(pos.x, pos.y, pos.z);
+                WaterMirrorVisuals.armor(pose, buffers, player.getBbWidth() * .8F + .22F, player.getBbHeight(),
+                        (mc.level.getGameTime() % 4096) + partial,
+                        intensity * (.10F + .30F * airRatio(player)), ripple, angle);
+                drew = true;
+            } finally {
+                pose.popPose();
+            }
+        }
+        for (Effect effect : EFFECTS) {
+            if (effect.type != KyoukaVfxPacket.AFTERIMAGE_FADE
+                    || eye.distanceToSqr(effect.position) > distance * distance) continue;
+            float age = effect.age + partial;
+            float progress = Mth.clamp(age / effect.duration, 0, 1);
+            var pos = effect.position.subtract(eye);
+            pose.pushPose();
+            try {
+                pose.translate(pos.x, pos.y, pos.z);
+                pose.mulPose(Axis.YP.rotationDegrees(-Float.intBitsToFloat(effect.seed)));
+                pose.scale(1F + progress * .2F, 1F - progress * .43F, 1F + progress * .2F);
+                WaterMirrorVisuals.echo(pose, buffers, age, .28F * (1 - progress) * intensity, false);
+                drew = true;
+            } finally {
+                pose.popPose();
+            }
+        }
+        if (drew) buffers.endBatch(WaterMirrorVisuals.FILM);
+    }
+
+    @SubscribeEvent
+    public static void renderArmorHud(RenderGuiEvent.Post event) {
+        var mc = Minecraft.getInstance();
+        if (!ClientVisualConfig.ENABLE_BLADE_COMBAT_VFX.get() || mc.options.hideGui
+                || !mc.options.getCameraType().isFirstPerson() || mc.level != activeLevel
+                || mc.player == null || mc.getCameraEntity() != mc.player) return;
+        Effect hit = lastDeflection(mc.player);
+        boolean armored = mc.player.hasEffect(WaterMirrorEffect.ARMOR.get());
+        if (!armored && hit == null) return;
+        float t = hit == null ? 1 : Mth.clamp((hit.age + event.getPartialTick()) / hit.duration, 0, 1);
+        float pulse = hit == null ? 0 : .46F * Mth.sin(t * Mth.PI);
+        float base = armored ? .055F + .085F * airRatio(mc.player) : 0;
+        float intensity = ClientVisualConfig.BLADE_COMBAT_VFX_INTENSITY.get().floatValue();
+        var camera = mc.gameRenderer.getMainCamera();
+        float right = hit == null ? 0 : (float) -hit.direction.dot(new Vec3(camera.getLeftVector()));
+        float up = hit == null ? 0 : (float) hit.direction.dot(new Vec3(camera.getUpVector()));
+        var gui = event.getGuiGraphics();
+        float w = gui.guiWidth();
+        float h = gui.guiHeight();
+        float inset = Math.min(w, h) * (.09F + .035F * (1 - t));
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, WaterMirrorVisuals.WATER);
+        var buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        Matrix4f matrix = gui.pose().last().pose();
+        edge(buffer, matrix, 0, 0, w, 0, 0, inset, intensity * (base + pulse * (.35F + .65F * Math.max(0, up))));
+        edge(buffer, matrix, w, 0, w, h, -inset, 0, intensity * (base + pulse * (.35F + .65F * Math.max(0, right))));
+        edge(buffer, matrix, w, h, 0, h, 0, -inset, intensity * (base + pulse * (.35F + .65F * Math.max(0, -up))));
+        edge(buffer, matrix, 0, h, 0, 0, inset, 0, intensity * (base + pulse * (.35F + .65F * Math.max(0, -right))));
+        Tesselator.getInstance().end();
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
+    }
+
+    private static void edge(BufferBuilder buffer, Matrix4f matrix, float x0, float y0, float x1, float y1,
+            float inwardX, float inwardY, float alpha) {
+        alpha = Mth.clamp(alpha, 0, 1);
+        buffer.vertex(matrix, x0, y0, 0).uv(0, 0).color(.55F, .85F, 1F, alpha).endVertex();
+        buffer.vertex(matrix, x1, y1, 0).uv(1, 0).color(.55F, .85F, 1F, alpha).endVertex();
+        buffer.vertex(matrix, x1 + inwardX, y1 + inwardY, 0).uv(1, 1).color(.55F, .85F, 1F, 0F).endVertex();
+        buffer.vertex(matrix, x0 + inwardX, y0 + inwardY, 0).uv(0, 1).color(.55F, .85F, 1F, 0F).endVertex();
+    }
+
+    private static float airRatio(Player player) {
+        return Mth.clamp(player.getAirSupply() / (float) Math.max(1, player.getMaxAirSupply()), 0, 1);
+    }
+
+    private static Effect lastDeflection(Player player) {
+        for (int i = EFFECTS.size() - 1; i >= 0; i--) {
+            Effect effect = EFFECTS.get(i);
+            if (effect.type == KyoukaVfxPacket.ARMOR_DEFLECT && effect.sourceEntityId == player.getId()) return effect;
+        }
+        return null;
+    }
+
     private static void renderPools(Matrix4f matrix, float partialTick, float global) {
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
@@ -171,7 +279,7 @@ public final class KyoukaVfxClient {
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         for (Effect e : EFFECTS) {
-            if (e.type < KyoukaVfxPacket.WATER_GATHER) continue;
+            if (e.type < KyoukaVfxPacket.WATER_GATHER || e.type == KyoukaVfxPacket.AFTERIMAGE_FADE) continue;
             float t = Mth.clamp((e.age + partial) / e.duration, 0, 1);
             Vec3 center = e.position.add(0, .9, 0);
             boolean gather = e.type == KyoukaVfxPacket.WATER_GATHER;
@@ -233,6 +341,7 @@ public final class KyoukaVfxClient {
         final int duration;
         final int seed;
         Vec3 position;
+        Vec3 direction = Vec3.ZERO;
         int age;
 
         Effect(KyoukaVfxPacket packet) {

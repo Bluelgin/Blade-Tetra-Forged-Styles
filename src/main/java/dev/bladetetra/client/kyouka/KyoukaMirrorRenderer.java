@@ -40,7 +40,7 @@ public final class KyoukaMirrorRenderer {
         previous.packet = p; previous.received = level.getGameTime();
     }
     public static void reload() {
-        SAMPLER.reset(); WaterMirrorLayer.clear();
+        SAMPLER.reset();
         for (var s : SESSIONS.values()) { s.model = null; s.unsupported = false; }
     }
     @SubscribeEvent public static void unload(LevelEvent.Unload e) {
@@ -83,7 +83,7 @@ public final class KyoukaMirrorRenderer {
                                 center.y-eye.y+.1+Math.sin(clock*.06)*.06,
                                 center.z-eye.z+Math.sin(angle)*radius);
                         pose.mulPose(Axis.YP.rotation((float)(-angle-Math.PI*.5)));
-                        WaterMirrorLayer.surface(pose, buffers, (float)Math.min(1, Math.max(0, (data.started()+20-clock)/8)));
+                        WaterMirrorVisuals.surface(pose, buffers, (float)Math.min(1, Math.max(0, (data.started()+20-clock)/8)));
                         if (clock < data.started()) continue;
                         if (motion != null) {
                             pose.mulPoseMatrix(motion);

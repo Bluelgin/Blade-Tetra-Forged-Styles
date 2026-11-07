@@ -3,6 +3,7 @@ package dev.bladetetra.kyouka;
 import dev.bladetetra.combat.InheritedCombatDamage;
 import dev.bladetetra.easteregg.*;
 import dev.bladetetra.registry.ModEntities;
+import dev.bladetetra.network.KyoukaVfxPacket;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.*;
@@ -20,10 +21,10 @@ import net.minecraftforge.eventbus.api.*;
 import net.minecraftforge.fml.common.Mod;
 import java.util.*;
 
-/** Only native trick completion creates illusions. Each owner has three, each illusion four targets. */
+/** Each owner has one targetable echo, with up to four diverted mobs. */
 @Mod.EventBusSubscriber(modid = "blade_tetra")
 public final class KyoukaAfterimages {
-    static final Map<UUID, ArrayDeque<KyoukaAfterimageEntity>> ACTIVE = new HashMap<>();
+    static final Map<UUID, KyoukaAfterimageEntity> ACTIVE = new HashMap<>();
     public record Departure(ServerPlayer player, ItemStack blade, Vec3 origin, float yaw, float pitch,
             net.minecraft.server.level.ServerLevel level) {}
     public static Departure capture(Entity entity) {
@@ -41,20 +42,20 @@ public final class KyoukaAfterimages {
         var p = departure.player();
         if (!eligible(p) || p.serverLevel() != departure.level() || p.getMainHandItem() != departure.blade()
                 || p.position().distanceToSqr(departure.origin()) < .25) return;
-        var images = ACTIVE.get(p.getUUID());
-        if (images == null) {
-            if (ACTIVE.size() >= 64) return;
-            images = new ArrayDeque<>(3);
-        }
-        while (images.size() >= 3) images.getFirst().discard();
+        UUID owner = p.getUUID();
+        if (!ACTIVE.containsKey(owner) && ACTIVE.size() >= 64) return;
         var echo = ModEntities.KYOUKA_AFTERIMAGE.get().create(p.serverLevel());
         if (echo == null) return;
         echo.configure(p, departure.blade(), departure.origin(), departure.yaw(), departure.pitch());
         if (!p.serverLevel().addFreshEntity(echo)) return;
-        ACTIVE.put(p.getUUID(), images); images.addLast(echo);
+        // Publish the replacement before releasing targets so the normal target
+        // event can transfer eligible mobs directly to the new echo.
+        var previous = ACTIVE.put(owner, echo);
+        if (previous != null) previous.dissolve();
         p.serverLevel().getEntitiesOfClass(Mob.class, echo.getBoundingBox().inflate(6),
-                mob -> mob.getTarget() == p && hostile(echo, mob) && echo.hasLineOfSight(mob))
-                .stream().sorted(Comparator.comparingDouble(echo::distanceToSqr)).limit(4).forEach(mob -> {
+                mob -> mob.getTarget() == p && canDivert(echo, mob))
+                .stream().sorted(Comparator.comparingDouble(echo::distanceToSqr))
+                .limit(Math.max(0, 4 - echo.diverted.size())).forEach(mob -> {
                     mob.setTarget(echo);
                     if (mob.getTarget() == echo) echo.diverted.add(mob);
                 });
@@ -63,7 +64,7 @@ public final class KyoukaAfterimages {
     }
     static boolean valid(KyoukaAfterimageEntity echo) {
         var p = echo.owner;
-        return p != null && eligible(p) && p.level() == echo.level() && p.getMainHandItem() == echo.blade
+        return p != null && ACTIVE.get(p.getUUID()) == echo && eligible(p) && p.level() == echo.level() && p.getMainHandItem() == echo.blade
                 && p.getInventory().selected == echo.slot;
     }
     static boolean hostile(KyoukaAfterimageEntity echo, Mob mob) {
@@ -75,21 +76,25 @@ public final class KyoukaAfterimages {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void target(LivingChangeTargetEvent event) {
         if (!(event.getEntity() instanceof Mob mob) || !(event.getNewTarget() instanceof ServerPlayer owner)) return;
-        var images = ACTIVE.get(owner.getUUID());
-        if (images == null) return;
-        images.stream().filter(e -> !e.isRemoved() && valid(e) && hostile(e,mob)
-                && (e.diverted.contains(mob) || e.diverted.size() < 4)
-                && e.distanceToSqr(mob) <= 36 && e.hasLineOfSight(mob))
-                .min(Comparator.comparingDouble(e -> e.distanceToSqr(mob))).ifPresent(e -> {
-                    event.setNewTarget(e);
-                    if (!e.diverted.contains(mob)) e.diverted.add(mob);
-                });
+        var echo = ACTIVE.get(owner.getUUID());
+        if (echo != null && !echo.isRemoved() && valid(echo) && canDivert(echo, mob)
+                && (echo.diverted.contains(mob) || echo.diverted.size() < 4)) {
+            event.setNewTarget(echo);
+            if (!echo.diverted.contains(mob)) echo.diverted.add(mob);
+        }
+    }
+    private static boolean canDivert(KyoukaAfterimageEntity echo, Mob mob) {
+        return mob.level() == echo.level() && hostile(echo, mob)
+                && echo.distanceToSqr(mob) <= 36 && echo.hasLineOfSight(mob);
+    }
+    static void fade(KyoukaAfterimageEntity echo) {
+        WaterMirrorCombat.visualAt(echo.owner, echo.position(), KyoukaVfxPacket.AFTERIMAGE_FADE,
+                -1, 10, Float.floatToIntBits(echo.getYRot()));
     }
     static void release(KyoukaAfterimageEntity echo) {
         var p = echo.owner;
         if (p == null) return;
-        var images = ACTIVE.get(p.getUUID());
-        if (images != null) { images.remove(echo); if (images.isEmpty()) ACTIVE.remove(p.getUUID()); }
+        ACTIVE.remove(p.getUUID(), echo);
         for (var mob : echo.diverted) {
             if (!mob.isRemoved() && mob.getTarget() == echo)
                 mob.setTarget(p.isAlive() && !p.isRemoved() && !p.isSpectator() && p.level() == mob.level()
@@ -119,7 +124,7 @@ public final class KyoukaAfterimages {
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        for (var images : List.copyOf(ACTIVE.values())) for (var echo : List.copyOf(images))
+        for (var echo : List.copyOf(ACTIVE.values()))
             if (echo.isRemoved() || !valid(echo)) { if (echo.isRemoved()) release(echo); else echo.discard(); }
     }
     @SubscribeEvent public static void stopped(ServerStoppedEvent event) { ACTIVE.clear(); }

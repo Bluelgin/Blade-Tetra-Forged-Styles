@@ -50,7 +50,9 @@ public final class WaterMirrorCombat {
         if (!payment.event.isCanceled() && payment.event.getAmount() > 0 && p.getHealth() < payment.health) {
             DEFENSE.get(p.getUUID()).budget.commit(payment.tick, payment.saved);
             p.setAirSupply(Math.max(0, p.getAirSupply() - 20));
-            visual(p, p, KyoukaVfxPacket.WATER_DEFLECT, 12);
+            var attacker = payment.event.getSource().getEntity();
+            visualAt(p, p.position(), KyoukaVfxPacket.ARMOR_DEFLECT,
+                    attacker == null ? -1 : attacker.getId(), 12, p.getRandom().nextInt());
             if (p.getAirSupply() <= 0) {
                 var s = KyoukaMirrorSessions.STATES.get(p.getUUID());
                 if (s != null) KyoukaMirrorSessions.endArmor(s);
@@ -63,10 +65,13 @@ public final class WaterMirrorCombat {
         DEFENSE.values().removeIf(l -> l.budget.expired(l.server.overworld().getGameTime()));
     }
     static void visual(ServerPlayer p, LivingEntity target, int type, int duration) {
-        var pos = target.position();
+        visualAt(p, target.position(), type, target.getId(), duration, p.getRandom().nextInt());
+    }
+    static void visualAt(ServerPlayer p, net.minecraft.world.phys.Vec3 pos, int type,
+            int targetId, int duration, int seed) {
         ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 pos.x, pos.y, pos.z, 96, p.level().dimension())), new KyoukaVfxPacket(type, pos.x, pos.y, pos.z,
-                p.getId(), target.getId(), 1, duration, p.getRandom().nextInt(), p.level().dimension().location(), p.level().getGameTime(), UUID.randomUUID()));
+                p.getId(), targetId, 1, duration, seed, p.level().dimension().location(), p.level().getGameTime(), UUID.randomUUID()));
     }
     static void clear() { DEFENSE.clear(); PAYMENTS.clear(); }
     private WaterMirrorCombat() {}
