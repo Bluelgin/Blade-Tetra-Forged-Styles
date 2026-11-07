@@ -24,7 +24,8 @@ import org.joml.Matrix4f;
  * aggro state remain server authoritative; a missing skin is purely visual.
  */
 public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterimageEntity> {
-    private final PlayerEchoRenderer playerEcho;
+    private PlayerEchoRenderer playerEcho;
+    private final EntityRendererProvider.Context context;
     private final boolean ysmInstalled;
     private boolean playerEchoFailed;
 
@@ -32,8 +33,8 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
         super(context);
         // YSM replaces player rendering. Never send a decoy through a player-model
         // rendering path in that environment; use our independent water silhouette.
+        this.context = context;
         ysmInstalled = ModList.get().isLoaded("yes_steve_model");
-        playerEcho = ysmInstalled ? null : new PlayerEchoRenderer(context);
     }
 
     @Override
@@ -49,6 +50,7 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
         if (KyoukaDecoyVisualPolicy.select(ysmInstalled, owner != null, playerEchoFailed)
                 == KyoukaDecoyVisualPolicy.Mode.PLAYER_ECHO) {
             try {
+                if (playerEcho == null) playerEcho = new PlayerEchoRenderer(context);
                 playerEcho.render(entity, yaw, partial, pose, buffers, light);
                 return;
             } catch (RuntimeException e) {
@@ -57,6 +59,9 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
                 playerEchoFailed = true;
                 com.mojang.logging.LogUtils.getLogger().warn(
                         "Kyouka player-model echo unavailable; using model-free water silhouette", e);
+                // A failed model pass may have dirtied the current PoseStack.
+                // Use the safe fallback on the next frame, never in this frame.
+                return;
             }
         }
         try {
