@@ -3,6 +3,7 @@ package dev.bladetetra.kyouka;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.registry.ModEntities;
 import net.minecraft.network.syncher.*;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
@@ -43,6 +44,11 @@ public final class KyoukaAfterimageEntity extends PathfinderMob {
     @Override protected void registerGoals() {}
     @Override public void tick() {
         super.tick(); setDeltaMovement(Vec3.ZERO);
+        // Model-independent, bounded Tier-3 visual if all client mesh passes fail.
+        if (level().isClientSide && tickCount % 8 == 0) {
+            level().addParticle(ParticleTypes.END_ROD,
+                    getX(), getY() + 1.0, getZ(), 0, 0.012, 0);
+        }
         if (!level().isClientSide && (tickCount >= 60 || !KyoukaAfterimages.valid(this))) discard();
     }
     @Override public boolean hurt(DamageSource source, float amount) {
