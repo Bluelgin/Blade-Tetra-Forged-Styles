@@ -25,14 +25,15 @@ import org.joml.Matrix4f;
  */
 public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterimageEntity> {
     private final PlayerEchoRenderer playerEcho;
+    private final boolean ysmInstalled;
     private boolean playerEchoFailed;
 
     public KyoukaAfterimageRenderer(EntityRendererProvider.Context context) {
         super(context);
         // YSM replaces player rendering. Never send a decoy through a player-model
         // rendering path in that environment; use our independent water silhouette.
-        playerEcho = ModList.get().isLoaded("yes_steve_model")
-                ? null : new PlayerEchoRenderer(context);
+        ysmInstalled = ModList.get().isLoaded("yes_steve_model");
+        playerEcho = ysmInstalled ? null : new PlayerEchoRenderer(context);
     }
 
     @Override
@@ -45,7 +46,8 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
                 .map(net.minecraft.client.player.AbstractClientPlayer.class::cast)
                 .orElse(null);
 
-        if (owner != null && playerEcho != null && !playerEchoFailed) {
+        if (KyoukaDecoyVisualPolicy.select(ysmInstalled, owner != null, playerEchoFailed)
+                == KyoukaDecoyVisualPolicy.Mode.PLAYER_ECHO) {
             try {
                 playerEcho.render(entity, yaw, partial, pose, buffers, light);
                 return;
