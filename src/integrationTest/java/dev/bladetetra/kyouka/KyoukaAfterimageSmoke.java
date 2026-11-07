@@ -46,9 +46,8 @@ public final class KyoukaAfterimageSmoke {
             KyoukaAfterimages.completed(capture);
             check(!KyoukaAfterimages.ACTIVE.containsKey(player.getUUID()), "no displacement means no image");
             SlayerStyleArts.getInstance().executeTrickUp(player);
-            var images = KyoukaAfterimages.ACTIVE.get(player.getUUID());
-            check(images != null && images.size()==1, "successful native V trick creates image");
-            var first = images.getFirst();
+            var first = KyoukaAfterimages.ACTIVE.get(player.getUUID());
+            check(first != null, "successful native V trick creates image");
             check(first.position().distanceToSqr(new Vec3(2,200,2)) < .001, "image remains at native departure");
             check(attacker.getTarget()==first, "hostile attacker actually targets the image");
             check(!first.hurt(player.damageSources().fall(), 1), "environment cannot detonate illusion");
@@ -59,23 +58,35 @@ public final class KyoukaAfterimageSmoke {
             check(attacker.getHealth()<health && health-attacker.getHealth()<=6, "shatter has bounded real damage");
             float after = attacker.getHealth();
             check(!first.hurt(player.damageSources().mobAttack(attacker), 1) && attacker.getHealth()==after, "cannot detonate twice");
-            for(int i=0;i<3;i++) SlayerStyleArts.getInstance().executeTrickUp(player);
-            images = KyoukaAfterimages.ACTIVE.get(player.getUUID());
-            check(images.size()==3, "three simultaneous images");
-            var oldest = images.getFirst();
+            player.setPos(2, 200, 2);
             SlayerStyleArts.getInstance().executeTrickUp(player);
-            check(oldest.isRemoved() && images.size()==3 && attacker.getHealth()==after, "fourth harmlessly replaces oldest");
-            var expired = images.getFirst();
-            attacker.setTarget(expired);
-            if (!expired.diverted.contains(attacker)) expired.diverted.add(attacker);
-            expired.tickCount=60; expired.tick();
-            check(expired.isRemoved() && attacker.getTarget()!=expired && attacker.getHealth()==after, "expiry restores target without damage");
-            var remaining = images.getFirst();
-            var other = mob(player,mobs,4,200,2);
-            attacker.setTarget(remaining); remaining.diverted.add(attacker); attacker.setTarget(other);
+            var old = KyoukaAfterimages.ACTIVE.get(player.getUUID());
+            check(attacker.getTarget() == old, "attacker pursues the next decoy");
+            var far = mob(player, mobs, 3, 200, 3);
+            far.setTarget(player);
+            check(far.getTarget() == old, "new hostile target is diverted to the current decoy");
+            far.setPos(14, 200, 2);
+            player.setPos(2, 200, 2);
+            SlayerStyleArts.getInstance().executeTrickUp(player);
+            var replacement = KyoukaAfterimages.ACTIVE.get(player.getUUID());
+            check(replacement != null && replacement != old && old.isRemoved()
+                    && !old.hurt(player.damageSources().mobAttack(attacker), 1)
+                    && attacker.getHealth() == after, "old echo retires without damage or a targetable entity");
+            check(attacker.getTarget() == replacement && far.getTarget() == player,
+                    "replacement transfers in-range mobs and releases out-of-range mobs");
+            replacement.tickCount = KyoukaAfterimageEntity.LIFETIME;
+            replacement.tick();
+            check(replacement.isRemoved() && attacker.getTarget() == player && attacker.getHealth() == after,
+                    "expiry restores target without damage");
+            player.setPos(2, 200, 2);
+            SlayerStyleArts.getInstance().executeTrickUp(player);
+            var remaining = KyoukaAfterimages.ACTIVE.get(player.getUUID());
+            var other = mob(player, mobs, 4, 200, 2);
+            attacker.setTarget(other);
             remaining.discard();
-            check(attacker.getTarget()==other, "cleanup preserves a subsequently changed AI target");
-            var last = images.getFirst();
+            check(attacker.getTarget() == other, "cleanup preserves a subsequently changed AI target");
+            SlayerStyleArts.getInstance().executeTrickUp(player);
+            var last = KyoukaAfterimages.ACTIVE.get(player.getUUID());
             protectedTarget = mob(player,mobs,last.getX()+.5,last.getY(),last.getZ());
             protect=true; float protectedHealth=protectedTarget.getHealth();
             last.hurt(player.damageSources().mobAttack(protectedTarget), 1);
@@ -101,7 +112,7 @@ public final class KyoukaAfterimageSmoke {
                     mods.flammpfeil.slashblade.util.InputCommand.FORWARD));
             check(KyoukaAfterimages.ACTIVE.containsKey(player.getUUID()), "ordinary directional V dodge creates image: pos="
                     +player.position()+" delta="+player.getDeltaMovement()+" avoid="+movementState.getAvoidCount());
-            for (var echo : List.copyOf(KyoukaAfterimages.ACTIVE.get(player.getUUID()))) echo.discard();
+            KyoukaAfterimages.ACTIVE.get(player.getUUID()).discard();
             player.setPos(2,200,2);
             var airTarget = mob(player,mobs,10,200,2);
             player.getPersistentData().putInt("sb.airtrick.counter",1);
@@ -114,18 +125,18 @@ public final class KyoukaAfterimageSmoke {
                 SlayerStyleArts.getInstance().handleAirTrickCounter(player);
             } finally { player.connection=connection; }
             check(KyoukaAfterimages.ACTIVE.containsKey(player.getUUID()), "delayed native Air Trick completion creates image");
-            var airImage=KyoukaAfterimages.ACTIVE.get(player.getUUID()).getFirst();
+            var airImage=KyoukaAfterimages.ACTIVE.get(player.getUUID());
             check(airImage.position().distanceToSqr(new Vec3(2,200,2)) < .001, "delayed Air Trick image uses actual departure");
             player.addEffect(new net.minecraft.world.effect.MobEffectInstance(WaterMirrorEffect.ARMOR.get(),200));
             check(KyoukaAfterimages.capture(player)==null, "water form cannot create normal-form images");
             airImage.tick();
             check(airImage.isRemoved(), "entering water form clears normal-form images");
             player.removeEffect(WaterMirrorEffect.ARMOR.get());
-            LogUtils.getLogger().info("KYOUKA_AFTERIMAGE_SMOKE_PASS: native move, three-image cap, real aggro, single bounded hit, expiry, protection and weapon cleanup");
+            LogUtils.getLogger().info("KYOUKA_AFTERIMAGE_SMOKE_PASS: native move, single decoy, aggro transfer and release, bounded shatter, expiry, protection and weapon cleanup");
         } finally {
             protect=false; protectedTarget=null;
-            var images = KyoukaAfterimages.ACTIVE.get(player.getUUID());
-            if(images!=null) for(var echo:List.copyOf(images)) echo.discard();
+            var echo = KyoukaAfterimages.ACTIVE.get(player.getUUID());
+            if (echo != null) echo.discard();
             mobs.forEach(Zombie::discard);
             floor.forEach(level::setBlockAndUpdate);
             player.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(baseDamage);

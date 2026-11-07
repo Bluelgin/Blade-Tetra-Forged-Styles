@@ -16,6 +16,8 @@ public record KyoukaVfxPacket(int type, double x, double y, double z,
     public static final int BREAK_SHATTER = 2;
     public static final int WATER_GATHER = 3, WATER_IMPACT = 4, WATER_DEFLECT = 5;
 
+    public static final int ARMOR_DEFLECT = 6, AFTERIMAGE_FADE = 7;
+
     public static void encode(KyoukaVfxPacket packet, FriendlyByteBuf buffer) {
         buffer.writeByte(packet.type);
         buffer.writeDouble(packet.x);
