@@ -12,7 +12,9 @@ import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.worldselection.WorldOpenFlows;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -107,13 +109,13 @@ public final class SaltyFishReview {
             case 130 -> camera(mc, 7.45, -59.2, 3.0, 37, 180, 0);
             case 152 -> screenshot = "05-mixed-length";
             case 160 -> {
-                mc.options.fov().set(58);
+                mc.options.fov().set(65);
                 mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
                 onServer(mc, player -> {
                     player.getInventory().setItem(0, samples.standardBlade().copy());
                     player.getInventory().selected = 0;
                     player.inventoryMenu.broadcastChanges();
-                    player.connection.teleport(-6, -60, 2, 20, 8);
+                    player.connection.teleport(-6, -60, 2, 20, 20);
                     player.getAbilities().flying = false;
                     player.onUpdateAbilities();
                 });
@@ -189,7 +191,16 @@ public final class SaltyFishReview {
     private static void openWorld(Minecraft mc) {
         String id = "salty-fish-review";
         if (Files.exists(mc.gameDirectory.toPath().resolve("saves").resolve(id).resolve("level.dat"))) {
-            mc.createWorldOpenFlows().loadLevel(mc.screen, id);
+            // This disposable world has experimental dimensions. Skip only its backup
+            // prompt so the same native loader can reopen it without a human click.
+            try {
+                var load = WorldOpenFlows.class.getDeclaredMethod("doLoadLevel",
+                        Screen.class, String.class, boolean.class, boolean.class);
+                load.setAccessible(true);
+                load.invoke(mc.createWorldOpenFlows(), mc.screen, id, false, false);
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Could not reopen the disposable review world", failure);
+            }
             return;
         }
         var rules = new GameRules();
