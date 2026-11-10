@@ -35,11 +35,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
+import se.mickelus.tetra.blocks.scroll.ScrollData;
 import se.mickelus.tetra.blocks.workbench.WorkbenchTile;
 import se.mickelus.tetra.blocks.workbench.gui.WorkbenchScreen;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -49,7 +51,8 @@ public final class SaltyFishReview {
     private static final BlockPos BENCH = new BlockPos(11, -60, 0);
     private static CompletableFuture<SaltyFishSmoke.Samples> prepared;
     private static SaltyFishSmoke.Samples samples;
-    private static boolean starting;
+    private static boolean starting, rejoin;
+    private static CompletableFuture<Boolean> reloaded;
     private static int age, tick;
     private static String screenshot;
     private static int captures;
@@ -64,13 +67,17 @@ public final class SaltyFishReview {
             openWorld(mc);
         }
         if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null) return;
+        if (rejoin) {
+            verifyRejoin(mc);
+            return;
+        }
         if (prepared == null) {
             if (mc.screen != null) return;
             mc.options.pauseOnLostFocus = false;
             mc.options.hideGui = true;
             mc.options.guiScale().set(3);
             mc.options.renderDistance().set(5);
-            mc.options.tutorialStep = net.minecraft.client.tutorial.TutorialSteps.NONE;
+            mc.getTutorial().setStep(net.minecraft.client.tutorial.TutorialSteps.NONE);
             mc.resizeDisplay();
             var server = mc.getSingleplayerServer();
             var playerId = mc.player.getUUID();
@@ -89,18 +96,18 @@ public final class SaltyFishReview {
             }
         }
         switch (++tick) {
-            case 1 -> camera(mc, 0.5, -59.2, 7.0, 51, 180, 0);
+            case 1 -> camera(mc, 0.5, -59.2, 6.2, 47, 180, 0);
             case 32 -> screenshot = "01-three-lengths";
             case 40 -> camera(mc, 0.5, -59.2, 2.9, 35, 180, 0);
             case 62 -> screenshot = "02-standard-sheathed";
-            case 70 -> camera(mc, -0.48, -59.15, 1.3, 31, 164, 1);
+            case 70 -> camera(mc, 0.12, -59.15, 1.7, 35, 172, 1);
             case 92 -> screenshot = "03-standard-guard";
-            case 100 -> camera(mc, 2.50, -59.15, 1.3, 31, 164, 1);
+            case 100 -> camera(mc, 3.12, -59.15, 1.7, 35, 172, 1);
             case 122 -> screenshot = "04-second-guard";
             case 130 -> camera(mc, 7.45, -59.2, 3.0, 37, 180, 0);
             case 152 -> screenshot = "05-mixed-length";
             case 160 -> {
-                mc.options.fov().set(46);
+                mc.options.fov().set(58);
                 mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
                 onServer(mc, player -> {
                     player.getInventory().setItem(0, samples.standardBlade().copy());
@@ -111,10 +118,12 @@ public final class SaltyFishReview {
                     player.onUpdateAbilities();
                 });
             }
-            case 185 -> drawBlade(mc);
-            case 189, 193, 197 -> screenshot = "06-standard-drawn-" + (tick - 185);
-            case 228 -> screenshot = "07-standard-resheathed";
-            case 236 -> {
+            case 185 -> drawBlade(mc, ComboStateRegistry.COMBO_A1.getId());
+            case 188, 192, 195 -> screenshot = "06-standard-drawn-sweep-" + (tick - 185);
+            case 215 -> drawBlade(mc, ComboStateRegistry.UPPERSLASH.getId());
+            case 219, 223, 227 -> screenshot = "06-standard-drawn-upper-" + (tick - 215);
+            case 295 -> screenshot = "07-standard-resheathed";
+            case 305 -> {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
                 mc.options.hideGui = false;
                 camera(mc, 11.5, -59.0, 2.9, 42, 180, 22);
@@ -123,22 +132,57 @@ public final class SaltyFishReview {
                     player.inventoryMenu.broadcastChanges();
                 });
             }
-            case 263 -> screenshot = "08-scroll-unfolded-above-workbench";
-            case 272 -> {
+            case 332 -> screenshot = "08-scroll-unfolded-above-workbench";
+            case 340 -> {
                 mc.options.hideGui = false;
                 onServer(mc, player -> NetworkHooks.openScreen(player,
                         (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH), BENCH));
             }
-            case 315 -> selectSlot(mc, ModularSlashBladeItem.BLADE_SLOT);
-            case 335 -> screenshot = "09-workbench-fishbone";
-            case 345 -> selectSlot(mc, ModularSlashBladeItem.SAYA_SLOT);
-            case 365 -> screenshot = "10-workbench-fish-saya";
-            case 385 -> {
-                if (captures != 12) throw new IllegalStateException("Expected 12 captures, got " + captures);
-                LogUtils.getLogger().info("SALTY_FISH_REVIEW_PASS: native scroll, six upgrades, save round trip, seeded fishing and {} framebuffer captures", captures);
-                mc.stop();
+            case 378 -> selectSlot(mc, ModularSlashBladeItem.BLADE_SLOT);
+            case 398 -> screenshot = "09-workbench-fishbone";
+            case 408 -> selectSlot(mc, ModularSlashBladeItem.SAYA_SLOT);
+            case 428 -> screenshot = "10-workbench-fish-saya";
+            case 450 -> {
+                if (captures != 15) throw new IllegalStateException("Expected 15 captures, got " + captures);
+                rejoin = true;
+                starting = false;
+                mc.player.closeContainer();
+                mc.level.disconnect();
+                mc.clearLevel(new TitleScreen());
             }
             default -> { }
+        }
+        if (screenshot != null) {
+            mc.getToasts().clear();
+            mc.gui.getChat().clearMessages(true);
+        }
+    }
+
+    private static void verifyRejoin(Minecraft mc) {
+        if (mc.screen != null) return;
+        if (reloaded == null) {
+            var server = mc.getSingleplayerServer();
+            var playerId = mc.player.getUUID();
+            reloaded = server.submit(() -> {
+                var player = server.getPlayerList().getPlayer(playerId);
+                var saved = player.getInventory().getItem(7);
+                var expected = samples.caughtBlade();
+                var guard = SaltyFishParts.salvagedGuard(saved);
+                var bench = (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH);
+                return saved.is(ModItems.MODULAR_SLASHBLADE.get())
+                        && SaltyFishParts.blade(saved) == SaltyFishParts.blade(expected)
+                        && SaltyFishParts.saya(saved) == SaltyFishParts.saya(expected)
+                        && saved.getDamageValue() == expected.getDamageValue()
+                        && guard != null && guard.equals(SaltyFishParts.salvagedGuard(expected))
+                        && bench != null && Arrays.asList(bench.getUnlockedSchematics())
+                                .containsAll(ScrollData.read(samples.scroll()).schematics);
+            });
+            return;
+        }
+        if (reloaded.isDone()) {
+            if (!reloaded.join()) throw new IllegalStateException("Fishing construction or scroll lost on rejoin");
+            LogUtils.getLogger().info("SALTY_FISH_REVIEW_PASS: native scroll, six upgrades, saved fishing blade and workbench after world rejoin, {} framebuffer captures", captures);
+            mc.stop();
         }
     }
 
@@ -169,11 +213,13 @@ public final class SaltyFishReview {
             var inventory = (IItemHandlerModifiable) bench.getCapability(ForgeCapabilities.ITEM_HANDLER)
                     .orElseThrow(IllegalStateException::new);
             inventory.setStackInSlot(0, ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+            player.getInventory().setItem(7, samples.caughtBlade().copy());
             var standItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("slashblade", "bladestand_1w"));
             if (standItem == null) throw new IllegalStateException("Native SlashBlade stand unavailable");
             for (int x = -5; x <= 9; x++) {
                 for (int y = -60; y <= -57; y++) {
-                    level.setBlockAndUpdate(new BlockPos(x, y, -1), Blocks.SMOOTH_SANDSTONE.defaultBlockState());
+                    var backdrop = x >= 6 ? Blocks.GRAY_TERRACOTTA : Blocks.SMOOTH_SANDSTONE;
+                    level.setBlockAndUpdate(new BlockPos(x, y, -1), backdrop.defaultBlockState());
                 }
             }
             level.getEntitiesOfClass(BladeStandEntity.class,
@@ -198,9 +244,8 @@ public final class SaltyFishReview {
         server.execute(() -> action.accept(server.getPlayerList().getPlayer(id)));
     }
 
-    private static void drawBlade(Minecraft mc) {
+    private static void drawBlade(Minecraft mc, ResourceLocation combo) {
         // Drive the existing SlashBlade motion on the logical server and local renderer.
-        var combo = ComboStateRegistry.UPPERSLASH.getId();
         onServer(mc, player -> player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
                 .ifPresent(state -> state.updateComboSeq(player, combo)));
         mc.player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)

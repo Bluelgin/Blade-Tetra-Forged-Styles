@@ -35,7 +35,7 @@ import java.util.List;
 
 public final class SaltyFishSmoke {
     public record Samples(ItemStack scroll, ItemStack shortBlade, ItemStack standardBlade,
-            ItemStack longBlade, ItemStack mixedBlade) {}
+            ItemStack longBlade, ItemStack mixedBlade, ItemStack caughtBlade) {}
 
     public static Samples verify(ServerLevel level, Player player, BlockPos pos) throws Exception {
         ItemStack scroll = verifyRecipe(level);
@@ -77,7 +77,7 @@ public final class SaltyFishSmoke {
                 SaltyFishParts.create(shortLength, shortLength, guard),
                 SaltyFishParts.create(standardLength, standardLength, guard),
                 SaltyFishParts.create(longLength, longLength, other),
-                SaltyFishParts.create(longLength, shortLength, other));
+                SaltyFishParts.create(longLength, shortLength, other), catchStack);
     }
 
     private static ItemStack verifyRecipe(ServerLevel level) {
