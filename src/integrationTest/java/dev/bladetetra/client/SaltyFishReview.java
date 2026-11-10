@@ -4,10 +4,12 @@ import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.forging.SaltyFishSmoke;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.item.SaltyFishParts;
 import dev.bladetetra.registry.ModItems;
 import mods.flammpfeil.slashblade.entity.BladeStandEntity;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -31,6 +33,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import se.mickelus.tetra.blocks.workbench.WorkbenchTile;
 import se.mickelus.tetra.blocks.workbench.gui.WorkbenchScreen;
@@ -43,7 +46,7 @@ import java.util.function.Consumer;
 /** Disposable integrated world and native framebuffer captures for this feature. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT)
 public final class SaltyFishReview {
-    private static final BlockPos BENCH = new BlockPos(6, -60, 0);
+    private static final BlockPos BENCH = new BlockPos(11, -60, 0);
     private static CompletableFuture<SaltyFishSmoke.Samples> prepared;
     private static SaltyFishSmoke.Samples samples;
     private static boolean starting;
@@ -75,36 +78,46 @@ public final class SaltyFishReview {
             return;
         }
         if (!prepared.isDone()) return;
-        if (samples == null) samples = prepared.join();
+        if (samples == null) {
+            samples = prepared.join();
+            for (var stack : new ItemStack[]{samples.standardBlade(), samples.longBlade()}) {
+                var guard = SaltyFishParts.salvagedGuard(stack);
+                if (guard == null || !guard.visualUsable()) {
+                    throw new IllegalStateException("Review guard is missing compatible geometry: " + guard);
+                }
+                LogUtils.getLogger().info("SALTY_FISH_REVIEW_GUARD: {}", guard.id());
+            }
+        }
         switch (++tick) {
-            case 1 -> camera(mc, 0.5, -59.3, 6.0, 48);
+            case 1 -> camera(mc, 0.5, -59.2, 7.0, 51, 180, 0);
             case 32 -> screenshot = "01-three-lengths";
-            case 40 -> camera(mc, 0.5, -59.3, 3.7, 35);
+            case 40 -> camera(mc, 0.5, -59.2, 2.9, 35, 180, 0);
             case 62 -> screenshot = "02-standard-sheathed";
-            case 70 -> camera(mc, 0.3, -59.3, 2.5, 30);
+            case 70 -> camera(mc, -0.48, -59.15, 1.3, 31, 164, 1);
             case 92 -> screenshot = "03-standard-guard";
-            case 100 -> camera(mc, 2.8, -59.3, 2.5, 30);
+            case 100 -> camera(mc, 2.50, -59.15, 1.3, 31, 164, 1);
             case 122 -> screenshot = "04-second-guard";
-            case 130 -> camera(mc, 5.0, -59.3, 3.5, 39);
+            case 130 -> camera(mc, 7.45, -59.2, 3.0, 37, 180, 0);
             case 152 -> screenshot = "05-mixed-length";
             case 160 -> {
-                mc.options.fov().set(58);
+                mc.options.fov().set(46);
                 mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
                 onServer(mc, player -> {
                     player.getInventory().setItem(0, samples.standardBlade().copy());
                     player.getInventory().selected = 0;
                     player.inventoryMenu.broadcastChanges();
-                    player.connection.teleport(-4, -60, 1, -35, 8);
+                    player.connection.teleport(-6, -60, 2, 20, 8);
                     player.getAbilities().flying = false;
                     player.onUpdateAbilities();
                 });
             }
-            case 185 -> KeyMapping.click(mc.options.keyAttack.getKey());
+            case 185 -> drawBlade(mc);
             case 189, 193, 197 -> screenshot = "06-standard-drawn-" + (tick - 185);
             case 228 -> screenshot = "07-standard-resheathed";
             case 236 -> {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
-                camera(mc, 6.5, -61.2, 3.1, 46);
+                mc.options.hideGui = false;
+                camera(mc, 11.5, -59.0, 2.9, 42, 180, 22);
                 onServer(mc, player -> {
                     player.getInventory().setItem(0, samples.scroll().copy());
                     player.inventoryMenu.broadcastChanges();
@@ -113,8 +126,8 @@ public final class SaltyFishReview {
             case 263 -> screenshot = "08-scroll-unfolded-above-workbench";
             case 272 -> {
                 mc.options.hideGui = false;
-                onServer(mc, player -> player.openMenu(
-                        (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH)));
+                onServer(mc, player -> NetworkHooks.openScreen(player,
+                        (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH), BENCH));
             }
             case 315 -> selectSlot(mc, ModularSlashBladeItem.BLADE_SLOT);
             case 335 -> screenshot = "09-workbench-fishbone";
@@ -150,6 +163,7 @@ public final class SaltyFishReview {
         try {
             var level = player.serverLevel();
             level.setDayTime(6000);
+            level.removeBlock(BENCH.above(), false);
             var samples = SaltyFishSmoke.verify(level, player, BENCH);
             var bench = (WorkbenchTile) level.getBlockEntity(BENCH);
             var inventory = (IItemHandlerModifiable) bench.getCapability(ForgeCapabilities.ITEM_HANDLER)
@@ -157,15 +171,18 @@ public final class SaltyFishReview {
             inventory.setStackInSlot(0, ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
             var standItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("slashblade", "bladestand_1w"));
             if (standItem == null) throw new IllegalStateException("Native SlashBlade stand unavailable");
-            for (int x = -3; x <= 5; x++) {
+            for (int x = -5; x <= 9; x++) {
                 for (int y = -60; y <= -57; y++) {
                     level.setBlockAndUpdate(new BlockPos(x, y, -1), Blocks.SMOOTH_SANDSTONE.defaultBlockState());
                 }
             }
+            level.getEntitiesOfClass(BladeStandEntity.class,
+                    new net.minecraft.world.phys.AABB(-5, -60, -1, 10, -55, 2)).forEach(stand -> stand.discard());
             ItemStack[] blades = {samples.shortBlade(), samples.standardBlade(), samples.longBlade(), samples.mixedBlade()};
+            int[] positions = {-3, 0, 3, 7};
             for (int i = 0; i < blades.length; i++) {
                 var stand = BladeStandEntity.createInstanceFromPos(level,
-                        new BlockPos(-2 + i * 2, -58, 0), Direction.SOUTH, standItem);
+                        new BlockPos(positions[i], -58, 0), Direction.SOUTH, standItem);
                 stand.setItem(blades[i].copy());
                 level.addFreshEntity(stand);
             }
@@ -181,12 +198,21 @@ public final class SaltyFishReview {
         server.execute(() -> action.accept(server.getPlayerList().getPlayer(id)));
     }
 
-    private static void camera(Minecraft mc, double x, double y, double z, int fov) {
+    private static void drawBlade(Minecraft mc) {
+        // Drive the existing SlashBlade motion on the logical server and local renderer.
+        var combo = ComboStateRegistry.UPPERSLASH.getId();
+        onServer(mc, player -> player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
+                .ifPresent(state -> state.updateComboSeq(player, combo)));
+        mc.player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE)
+                .ifPresent(state -> state.updateComboSeq(mc.player, combo));
+    }
+
+    private static void camera(Minecraft mc, double x, double y, double z, int fov, float yaw, float pitch) {
         mc.options.fov().set(fov);
         onServer(mc, player -> {
             player.getAbilities().flying = true;
             player.onUpdateAbilities();
-            player.connection.teleport(x, y, z, 180, 0);
+            player.connection.teleport(x, y, z, yaw, pitch);
         });
     }
 

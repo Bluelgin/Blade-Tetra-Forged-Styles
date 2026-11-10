@@ -77,7 +77,7 @@ public final class BladeNameResolver {
         var fishSaya = SaltyFishParts.saya(stack);
         if (fishBlade != null && !inheritedLegacy && !has(stack, ModularSlashBladeItem.INSCRIPTION_SLOT,
                 ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE)) {
-            if (fishSaya != null) {
+            if (fishSaya != null && !(fishBlade == SaltyFishParts.Length.SHORT && fishSaya == fishBlade)) {
                 return Component.translatable(fishBlade == SaltyFishParts.Length.LONG && fishSaya == fishBlade
                         ? "name.blade_tetra.salty_fish.long" : "name.blade_tetra.salty_fish");
             }

@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
-import java.util.List;
 import java.util.function.Predicate;
 
 public final class SaltyFishLootModifier extends LootModifier {
@@ -51,7 +51,7 @@ public final class SaltyFishLootModifier extends LootModifier {
     static ItemStack catchBlade(RandomSource random) {
         var blade = SaltyFishParts.Length.random(random);
         var saya = SaltyFishParts.Length.random(random);
-        var guard = chooseGuard(random, new ArrayList<>(NamedLegacyCatalog.values()),
+        var guard = chooseGuard(random, NamedLegacyCatalog.values(),
                 SaltyFishLootModifier::hasPackagedGuard);
         ItemStack stack = SaltyFishParts.create(blade, saya, guard);
         stack.setDamageValue(Math.max(1, Math.round(stack.getMaxDamage()
@@ -59,7 +59,7 @@ public final class SaltyFishLootModifier extends LootModifier {
         return stack;
     }
 
-    static LegacyImprintKind chooseGuard(RandomSource random, List<LegacyImprintKind> sources,
+    static LegacyImprintKind chooseGuard(RandomSource random, Collection<LegacyImprintKind> sources,
             Predicate<LegacyImprintKind> compatible) {
         var candidates = new ArrayList<>(sources);
         candidates.remove(LegacyImprintKind.WOODEN_PUPPET);

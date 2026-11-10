@@ -14,9 +14,9 @@ import static dev.bladetetra.item.ModularSlashBladeItem.TSUBA_SLOT;
 
 public final class SaltyFishParts {
     public enum Length {
-        SHORT("short", -207, -219),
-        STANDARD("standard", -282, -294),
-        LONG("long", -355, -366);
+        SHORT("short", -201, -219),
+        STANDARD("standard", -272, -294),
+        LONG("long", -343, -366);
 
         public final String id;
         public final int bladeTip;

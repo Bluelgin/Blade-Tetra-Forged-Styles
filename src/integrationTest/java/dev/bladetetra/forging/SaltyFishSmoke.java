@@ -16,9 +16,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import se.mickelus.tetra.blocks.scroll.ScrollData;
@@ -38,7 +38,7 @@ public final class SaltyFishSmoke {
             ItemStack longBlade, ItemStack mixedBlade) {}
 
     public static Samples verify(ServerLevel level, Player player, BlockPos pos) throws Exception {
-        ItemStack scroll = verifyRecipe(level, player);
+        ItemStack scroll = verifyRecipe(level);
         List<ResourceLocation> unlocks = ScrollData.read(scroll).schematics;
         check(unlocks.size() == 6, "Scroll must unlock six schematics");
 
@@ -67,10 +67,9 @@ public final class SaltyFishSmoke {
         ItemStack catchStack = verifyFishing(level, scroll);
         var guard = SaltyFishParts.salvagedGuard(catchStack);
         check(guard != null, "No compatible guard from baseline SlashBlade sources");
-        var other = NamedLegacyCatalog.values().stream()
-                .filter(source -> !source.model().equals(guard.model())
-                        && !source.equals(LegacyImprintKind.WOODEN_PUPPET))
-                .sorted(java.util.Comparator.comparing(LegacyImprintKind::id)).findFirst().orElseThrow();
+        // Use a known base-game alternative for the close-up, independent of optional addons.
+        var other = NamedLegacyCatalog.get(guard.id().equals("fox_black") ? "slashblade/yamato" : "fox_black");
+        check(other != null, "Second baseline guard missing");
         var shortLength = SaltyFishParts.Length.SHORT;
         var standardLength = SaltyFishParts.Length.STANDARD;
         var longLength = SaltyFishParts.Length.LONG;
@@ -81,7 +80,7 @@ public final class SaltyFishSmoke {
                 SaltyFishParts.create(longLength, shortLength, other));
     }
 
-    private static ItemStack verifyRecipe(ServerLevel level, Player player) {
+    private static ItemStack verifyRecipe(ServerLevel level) {
         var menu = new AbstractContainerMenu(null, 0) {
             @Override public ItemStack quickMoveStack(Player p, int i) { return ItemStack.EMPTY; }
             @Override public boolean stillValid(Player p) { return true; }
