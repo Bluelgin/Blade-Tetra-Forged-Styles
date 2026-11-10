@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.loot.ForgingScrollLootModifier;
 import dev.bladetetra.loot.SmithyClueLootModifier;
+import dev.bladetetra.loot.SaltyFishLootModifier;
 import dev.bladetetra.loot.TechniqueScrollLootModifier;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.registries.DeferredRegister;
@@ -22,6 +23,9 @@ public final class ModLootModifiers {
             CODECS.register("forging_scroll", () -> ForgingScrollLootModifier.CODEC);
     public static final RegistryObject<Codec<TechniqueScrollLootModifier>> TECHNIQUE_SCROLL =
             CODECS.register("technique_scroll", () -> TechniqueScrollLootModifier.CODEC);
+
+    public static final RegistryObject<Codec<SaltyFishLootModifier>> SALTY_FISH =
+            CODECS.register("salty_fish", () -> SaltyFishLootModifier.CODEC);
 
     private ModLootModifiers() {
     }

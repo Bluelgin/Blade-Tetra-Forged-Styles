@@ -19,7 +19,8 @@ public final class ForgingScrolls {
         FULL_MOON,
         ZANSHIN,
         BLACK_FOX,
-        WHITE_FOX
+        WHITE_FOX,
+        SALTY_FISH
     }
 
     public static ItemStack create(Kind kind) {
@@ -38,6 +39,11 @@ public final class ForgingScrolls {
 
     private static ScrollData data(Kind kind) {
         return switch (kind) {
+            case SALTY_FISH -> scroll("blade_tetra.salty_fish", 0xDCE0C7, 0x487B82,
+                    List.of(6, 2, 7, 11),
+                    "slashblade/fish_blade_short", "slashblade/fish_blade_standard",
+                    "slashblade/fish_blade_long", "slashblade/fish_saya_short",
+                    "slashblade/fish_saya_standard", "slashblade/fish_saya_long");
             case EDGE -> scroll(
                     "blade_tetra.edge_treatise",
                     0xE6DDCF,

@@ -14,6 +14,7 @@ import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.item.SaltyFishParts;
 import dev.bladetetra.visual.MaterialAppearance;
 import dev.bladetetra.forging.FoxLegacyParts;
 import dev.bladetetra.visual.SayaBannerSkin;
@@ -142,8 +143,13 @@ public final class MaterialTextureManager {
         }
 
         GlowState glowState = GlowState.fromStack(event.getStack());
-        TextureLayout textureLayout = TextureLayout.fromTarget(
-                event.getOriginalTarget());
+        var fishBlade = SaltyFishParts.blade(event.getStack());
+        var fishSaya = SaltyFishParts.saya(event.getStack());
+        var salvagedGuard = SaltyFishParts.salvagedGuard(event.getStack());
+        boolean fishAssembly = LegacyModelPartRenderer.supports(event.getOriginalTarget())
+                && (fishBlade != null || fishSaya != null || salvagedGuard != null);
+        TextureLayout textureLayout = fishAssembly ? TextureLayout.WORLD
+                : TextureLayout.fromTarget(event.getOriginalTarget());
         if (textureLayout == TextureLayout.ITEM) {
             // Preserve native SlashBlade item lighting, normals and glint.
             // The unlit render type is reserved for the decorative backplate.
@@ -163,6 +169,16 @@ public final class MaterialTextureManager {
 
         ResourceLocation emissive = ensureEmissiveTexture(
                 event.getStack(), appearance, textureLayout);
+        if (fishAssembly) {
+            RENDERING_INTERNAL_PASS.set(true);
+            try {
+                LegacyModelPartRenderer.renderFish(event, fishBlade, fishSaya, salvagedGuard, texture, emissive);
+            } finally {
+                RENDERING_INTERNAL_PASS.set(false);
+                BladeRenderState.resetCol();
+            }
+            return;
+        }
         if (dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack()).present()
                 && LegacyModelPartRenderer.supports(event.getOriginalTarget())) {
             RENDERING_INTERNAL_PASS.set(true);

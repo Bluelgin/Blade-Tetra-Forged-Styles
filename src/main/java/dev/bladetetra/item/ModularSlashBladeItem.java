@@ -509,6 +509,10 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         migrateLegacyModules(stack);
         super.appendHoverText(stack, level, tooltip, flag);
         PotatoBladeHandler.appendTooltip(stack, level, tooltip, flag);
+        if (SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null) {
+            tooltip.add(Component.translatable("tooltip.blade_tetra.salty_fish")
+                    .withStyle(ChatFormatting.GRAY));
+        }
         BoundaryForging.appendTooltip(stack, tooltip);
         boolean expanded = TooltipKeyState.isAltDown();
         if (expanded) {
@@ -524,6 +528,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     @Override
     public void assemble(ItemStack stack, @Nullable Level level, float severity) {
         IModularItem.super.assemble(stack, level, severity);
+        SaltyFishParts.discardReplacedGuard(stack);
         syncDerivedBladeState(stack);
     }
 

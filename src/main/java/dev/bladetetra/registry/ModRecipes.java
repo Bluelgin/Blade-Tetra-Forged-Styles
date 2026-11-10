@@ -5,6 +5,7 @@ import dev.bladetetra.recipe.ModularSlashBladeRecipe;
 import dev.bladetetra.recipe.IronKatanaRecipe;
 import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.recipe.SayaBannerSkinRecipe;
+import dev.bladetetra.recipe.SaltyFishScrollRecipe;
 import dev.bladetetra.recipe.TsukaWrapColorRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
@@ -44,6 +45,10 @@ public final class ModRecipes {
             NAMED_BLADE_INGOT = SERIALIZERS.register(
                     "named_blade_ingot",
                     () -> new SimpleCraftingRecipeSerializer<>(NamedBladeIngotRecipe::new));
+
+    public static final RegistryObject<RecipeSerializer<SaltyFishScrollRecipe>> SALTY_FISH_SCROLL =
+            SERIALIZERS.register("salty_fish_scroll",
+                    () -> new SimpleCraftingRecipeSerializer<>(SaltyFishScrollRecipe::new));
 
     private ModRecipes() {
     }

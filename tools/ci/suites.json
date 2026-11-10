@@ -13,7 +13,8 @@
       "storage",
       "manual",
       "motion",
-      "tooltip"
+      "tooltip",
+      "salty_fish"
     ],
     "compat": [
       "addon_ingots",
@@ -39,6 +40,13 @@
     ]
   },
   "suites": {
+    "salty_fish": {
+      "kind": "client",
+      "property": "saltyFishReview",
+      "directory": "salty-fish-review",
+      "markers": ["SALTY_FISH_REVIEW_PASS"],
+      "flags": []
+    },
     "tooltip": {
       "kind": "client",
       "property": "soulGuideReview",

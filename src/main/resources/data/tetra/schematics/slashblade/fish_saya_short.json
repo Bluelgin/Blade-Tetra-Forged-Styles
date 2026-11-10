@@ -1,0 +1,37 @@
+{
+  "replace": true,
+  "slots": [
+    "slashblade/saya"
+  ],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": {
+    "textureLocation": "blade_tetra:textures/gui/fish_parts.png",
+    "textureX": 0,
+    "textureY": 16
+  },
+  "translation": {
+    "durability": 3,
+    "integrity": 1
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [
+          "minecraft:cod",
+          "minecraft:salmon"
+        ],
+        "count": 1
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:wood"
+      },
+      "moduleKey": "slashblade/fish_saya_short",
+      "moduleVariant": "fish_saya_short/salted_fish"
+    }
+  ],
+  "requirement": {
+    "type": "tetra:locked",
+    "key": "tetra:slashblade/fish_saya_short"
+  }
+}

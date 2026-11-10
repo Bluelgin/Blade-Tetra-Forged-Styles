@@ -32,7 +32,7 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest'
+    'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -43,6 +43,10 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+            if (project.hasProperty('saltyFishReview')) {
+                workingDirectory project.file('build/salty-fish-review')
+                property 'blade_tetra.saltyFishReview', 'true'
+            }
             if (project.hasProperty('manualArtReview')) property 'blade_tetra.manualArtReview', 'true'
             if (project.hasProperty('namedIngotArtReview')) {
                 workingDirectory project.file('build/named-ingot-art-review')
@@ -172,6 +176,9 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('saltyFishReview')) {
+                args '--width', '1440', '--height', '900'
+            }
             if (project.hasProperty('namedIngotArtReview')) {
                 args '--width', '1600', '--height', '1000'
             }

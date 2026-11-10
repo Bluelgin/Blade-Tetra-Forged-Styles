@@ -34,7 +34,7 @@ public final class DispersedBladeGeometry {
         return model.groupObjects.stream().filter(g -> group.equals(g.name))
                 .flatMap(g -> g.faces.stream()).toList();
     }
-    private static boolean steel(Face face) {
+    static boolean steel(Face face) {
         if (face.textureCoordinates == null || face.textureCoordinates.length == 0) return false;
         for (var uv : face.textureCoordinates)
             if (uv == null || uv.u < 0 || uv.u > .5F || uv.v < 0 || uv.v > .25F) return false;
