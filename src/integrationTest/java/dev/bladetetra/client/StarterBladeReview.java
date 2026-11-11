@@ -90,16 +90,19 @@ public final class StarterBladeReview {
             }
             return;
         }
+        if (tick == 31 && (mc.screen != null || !(mc.level.getBlockEntity(BENCH) instanceof WorkbenchTile))) return;
         switch (++tick) {
             case 1 -> {
                 mc.options.pauseOnLostFocus = false;
                 mc.options.guiScale().set(3);
                 mc.getTutorial().setStep(net.minecraft.client.tutorial.TutorialSteps.NONE);
                 mc.resizeDisplay();
-                onServer(mc, StarterBladeReview::openWorkbench);
+                onServer(mc, StarterBladeReview::prepareWorkbench);
             }
-            case 25 -> captureWorkbench(mc, "01-wooden-orthodox");
-            case 31 -> onServer(mc, player -> {
+            case 32 -> onServer(mc, player -> NetworkHooks.openScreen(player,
+                    (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH), BENCH));
+            case 58 -> captureWorkbench(mc, "01-wooden-orthodox");
+            case 64 -> onServer(mc, player -> {
                 try {
                     var bench = (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH);
                     var inventory = inventory(bench);
@@ -115,8 +118,8 @@ public final class StarterBladeReview {
                     throw new IllegalStateException(failure);
                 }
             });
-            case 54 -> captureWorkbench(mc, "02-upgraded-iron-blade");
-            case 60 -> onServer(mc, player -> {
+            case 87 -> captureWorkbench(mc, "02-upgraded-iron-blade");
+            case 93 -> onServer(mc, player -> {
                 var bench = (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH);
                 bench.setCurrentSchematic(new RemoveSchematic(), TSUBA_SLOT);
                 bench.craft(player);
@@ -128,15 +131,15 @@ public final class StarterBladeReview {
                 level.setBlockAndUpdate(CHEST, Blocks.CHEST.defaultBlockState());
                 ((ChestBlockEntity) level.getBlockEntity(CHEST)).setItem(0, result.copy());
             });
-            case 83 -> captureWorkbench(mc, "03-after-native-remove");
-            case 89 -> onServer(mc, StarterBladeReview::openIronRecipe);
-            case 112 -> {
+            case 116 -> captureWorkbench(mc, "03-after-native-remove");
+            case 122 -> onServer(mc, StarterBladeReview::openIronRecipe);
+            case 145 -> {
                 if (!(mc.screen instanceof net.minecraft.client.gui.screens.inventory.CraftingScreen)) {
                     throw new IllegalStateException("Native crafting screen unavailable");
                 }
                 screenshot = "04-original-iron-recipe";
             }
-            case 130 -> {
+            case 163 -> {
                 if (captures != 4) throw new IllegalStateException("Expected four screenshots, got " + captures);
                 if (!jeiRecipesVisible) throw new IllegalStateException("JEI did not list both starter recipes");
                 reopening = true;
@@ -145,7 +148,7 @@ public final class StarterBladeReview {
                 mc.clearLevel(new TitleScreen());
                 reopenWorld(mc);
             }
-            case 131 -> {
+            case 164 -> {
                 LogUtils.getLogger().info("BLADE_STARTER_REVIEW_PASS: native workbench, JEI recipes and saved inventory, chest and ender chest");
                 mc.stop();
             }
@@ -198,7 +201,7 @@ public final class StarterBladeReview {
         }
     }
 
-    private static void openWorkbench(ServerPlayer player) {
+    private static void prepareWorkbench(ServerPlayer player) {
         var level = player.serverLevel();
         player.connection.teleport(.5, -60, 2, 180, 0);
         player.getInventory().setItem(0, ModularDoubleHeadedItem.setupHammerStack("iron", "spruce"));
@@ -206,7 +209,6 @@ public final class StarterBladeReview {
         level.setBlockAndUpdate(BENCH, block.defaultBlockState());
         var bench = (WorkbenchTile) level.getBlockEntity(BENCH);
         inventory(bench).setStackInSlot(0, StarterBladeSmoke.craft(level, "wooden_orthodox", Items.OAK_PLANKS, 2));
-        NetworkHooks.openScreen(player, bench, BENCH);
     }
 
     private static IItemHandlerModifiable inventory(WorkbenchTile bench) {
@@ -235,7 +237,7 @@ public final class StarterBladeReview {
     }
 
     private static void captureWorkbench(Minecraft mc, String name) {
-        if (!(mc.screen instanceof WorkbenchScreen)) throw new IllegalStateException("Native workbench screen unavailable");
+        if (!(mc.screen instanceof WorkbenchScreen)) throw new IllegalStateException("Native workbench screen unavailable: " + mc.screen);
         screenshot = name;
     }
 

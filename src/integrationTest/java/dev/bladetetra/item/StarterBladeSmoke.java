@@ -85,14 +85,19 @@ public final class StarterBladeSmoke {
         variant(blade, upgraded, BLADE_SLOT, "orthodox_blade/iron");
         check(StyleResolver.resolve(upgraded) == BladeStyle.STANDARD, "changing material preserves style");
 
-        ItemStack alpha = new ItemStack(blade);
-        var legacy = alpha.getOrCreateTag();
-        legacy.putString("sword/blade", "sword/basic_blade");
-        legacy.putString("sword/basic_blade_material", "basic_blade/diamond");
-        legacy.putInt("sword/blade/settle_progress", 42);
-        legacy.putString("fixture:unknown", "retained");
-        check(blade.migrateLegacyModules(alpha), "Alpha converted");
+        var historicalStack = new CompoundTag();
+        historicalStack.putString("id", "blade_tetra:modular_slashblade");
+        historicalStack.putByte("Count", (byte) 1);
+        var alphaTag = new CompoundTag();
+        alphaTag.putString("sword/blade", "sword/basic_blade");
+        alphaTag.putString("sword/basic_blade_material", "basic_blade/diamond");
+        alphaTag.putInt("sword/blade/settle_progress", 42);
+        alphaTag.putString("fixture:unknown", "retained");
+        historicalStack.put("tag", alphaTag);
+        var alpha = ItemStack.of(historicalStack);
+        blade.migrateLegacyModules(alpha);
         variant(blade, alpha, BLADE_SLOT, "katana_blade/diamond");
+        var legacy = alpha.getTag();
         check(legacy.getInt(BLADE_SLOT + "/settle_progress") == 42, "Alpha progression preserved");
         check("retained".equals(legacy.getString("fixture:unknown"))
                 && !legacy.contains(TSUBA_SLOT) && !legacy.contains(HABAKI_SLOT) && !legacy.contains(KASHIRA_SLOT),
