@@ -47,6 +47,16 @@
       "markers": ["BLADE_STARTER_REVIEW_PASS"],
       "flags": ["jeiTest"]
     },
+    "storage": {
+      "kind": "server",
+      "property": "bladeStorageSmoke",
+      "directory": "blade-storage-smoke",
+      "markers": [
+        "BLADE_STORAGE_SMOKE_PASS",
+        "BLADE_STARTER_SMOKE_PASS"
+      ],
+      "flags": []
+    },
     "tooltip": {
       "kind": "client",
       "property": "soulGuideReview",
@@ -95,16 +105,6 @@
       "markers": [
         "NAMED_INGOT_SMOKE_PASS",
         "MANUAL_FUSION_SMOKE_PASS"
-      ],
-      "flags": []
-    },
-    "storage": {
-      "kind": "server",
-      "property": "bladeStorageSmoke",
-      "directory": "blade-storage-smoke",
-      "markers": [
-        "BLADE_STORAGE_SMOKE_PASS",
-        "BLADE_STARTER_SMOKE_PASS"
       ],
       "flags": []
     },

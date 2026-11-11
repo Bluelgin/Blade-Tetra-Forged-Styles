@@ -4,7 +4,9 @@ import com.mojang.logging.LogUtils;
 import dev.bladetetra.item.StarterBladeSmoke;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.worldselection.WorldOpenFlows;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -20,6 +22,11 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import mezz.jei.api.IModPlugin;
+import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.constants.RecipeTypes;
+import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,9 +39,12 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import se.mickelus.tetra.blocks.workbench.WorkbenchTile;
 import se.mickelus.tetra.blocks.workbench.gui.WorkbenchScreen;
+import se.mickelus.tetra.items.modular.impl.ModularDoubleHeadedItem;
 import se.mickelus.tetra.module.schematic.RemoveSchematic;
 
 import java.nio.file.Files;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -44,7 +54,10 @@ import static dev.bladetetra.item.ModularSlashBladeItem.*;
 public final class StarterBladeReview {
     private static final BlockPos BENCH = new BlockPos(0, -60, 0);
     private static final BlockPos TABLE = new BlockPos(1, -60, 0);
-    private static boolean opened;
+    private static final BlockPos CHEST = new BlockPos(2, -60, 0);
+    private static boolean opened, reopening;
+    private static String worldName;
+    private static boolean jeiRecipesVisible;
     private static CompletableFuture<Void> task;
     private static int tick, age, captures;
     private static String screenshot;
@@ -56,9 +69,9 @@ public final class StarterBladeReview {
         if (++age > 3600) throw new IllegalStateException("Starter review timed out");
         if (!opened && mc.screen instanceof TitleScreen && mc.getOverlay() == null) {
             opened = true;
-            String name = "starter-review-" + System.currentTimeMillis();
-            mc.createWorldOpenFlows().createFreshLevel(name,
-                    new LevelSettings(name, GameType.CREATIVE, false, Difficulty.PEACEFUL,
+            worldName = "starter-review-" + System.currentTimeMillis();
+            mc.createWorldOpenFlows().createFreshLevel(worldName,
+                    new LevelSettings(worldName, GameType.CREATIVE, false, Difficulty.PEACEFUL,
                             true, new GameRules(), WorldDataConfiguration.DEFAULT),
                     new WorldOptions(158L, false, false),
                     registries -> registries.registryOrThrow(Registries.WORLD_PRESET)
@@ -69,6 +82,13 @@ public final class StarterBladeReview {
             if (!task.isDone()) return;
             task.join();
             task = null;
+        }
+        if (reopening) {
+            if (mc.screen == null) {
+                reopening = false;
+                onServer(mc, StarterBladeReview::verifySavedSlots);
+            }
+            return;
         }
         switch (++tick) {
             case 1 -> {
@@ -100,9 +120,13 @@ public final class StarterBladeReview {
                 var bench = (WorkbenchTile) player.serverLevel().getBlockEntity(BENCH);
                 bench.setCurrentSchematic(new RemoveSchematic(), TSUBA_SLOT);
                 bench.craft(player);
-                if (bench.getTargetItemStack().getTag().contains(TSUBA_SLOT)) {
-                    throw new IllegalStateException("Native workbench restored the guard");
-                }
+                var result = bench.getTargetItemStack();
+                verifyEmptyGuard(result);
+                player.getInventory().setItem(7, result.copy());
+                player.getEnderChestInventory().setItem(0, result.copy());
+                var level = player.serverLevel();
+                level.setBlockAndUpdate(CHEST, Blocks.CHEST.defaultBlockState());
+                ((ChestBlockEntity) level.getBlockEntity(CHEST)).setItem(0, result.copy());
             });
             case 83 -> captureWorkbench(mc, "03-after-native-remove");
             case 89 -> onServer(mc, StarterBladeReview::openIronRecipe);
@@ -114,16 +138,70 @@ public final class StarterBladeReview {
             }
             case 130 -> {
                 if (captures != 4) throw new IllegalStateException("Expected four screenshots, got " + captures);
-                LogUtils.getLogger().info("BLADE_STARTER_REVIEW_PASS: native workbench and iron crafting screen");
+                if (!jeiRecipesVisible) throw new IllegalStateException("JEI did not list both starter recipes");
+                reopening = true;
+                mc.player.closeContainer();
+                mc.level.disconnect();
+                mc.clearLevel(new TitleScreen());
+                reopenWorld(mc);
+            }
+            case 131 -> {
+                LogUtils.getLogger().info("BLADE_STARTER_REVIEW_PASS: native workbench, JEI recipes and saved inventory, chest and ender chest");
                 mc.stop();
             }
             default -> { }
         }
     }
 
+    private static void reopenWorld(Minecraft mc) {
+        try {
+            // The disposable fixture uses custom dimensions. Continue through the native loader
+            // without the interactive backup prompt.
+            var load = WorldOpenFlows.class.getDeclaredMethod("doLoadLevel",
+                    Screen.class, String.class, boolean.class, boolean.class);
+            load.setAccessible(true);
+            load.invoke(mc.createWorldOpenFlows(), mc.screen, worldName, false, false);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Could not reopen starter review world", failure);
+        }
+    }
+
+    private static void verifySavedSlots(ServerPlayer player) {
+        verifyEmptyGuard(player.getInventory().getItem(7));
+        verifyEmptyGuard(player.getEnderChestInventory().getItem(0));
+        var chest = (ChestBlockEntity) player.serverLevel().getBlockEntity(CHEST);
+        verifyEmptyGuard(chest.getItem(0));
+    }
+
+    private static void verifyEmptyGuard(ItemStack result) {
+        if (!result.hasTag() || result.getTag().contains(TSUBA_SLOT)
+                || !"orthodox_blade/iron".equals(result.getTag().getString(ORTHODOX_BLADE_MODULE + "_material"))) {
+            throw new IllegalStateException("Native workbench result lost its iron blade or empty guard");
+        }
+    }
+
+    @JeiPlugin
+    public static final class JeiCheck implements IModPlugin {
+        @Override
+        public ResourceLocation getPluginUid() {
+            return ResourceLocation.fromNamespaceAndPath("blade_tetra", "starter_review");
+        }
+
+        @Override
+        public void onRuntimeAvailable(IJeiRuntime runtime) {
+            if (!Boolean.getBoolean("blade_tetra.starterBladeReview")) return;
+            var starterIds = Set.of(ResourceLocation.fromNamespaceAndPath("blade_tetra", "wooden_orthodox"),
+                    ResourceLocation.fromNamespaceAndPath("blade_tetra", "iron_katana"));
+            var displayed = runtime.getRecipeManager().createRecipeLookup(RecipeTypes.CRAFTING).get()
+                    .map(recipe -> recipe.getId()).filter(starterIds::contains).collect(Collectors.toSet());
+            jeiRecipesVisible = displayed.equals(starterIds);
+        }
+    }
+
     private static void openWorkbench(ServerPlayer player) {
         var level = player.serverLevel();
         player.connection.teleport(.5, -60, 2, 180, 0);
+        player.getInventory().setItem(0, ModularDoubleHeadedItem.setupHammerStack("iron", "spruce"));
         var block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.fromNamespaceAndPath("tetra", "basic_workbench"));
         level.setBlockAndUpdate(BENCH, block.defaultBlockState());
         var bench = (WorkbenchTile) level.getBlockEntity(BENCH);

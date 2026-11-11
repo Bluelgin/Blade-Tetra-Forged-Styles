@@ -1,6 +1,7 @@
 package dev.bladetetra.item;
 
 import dev.bladetetra.combat.BladeStyle;
+import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.visual.MaterialAppearance;
@@ -20,6 +21,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import se.mickelus.tetra.data.DataManager;
 import se.mickelus.tetra.module.schematic.ConfigSchematic;
 import se.mickelus.tetra.module.schematic.RemoveSchematic;
+import se.mickelus.tetra.module.schematic.RepairSchematic;
 
 import java.util.List;
 
@@ -46,6 +48,14 @@ public final class StarterBladeSmoke {
         variant(blade, iron, HABAKI_SLOT, "basic_habaki/iron");
         variant(blade, iron, KASHIRA_SLOT, "simple_kashira/iron");
         check(wooden.getMaxDamage() > 1 && wooden.getMaxDamage() < iron.getMaxDamage(), "wooden durability");
+        check(wooden.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new)
+                .getComboRoot().equals(ModComboStates.getRoot(BladeStyle.STANDARD)), "native orthodox combo root");
+        var worn = wooden.copy();
+        worn.setDamageValue(8);
+        var repair = new RepairSchematic(blade, "modular_slashblade");
+        ItemStack[] planks = { new ItemStack(Items.OAK_PLANKS, 64) };
+        check(repair.isMaterialsValid(worn, BLADE_SLOT, planks), "oak repair material");
+        check(repair.applyUpgrade(worn, planks, true, BLADE_SLOT, player).getDamageValue() == 0, "native wood repair");
 
         var remove = new RemoveSchematic();
         for (String required : List.of(BLADE_SLOT, TSUKA_SLOT, SAYA_SLOT)) {
