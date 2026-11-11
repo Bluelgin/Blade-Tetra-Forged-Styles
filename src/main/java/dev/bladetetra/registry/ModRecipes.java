@@ -28,6 +28,11 @@ public final class ModRecipes {
                     "iron_katana",
                     () -> new SimpleCraftingRecipeSerializer<>(IronKatanaRecipe::new));
 
+    public static final RegistryObject<RecipeSerializer<IronKatanaRecipe>> WOODEN_ORTHODOX =
+            SERIALIZERS.register("wooden_orthodox",
+                    () -> new SimpleCraftingRecipeSerializer<>(
+                            (id, category) -> new IronKatanaRecipe(id, category, true)));
+
     public static final RegistryObject<RecipeSerializer<SayaBannerSkinRecipe>>
             SAYA_BANNER_SKIN =
             SERIALIZERS.register(

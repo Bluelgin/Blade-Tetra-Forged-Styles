@@ -81,6 +81,11 @@ public final class BladeNameResolver {
         String epithet = resolveEpithet(stack);
 
         if (epithet == null) {
+            if ("oak".equals(material)
+                    && ModularSlashBladeItem.ORTHODOX_BLADE_MODULE.equals(
+                            tag.getString(ModularSlashBladeItem.BLADE_SLOT))) {
+                return Component.translatable("name.blade_tetra.wooden_orthodox");
+            }
             return Component.translatable(BASIC_PATTERN, materialName, bladeType);
         }
         return Component.translatable(

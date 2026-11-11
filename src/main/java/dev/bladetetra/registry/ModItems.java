@@ -105,6 +105,7 @@ public final class ModItems {
                     .icon(() -> MODULAR_SLASHBLADE.get().createDefaultStack())
                     .displayItems((parameters, output) -> {
                         output.accept(MODULAR_SLASHBLADE.get().createDefaultStack());
+                        output.accept(MODULAR_SLASHBLADE.get().createWoodenStarterStack());
                         output.accept(FORGED_SLASH_ART_ORB.get().createDefaultStack());
                         output.accept(STYLE_RECORDER.get());
                         output.accept(BLOOD_CRYSTAL.get());

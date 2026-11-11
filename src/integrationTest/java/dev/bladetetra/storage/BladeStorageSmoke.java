@@ -22,15 +22,43 @@ public final class BladeStorageSmoke {
     public static void started(ServerStartedEvent event) throws Exception {
         String inputPath = System.getProperty("blade_tetra.storageSmokeInput");
         if (inputPath == null) return;
-        try (var input = Files.newInputStream(Path.of(inputPath))) {
+        try {
+            Path source = Path.of(inputPath);
+            verifyInventory(source);
+            verifyInventory(source.resolveSibling("version-one-inventory.nbt"));
+            var player = net.minecraftforge.common.util.FakePlayerFactory.getMinecraft(event.getServer().overworld());
+            dev.bladetetra.item.StarterBladeSmoke.verify(player);
+            LogUtils.getLogger().info("BLADE_STARTER_SMOKE_PASS: starter recipes, styles, native remove, tsubaless, iron upgrade and Alpha migration");
+        } finally {
+            event.getServer().halt(false);
+        }
+    }
+
+    private static void verifyInventory(Path source) throws Exception {
+        try (var input = Files.newInputStream(source)) {
             var fixtures = NbtIo.readCompressed(input).getList("Inventory", Tag.TAG_COMPOUND);
             for (int i = 0; i < fixtures.size(); i++) {
+                CompoundTag historical = BladeStackStorage.decode(fixtures.getCompound(i));
                 ItemStack original = ItemStack.of(fixtures.getCompound(i));
                 check(!original.isEmpty(), "legacy item loaded " + i);
+                var blade = (ModularSlashBladeItem) original.getItem();
                 int durability = original.getMaxDamage();
                 CompoundTag shared = original.getShareTag().copy();
+                CompoundTag before = historical.getCompound("tag");
+                for (String key : before.getAllKeys()) {
+                    if (key.startsWith("slashblade/") || key.startsWith("blade_tetra_")
+                            || key.equals("Enchantments") || key.equals("EnchantmentMapping")) {
+                        check(java.util.Objects.equals(before.get(key), shared.get(key)), "historical tag " + i + " " + key);
+                    }
+                }
+                check(!blade.migrateLegacyModules(original), "historical migration idempotent " + i);
                 CompoundTag state = original.getCapability(ModularSlashBladeItem.BLADESTATE)
                         .orElseThrow(IllegalStateException::new).serializeNBT();
+                var previousState = historical.getCompound("ForgeCaps").getCompound("Parent");
+                for (String key : java.util.List.of("killCount", "RepairCounter", "Damage", "isBroken",
+                        "SpecialAttackType", "Owner", "SpecialEffects")) {
+                    check(java.util.Objects.equals(previousState.get(key), state.get(key)), "historical native state " + i + " " + key);
+                }
                 CompoundTag saved = new CompoundTag();
                 original.save(saved); // Also exercise callers ignoring the return value.
                 check(saved.getCompound("tag").contains(BladeStackStorage.KEY), "save mixin active " + i);
@@ -46,9 +74,7 @@ public final class BladeStorageSmoke {
                 restoredChest.fromTag(chest.createTag());
                 verify(restoredChest.getItem(0), shared, state, durability, "container round trip " + i);
             }
-            LogUtils.getLogger().info("BLADE_STORAGE_SMOKE_PASS: {} real saved blades; actual save/of mixins, capabilities, durability, copy, share tags and container round trips", fixtures.size());
-        } finally {
-            event.getServer().halt(false);
+            LogUtils.getLogger().info("BLADE_STORAGE_SMOKE_PASS: {} historical blades from {}", fixtures.size(), source.getFileName());
         }
     }
 

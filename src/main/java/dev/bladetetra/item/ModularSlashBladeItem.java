@@ -147,16 +147,34 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
 
     public ItemStack createDefaultStack() {
         ItemStack stack = new ItemStack(this);
-        BladeModuleMigration.installModule(stack, BLADE_SLOT, BLADE_MODULE, "katana_blade/iron");
-        BladeModuleMigration.installModule(stack, TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/stick");
-        BladeModuleMigration.installModule(stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/iron");
-        BladeModuleMigration.installModule(stack, SAYA_SLOT, SAYA_MODULE, "basic_saya/oak");
-        BladeModuleMigration.installModule(stack, HABAKI_SLOT, HABAKI_MODULE, "basic_habaki/iron");
-        BladeModuleMigration.installModule(stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/iron");
+        initializeStarterStack(stack, false);
+        return stack;
+    }
+
+    public ItemStack createWoodenStarterStack() {
+        ItemStack stack = new ItemStack(this);
+        initializeStarterStack(stack, true);
+        return stack;
+    }
+
+    /** Initialize a freshly constructed blade or a wooden puppet converted by a recipe. */
+    public void initializeStarterStack(ItemStack stack, boolean wooden) {
+        if (wooden) {
+            BladeModuleMigration.installModule(stack, BLADE_SLOT, ORTHODOX_BLADE_MODULE, "orthodox_blade/oak");
+            BladeModuleMigration.installModule(stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/oak");
+            BladeModuleMigration.installModule(stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/oak");
+        } else {
+            // Keep the previous iron conversion's handling of puppet stacks carrying Alpha data.
+            migrateLegacyModules(stack);
+            BladeModuleMigration.installMissingModule(stack, TSUBA_SLOT, TSUBA_MODULE, "simple_tsuba/iron");
+            BladeModuleMigration.installMissingModule(stack, HABAKI_SLOT, HABAKI_MODULE, "basic_habaki/iron");
+            BladeModuleMigration.installMissingModule(stack, KASHIRA_SLOT, KASHIRA_MODULE, "simple_kashira/iron");
+        }
+        BladeModuleMigration.installMissingModule(stack, TSUKA_SLOT, TSUKA_MODULE, "wrapped_tsuka/stick");
+        BladeModuleMigration.installMissingModule(stack, SAYA_SLOT, SAYA_MODULE, "basic_saya/oak");
         BladeModuleMigration.markCurrent(stack);
         IModularItem.updateIdentifier(stack);
         syncDerivedBladeState(stack);
-        return stack;
     }
 
     @Override

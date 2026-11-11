@@ -50,7 +50,9 @@ final class BladeModuleMigration {
                 }
                 migrateSlotData(tag, mapping.oldSlot(), mapping.newSlot());
                 tag.remove(mapping.oldSlot());
-                tag.remove(oldModule + "_material");
+                if (!oldModule.equals(tag.getString(mapping.newSlot()))) {
+                    tag.remove(oldModule + "_material");
+                }
                 changed = true;
             }
         }
@@ -62,22 +64,15 @@ final class BladeModuleMigration {
                 stack, ModularSlashBladeItem.TSUKA_SLOT,
                 ModularSlashBladeItem.TSUKA_MODULE, "wrapped_tsuka/stick");
         changed |= installMissingModule(
-                stack, ModularSlashBladeItem.TSUBA_SLOT,
-                ModularSlashBladeItem.TSUBA_MODULE, "simple_tsuba/iron");
-        changed |= installMissingModule(
                 stack, ModularSlashBladeItem.SAYA_SLOT,
                 ModularSlashBladeItem.SAYA_MODULE, "basic_saya/oak");
-        changed |= installMissingModule(
-                stack, ModularSlashBladeItem.HABAKI_SLOT,
-                ModularSlashBladeItem.HABAKI_MODULE, "basic_habaki/iron");
-        changed |= installMissingModule(
-                stack, ModularSlashBladeItem.KASHIRA_SLOT,
-                ModularSlashBladeItem.KASHIRA_MODULE, "simple_kashira/iron");
+        // Optional slots may be absent in any schema, including old saves.
+        // Only explicit starter construction installs optional defaults.
 
         changed |= dev.bladetetra.forging.NamedLegacyImprintStorage.migrateStackTag(tag);
         changed |= dev.bladetetra.forging.NamedBladeMaterial.migrate(stack);
         changed |= migrateEnchantmentMappings(tag);
-        if (tag.getInt(MODULE_SCHEMA_KEY) != MODULE_SCHEMA_VERSION) {
+        if (tag.getInt(MODULE_SCHEMA_KEY) < MODULE_SCHEMA_VERSION) {
             tag.putInt(MODULE_SCHEMA_KEY, MODULE_SCHEMA_VERSION);
             changed = true;
         }
@@ -93,7 +88,7 @@ final class BladeModuleMigration {
         IModularItem.putModuleInSlot(stack, slot, module, module + "_material", variant);
     }
 
-    private static boolean installMissingModule(
+    static boolean installMissingModule(
             ItemStack stack, String slot, String module, String variant) {
         CompoundTag tag = stack.getOrCreateTag();
         if (tag.contains(slot, Tag.TAG_STRING)) {
@@ -129,7 +124,9 @@ final class BladeModuleMigration {
             }
 
             if (migratedKey != null && tag.get(key) != null) {
-                tag.put(migratedKey, tag.get(key).copy());
+                if (!tag.contains(migratedKey)) {
+                    tag.put(migratedKey, tag.get(key).copy());
+                }
                 tag.remove(key);
             }
         }

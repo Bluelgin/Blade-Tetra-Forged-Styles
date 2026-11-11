@@ -235,7 +235,7 @@ public record MaterialAppearance(
                 || !tag.contains(
                         ModularSlashBladeItem.TSUBA_SLOT,
                         Tag.TAG_STRING)) {
-            return TsubaProfile.MARU;
+            return TsubaProfile.NONE;
         }
 
         return switch (tag.getString(ModularSlashBladeItem.TSUBA_SLOT)) {

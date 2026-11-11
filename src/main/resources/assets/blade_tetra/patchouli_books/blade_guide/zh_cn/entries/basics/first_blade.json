@@ -6,6 +6,11 @@
   "pages": [
     {
       "type": "blade_tetra:conversion"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "book.blade_tetra.v2.first_blade.starters.title",
+      "text": "book.blade_tetra.v2.first_blade.starters.text"
     }
   ],
   "priority": true,

@@ -2,6 +2,7 @@
   "version": 1,
   "groups": {
     "full": [
+      "starter",
       "forging",
       "aura",
       "kyouka",
@@ -39,6 +40,13 @@
     ]
   },
   "suites": {
+    "starter": {
+      "kind": "client",
+      "property": "starterBladeReview",
+      "directory": "starter-blade-review",
+      "markers": ["BLADE_STARTER_REVIEW_PASS"],
+      "flags": ["jeiTest"]
+    },
     "tooltip": {
       "kind": "client",
       "property": "soulGuideReview",
@@ -95,7 +103,8 @@
       "property": "bladeStorageSmoke",
       "directory": "blade-storage-smoke",
       "markers": [
-        "BLADE_STORAGE_SMOKE_PASS"
+        "BLADE_STORAGE_SMOKE_PASS",
+        "BLADE_STARTER_SMOKE_PASS"
       ],
       "flags": []
     },
