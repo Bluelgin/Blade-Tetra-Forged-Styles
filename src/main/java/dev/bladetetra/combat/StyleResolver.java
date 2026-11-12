@@ -1,6 +1,7 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.item.SaltyFishParts;
 import dev.bladetetra.customstyle.CustomBladeLength;
 import dev.bladetetra.customstyle.CustomStyleSpec;
 import net.minecraft.nbt.CompoundTag;
@@ -23,10 +24,10 @@ public final class StyleResolver {
                     ? BladeStyle.CUSTOM : BladeStyle.STANDARD;
         }
         return switch (tag.getString(ModularSlashBladeItem.BLADE_SLOT)) {
-            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE -> BladeStyle.STANDARD;
-            case ModularSlashBladeItem.BLADE_MODULE -> BladeStyle.IAIDO;
-            case ModularSlashBladeItem.WAKIZASHI_MODULE -> BladeStyle.RENGEKI;
-            case ModularSlashBladeItem.NODACHI_MODULE -> BladeStyle.DANGAKU;
+            case ModularSlashBladeItem.ORTHODOX_BLADE_MODULE, SaltyFishParts.STANDARD_BLADE -> BladeStyle.STANDARD;
+            case ModularSlashBladeItem.BLADE_MODULE, SaltyFishParts.IAIDO_BLADE -> BladeStyle.IAIDO;
+            case ModularSlashBladeItem.WAKIZASHI_MODULE, SaltyFishParts.SHORT_BLADE -> BladeStyle.RENGEKI;
+            case ModularSlashBladeItem.NODACHI_MODULE, SaltyFishParts.LONG_BLADE -> BladeStyle.DANGAKU;
             default -> BladeStyle.STANDARD;
         };
     }

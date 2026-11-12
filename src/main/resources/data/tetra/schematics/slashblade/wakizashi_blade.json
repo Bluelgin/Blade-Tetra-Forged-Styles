@@ -35,5 +35,12 @@
       "toolFactor": 0,
       "toolOffset": 3
     }
-  ]
+  ],
+  "requirement": {
+    "type": "tetra:not",
+    "requirement": {
+      "type": "tetra:locked",
+      "key": "tetra:slashblade/fish_blade_standard"
+    }
+  }
 }

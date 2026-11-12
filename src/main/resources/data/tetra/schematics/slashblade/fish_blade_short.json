@@ -36,6 +36,6 @@
   },
   "requirement": {
     "type": "tetra:locked",
-    "key": "tetra:slashblade/fish_blade_short"
+    "key": "tetra:slashblade/fish_blade_standard"
   }
 }

@@ -4,13 +4,16 @@ import dev.bladetetra.forging.LegacyImprintKind;
 import dev.bladetetra.forging.NamedLegacyCatalog;
 import dev.bladetetra.registry.ModItems;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import se.mickelus.tetra.items.modular.IModularItem;
 
 import static dev.bladetetra.item.ModularSlashBladeItem.BLADE_SLOT;
+import static dev.bladetetra.item.ModularSlashBladeItem.CUSTOM_LONG_BLADE_MODULE;
+import static dev.bladetetra.item.ModularSlashBladeItem.CUSTOM_SHORT_BLADE_MODULE;
+import static dev.bladetetra.item.ModularSlashBladeItem.NODACHI_MODULE;
 import static dev.bladetetra.item.ModularSlashBladeItem.SAYA_SLOT;
 import static dev.bladetetra.item.ModularSlashBladeItem.TSUBA_SLOT;
+import static dev.bladetetra.item.ModularSlashBladeItem.WAKIZASHI_MODULE;
 
 public final class SaltyFishParts {
     public enum Length {
@@ -31,17 +34,21 @@ public final class SaltyFishParts {
         public String part(String part) {
             return "fish_" + part + "_" + id;
         }
+    }
 
-        public String module(String part) {
-            return "slashblade/" + part(part);
-        }
+    public static final String STANDARD_BLADE = "slashblade/fish_blade_standard";
+    public static final String IAIDO_BLADE = "slashblade/fish_blade_iaido";
+    public static final String SHORT_BLADE = "slashblade/fish_blade_short";
+    public static final String LONG_BLADE = "slashblade/fish_blade_long";
+    public static final String FISH_SAYA = "slashblade/fish_saya";
 
-        public static Length random(RandomSource random) {
-            return switch (random.nextInt(3)) {
-                case 0 -> SHORT;
-                case 1 -> STANDARD;
-                default -> LONG;
-            };
+    public enum Blade {
+        STANDARD(STANDARD_BLADE), IAIDO(IAIDO_BLADE), RENGEKI(SHORT_BLADE), DANGAKU(LONG_BLADE);
+
+        public final String module;
+
+        Blade(String module) {
+            this.module = module;
         }
     }
 
@@ -49,20 +56,31 @@ public final class SaltyFishParts {
     private static final String GUARD_SOURCE = "blade_tetra_salvaged_guard";
 
     public static Length blade(ItemStack stack) {
-        return length(stack.getTag(), BLADE_SLOT, "blade");
+        CompoundTag tag = stack.getTag();
+        if (tag == null) return null;
+        return switch (tag.getString(BLADE_SLOT)) {
+            case SHORT_BLADE -> Length.SHORT;
+            case STANDARD_BLADE, IAIDO_BLADE -> Length.STANDARD;
+            case LONG_BLADE -> Length.LONG;
+            default -> null;
+        };
     }
 
     public static Length saya(ItemStack stack) {
-        return length(stack.getTag(), SAYA_SLOT, "saya");
-    }
-
-    private static Length length(CompoundTag tag, String slot, String part) {
+        CompoundTag tag = stack.getTag();
         if (tag == null) return null;
-        String key = tag.getString(slot);
-        if (key.equals("slashblade/fish_" + part + "_short")) return Length.SHORT;
-        if (key.equals("slashblade/fish_" + part + "_standard")) return Length.STANDARD;
-        if (key.equals("slashblade/fish_" + part + "_long")) return Length.LONG;
-        return null;
+        return switch (tag.getString(SAYA_SLOT)) {
+            // Keep the appearance and module properties of existing fixed-length sheaths.
+            case "slashblade/fish_saya_short" -> Length.SHORT;
+            case "slashblade/fish_saya_standard" -> Length.STANDARD;
+            case "slashblade/fish_saya_long" -> Length.LONG;
+            case FISH_SAYA -> switch (tag.getString(BLADE_SLOT)) {
+                case SHORT_BLADE, WAKIZASHI_MODULE, CUSTOM_SHORT_BLADE_MODULE -> Length.SHORT;
+                case LONG_BLADE, NODACHI_MODULE, CUSTOM_LONG_BLADE_MODULE -> Length.LONG;
+                default -> Length.STANDARD;
+            };
+            default -> null;
+        };
     }
 
     public static LegacyImprintKind salvagedGuard(ItemStack stack) {
@@ -80,13 +98,12 @@ public final class SaltyFishParts {
         }
     }
 
-    public static ItemStack create(Length blade, Length saya, LegacyImprintKind guard) {
+    public static ItemStack create(Blade blade, LegacyImprintKind guard) {
         ModularSlashBladeItem item = ModItems.MODULAR_SLASHBLADE.get();
         ItemStack stack = item.createDefaultStack();
-        BladeModuleMigration.installModule(stack, BLADE_SLOT, blade.module("blade"),
-                blade.part("blade") + "/bone");
-        BladeModuleMigration.installModule(stack, SAYA_SLOT, saya.module("saya"),
-                saya.part("saya") + "/salted_fish");
+        BladeModuleMigration.installModule(stack, BLADE_SLOT, blade.module,
+                blade.module.substring("slashblade/".length()) + "/bone");
+        BladeModuleMigration.installModule(stack, SAYA_SLOT, FISH_SAYA, "fish_saya/salted_fish");
         if (guard != null) {
             BladeModuleMigration.installModule(stack, TSUBA_SLOT, GUARD_MODULE,
                     "fish_salvaged_tsuba/iron");

@@ -183,7 +183,7 @@ public final class SaltyFishReview {
         }
         if (reloaded.isDone()) {
             if (!reloaded.join()) throw new IllegalStateException("Fishing construction or scroll lost on rejoin");
-            LogUtils.getLogger().info("SALTY_FISH_REVIEW_PASS: native scroll, six upgrades, saved fishing blade and workbench after world rejoin, {} framebuffer captures", captures);
+            LogUtils.getLogger().info("SALTY_FISH_REVIEW_PASS: native scroll switch, four styles and adaptive sheath, saved fishing blade and workbench after world rejoin, {} framebuffer captures", captures);
             mc.stop();
         }
     }

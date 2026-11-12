@@ -49,11 +49,11 @@ public final class SaltyFishLootModifier extends LootModifier {
     }
 
     static ItemStack catchBlade(RandomSource random) {
-        var blade = SaltyFishParts.Length.random(random);
-        var saya = SaltyFishParts.Length.random(random);
+        var blades = SaltyFishParts.Blade.values();
+        var blade = blades[random.nextInt(blades.length)];
         var guard = chooseGuard(random, NamedLegacyCatalog.values(),
                 SaltyFishLootModifier::hasPackagedGuard);
-        ItemStack stack = SaltyFishParts.create(blade, saya, guard);
+        ItemStack stack = SaltyFishParts.create(blade, guard);
         stack.setDamageValue(Math.max(1, Math.round(stack.getMaxDamage()
                 * (0.15F + 0.55F * random.nextFloat()))));
         return stack;
