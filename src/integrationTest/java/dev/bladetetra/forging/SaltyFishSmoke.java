@@ -111,7 +111,7 @@ public final class SaltyFishSmoke {
         var oldData = ScrollData.read(scroll);
         oldData.schematics = List.of("fish_blade_short", "fish_blade_standard",
                 "fish_blade_long", "fish_saya_short", "fish_saya_standard", "fish_saya_long").stream()
-                .map(path -> new ResourceLocation(schematicKey(path))).toList();
+                .map(path -> new ResourceLocation("tetra", schematicKey(path))).toList();
         var oldScroll = new ItemStack(ScrollItem.instance);
         oldData.write(oldScroll);
         place(player, pos, oldScroll);
@@ -160,7 +160,7 @@ public final class SaltyFishSmoke {
     }
 
     private static String schematicKey(String path) {
-        return "tetra:slashblade/" + path;
+        return "slashblade/" + path;
     }
 
     private static ItemStack verifyRecipe(ServerLevel level) {
@@ -197,7 +197,8 @@ public final class SaltyFishSmoke {
     private static ItemStack craft(Player player, WorkbenchTile bench, ItemStack stack, String slot,
             String module, ItemStack input) throws Exception {
         var schematic = Arrays.stream(schematics(player, bench, stack, slot))
-                .filter(option -> option.getKey().equals("tetra:" + module)).findFirst().orElseThrow();
+                .filter(option -> option.getKey().equals(module))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Missing schematic for " + module));
         check(schematic.getRequiredQuantity(stack, 0, input) == input.getCount(), "Wrong resource cost for " + module);
         var materials = new ItemStack[]{input};
         check(schematic.isMaterialsValid(stack, slot, materials), "Invalid material for " + module);
