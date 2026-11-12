@@ -22,6 +22,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
@@ -44,6 +46,7 @@ import se.mickelus.tetra.blocks.workbench.gui.WorkbenchScreen;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -145,10 +148,28 @@ public final class SaltyFishReview {
             case 408 -> selectSlot(mc, ModularSlashBladeItem.SAYA_SLOT);
             case 428 -> screenshot = "10-workbench-fish-saya";
             case 450 -> {
-                if (captures != 15) throw new IllegalStateException("Expected 15 captures, got " + captures);
+                mc.player.closeContainer();
+                mc.options.hideGui = true;
+                camera(mc, 0.5, -59.2, 2.9, 35, 180, 0);
+                onServer(mc, player -> {
+                    var stand = standardStand(player);
+                    var blade = stand.getItem().copy();
+                    blade.enchant(Enchantments.FIRE_ASPECT, 2);
+                    stand.setItem(blade);
+                });
+            }
+            case 480 -> screenshot = "11-fire-aspect-cooked-sheath";
+            case 487 -> onServer(mc, player -> {
+                var stand = standardStand(player);
+                var blade = stand.getItem().copy();
+                EnchantmentHelper.setEnchantments(Map.of(), blade);
+                stand.setItem(blade);
+            });
+            case 517 -> screenshot = "12-fire-aspect-removed";
+            case 535 -> {
+                if (captures != 17) throw new IllegalStateException("Expected 17 captures, got " + captures);
                 rejoin = true;
                 starting = false;
-                mc.player.closeContainer();
                 mc.level.disconnect();
                 mc.clearLevel(new TitleScreen());
             }
@@ -247,6 +268,11 @@ public final class SaltyFishReview {
         } catch (Exception failure) {
             throw new IllegalStateException("Native Salty Fish verification failed", failure);
         }
+    }
+
+    private static BladeStandEntity standardStand(ServerPlayer player) {
+        return player.serverLevel().getEntitiesOfClass(BladeStandEntity.class,
+                new net.minecraft.world.phys.AABB(-1, -60, -1, 2, -55, 2)).stream().findFirst().orElseThrow();
     }
 
     private static void onServer(Minecraft mc, Consumer<ServerPlayer> action) {

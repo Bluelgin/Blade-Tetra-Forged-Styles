@@ -19,6 +19,8 @@ import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -255,7 +257,12 @@ public final class LegacyModelPartRenderer {
             model = fishView(key, group, () -> faces(source, group).stream()
                     .flatMap(face -> clipBefore(face, coveredTo).stream()).toList());
         }
-        String texture = "blade".equals(part) ? "fishbone" : name;
+        String texture = name;
+        if ("blade".equals(part)) {
+            texture = "fishbone";
+        } else if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, event.getStack()) > 0) {
+            texture = name + "_cooked";
+        }
         drawFishPass(event, model, group, new ResourceLocation("blade_tetra", path + texture + ".png"), null);
     }
 
