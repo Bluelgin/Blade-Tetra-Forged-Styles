@@ -91,7 +91,7 @@ public final class CustomStyleExchangeScreen extends Screen {
         result.add(label(preview.allowed() ? "available" : "blocked"));
         int position = 1;
         for (var info : preview.actions()) {
-            result.add(Component.literal(position++ + ". " + info.action()));
+            result.add(Component.literal(position++ + ". ").append(CustomStyleEditorScreen.actionName(info.action())));
             result.add(Component.literal("  " + (info.provider().isEmpty() ? label("unknown").getString() : info.provider()
                     + " [" + info.modId() + "] " + info.installedVersion())));
             result.add(Component.translatable("screen.blade_tetra.exchange.status." + info.status().name().toLowerCase(java.util.Locale.ROOT)));

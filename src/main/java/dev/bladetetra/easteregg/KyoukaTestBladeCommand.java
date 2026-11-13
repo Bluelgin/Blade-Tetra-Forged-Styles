@@ -41,13 +41,12 @@ public final class KyoukaTestBladeCommand {
                     item.syncDerivedBladeState(blade);
                     SayaPresetSkin.apply(blade, SayaPresetSkin.KYOUKA);
                     if (!KyoukaAwakening.unlockForDebug(blade)) {
-                        context.getSource().sendFailure(Component.literal(
-                                "Kyouka blade debug setup failed: inscription not recognized"));
+                        context.getSource().sendFailure(Component.translatable("command.blade_tetra.kyouka_test.failure"));
                         return 0;
                     }
                     if (!player.getInventory().add(blade)) player.drop(blade, false);
                     context.getSource().sendSuccess(() ->
-                            Component.literal("Granted awakened Kyouka Suigetsu test blade"), false);
+                            Component.translatable("command.blade_tetra.kyouka_test.success"), false);
                     return 1;
                 }));
     }

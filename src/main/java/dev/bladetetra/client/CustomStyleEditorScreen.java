@@ -151,11 +151,10 @@ public final class CustomStyleEditorScreen extends Screen {
         minecraft.setScreen(new CustomStyleExchangeScreen(this, exporting, serverDraft));
     }
 
-    private Component actionName(ResourceLocation id) {
+    public static Component actionName(ResourceLocation id) {
         // Optional resource-pack labels; retain the real ID in the tooltip.
         String key = "action.blade_tetra." + id.getNamespace() + "." + id.getPath().replace('/', '.');
-        return net.minecraft.client.resources.language.I18n.exists(key)
-                ? Component.translatable(key) : Component.literal(id.toString());
+        return Component.translatableWithFallback(key, id.toString());
     }
 
     private void revealSelection() {

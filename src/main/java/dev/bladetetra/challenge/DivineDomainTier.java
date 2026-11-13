@@ -1,18 +1,20 @@
 package dev.bladetetra.challenge;
 
+import net.minecraft.network.chat.Component;
+
 /**
  * Difficulty derived from the frozen SlashBlade kill-count snapshot carried by
  * the ritual puppet. Scaling deliberately changes encounter structure instead
  * of relying on a single health multiplier.
  */
 public enum DivineDomainTier {
-    ECHO("残响", 0L, 2, 3, 0.00D, 2, 0),
-    GRUDGE("怨聚", 51L, 3, 4, 0.10D, 3, 0),
-    HUNDRED_GHOSTS("百鬼", 201L, 4, 5, 0.18D, 4, 100),
-    ASURA("修罗", 501L, 5, 8, 0.33D, 8, 72),
-    AVICI("无间", 1001L, 6, 10, 0.40D, 8, 52);
+    ECHO("tier.blade_tetra.divine.echo", 0L, 2, 3, 0.00D, 2, 0),
+    GRUDGE("tier.blade_tetra.divine.grudge", 51L, 3, 4, 0.10D, 3, 0),
+    HUNDRED_GHOSTS("tier.blade_tetra.divine.hundred_ghosts", 201L, 4, 5, 0.18D, 4, 100),
+    ASURA("tier.blade_tetra.divine.asura", 501L, 5, 8, 0.33D, 8, 72),
+    AVICI("tier.blade_tetra.divine.avici", 1001L, 6, 10, 0.40D, 8, 52);
 
-    private final String displayName;
+    private final String displayNameKey;
     private final long minimumKills;
     private final int waves;
     private final int baseConcurrent;
@@ -20,10 +22,10 @@ public enum DivineDomainTier {
     private final int spawnDirections;
     private final int pressureIntervalTicks;
 
-    DivineDomainTier(String displayName, long minimumKills, int waves,
+    DivineDomainTier(String displayNameKey, long minimumKills, int waves,
             int baseConcurrent, double eliteChance, int spawnDirections,
             int pressureIntervalTicks) {
-        this.displayName = displayName;
+        this.displayNameKey = displayNameKey;
         this.minimumKills = minimumKills;
         this.waves = waves;
         this.baseConcurrent = baseConcurrent;
@@ -43,8 +45,8 @@ public enum DivineDomainTier {
         return selected;
     }
 
-    public String displayName() {
-        return displayName;
+    public Component displayName() {
+        return Component.translatable(displayNameKey);
     }
 
     public long minimumKills() {

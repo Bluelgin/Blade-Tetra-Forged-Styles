@@ -4,7 +4,7 @@ Gameplay settings are stored per world in:
 
 `<world>/serverconfig/blade-tetra-server.toml`
 
-For the current neutral (1.0) combat multipliers and their scope, see [Combat balance configuration](docs/guides/COMBAT_BALANCE_CONFIG.md). Mikage combat settings are retained for development and existing saves; they do not reopen the [suspended challenge](docs/guides/MIKAGE_CHALLENGE_SUSPENSION.md).
+For the current neutral (1.0) combat multipliers and their scope, see [Combat balance configuration](docs/guides/COMBAT_BALANCE_CONFIG.md). Mikage combat settings are retained for development and existing saves. See the [challenge availability guide](docs/guides/MIKAGE_CHALLENGE_SUSPENSION.md).
 
 ## Discoveries
 
@@ -23,7 +23,7 @@ For the current neutral (1.0) combat multipliers and their scope, see [Combat ba
 | `akatsukiExecutionPulseTicks` | `2` | Ticks between real cuts; clients render several additional visual cuts. |
 | `akatsukiExecutionMaintainTicks` | `40` | Time the execution remains powered without another manual Akatsuki hit. |
 | `akatsukiExecutionTimeoutTicks` | `160` | Absolute compatibility fuse for an execution that cannot finish normally. |
-| `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins. |
+| `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins or the blood threads first execute a target. |
 | `akatsukiExecutionMinimumTargetHealth` | `40.0` | Minimum target maximum health for the full execution timeline. |
 
 ## Raikiri 3.1 (awakened V2)

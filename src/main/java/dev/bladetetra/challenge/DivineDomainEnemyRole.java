@@ -9,12 +9,12 @@ import net.minecraft.world.item.Items;
 
 /** Ritual roles are attached only to session-owned enemies. */
 public enum DivineDomainEnemyRole {
-    ORDINARY("刀下亡魂"), TAINTED("染业亡魂"), INVADER("侵界亡魂"),
-    GUARDIAN("守业亡魂"), PURSUER("追魂"), FINAL("刀下众生");
+    ORDINARY("entity.blade_tetra.divine.ordinary"), TAINTED("entity.blade_tetra.divine.tainted"), INVADER("entity.blade_tetra.divine.invader"),
+    GUARDIAN("entity.blade_tetra.divine.guardian"), PURSUER("entity.blade_tetra.divine.pursuer"), FINAL("entity.blade_tetra.divine.final");
 
     private static final String TAG = "blade_tetra_divine_role";
-    private final String name;
-    DivineDomainEnemyRole(String name) { this.name = name; }
+    private final String nameKey;
+    DivineDomainEnemyRole(String nameKey) { this.nameKey = nameKey; }
 
     public static DivineDomainEnemyRole of(net.minecraft.world.entity.Entity entity) {
         int index = entity.getPersistentData().getInt(TAG);
@@ -32,7 +32,7 @@ public enum DivineDomainEnemyRole {
             };
         }
         mob.getPersistentData().putInt(TAG, role.ordinal());
-        mob.setCustomName(Component.literal(role.name));
+        mob.setCustomName(Component.translatable(role.nameKey));
         if (role == PURSUER && mob.getAttribute(Attributes.MOVEMENT_SPEED) != null)
             mob.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(.42);
         if (role == FINAL) {

@@ -42,8 +42,8 @@ final class DivineDomainFinisher {
                 }
             }
             support.say(phase >= 2
-                    ? "神域正在失控。留意脚下。"
-                    : "它在呼唤更多亡魂。");
+                    ? "message.blade_tetra.divine.pressure"
+                    : "message.blade_tetra.divine.reinforcements");
         }
         if (phase >= 2 && now >= nextHazard) {
             nextHazard = now + 120;

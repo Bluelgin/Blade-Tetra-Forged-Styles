@@ -15,12 +15,12 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
   <img alt="Minecraft 1.20.1" src="https://img.shields.io/badge/Minecraft-1.20.1-62b47a">
   <img alt="Forge 47" src="https://img.shields.io/badge/Forge-47-e06c3b">
-  <img alt="Source version 1.6.5" src="https://img.shields.io/badge/source--version-1.6.6-8b5cf6">
+  <img alt="Source version 1.6.6hotfix" src="https://img.shields.io/badge/source--version-1.6.6hotfix-8b5cf6">
 </p>
 
 Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。刀身、柄、镡、鞘、鎺与柄头会共同决定武器的模型、材质、属性和战斗方式；同一把刀可以从开局一路改造到整合包毕业，而不是每隔几小时就被下一把成品刀替换。
 
-> 当前源码候选版本为 **1.6.6**；此标记不表示已发布安装包。
+> 当前源码版本为 **1.6.6hotfix**。下载已发布的 JAR 请访问 [CurseForge 文件页](https://www.curseforge.com/minecraft/mc-mods/blade-tetra-forged-styles/files/9492547)。
 
 ## 核心内容
 
@@ -32,7 +32,7 @@ Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。�
 - **四种预设流派**：本传、居合、连舞与断岳拥有不同的攻击节奏、范围、连段与风险收益。
 - **千门剑谱**：采录最多六招普通动作，命名、排序、编辑并生成 Tetra 原生卷轴；在工作台加工为短、标准或长刀身。支持保留名称和动作顺序的离线短分享码。
 - **秘传·离锋**：研习后在 SSS 下由真实普通斩击发出剑气，支持预设与自创流派；客户端提供三档剑气画质。
-- **名刀锭**：使用原刀与破碎的耀魂提取名刀锭，在 Tetra 工作台混装名刀刀身、刀鞘和刀镡；组合继承来源 SA／SE，并支持工作台确认的融合 SA。
+- **名刀锭**：用一把可识别的名刀和 8 个破碎的耀魂提取名刀锭，在 Tetra 工作台打造刀身、刀鞘和刀镡。刀身可继承来源的特殊效果（SE），同源鞘镡可继承来源斩术（SA），异源鞘镡可尝试融合。
 - **隐藏传承与魂铭**：通过锻刀秘录探索赤月、镜花水月、千本樱、雷切等觉醒，并允许部分魂铭融合。
 - **御影内容保留**：普通挑战、回忆战与新访客入口暂时封印，等待战斗完善；保留旧进度与已有物品。见[当前开放策略](docs/guides/MIKAGE_CHALLENGE_SUSPENSION.md)。
 - **动态材料美术**：读取已加载的 Tetra 材料，为刀身、刀装和刀光生成对应视觉，同时保留手工制作的特殊材料表现。
@@ -84,6 +84,6 @@ gradlew build
 - 部分美术状态仍缺可靠客户端接口，未伪造录制或锻造成功反馈，详见[客户端整合边界](docs/custom-style-art/CLIENT_INTEGRATION.md)。
 - 历次[版本更新日志](docs/releases/README.md)统一收纳在 `docs/releases/`；Alpha 至 1.5.2 的旧首页内容移至[历史记录](docs/history/README_HISTORY.md)，不作为当前功能说明。
 
-### 千本樱 3.0（开发分支）
+### 千本樱觉醒
 
-散华普通攻击保留原生 B1–B7 与方向/空中技，真实命中驱动轮换碎刃发射原生幻影剑，不额外燃烧 Rank。散华下原生 SA 操作启动独立的 B1–B6 自动无限连舞，消耗原生 Rank；凝刃保留原 SA。详见 [玩法、配置与维护](docs/awakened-rework/SAKURA_30.md)。
+散华后可用普通攻击驱动花剑。达到 A 级评价时，在散华状态下释放斩术可消耗评价点发动无限连舞。上挑可召回碎刃。详见 [玩法、配置与维护](docs/awakened-rework/SAKURA_30.md)。

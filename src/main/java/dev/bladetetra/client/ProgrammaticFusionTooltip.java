@@ -30,7 +30,7 @@ public final class ProgrammaticFusionTooltip {
         }
 
         if (ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(event.getItemStack())) {
-            event.getToolTip().add(Component.literal("恭喜你发现了未适配的融合SA")
+            event.getToolTip().add(Component.translatable("tooltip.blade_tetra.fusion.unsupported")
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
     }

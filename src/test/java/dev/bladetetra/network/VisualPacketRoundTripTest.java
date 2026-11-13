@@ -139,7 +139,7 @@ class VisualPacketRoundTripTest {
                 List.of(
                         new MikageVisitorDialoguePacket.Option(
                                 "history", "dialogue.blade_tetra.mikage.visitor.history"),
-                        new MikageVisitorDialoguePacket.Option("divine_lore", "关于神域")));
+                        new MikageVisitorDialoguePacket.Option("divine_lore", "screen.blade_tetra.divine.topic")));
         assertEquals(expected, roundTrip(original,
                 MikageVisitorDialoguePacket::encode,
                 MikageVisitorDialoguePacket::decode));

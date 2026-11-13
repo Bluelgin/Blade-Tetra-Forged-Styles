@@ -61,20 +61,17 @@ public final class DeadThoughtDivineImprinting {
 
         ItemStack blade = stand.getItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)) {
-            player.displayClientMessage(Component.literal(
-                    "无生残印只会回应你亲手锻成的 Blade Tetra 刀。")
+            player.displayClientMessage(Component.translatable("message.blade_tetra.dead_thought.own_blade")
                     .withStyle(ChatFormatting.RED), true);
             return;
         }
         if (!hasWorkbenchBelow(stand)) {
-            player.displayClientMessage(Component.literal(
-                    "把挂刀台置于 Tetra 工作台上方，再进行死念刻印。")
+            player.displayClientMessage(Component.translatable("message.blade_tetra.dead_thought.workbench")
                     .withStyle(ChatFormatting.RED), true);
             return;
         }
         if (DeadThoughtDivineLegacy.isBound(blade)) {
-            player.displayClientMessage(Component.literal(
-                    "这把刀已经记住了死念。")
+            player.displayClientMessage(Component.translatable("message.blade_tetra.dead_thought.already_bound")
                     .withStyle(ChatFormatting.GRAY), true);
             return;
         }
@@ -95,8 +92,7 @@ public final class DeadThoughtDivineImprinting {
         player.level().playSound(null, stand.blockPosition(),
                 SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS,
                 0.9F, 0.65F);
-        player.sendSystemMessage(Component.literal(
-                "无生残印沉入刀身。血樱终景「无生」与命蚀已成为这把刀的死念异传。")
+        player.sendSystemMessage(Component.translatable("message.blade_tetra.dead_thought.bound")
                 .withStyle(ChatFormatting.DARK_RED));
     }
 
