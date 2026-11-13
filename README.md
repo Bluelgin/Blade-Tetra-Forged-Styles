@@ -15,12 +15,12 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
   <img alt="Minecraft 1.20.1" src="https://img.shields.io/badge/Minecraft-1.20.1-62b47a">
   <img alt="Forge 47" src="https://img.shields.io/badge/Forge-47-e06c3b">
-  <img alt="Source version 1.6.6hotfix" src="https://img.shields.io/badge/source--version-1.6.6hotfix-8b5cf6">
+  <img alt="Source version 1.6.7" src="https://img.shields.io/badge/source--version-1.6.7-8b5cf6">
 </p>
 
 Blade Tetra 让玩家在 Tetra 工作台中锻造真正模块化的拔刀剑。刀身、柄、镡、鞘、鎺与柄头会共同决定武器的模型、材质、属性和战斗方式；同一把刀可以从开局一路改造到整合包毕业，而不是每隔几小时就被下一把成品刀替换。
 
-> 当前源码版本为 **1.6.6hotfix**。下载已发布的 JAR 请访问 [CurseForge 文件页](https://www.curseforge.com/minecraft/mc-mods/blade-tetra-forged-styles/files/9492547)。
+> 当前源码版本为 **1.6.7**。下载已发布的 JAR 请访问 [CurseForge 文件页](https://www.curseforge.com/minecraft/mc-mods/blade-tetra-forged-styles/files/9492547)。
 
 ## 核心内容
 
