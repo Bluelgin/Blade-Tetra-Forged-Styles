@@ -1,0 +1,11 @@
+{
+  "replace": true,
+  "slots": ["slashblade/backplate"],
+  "type": "tetra:basic_module",
+  "variants": [
+    {
+      "key": "named_backplate/ingot",
+      "glyph": { "textureX": 56, "textureY": 112, "tint": "B796D1" }
+    }
+  ]
+}

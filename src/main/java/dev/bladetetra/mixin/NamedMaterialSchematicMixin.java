@@ -1,7 +1,9 @@
 package dev.bladetetra.mixin;
 
 import dev.bladetetra.forging.NamedBladeMaterial;
+import dev.bladetetra.forging.NamedBackplate;
 import dev.bladetetra.forging.NamedMaterialStats;
+import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -70,14 +72,30 @@ public abstract class NamedMaterialSchematicMixin {
     private void bladeTetra$replaceIdentity(OutcomeDefinition outcome, ItemStack upgraded,
             boolean consume, String slot, Player player, CallbackInfo ci) {
         if (outcome.moduleKey != null) NamedBladeMaterial.clearReplacedSource(upgraded, slot);
+        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)) NamedBackplate.clearSource(upgraded);
     }
 
     @Inject(method = "acceptsMaterial", at = @At("HEAD"), cancellable = true)
     private void bladeTetra$validateSource(ItemStack target, String slot, int index,
             ItemStack ingredient, CallbackInfoReturnable<Boolean> cir) {
-        if (ingredient.getItem() instanceof NamedBladeIngotItem
+        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)) {
+            if (NamedBladeIngotItem.source(ingredient) == null) cir.setReturnValue(false);
+        } else if (ingredient.getItem() instanceof NamedBladeIngotItem
                 && (NamedBladeIngotItem.source(ingredient) == null
-                    || !NamedBladeMaterial.supportedSlot(slot))) cir.setReturnValue(false);
+                    || !NamedBladeMaterial.supportedSlot(slot))) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "applyUpgrade", at = @At("HEAD"), cancellable = true)
+    private void bladeTetra$validateBackplateCraft(ItemStack target, ItemStack[] materials,
+            boolean consume, String slot, Player player, CallbackInfoReturnable<ItemStack> cir) {
+        // Tetra supplies all workbench material slots even for a one-slot schematic.
+        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)
+                && (!(target.getItem() instanceof ModularSlashBladeItem) || materials.length == 0
+                    || materials[0].isEmpty() || NamedBladeIngotItem.source(materials[0]) == null)) {
+            cir.setReturnValue(target.copy());
+        }
     }
 
     @Inject(method = "applyUpgrade", at = @At("RETURN"))
@@ -85,6 +103,10 @@ public abstract class NamedMaterialSchematicMixin {
             boolean consume, String slot, Player player, CallbackInfoReturnable<ItemStack> cir) {
         // applyUpgrade is also the real workbench preview path, before crafting effects.
         NamedBladeMaterial.capture(cir.getReturnValue(), slot, materials);
+        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot) && materials.length > 0) {
+            // The final consumed ingot still has its tag, but empty stacks report AIR.
+            NamedBackplate.installSource(cir.getReturnValue(), NamedBladeIngotItem.storedSourceId(materials[0]));
+        }
         dev.bladetetra.combat.ProgrammaticFusionAttunement.preserveUnchangedPair(target, cir.getReturnValue());
     }
 }

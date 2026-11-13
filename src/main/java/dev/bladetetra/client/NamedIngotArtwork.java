@@ -23,8 +23,18 @@ final class NamedIngotArtwork {
     private static final Region WHOLE = new Region(0, 0, 1, 1);
 
     static NativeImage source(ResourceManager resources, LegacyImprintKind kind) throws IOException {
+        return source(resources, kind, false);
+    }
+
+    static NativeImage backplateSample(ResourceManager resources, LegacyImprintKind kind) throws IOException {
+        return source(resources, kind, true);
+    }
+
+    private static NativeImage source(ResourceManager resources, LegacyImprintKind kind,
+            boolean requireRegion) throws IOException {
         ResourceLocation texture = kind.texture();
         Region region = iconRegion(resources, kind);
+        boolean explicit = false;
         // Resource packs can explicitly identify a standalone backplate or atlas
         // region. Never guess that every provider has a similarly named PNG.
         var override = resources.getResource(new ResourceLocation("blade_tetra",
@@ -49,11 +59,13 @@ final class NamedIngotArtwork {
                         && resources.getResource(candidateTexture).isPresent()) {
                     texture = candidateTexture;
                     region = candidateRegion;
+                    explicit = json.has("texture") || json.has("region");
                 }
             } catch (RuntimeException | IOException ignored) {
                 // Optional presentation metadata cannot make an ingot unusable.
             }
         }
+        if (requireRegion && region == WHOLE && !explicit) throw new IOException("No backplate region for " + kind.id());
         try (var input = resources.getResourceOrThrow(texture).open();
                 var image = NativeImage.read(input)) {
             if (Boolean.getBoolean("blade_tetra.namedIngotArtReview"))

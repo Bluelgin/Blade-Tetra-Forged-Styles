@@ -63,7 +63,7 @@ public final class CombatBalanceRuntime {
         }
     }
 
-    private static boolean isSlashArt(LivingEntity user, ISlashBladeState state) {
+    static boolean isSlashArt(LivingEntity user, ISlashBladeState state) {
         if (CHARGING.get() == user) return true;
         if (user instanceof net.minecraft.server.level.ServerPlayer player
                 && ForgedSlashArtHandler.activeDamageScale(player) != 1.0F) return true;

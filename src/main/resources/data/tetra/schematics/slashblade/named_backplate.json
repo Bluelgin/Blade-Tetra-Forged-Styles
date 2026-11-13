@@ -1,0 +1,14 @@
+{
+  "replace": true,
+  "slots": ["slashblade/backplate"],
+  "materialSlotCount": 1,
+  "displayType": "minor",
+  "glyph": { "textureX": 56, "textureY": 112, "tint": "B796D1" },
+  "outcomes": [
+    {
+      "material": { "items": ["blade_tetra:named_blade_ingot"], "count": 1 },
+      "moduleKey": "slashblade/named_backplate",
+      "moduleVariant": "named_backplate/ingot"
+    }
+  ]
+}

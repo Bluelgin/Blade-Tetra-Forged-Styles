@@ -4,11 +4,6 @@
   "materialSlotCount": 1,
   "displayType": "minor",
   "glyph": { "textureX": 32, "textureY": 112 },
-  "translation": {
-    "secondaryAttributes": { "generic.attack_speed": 1 },
-    "durability": 1,
-    "magicCapacity": 2
-  },
   "outcomes": [
     {
       "materials": [ "tetra:metal/", "tetra:wood/potato" ],

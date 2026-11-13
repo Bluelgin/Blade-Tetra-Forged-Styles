@@ -8,6 +8,10 @@ public final class ClientTooltipKeyState {
         return Screen.hasAltDown();
     }
 
+    public static boolean isShiftDown() {
+        return Screen.hasShiftDown();
+    }
+
     private ClientTooltipKeyState() {
     }
 }

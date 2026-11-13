@@ -89,6 +89,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     public static final String KASHIRA_SLOT = "slashblade/kashira";
     public static final String FULLER_SLOT = "slashblade/fuller";
     public static final String INSCRIPTION_SLOT = "slashblade/inscription";
+    public static final String BACKPLATE_SLOT = "slashblade/backplate";
 
     public static final String BLADE_MODULE = "slashblade/katana_blade";
     public static final String ORTHODOX_BLADE_MODULE = "slashblade/orthodox_blade";
@@ -179,7 +180,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
 
     @Override
     public Component getName(ItemStack stack) {
-        return BladeNameResolver.resolve(stack);
+        return BladeNameResolver.resolve(this, stack);
     }
 
     @Override
@@ -330,11 +331,6 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
         int reducedAmount = TetraDurabilityCompat.preprocessDamage(
                 this, stack, amount, entity, onBroken);
         if (reducedAmount <= 0) {
-            return 0;
-        }
-        if (ComponentEffectResolver.hasModule(
-                stack, HABAKI_SLOT, REINFORCED_HABAKI_MODULE)
-                && entity.getRandom().nextFloat() < 0.30F) {
             return 0;
         }
 
@@ -541,6 +537,9 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
                         : "tooltip.blade_tetra.details.expand")
                 .withStyle(ChatFormatting.DARK_GRAY));
         tooltip.addAll(getTooltip(stack, level, flag));
+        if (TooltipKeyState.isShiftDown()) {
+            BladeDetailTooltip.appendInscriptions(stack, tooltip);
+        }
     }
 
     @Override

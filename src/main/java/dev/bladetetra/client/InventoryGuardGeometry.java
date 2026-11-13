@@ -13,7 +13,7 @@ final class InventoryGuardGeometry {
 
     static boolean isGuard(Face face) { return inside(face, 52, 58, 76, 82); }
 
-    private static boolean inside(Face face, float x0, float y0, float x1, float y1) {
+    static boolean inside(Face face, float x0, float y0, float x1, float y1) {
         if (face.textureCoordinates == null || face.textureCoordinates.length == 0) return false;
         for (var uv : face.textureCoordinates) {
             if (uv == null || uv.u * 128 < x0 || uv.u * 128 >= x1

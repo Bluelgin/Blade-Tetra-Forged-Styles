@@ -10,6 +10,10 @@ final class TooltipKeyState {
         return FMLEnvironment.dist == Dist.CLIENT && ClientTooltipKeyState.isAltDown();
     }
 
+    static boolean isShiftDown() {
+        return FMLEnvironment.dist == Dist.CLIENT && ClientTooltipKeyState.isShiftDown();
+    }
+
     private TooltipKeyState() {
     }
 }

@@ -37,6 +37,11 @@ public final class NamedBladeIngotItem extends Item {
 
     public static String sourceId(ItemStack stack) {
         if (stack == null || !(stack.getItem() instanceof NamedBladeIngotItem)) return null;
+        return storedSourceId(stack);
+    }
+
+    /** Read the source tag after a validated recipe consumes the final ingot. */
+    public static String storedSourceId(ItemStack stack) {
         CompoundTag tag = stack.getTag();
         if (tag == null || !tag.contains(SOURCE, net.minecraft.nbt.Tag.TAG_STRING)) return null;
         String id = tag.getString(SOURCE);

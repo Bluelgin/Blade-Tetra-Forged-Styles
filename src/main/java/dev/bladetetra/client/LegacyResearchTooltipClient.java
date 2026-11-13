@@ -21,15 +21,6 @@ public final class LegacyResearchTooltipClient {
                 NamedBladeIngotEligibility.inspect(event.getItemStack());
         if (extraction.kind() == null) return;
 
-        LegacyResearchabilityClient.Result visual =
-                LegacyResearchabilityClient.inspect(extraction.kind());
-        if (visual.researchable()) {
-            // Geometry support remains useful to named-ingot fittings. It no longer
-            // advertises the retired research gameplay.
-            event.getToolTip().add(Component.translatable(
-                    "tooltip.blade_tetra.imprint.model_supported")
-                    .withStyle(ChatFormatting.AQUA));
-        }
         if (extraction.extractable()) {
             event.getToolTip().add(Component.translatable(
                     "tooltip.blade_tetra.imprint.ingot_ready")
@@ -41,10 +32,8 @@ public final class LegacyResearchTooltipClient {
                     .withStyle(ChatFormatting.GRAY));
         }
 
-        if (!visual.researchable()) {
-            // Do not imply the client's OBJ passed validation. The server may
-            // still extract semantic ingot identity; installed parts fall back
-            // to the ordinary model if the addon geometry is unsupported.
+        if (ClientTooltipKeyState.isAltDown()
+                && !LegacyResearchabilityClient.inspect(extraction.kind()).researchable()) {
             event.getToolTip().add(Component.translatable(
                     "tooltip.blade_tetra.imprint.visual_fallback")
                     .withStyle(ChatFormatting.DARK_GRAY));

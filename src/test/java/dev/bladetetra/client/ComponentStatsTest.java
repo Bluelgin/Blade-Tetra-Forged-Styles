@@ -12,7 +12,7 @@ class ComponentStatsTest {
             var json = JsonParser.parseString(Files.readString(Path.of(
                     "src/main/resources/assets/blade_tetra/lang/" + language + ".json"))).getAsJsonObject();
             assertTrue(json.has("tetra.holo.craft.modular_slashblade"));
-            for (String name : new String[]{"draw", "just", "spirit", "guard", "rank", "toss"}) {
+            for (String name : new String[]{"draw", "rank_retention", "strong_knockback", "spirit", "guard", "rank", "toss"}) {
                 String key = "stat.blade_tetra.component." + name;
                 assertTrue(json.has(key), key);
                 assertTrue(json.has(key + ".tooltip"), key);

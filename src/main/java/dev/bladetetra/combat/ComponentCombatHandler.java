@@ -6,7 +6,6 @@ import mods.flammpfeil.slashblade.capability.concentrationrank.ConcentrationRank
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
-import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import mods.flammpfeil.slashblade.util.KnockBacks;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.LivingEntity;
@@ -70,20 +69,6 @@ public final class ComponentCombatHandler {
         ItemStack blade = user.getMainHandItem();
         if (!(blade.getItem() instanceof ModularSlashBladeItem)) {
             return;
-        }
-
-        if (ComponentEffectResolver.hasModule(
-                blade,
-                ModularSlashBladeItem.HABAKI_SLOT,
-                ModularSlashBladeItem.PRECISION_HABAKI_MODULE)
-                && event.getType() == SlashArts.ArtsType.Success) {
-            int extendedJustEnd = event.getSlashBladeState().getFullChargeTicks(user)
-                    + SlashArts.getJustReceptionSpan(user)
-                    + ComponentCombatValues.JUST_EXTRA_TICKS;
-            if (event.getElapsed() < extendedJustEnd) {
-                event.setComboState(
-                        event.getSlashBladeState().getSlashArts().getComboStateJust(user));
-            }
         }
 
         if (ComponentEffectResolver.hasModule(

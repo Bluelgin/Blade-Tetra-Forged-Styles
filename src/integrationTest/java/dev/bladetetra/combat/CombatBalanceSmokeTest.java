@@ -3,11 +3,14 @@ package dev.bladetetra.combat;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.config.CombatBalanceConfig;
+import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.registry.ModItems;
+import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank;
 import mods.flammpfeil.slashblade.entity.EntityAbstractSummonedSword;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +21,8 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import se.mickelus.tetra.data.DataManager;
+import se.mickelus.tetra.module.schematic.ConfigSchematic;
 
 /** Opt-in real Forge/Mixin verification in an isolated world; never runs on ordinary servers. */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID)
@@ -135,7 +140,11 @@ public final class CombatBalanceSmokeTest {
             if (net.minecraftforge.fml.ModList.get().isLoaded("configured")) {
                 verifyConfigured();
             }
+            CombatBalanceConfig.GLOBAL.set(1D);
+            verifyHabaki(level, player);
+            verifyHabakiMaterialStats(player);
             dev.bladetetra.config.GameplayConfig.SPEC.setConfig(config.getConfigData());
+            player.setItemSlot(EquipmentSlot.MAINHAND, blade);
             verifyFileReload(player, target, source);
             LogUtils.getLogger().info("COMBAT_BALANCE_SMOKE_PASS: all styles, SA, delayed projectiles, inheritance, live edits, real hit");
         } catch (Throwable failure) {
@@ -149,6 +158,144 @@ public final class CombatBalanceSmokeTest {
             event.getServer().halt(false);
         }
     }
+
+    private static void verifyHabakiMaterialStats(net.minecraft.server.level.ServerPlayer player) throws Exception {
+        var item = ModItems.MODULAR_SLASHBLADE.get();
+        String slot = ModularSlashBladeItem.HABAKI_SLOT;
+        String[] parts = {"basic_habaki", "precision_habaki", "reinforced_habaki"};
+        int[] baseDurability = {10, 5, 30};
+        int[] ironDurability = {24, 14, 70};
+        int[] highDurability = {101, 64, 285};
+        for (int index = 0; index < parts.length; index++) {
+            String part = parts[index];
+            var definition = DataManager.instance.schematicData.getData(
+                    ResourceLocation.fromNamespaceAndPath("tetra", "slashblade/" + part));
+            var schematic = new ConfigSchematic(definition);
+            var blade = item.createDefaultStack();
+            var ingredients = new ItemStack[]{new ItemStack(Items.IRON_INGOT, 64)};
+            check(schematic.isMaterialsValid(blade, slot, ingredients), "habaki accepts iron");
+            var preview = schematic.applyUpgrade(blade, ingredients, false, slot, player);
+            var crafted = schematic.applyUpgrade(blade, ingredients, true, slot, player);
+            var loaded = ItemStack.of(crafted.save(new net.minecraft.nbt.CompoundTag()));
+            var module = item.getModuleFromSlot(crafted, slot);
+            for (var stack : new ItemStack[]{preview, crafted, loaded}) {
+                var stats = module.getVariantData(stack);
+                check(stats.durability == ironDurability[index], "iron durability " + part + ": " + stats.durability);
+                check(stats.magicCapacity == (index == 1 ? 14 : 0), "iron magic capacity " + part);
+                check(stats.integrity == (index == 1 ? 0 : 1), "habaki integrity " + part);
+            }
+
+            // Use the MMT Unobtainium inputs even when its provider is absent from this profile.
+            var template = new se.mickelus.tetra.module.data.MaterialVariantData();
+            template.key = part + "/";
+            template.durability = baseDurability[index];
+            var material = new se.mickelus.tetra.module.data.MaterialData();
+            material.key = "unobtainium";
+            material.primary = 27.24F;
+            material.secondary = .1F;
+            material.tertiary = 0F;
+            material.durability = 15000;
+            material.magicCapacity = 1000;
+            var stats = template.combine(material);
+            check(stats.durability == highDurability[index], "high-end durability " + part);
+            check(stats.magicCapacity == (index == 1 ? 27 : 0), "high-end magic capacity " + part);
+        }
+        LogUtils.getLogger().info("HABAKI_MATERIAL_SMOKE_PASS: three iron previews, crafts and reloads; MMT high-end inputs");
+    }
+    private static void verifyHabaki(net.minecraft.server.level.ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player) {
+        level.getChunk(0, 0);
+        player.moveTo(4, 200, 4, 0, 0);
+        player.setYHeadRot(0);
+        player.yBodyRot = 0;
+        player.setOnGround(true);
+        // The regular server tick has not advanced yet, so clear the initial zero-tick guard window.
+        long gameTime = level.getGameTime();
+        level.getServer().getWorldData().overworldData().setGameTime(Math.max(1, gameTime));
+        CombatBalanceRuntime.ordinaryCombo(player);
+        try {
+            var basic = habakiSlash(level, player, "basic_habaki", false);
+            var focus = habakiSlash(level, player, "precision_habaki", false);
+            var strong = habakiSlash(level, player, "reinforced_habaki", false);
+            var toss = habakiSlash(level, player, "precision_habaki", true);
+            LogUtils.getLogger().info("Habaki movement: basic {}, focus {}, reinforced {}, toss {}",
+                    basic, focus, strong, toss);
+            check(close((float) basic.z, .12F), "basic habaki follows native ordinary knockback: " + basic);
+            check(focus.equals(basic), "focus habaki uses the native ordinary knockback: " + focus);
+            check(strong.z > .6D && close((float) strong.y, .04F),
+                    "reinforced habaki adds horizontal impulse only: " + strong);
+            check(toss.y >= .75D, "special toss still launches with focus habaki: " + toss);
+            verifyHabakiRank(level, player);
+            LogUtils.getLogger().info("HABAKI_SMOKE_PASS: old module IDs, native slashes, mixed Rank decay and exact spending");
+        } finally {
+            level.getServer().getWorldData().overworldData().setGameTime(gameTime);
+            CombatBalanceRuntime.ordinaryCombo(player);
+        }
+    }
+
+    private static void verifyHabakiRank(net.minecraft.server.level.ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player) {
+        var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
+        var focusBlade = player.getMainHandItem();
+        long now = level.getGameTime();
+        long initial = rank.getUnitCapacity() * 2 + 120;
+        rank.setRawRankPoint(initial);
+        rank.setLastUpdte(now);
+        for (int tick = 0; tick <= 40; tick++) {
+            level.getServer().getWorldData().overworldData().setGameTime(now + tick);
+            player.setItemSlot(EquipmentSlot.MAINHAND, tick >= 20 && tick < 30 ? ItemStack.EMPTY : focusBlade);
+            HabakiRankRetention.playerTick(new net.minecraftforge.event.TickEvent.PlayerTickEvent(
+                    net.minecraftforge.event.TickEvent.Phase.START, player));
+            if (tick == 20) check(rank.getRankPoint(now + tick) == initial - 10, "held blade halves natural decay");
+            if (tick == 30) check(rank.getRankPoint(now + tick) == initial - 20, "swapping back preserves prior decay");
+        }
+        check(rank.getRankPoint(now + 40) == initial - 25, "the focus blade resumes half-speed decay");
+        rank.addRankPoint(player, -60);
+        check(rank.getRankPoint(now + 40) == initial - 85, "explicit Rank cost is charged in full");
+    }
+
+    private static net.minecraft.world.phys.Vec3 habakiSlash(net.minecraft.server.level.ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player, String module, boolean toss) {
+        var blade = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+        var tag = blade.getOrCreateTag();
+        tag.remove("slashblade/basic_habaki_material");
+        tag.putString("slashblade/habaki", "slashblade/" + module);
+        tag.putString("slashblade/" + module + "_material", module + "/iron");
+        var saved = blade.save(new net.minecraft.nbt.CompoundTag());
+        // Exercise both old expanded saves and the current compact item format.
+        if (module.equals("precision_habaki")) saved = dev.bladetetra.storage.BladeStackStorage.decode(saved);
+        blade = ItemStack.of(saved);
+        player.setItemSlot(EquipmentSlot.MAINHAND, blade);
+        var combo = mods.flammpfeil.slashblade.registry.ComboStateRegistry.COMBO_A1.getId();
+        var state = blade.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
+        state.setComboSeq(combo);
+        state.setLastActionTime(level.getGameTime());
+        var target = new Zombie(level);
+        target.setNoAi(true);
+        target.setPos(4, 200, 5.5);
+        target.setOnGround(true);
+        target.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        target.setDeltaMovement(0D, .04D, .12D);
+        check(level.addFreshEntity(target), "target registered");
+        state.setTargetEntityId(target.getId());
+        var slash = mods.flammpfeil.slashblade.util.AttackManager.doSlash(player, 0,
+                net.minecraft.world.phys.Vec3.ZERO, false, true, 1,
+                toss ? mods.flammpfeil.slashblade.util.KnockBacks.toss : mods.flammpfeil.slashblade.util.KnockBacks.cancel);
+        try {
+            check(slash != null && slash.getShooter() == player, "native slash with registered owner");
+            check(mods.flammpfeil.slashblade.util.TargetSelector.getTargettableEntitiesWithinAABB(level, player)
+                    .contains(target), "native target within reach");
+            // In-game the entity dispatcher advances tickCount before the tick.
+            slash.tickCount = 2;
+            slash.tick();
+            check(target.getHealth() < target.getMaxHealth(), "native slash hit for " + module);
+            return target.getDeltaMovement();
+        } finally {
+            if (slash != null) slash.discard();
+            target.discard();
+        }
+    }
+
     private static net.minecraftforge.common.ForgeConfigSpec.DoubleValue[] values() {
         return new net.minecraftforge.common.ForgeConfigSpec.DoubleValue[]{CombatBalanceConfig.GLOBAL,
                 CombatBalanceConfig.STANDARD, CombatBalanceConfig.IAIDO, CombatBalanceConfig.DANGAKU,

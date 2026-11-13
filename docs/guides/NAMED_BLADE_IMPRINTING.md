@@ -48,6 +48,12 @@
 - 最多缓存 96 个来源图标，资源重载释放 GPU 缓存并重新读取取样配置；服务器不解码图片、不分析 OBJ。
 - `./gradlew runClient -PnamedIngotArtReview` 在独立 `build/named-ingot-art-review` 目录创建临时创造世界，打开真正的「名刀锭」独立创造标签页，保存 `named-ingot-creative.png` 后退出。它不重建界面、不打开玩家存档。页面内仅展示有来源的名刀锭，问号锭只用作标签图标；原 BladeTetra 主标签页不再重复展示名刀锭。排序以拔刀剑本体优先，其余按来源模组及来源路径稳定排列；标签声明排在主标签之后，分页位置由 Forge 决定。
 
+## 名刀背板
+
+背板模块随物品保存来源 ID。客户端用该来源 OBJ 的 `item_back` 或 `backplate` 分组和原刀贴图生成背板。已有背板会在显示时重新生成。
+
+资源包可通过 `assets/blade_tetra/named_backplate_visuals/<来源命名空间>/<来源路径>.json` 指定独立贴图或图集区域，例如 `{"texture":"example:textures/item/backplate.png","region":[0,0,1,1]}`。区域采用左上原点的归一化 UV。省略 `region` 时使用整张显式贴图，只配置 `region` 时使用原刀贴图。缺少可用素材时显示刀原有的背板。
+
 ## 兼容与验收
 
 保留旧刀装的必要读取定义、来源软引用与普通 Tetra 强化；旧卷轴对应的制作入口保持停用。新增刀身有独立来源；镡柄模型绝不二次切割。移除附属时记录保留，无法绘制的部件回退普通模型，重新安装同来源可恢复。

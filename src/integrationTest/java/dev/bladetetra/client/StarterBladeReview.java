@@ -9,6 +9,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldOpenFlows;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -93,6 +95,7 @@ public final class StarterBladeReview {
         if (tick == 31 && (mc.screen != null || !(mc.level.getBlockEntity(BENCH) instanceof WorkbenchTile))) return;
         switch (++tick) {
             case 1 -> {
+                verifyChineseStarterNames(mc);
                 mc.options.pauseOnLostFocus = false;
                 mc.options.guiScale().set(3);
                 mc.getTutorial().setStep(net.minecraft.client.tutorial.TutorialSteps.NONE);
@@ -153,6 +156,38 @@ public final class StarterBladeReview {
                 mc.stop();
             }
             default -> { }
+        }
+    }
+
+    private static void verifyChineseStarterNames(Minecraft mc) {
+        var previous = Language.getInstance();
+        var chinese = net.minecraft.client.resources.language.ClientLanguage.loadFrom(
+                mc.getResourceManager(), java.util.List.of("en_us", "zh_cn"), false);
+        Language.inject(chinese);
+        try {
+            var item = dev.bladetetra.registry.ModItems.MODULAR_SLASHBLADE.get();
+            var iron = item.createDefaultStack();
+            var wood = item.createWoodenStarterStack();
+            verifyStarterName(iron, item.getItemName(iron), "打刀", chinese.getOrDefault("tetra.material.iron.prefix"));
+            verifyStarterName(wood, item.getItemName(wood), "本式刀", chinese.getOrDefault("tetra.material.oak.prefix"));
+            LogUtils.getLogger().info("STARTER_NAME_SMOKE_PASS: {} / {}", iron.getHoverName().getString(),
+                    wood.getHoverName().getString());
+            Component customName = Component.literal("自刻刀铭");
+            iron.setHoverName(customName);
+            if (!customName.equals(iron.getHoverName())) {
+                throw new IllegalStateException("Tetra's generated name replaced a custom name");
+            }
+        } finally {
+            Language.inject(previous);
+        }
+    }
+
+    private static void verifyStarterName(ItemStack stack, String tetraName, String bladeType, String material) {
+        String displayed = stack.getHoverName().getString();
+        if (!displayed.equals(tetraName) || !displayed.endsWith(bladeType)
+                || !displayed.regionMatches(true, 0, material, 0, material.length())) {
+            throw new IllegalStateException("Expected Tetra name for " + material + " " + bladeType
+                    + ", got " + displayed);
         }
     }
 

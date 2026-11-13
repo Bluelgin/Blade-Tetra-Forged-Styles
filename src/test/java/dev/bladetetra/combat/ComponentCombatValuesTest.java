@@ -7,7 +7,6 @@ class ComponentCombatValuesTest {
     @Test void extractionDoesNotChangeCombatBalance() {
         assertEquals(0.15, ComponentCombatValues.DRAW_BONUS);
         assertEquals(0.15, ComponentCombatValues.SPIRIT_BONUS);
-        assertEquals(2, ComponentCombatValues.JUST_EXTRA_TICKS);
         assertEquals(40, ComponentCombatValues.SPIRIT_TICKS);
         assertEquals(.25F, ComponentCombatValues.GUARD_REDUCTION);
         assertEquals(1, ComponentCombatValues.GUARD_DURABILITY_COST);

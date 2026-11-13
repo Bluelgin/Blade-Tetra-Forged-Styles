@@ -21,6 +21,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -54,7 +55,7 @@ public final class LegacyModelPartRenderer {
         }
     };
 
-    private enum Part { BLADE, TSUBA, TSUKA, SAYA, HILT }
+    enum Part { BLADE, TSUBA, TSUKA, SAYA, HILT }
     private record MountKey(WavefrontObject source, WavefrontObject target, Part part,
             float tc, float tr, float hc, float hr) {}
     private static final Map<MountKey, Mount> MOUNTS = new LinkedHashMap<>(64, .75F, true) {
@@ -76,7 +77,7 @@ public final class LegacyModelPartRenderer {
                 || "item_bladens".equals(target) || "item_damaged".equals(target);
     }
 
-    public static void render(RenderOverrideEvent event, NamedLegacyParts parts,
+    public static void render(RenderOverrideEvent event,
             ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
         String target = event.getOriginalTarget();
         if (!supports(target)) {
@@ -85,7 +86,7 @@ public final class LegacyModelPartRenderer {
         // Gameplay identity is semantic. Rendering applies the optional client geometry
         // capability at this boundary so an unsupported provider falls back visually
         // without changing affinity, durability or orthodox ability ownership.
-        parts = NamedLegacyParts.visualFromStack(event.getStack());
+        NamedLegacyParts parts = NamedLegacyParts.visualFromStack(event.getStack());
         event.setCanceled(true);
         if ("sheath".equals(target)) {
             renderPart(event, parts.saya(), Part.SAYA, target,
@@ -314,11 +315,14 @@ public final class LegacyModelPartRenderer {
         LegacyCalibrationProfile profile = inherited
                 ? kind.visualProfile()
                 : LegacyCalibrationProfile.DEFAULT;
-        WavefrontObject view = view(source, target, part, profile);
-        if (view == null && inherited && part == Part.BLADE) {
-            // Optional named models may lack damaged, fragment or inventory groups.
-            // Only the missing blade view falls back; preserve installed source NBT.
-            renderPart(event, null, Part.BLADE, target, ordinaryTexture, ordinaryEmissive);
+        WavefrontObject view = view(source, target, part, profile, !inherited);
+        if (inherited && (view == null || (part == Part.BLADE || part == Part.HILT)
+                && (target.startsWith("item_")
+                        ? iconSpan(source, target, part, profile, false) == null
+                                || iconSpan(event.getModel(), target, part, LegacyCalibrationProfile.DEFAULT, true) == null
+                        : mount(source, event.getOriginalModel(), profile, part) == null))) {
+            // Optional provider groups can be missing or impossible to mount.
+            renderPart(event, null, part, target, ordinaryTexture, ordinaryEmissive);
             return;
         }
         if (view == null) {
@@ -327,17 +331,18 @@ public final class LegacyModelPartRenderer {
         ResourceLocation texture = inherited ? kind.texture() : ordinaryTexture;
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
-        if (inherited && !target.startsWith("item_")) {
-            if (part == Part.SAYA) {
-                // Restore the previous origin-preserving uniform sheath fit. Never recenter Y/Z.
-                if (!kind.id().startsWith("fox_")) fitLegacySaya(poses, source, event.getOriginalModel());
-            } else if (part == Part.BLADE) {
-                applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
-            } else if (part == Part.HILT) {
-                applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
-            }
-        }
         try {
+            if (inherited) {
+                if (target.startsWith("item_")) {
+                    if (part == Part.BLADE || part == Part.HILT) {
+                        applyIconMount(poses, source, event.getModel(), target, part, profile);
+                    }
+                } else if (part == Part.SAYA) {
+                    if (!kind.id().startsWith("fox_")) fitLegacySaya(poses, source, event.getOriginalModel());
+                } else {
+                    applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
+                }
+            }
             BladeRenderState.resetCol();
             Runnable draw = () -> {
                 BladeRenderState.renderOverrided(event.getStack(), view, target, texture,
@@ -421,18 +426,82 @@ public final class LegacyModelPartRenderer {
                 profile.tsukaCenter(), profile.tsukaRadius());
         if (MOUNTS.containsKey(key)) return MOUNTS.get(key);
         String group = part == Part.SAYA ? "sheath" : "blade";
-        Extent from = extent(select(source, group, part, profile));
-        Extent to = extent(select(target, group, part, LegacyCalibrationProfile.DEFAULT));
+        List<Face> sourceFaces = select(source, group, part, profile);
+        List<Face> targetFaces = modularFaces(target, group, part);
+        Extent from = extent(sourceFaces);
+        Extent to = extent(targetFaces);
+        if (!to.valid()) {
+            targetFaces = select(target, group, part, LegacyCalibrationProfile.DEFAULT);
+            to = extent(targetFaces);
+        }
         if (!from.valid() || !to.valid()) return null;
-        float sourceX = part == Part.SAYA ? from.maxX : from.minX;
-        float targetX = part == Part.SAYA ? to.maxX : to.minX;
-        Mount result = new Mount(sourceX, from.centerY(), from.centerZ(), from.maxX,
-                targetX, to.centerY(), to.centerZ(),
+        boolean rear = part == Part.BLADE || part == Part.SAYA;
+        float sourceX = rear ? from.maxX : from.minX;
+        float targetX = rear ? to.maxX : to.minX;
+        Extent fromRoot = part == Part.BLADE ? rearSection(sourceFaces, from) : from;
+        Extent toRoot = part == Part.BLADE ? rearSection(targetFaces, to) : to;
+        Mount result = new Mount(sourceX, fromRoot.centerY(), fromRoot.centerZ(), from.maxX,
+                targetX, toRoot.centerY(), toRoot.centerZ(),
                 (to.maxX - to.minX) / (from.maxX - from.minX),
                 part == Part.HILT ? (to.maxX - to.minX) / (from.maxX - from.minX)
                         : to.thickness() / from.thickness());
         MOUNTS.put(key, result);
         return result;
+    }
+
+    private static Extent rearSection(List<Face> blade, Extent extent) {
+        Extent root = extent(retainFromX(blade, extent.maxX - (extent.maxX - extent.minX) * .02F));
+        return root.valid() ? root : extent;
+    }
+
+    private record IconKey(WavefrontObject source, String group, Part part, LegacyCalibrationProfile profile,
+            boolean modular) {}
+    record IconSpan(Vector3f root, float length) {}
+    private static final Map<IconKey, IconSpan> ICON_SPANS = new LinkedHashMap<>(64, .75F, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<IconKey, IconSpan> entry) {
+            return size() > MAX_CACHE;
+        }
+    };
+
+    static void applyIconMount(PoseStack poses, WavefrontObject source, WavefrontObject target,
+            String group, Part part, LegacyCalibrationProfile profile) {
+        IconSpan from = iconSpan(source, group, part, profile, false);
+        IconSpan to = iconSpan(target, group, part, LegacyCalibrationProfile.DEFAULT, true);
+        if (from == null || to == null) return;
+        // SlashBlade inventory blades point along the down-right diagonal. Scale
+        // along that axis in icon space, keeping the socket and blade width fixed.
+        poses.translate(to.root.x, to.root.y, to.root.z);
+        poses.mulPose(Axis.ZP.rotationDegrees(-45));
+        poses.scale(to.length / from.length, 1, 1);
+        poses.mulPose(Axis.ZP.rotationDegrees(45));
+        poses.translate(-from.root.x, -from.root.y, -from.root.z);
+    }
+
+    static synchronized IconSpan iconSpan(WavefrontObject model, String group, Part part,
+            LegacyCalibrationProfile profile, boolean modular) {
+        IconKey key = new IconKey(model, group, part, profile, modular);
+        if (ICON_SPANS.containsKey(key)) return ICON_SPANS.get(key);
+        var faces = modular ? modularFaces(model, group, part) : select(model, group, part, profile);
+        var vertices = faces.stream().flatMap(face -> java.util.Arrays.stream(face.vertices)).toList();
+        float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY;
+        for (Vertex vertex : vertices) {
+            float along = vertex.x - vertex.y;
+            min = Math.min(min, along);
+            max = Math.max(max, along);
+        }
+        IconSpan span = null;
+        if (max - min > .001F) {
+            // Use the center of the end section, including the original icon depth.
+            boolean blade = part == Part.BLADE;
+            float edge = blade ? min : max;
+            float tolerance = (max - min) * .025F;
+            Extent root = extentOfVertices(vertices.stream().filter(vertex ->
+                    Math.abs(vertex.x - vertex.y - edge) <= tolerance).toList());
+            span = new IconSpan(new Vector3f((root.minX + root.maxX) * .5F, root.centerY(), root.centerZ()),
+                    max - min);
+        }
+        ICON_SPANS.put(key, span);
+        return span;
     }
 
     private static synchronized Extent bladeExtent(WavefrontObject model) {
@@ -459,9 +528,14 @@ public final class LegacyModelPartRenderer {
     }
 
     private static Extent extent(List<Face> faces) {
+        return extentOfVertices(faces.stream().filter(face -> face.vertices != null)
+                .flatMap(face -> java.util.Arrays.stream(face.vertices)).toList());
+    }
+
+    private static Extent extentOfVertices(List<Vertex> vertices) {
         float ax = Float.POSITIVE_INFINITY, ay = ax, az = ax;
         float bx = Float.NEGATIVE_INFINITY, by = bx, bz = bx;
-        for (Face face : faces) if (face.vertices != null) for (Vertex v : face.vertices) {
+        for (Vertex v : vertices) {
             ax = Math.min(ax, v.x); bx = Math.max(bx, v.x);
             ay = Math.min(ay, v.y); by = Math.max(by, v.y);
             az = Math.min(az, v.z); bz = Math.max(bz, v.z);
@@ -481,7 +555,12 @@ public final class LegacyModelPartRenderer {
 
     private static synchronized WavefrontObject view(WavefrontObject source,
             String target, Part part, LegacyCalibrationProfile profile) {
-        String key = System.identityHashCode(source) + "|" + target + "|" + part
+        return view(source, target, part, profile, false);
+    }
+
+    private static synchronized WavefrontObject view(WavefrontObject source,
+            String target, Part part, LegacyCalibrationProfile profile, boolean modular) {
+        String key = System.identityHashCode(source) + "|" + target + "|" + part + "|" + modular
                 + "|" + Float.floatToIntBits(profile.tsubaCenter())
                 + "|" + Float.floatToIntBits(profile.tsubaRadius())
                 + "|" + Float.floatToIntBits(profile.tsukaCenter())
@@ -489,7 +568,8 @@ public final class LegacyModelPartRenderer {
         if (VIEWS.containsKey(key)) {
             return VIEWS.get(key);
         }
-        List<Face> faces = select(source, target, part, profile);
+        List<Face> faces = modular ? modularFaces(source, target, part) : select(source, target, part, profile);
+        if (modular && faces.isEmpty()) faces = select(source, target, part, profile);
         if (faces.isEmpty()) {
             VIEWS.put(key, null);
             return null;
@@ -502,6 +582,23 @@ public final class LegacyModelPartRenderer {
             VIEWS.put(key, null);
             return null;
         }
+    }
+
+    /** The authored atlas islands distinguish the blade, collar, guard and grip on every style. */
+    static List<Face> modularFaces(WavefrontObject model, String group, Part part) {
+        var mesh = faces(model, group);
+        if (mesh.isEmpty() && "item_bladens".equals(group)) mesh = faces(model, "item_blade");
+        boolean icon = group.startsWith("item_");
+        return switch (part) {
+            case BLADE -> filter(mesh, face -> InventoryGuardGeometry.inside(face, 0, 0, 64, 32));
+            case TSUBA -> filter(mesh, face -> InventoryGuardGeometry.isGuard(face)
+                    || InventoryGuardGeometry.inside(face, 80, 58, 96, 82));
+            case TSUKA -> filter(mesh, face -> InventoryGuardGeometry.inside(face, 1, 59, 47, 81));
+            case HILT -> filter(mesh, face -> InventoryGuardGeometry.isGuard(face)
+                    || InventoryGuardGeometry.inside(face, 1, 59, 47, 81)
+                    || InventoryGuardGeometry.inside(face, 80, 58, 96, 82));
+            case SAYA -> icon ? filter(mesh, face -> InventoryGuardGeometry.inside(face, 0, 32, 64, 56)) : mesh;
+        };
     }
 
     private static List<Face> select(WavefrontObject source, String target,
@@ -913,6 +1010,7 @@ public final class LegacyModelPartRenderer {
         VIEWS.clear();
         MOUNTS.clear();
         BLADE_EXTENTS.clear();
+        ICON_SPANS.clear();
         MODEL_ADAPTERS.clear();
     }
 

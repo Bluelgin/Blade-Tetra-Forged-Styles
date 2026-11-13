@@ -106,8 +106,9 @@ public final class MaterialTextureManager {
                     .getModel(DURABILITY_MODEL));
             var backplateTheme=AwakenedWeaponArt.fromStack(event.getStack());
             if ("base".equals(event.getOriginalTarget())) {
-                ResourceLocation baseTexture =
-                        ensureDurabilityBaseTexture(appearance.blade(), backplateTheme);
+                ResourceLocation baseTexture = NamedBackplateArtwork.texture(
+                        dev.bladetetra.forging.NamedBackplate.sourceId(event.getStack()));
+                if (baseTexture == null) baseTexture = ensureDurabilityBaseTexture(appearance.blade(), backplateTheme);
                 if (baseTexture != null) {
                     // The portrait has its own colors: do not multiply it by
                     // the native gray-to-magenta damage tint or foil glint.
@@ -179,12 +180,13 @@ public final class MaterialTextureManager {
             }
             return;
         }
-        if (dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack()).present()
-                && LegacyModelPartRenderer.supports(event.getOriginalTarget())) {
+        var namedParts = dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack());
+        if (LegacyModelPartRenderer.supports(event.getOriginalTarget())
+                && (namedParts.present()
+                || dev.bladetetra.forging.NamedLegacyParts.bladeFromStack(event.getStack()) != null)) {
             RENDERING_INTERNAL_PASS.set(true);
             try {
-                LegacyModelPartRenderer.render(event, dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack()),
-                        texture, emissive);
+                LegacyModelPartRenderer.render(event, texture, emissive);
             } finally {
                 RENDERING_INTERNAL_PASS.set(false);
                 BladeRenderState.resetCol();
@@ -540,7 +542,7 @@ public final class MaterialTextureManager {
         }
     }
 
-    private static ResourceLocation durabilityBaseLocation(
+    static ResourceLocation durabilityBaseLocation(
             String bladeMaterial,
             long materialRevision) {
         return ResourceLocation.fromNamespaceAndPath(

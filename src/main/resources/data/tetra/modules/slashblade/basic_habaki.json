@@ -9,7 +9,6 @@
       "durability": 10,
       "integrity": 1,
       "extract": {
-        "durability": 0.08,
         "glyph": {
           "textureX": 32,
           "textureY": 112

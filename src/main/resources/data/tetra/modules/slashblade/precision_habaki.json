@@ -11,8 +11,6 @@
       },
       "durability": 5,
       "extract": {
-        "durability": 0.06,
-        "magicCapacity": 1,
         "glyph": { "textureX": 32, "textureY": 112 }
       }
     }

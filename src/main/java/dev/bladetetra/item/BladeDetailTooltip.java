@@ -31,6 +31,24 @@ public final class BladeDetailTooltip {
         appendSection(tooltip, craftSection(stack));
     }
 
+    static void appendInscriptions(ItemStack stack, List<Component> tooltip) {
+        List<Component> inscriptions = new ArrayList<>();
+        if (BladeLegacyEasterEggs.isShoshinUnlocked(stack)) {
+            inscriptions.add(Component.translatable("tooltip.blade_tetra.legacy.shoshin").withStyle(ChatFormatting.YELLOW));
+        }
+        if (BladeLegacyEasterEggs.isBairenUnlocked(stack)) {
+            inscriptions.add(Component.translatable("tooltip.blade_tetra.legacy.bairen").withStyle(ChatFormatting.GOLD));
+        }
+        if (BladeLegacyEasterEggs.isBanshoUnlocked(stack)) {
+            inscriptions.add(Component.translatable("tooltip.blade_tetra.legacy.bansho").withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+        if (!inscriptions.isEmpty()) {
+            inscriptions.add(0, Component.translatable("tooltip.blade_tetra.legacy.inscriptions")
+                    .withStyle(ChatFormatting.GRAY));
+            appendSection(tooltip, inscriptions);
+        }
+    }
+
     private static List<Component> styleSection(ItemStack stack) {
         BladeStyle style = StyleResolver.resolve(stack);
         return List.of(Component.translatable("tooltip.blade_tetra.section.style",
@@ -74,21 +92,6 @@ public final class BladeDetailTooltip {
         List<Component> lines = new ArrayList<>();
         BladeTechniqueHandler.appendTooltip(stack, lines);
 
-        List<Component> legacies = new ArrayList<>();
-        if (BladeLegacyEasterEggs.isBanshoUnlocked(stack)) {
-            legacies.add(Component.translatable("tooltip.blade_tetra.legacy.bansho"));
-        }
-        if (BladeLegacyEasterEggs.isBairenUnlocked(stack)) {
-            legacies.add(Component.translatable("tooltip.blade_tetra.legacy.bairen"));
-        }
-        if (BladeLegacyEasterEggs.isShoshinUnlocked(stack)) {
-            legacies.add(Component.translatable("tooltip.blade_tetra.legacy.shoshin"));
-        }
-        if (!legacies.isEmpty()) {
-            lines.add(Component.translatable("tooltip.blade_tetra.legacy.summary",
-                            join(legacies))
-                    .withStyle(ChatFormatting.YELLOW));
-        }
         if (NbtSageEasterEgg.isUnlocked(stack)) {
             lines.add(Component.translatable("tooltip.blade_tetra.legacy.special",
                             Component.translatable("tooltip.blade_tetra.legacy.nbt_sage"))

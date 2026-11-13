@@ -21,7 +21,7 @@ public final class MikageBladeAttackTrace {
         if (!stack.isEmpty()) stack.pop();
         if (stack.isEmpty()) ACTIVE.remove();
     }
-    static Entity projectile() { return ACTIVE.get().peek(); }
+    public static Entity projectile() { return ACTIVE.get().peek(); }
     static void clear() { BIRTH_BLADES.clear(); ACTIVE.remove(); }
     private MikageBladeAttackTrace() {}
 }

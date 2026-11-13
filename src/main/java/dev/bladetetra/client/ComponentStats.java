@@ -25,7 +25,10 @@ import static dev.bladetetra.item.ModularSlashBladeItem.*;
 public final class ComponentStats {
     private enum Effect {
         DRAW("draw", SAYA_SLOT, QUICKDRAW_SAYA_MODULE, 100 * ComponentCombatValues.DRAW_BONUS, "%.0f%%"),
-        JUST("just", HABAKI_SLOT, PRECISION_HABAKI_MODULE, ComponentCombatValues.JUST_EXTRA_TICKS, "%.0f tick"),
+        RANK_RETENTION("rank_retention", HABAKI_SLOT, PRECISION_HABAKI_MODULE,
+                100.0 / ComponentCombatValues.RANK_DECAY_INTERVAL, "-%.0f%%"),
+        STRONG_KNOCKBACK("strong_knockback", HABAKI_SLOT, REINFORCED_HABAKI_MODULE,
+                100 * (ComponentCombatValues.STRONG_KNOCKBACK_MULTIPLIER - 1), "+%.0f%%"),
         SPIRIT("spirit", SAYA_SLOT, SPIRIT_SAYA_MODULE, 100 * ComponentCombatValues.SPIRIT_BONUS, "%.0f%%"),
         GUARD("guard", TSUBA_SLOT, GUARD_TSUBA_MODULE, 100 * ComponentCombatValues.GUARD_REDUCTION, "%.0f%%"),
         RANK("rank", TSUKA_SLOT, STABLE_TSUKA_MODULE, 100D / ComponentCombatValues.RANK_UNIT_DIVISOR, "~%.0f%%"),

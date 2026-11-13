@@ -109,22 +109,22 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty("tetra.variant.legacy_saya/imprinted", "映锻刀鞘");
         en.addProperty("tetra.variant.legacy_tsuba/imprinted", "Imprinted hilt");
         zh.addProperty("tetra.variant.legacy_tsuba/imprinted", "映锻镡柄刀装");
-        en.addProperty("tooltip.blade_tetra.imprint.model_supported",
-                "✦ Named-ingot fittings support this blade's model");
-        zh.addProperty("tooltip.blade_tetra.imprint.model_supported",
-                "✦ 名刀锭刀装支持此刀模型");
+        en.addProperty("message.blade_tetra.imprint.unsupported_model",
+                "%1$s cannot be studied: unsupported model (%2$s).");
+        zh.addProperty("message.blade_tetra.imprint.unsupported_model",
+                "%1$s无法映录：模型结构暂不支持（%2$s）。");
         en.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
                 "✦ Can extract a named blade ingot (8 broken Proud Souls)");
         zh.addProperty("tooltip.blade_tetra.imprint.ingot_ready",
-                "✦ 可提取名刀锭（需8个破碎的耀魂）");
+                "✦ 可提取名刀锭（需 8 个破碎的耀魂）");
         en.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
                 "Repair the blade before extracting a named ingot");
         zh.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
-                "名刀耐久不足，修复后才能提取名刀锭");
+                "修复此刀后可提取名刀锭");
         en.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "Model adaptation unsupported: named fittings will use a fallback model");
+                "Fittings forged with this blade's ingot will use the standard model.");
         zh.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "此刀模型暂不支持完整适配，名刀刀装将回退为普通模型");
+                "用此刀的名刀锭锻造时，刀装会使用普通模型");
         en.addProperty("tooltip.blade_tetra.imprint.catalog_id",
                 "Blade Tetra · Source: %1$s");
         zh.addProperty("tooltip.blade_tetra.imprint.catalog_id",

@@ -133,6 +133,7 @@ final class MaterialTextureCache {
         closeAll(DURABILITY, minecraft);
         NO_EMISSIVE.clear();
         MikageBackplateRenderType.clear();
+        NamedBackplateArtwork.clear();
         if (flowTemplate != null) {
             flowTemplate.close();
             flowTemplate = null;
