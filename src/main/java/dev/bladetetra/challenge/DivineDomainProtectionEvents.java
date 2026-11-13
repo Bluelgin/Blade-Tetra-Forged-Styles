@@ -81,7 +81,7 @@ public final class DivineDomainProtectionEvents {
         int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
         int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
         returnAsFailed(player, challengeId, originX, originZ,
-                "神域中的仪式已经中断。御影将你送回了界门。");
+                "message.blade_tetra.divine.interrupted");
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -100,11 +100,11 @@ public final class DivineDomainProtectionEvents {
         int originX = player.getPersistentData().getInt(DIVINE_ORIGIN_X);
         int originZ = player.getPersistentData().getInt(DIVINE_ORIGIN_Z);
         returnAsFailed(player, challengeId, originX, originZ,
-                "仪式拒绝了你的死亡。御影将你送回了界门。");
+                "message.blade_tetra.divine.defeated");
     }
 
     private static void returnAsFailed(ServerPlayer player, long challengeId,
-            int originX, int originZ, String message) {
+            int originX, int originZ, String messageKey) {
         ServerLevel mirror = player.getServer().getLevel(ChallengeManager.MIRROR_REALM);
         if (mirror == null) {
             return;
@@ -116,7 +116,7 @@ public final class DivineDomainProtectionEvents {
         player.getPersistentData().remove(DIVINE_CHALLENGE);
         player.teleportTo(mirror, originX + 163.5D, 64.0D, originZ - 2.5D,
                 -90.0F, 0.0F);
-        player.sendSystemMessage(Component.literal(message));
+        player.sendSystemMessage(Component.translatable(messageKey));
     }
 
     private DivineDomainProtectionEvents() {

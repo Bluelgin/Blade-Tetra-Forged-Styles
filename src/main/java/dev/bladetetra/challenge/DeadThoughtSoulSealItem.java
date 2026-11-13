@@ -22,19 +22,19 @@ public final class DeadThoughtSoulSealItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
-        return Component.literal("无生残印");
+        return Component.translatable(getDescriptionId());
     }
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.literal("死念 · 神域第二传承的残印")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.dead_thought_seal.legacy")
                 .withStyle(ChatFormatting.DARK_RED));
-        tooltip.add(Component.literal("它没有记载剑技，只留下『命』曾被斩开的伤痕。")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.dead_thought_seal.lore")
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("将自己的 Blade Tetra 刀置于 Tetra 工作台上方的挂刀台，")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.dead_thought_seal.stand")
                 .withStyle(ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.literal("手持残印潜行右击挂刀台，完成死念刻印。")
+        tooltip.add(Component.translatable("tooltip.blade_tetra.dead_thought_seal.use")
                 .withStyle(ChatFormatting.DARK_GRAY));
         DivineDomainWipNotice.appendTooltip(tooltip);
     }

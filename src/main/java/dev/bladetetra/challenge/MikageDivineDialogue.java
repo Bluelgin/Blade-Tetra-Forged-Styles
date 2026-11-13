@@ -17,8 +17,7 @@ import java.util.List;
  * Mikage's postgame Divine-Domain conversation branch.
  *
  * <p>Kept separate from map/combat code so story wording can be edited without
- * touching the ritual state machine. Text is intentionally centralized here while
- * the rest of Mikage's visitor conversation continues to use lang keys.</p>
+ * touching the ritual state machine. The client resolves dialogue and option keys.</p>
  */
 @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class MikageDivineDialogue {
@@ -139,53 +138,53 @@ public final class MikageDivineDialogue {
     private static DialogueLine line(String node) {
         return switch (node) {
             case "divine_intro1" -> next(
-                    "我守的从来不是这间屋子。", "neutral");
+                    "screen.blade_tetra.divine.line.intro1", "neutral");
             case "divine_intro2" -> next(
-                    "界门之后，是神域。那里原本让刀下之魂归于寂静。", "distant");
+                    "screen.blade_tetra.divine.line.intro2", "distant");
             case "divine_intro3" -> next(
-                    "只是如今，积下来的残念已经把那里染坏了。我守着门，也是在阻止门后的东西出来。", "serious");
+                    "screen.blade_tetra.divine.line.intro3", "serious");
             case "divine_intro4" -> end(
-                    "门后的东西并不认识你。它们认识的，是你手中的刀。若仍要过去，就让那把刀替你回答。",
+                    "screen.blade_tetra.divine.line.intro4",
                     "serious");
 
             case "divine_return1" -> next(
-                    "……你回来了。看来，那些声音没有把你留下。", "soft");
+                    "screen.blade_tetra.divine.line.return1", "soft");
             case "divine_return2" -> end(
-                    "神域已经记住你的刀了。若还想听见更深处的回响，就再去一次。只是下一次，它们不会比刚才更安静。",
+                    "screen.blade_tetra.divine.line.return2",
                     "distant");
 
             case "divine_seal1" -> next(
-                    "……你回来了。看来，那些声音没有把你留下。", "soft");
+                    "screen.blade_tetra.divine.line.seal1", "soft");
             case "divine_seal2" -> next(
-                    "你把那个也带回来了么。别误会——那还不是一式刀法。", "serious");
+                    "screen.blade_tetra.divine.line.seal2", "serious");
             case "divine_seal3" -> next(
-                    "只是那些亡魂承认了：你的刀，有资格触碰『命』。", "distant");
+                    "screen.blade_tetra.divine.line.seal3", "distant");
             case "divine_seal4" -> next(
-                    "你以为那是招式？不。那只是『命』被斩过以后，留下的伤痕。", "serious");
+                    "screen.blade_tetra.divine.line.seal4", "serious");
             case "divine_seal5" -> end(
-                    "若你真想把它刻进自己的刀里……把刀置于锻台上的挂刀台，握着残印，让你的刀自己记住那道伤痕。",
+                    "screen.blade_tetra.divine.line.seal5",
                     "soft");
 
             case "divine_complete1" -> next(
-                    "原来如此。", "neutral");
+                    "screen.blade_tetra.divine.line.complete1", "neutral");
             case "divine_complete2" -> next(
-                    "你最终还是让那道残念，成为了自己的刀。", "soft");
+                    "screen.blade_tetra.divine.line.complete2", "soft");
             case "divine_complete3" -> end(
-                    "……那就别忘了，它为什么叫做『死念』。", "distant");
-            default -> end("……", "neutral");
+                    "screen.blade_tetra.divine.line.complete3", "distant");
+            default -> end("screen.blade_tetra.divine.line.empty", "neutral");
         };
     }
 
     private static DialogueLine next(String text, String expression) {
         return new DialogueLine(text, expression,
-                List.of(new MikageVisitorDialoguePacket.Option("divine_next", "继续")));
+                List.of(new MikageVisitorDialoguePacket.Option("divine_next", "screen.blade_tetra.divine.next")));
     }
 
     private static DialogueLine end(String text, String expression) {
         return new DialogueLine(text, expression, List.of(
                 new MikageVisitorDialoguePacket.Option(
                         "divine_enter", DivineDomainWipNotice.entryLabel()),
-                new MikageVisitorDialoguePacket.Option("divine_back", "返回")));
+                new MikageVisitorDialoguePacket.Option("divine_back", "screen.blade_tetra.divine.back")));
     }
 
     private record DialogueLine(String text, String expression,

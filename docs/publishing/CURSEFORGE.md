@@ -16,29 +16,14 @@ Built for Minecraft 1.20.1 and Forge 47.x. One jar supports Tetra 6.3.0 and late
 - Material-aware blade surfaces, fittings, slash colors and restrained emissive details for Tetra, MMT and datapack-provided materials.
 - Forging and technique scrolls that turn advanced construction and combat options into discoverable survival progression.
 - Hidden blade legacies, four awakened souls—Akatsuki, Kyouka Suigetsu, Senbonzakura and Raikiri—and pairwise soul fusion without stat stacking or recursive bonus attacks.
-- Mikage combat and rematches are temporarily suspended while combat is refined; existing progress and eligible non-combat visits are retained.
+- Mikage’s challenges, rematches, and new visits are currently closed. Existing progress is saved.
 - Server-side balance controls and client-side visual/audio options for modpack authors and players.
 
-## New in 1.5.0: Named Blade Imprinting
+## Named blade ingots
 
-Named blades can now be studied instead of simply being replaced.
+Put a supported, unbroken named blade in the center of a crafting grid and surround it with eight Broken Proud Souls. You get one named blade ingot and the source sword back. Extraction costs 10% of the source’s maximum durability, rounded up. Repair the sword first if the cost would break it.
 
-1. Place a supported named SlashBlade on the blade stand directly above a Tetra workbench.
-2. Hold a Blank Imprinting Scroll and sneak-use the workbench.
-3. Complete the observation, tracing and hammering trial.
-4. Spread the resulting pattern near a workbench to unlock that blade's imprinted saya and complete hilt.
-
-The original named blade is still required for study. Poor work damages it, and a severe failure can break it. Carrying a proudsoul sphere improves the attempt; a proudsoul crystal or trapezohedron also protects the source blade from being broken by the ritual.
-
-The imprinted fittings do not replace your Tetra blade body and do not copy the source blade's Slash Art. A matching saya and hilt instead form **Imprint Affinity**, dynamically granting:
-
-- **+10–30% attack**, based on half of the positive gap between the source and modular blade.
-- **+15–35% durability**, calculated by the same principle.
-- No negative bonus when the modular blade is already stronger.
-
-Version 1.5.0 recognizes 15 named blades from SlashBlade: Resharped and can discover standard named-blade definitions from installed addons. Nonstandard OBJ groups, unusual coordinate systems and custom renderers may still require a dedicated adapter.
-
-Fun fact: I was zoning out in physics class when this idea suddenly popped into my head.
+Use named blade ingots as materials for blades, saya (scabbards), and tsuba (guards) in the Tetra workbench. The blade can inherit its source’s registered Special Effects. A saya and tsuba from the same sword can inherit its registered Slash Art. Mix sources to discover new combinations, then preview and confirm a supported fusion at the workbench.
 
 ## Combat and blade identity
 
@@ -63,6 +48,8 @@ More Mod Tetra is recommended for large modpacks but is not required. Always cho
 
 ## Requirements
 
+The optional Patchouli Bladesmith’s Manual covers styles, forging, and discovered legacies in game.
+
 Required:
 
 - Minecraft 1.20.1
@@ -79,7 +66,7 @@ Optional:
 
 ## Compatibility notes
 
-- Existing modular blades keep their Tetra modules, SlashBlade state, awakenings and historical records when updating.
+- Existing modular blades keep their Tetra modules, SlashBlade state, awakenings and historical records when updating. Older imprinting scrolls remain readable; use named blade ingots to forge new fittings. Use the same mod version on the server and all clients.
 - If an addon that supplied an imprinted fitting is removed, the record is retained but the missing appearance remains unavailable until its provider returns.
 - Automatic named-blade discovery does not mean every addon renderer is guaranteed to split correctly. Please include the source blade, addon version and screenshots when reporting a visual mismatch.
 - Back up important worlds before changing any content mod or major dependency version.

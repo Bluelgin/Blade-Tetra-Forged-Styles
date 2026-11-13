@@ -258,7 +258,7 @@ public final class GameplayConfig {
                 .comment("Absolute compatibility fuse for one Final Moon execution.")
                 .defineInRange("akatsukiExecutionTimeoutTicks", 160, 20, 1200);
         AKATSUKI_EXECUTION_COOLDOWN_TICKS = builder
-                .comment("Per-blade cooldown after Final Moon begins.")
+                .comment("Per-blade cooldown after Final Moon begins or the blood threads first execute a target.")
                 .defineInRange("akatsukiExecutionCooldownTicks", 500, 0, 12000);
         AKATSUKI_EXECUTION_MINIMUM_TARGET_HEALTH = builder
                 .comment("Minimum target maximum health for the full Final Moon execution; smaller enemies keep ordinary combat flow.")

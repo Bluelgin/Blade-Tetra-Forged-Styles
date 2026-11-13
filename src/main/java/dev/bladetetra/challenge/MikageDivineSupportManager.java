@@ -103,7 +103,10 @@ final class MikageDivineSupportManager {
         var rescue = rescues.get(player.getUUID());
         return !closed && session.players.contains(player.getUUID()) && rescue != null && rescue.active(level.getGameTime());
     }
-    void say(String text) { session.broadcast(level.getServer(), Component.literal("御影：" + text)); }
+    void say(String key) {
+        session.broadcast(level.getServer(), Component.translatable("message.blade_tetra.divine.mikage",
+                Component.translatable(key)));
+    }
     void effect(String kind, Vec3 position, int target, int duration, float yaw) {
         var packet = new ModularTechniqueVfxPacket(new ResourceLocation("blade_tetra", "divine/" + kind),
                 session.originX, DivineDomainArenaData.FLOOR_Y + 1, session.originZ,

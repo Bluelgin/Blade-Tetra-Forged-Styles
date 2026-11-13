@@ -63,19 +63,6 @@ public final class DivineDomainManager {
     private static final String DIVINE_ORIGIN_Z = "blade_tetra_divine_origin_z";
     private static final Map<Long, Session> SESSIONS = new HashMap<>();
 
-    public static void showLore(ServerPlayer player) {
-        MikageEntity mikage = visitorGuide(player);
-        if (mikage == null) {
-            return;
-        }
-        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                new MikageVisitorDialoguePacket("divine_lore",
-                        "我守的从来不是这间屋子。界门之后，是安置刀下之魂的神域。如今那里只剩污染。门后的东西不认识你——它们认识的，是你手中的刀。",
-                        "", "serious", List.of(
-                        new MikageVisitorDialoguePacket.Option("divine_enter", "进入神域"),
-                        new MikageVisitorDialoguePacket.Option("divine_back", "返回"))));
-    }
-
     public static void backToTopics(ServerPlayer player) {
         MikageEntity mikage = visitorGuide(player);
         if (mikage != null) {
@@ -90,18 +77,18 @@ public final class DivineDomainManager {
         }
         MikageEntity mikage = visitorGuide(player);
         if (mikage == null) {
-            player.sendSystemMessage(Component.literal("界门没有回应。"));
+            player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.no_response"));
             return;
         }
         var persisted = player.getPersistentData().getCompound(
                 net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG);
         if (!persisted.getBoolean("blade_tetra_mikage_cleared")) {
-            player.sendSystemMessage(Component.literal("你还没有得到御影的认可。"));
+            player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.no_recognition"));
             return;
         }
         ServerLevel divine = player.getServer().getLevel(DIVINE_REALM);
         if (divine == null) {
-            player.sendSystemMessage(Component.literal("神域尚未加载。"));
+            player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.unavailable"));
             return;
         }
         long challengeId = player.getPersistentData().getLong(ChallengeManager.PLAYER_CHALLENGE);
@@ -126,7 +113,7 @@ public final class DivineDomainManager {
         BlockPos entry = DivineDomainArenaData.entry(ox, oz);
         player.teleportTo(divine, entry.getX() + 0.5D, entry.getY() + 0.1D,
                 entry.getZ() + 0.5D, 180.0F, 0.0F);
-        player.sendSystemMessage(Component.literal("神域残响：空手触碰中央祭坛，取出业镜。")
+        player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.arrival")
                 .withStyle(ChatFormatting.DARK_RED));
     }
 
@@ -178,9 +165,9 @@ public final class DivineDomainManager {
 
         player.setItemInHand(InteractionHand.MAIN_HAND,
                 KarmicPuppetItem.snapshot(kills, session.tier, id));
-        player.sendSystemMessage(Component.literal("业镜映照了 " + kills + " 个刀下亡魂 · "
-                + session.tier.displayName()).withStyle(ChatFormatting.DARK_RED));
-        player.sendSystemMessage(Component.literal("把业镜投入右侧祭火，仪式才会开始。")
+        player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.mirror_snapshot",
+                kills, session.tier.displayName()).withStyle(ChatFormatting.DARK_RED));
+        player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.start_hint")
                 .withStyle(ChatFormatting.GRAY));
         return true;
     }
@@ -367,7 +354,7 @@ public final class DivineDomainManager {
             ignitionTicks = 50;
             level.playSound(null, fire, SoundEvents.RESPAWN_ANCHOR_CHARGE,
                     SoundSource.PLAYERS, 1.0F, 0.55F);
-            broadcast(level.getServer(), Component.literal("祭火接受了业镜。杀业正在回响……")
+            broadcast(level.getServer(), Component.translatable("message.blade_tetra.divine.accepted")
                     .withStyle(ChatFormatting.DARK_RED));
         }
 
@@ -381,7 +368,7 @@ public final class DivineDomainManager {
             nextWaveTicks = 20;
             pressureTicks = tier.pressureIntervalTicks();
             if (tier.hasSupport()) support = new MikageDivineSupportManager(this, level);
-            broadcast(level.getServer(), Component.literal("神域仪式开始 · " + tier.displayName())
+            broadcast(level.getServer(), Component.translatable("message.blade_tetra.divine.started", tier.displayName())
                     .withStyle(ChatFormatting.RED));
         }
 
@@ -414,7 +401,7 @@ public final class DivineDomainManager {
             }
             nextWaveTicks = 60;
             pressureTicks = tier.pressureIntervalTicks();
-            broadcast(server, Component.literal("第 " + wave + " / " + tier.waves() + " 波")
+            broadcast(server, Component.translatable("message.blade_tetra.divine.wave", wave, tier.waves())
                     .withStyle(ChatFormatting.GRAY));
         }
 
@@ -506,7 +493,7 @@ public final class DivineDomainManager {
             }
             level.playSound(null, DivineDomainArenaData.altar(originX, originZ),
                     SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 0.8F, 1.35F);
-            broadcast(server, Component.literal("亡魂归于寂静。你可以停留；回到界门并潜行即可撤离。")
+            broadcast(server, Component.translatable("message.blade_tetra.divine.complete")
                     .withStyle(ChatFormatting.GOLD));
         }
 
@@ -535,7 +522,7 @@ public final class DivineDomainManager {
             player.getPersistentData().remove(DIVINE_CHALLENGE);
             player.teleportTo(mirror, originX + 163.5D, 64.0D, originZ - 2.5D,
                     -90.0F, 0.0F);
-            player.sendSystemMessage(Component.literal("你回到了御影守候的界门前。")
+            player.sendSystemMessage(Component.translatable("message.blade_tetra.divine.returned")
                     .withStyle(ChatFormatting.GRAY));
         }
 

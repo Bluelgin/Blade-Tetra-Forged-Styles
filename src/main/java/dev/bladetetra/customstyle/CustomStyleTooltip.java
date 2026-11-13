@@ -1,6 +1,7 @@
 package dev.bladetetra.customstyle;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.client.CustomStyleEditorScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
@@ -28,7 +29,7 @@ public final class CustomStyleTooltip {
                 .withStyle(ChatFormatting.GRAY));
         for (int i = 0; i < spec.actions().size(); i++) {
             event.getToolTip().add(Component.literal(
-                    (i + 1) + ". " + spec.actions().get(i))
+                    (i + 1) + ". ").append(CustomStyleEditorScreen.actionName(spec.actions().get(i)))
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
     }

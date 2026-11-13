@@ -100,7 +100,7 @@ public final class DivineDomainRitualStand {
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
         if (!player.getMainHandItem().isEmpty()) {
-            player.displayClientMessage(Component.literal("空手触碰祭坛中央的业镜。")
+            player.displayClientMessage(Component.translatable("message.blade_tetra.divine.empty_hand")
                     .withStyle(ChatFormatting.GRAY), true);
             return;
         }

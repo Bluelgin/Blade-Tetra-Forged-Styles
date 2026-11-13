@@ -40,7 +40,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
     public NamedLegacyPack(String id) {
         super(id, true);
         putUnique("pack.mcmeta",
-                "{\"pack\":{\"pack_format\":15,\"description\":\"Named blade imprint patterns\"}}");
+                "{\"pack\":{\"pack_format\":15,\"description\":\"Named blade compatibility data\"}}");
 
         JsonObject en = new JsonObject();
         JsonObject zh = new JsonObject();
@@ -97,8 +97,8 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty("item.blade_tetra.named_blade_ingot", "名刀锭");
         en.addProperty("item.blade_tetra.named_blade_ingot.named", "%s ingot");
         zh.addProperty("item.blade_tetra.named_blade_ingot.named", "%s锭");
-        en.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "Tetra: blade, saya and complete hilt only");
-        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "仅可用于 Tetra 刀身、刀鞘与镡柄一体刀装");
+        en.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "Use in a Tetra blade, saya, or guard recipe.");
+        zh.addProperty("tooltip.blade_tetra.named_blade_ingot.parts", "可作为 Tetra 刀身、刀鞘或刀镡的材料。");
         en.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "Missing named blade source: %s");
         zh.addProperty("tooltip.blade_tetra.named_blade_ingot.missing", "来源名刀未加载：%s");
         en.addProperty("tetra.module.slashblade/legacy_saya.name", "Imprinted saya");
@@ -109,10 +109,6 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty("tetra.variant.legacy_saya/imprinted", "映锻刀鞘");
         en.addProperty("tetra.variant.legacy_tsuba/imprinted", "Imprinted hilt");
         zh.addProperty("tetra.variant.legacy_tsuba/imprinted", "映锻镡柄刀装");
-        en.addProperty("message.blade_tetra.imprint.unsupported_model",
-                "%1$s cannot be studied: unsupported model (%2$s).");
-        zh.addProperty("message.blade_tetra.imprint.unsupported_model",
-                "%1$s无法映录：模型结构暂不支持（%2$s）。");
         en.addProperty("tooltip.blade_tetra.imprint.model_supported",
                 "✦ Named-ingot fittings support this blade's model");
         zh.addProperty("tooltip.blade_tetra.imprint.model_supported",
@@ -172,9 +168,9 @@ public final class NamedLegacyPack extends AbstractPackResources {
             zh.addProperty(prefix + ".name", titleZh + " · "
                     + (part.equals("tsuba") ? "仿造镡柄刀装" : "仿造刀鞘"));
             en.addProperty(prefix + ".description",
-                    "Imprinted fitting. A matching saya and hilt form affinity and inherit registered orthodox abilities.");
+                    "Retired pattern. Use a named blade ingot in the corresponding workbench slot.");
             zh.addProperty(prefix + ".description",
-                    "同源刀鞘与镡柄刀装形成映锻契合，并继承原刀登记的正传能力。");
+                    "旧图纸已退役。请在工作台对应部位使用名刀锭。");
             en.addProperty(prefix + ".slot1", "Proud Soul Ingot");
             zh.addProperty(prefix + ".slot1", "耀魂铁锭");
             en.addProperty(prefix + ".slot2", "Source recipe material");
@@ -192,9 +188,9 @@ public final class NamedLegacyPack extends AbstractPackResources {
         zh.addProperty(scroll + ".description",
                 "旧刀谱已退役；请在普通Tetra锻造中使用名刀锭。");
         en.addProperty(scroll + ".details",
-                "Kept for historical saves. Matching named-material fittings retain registered SA/SE inheritance.");
+                "This scroll remains readable in older worlds.");
         zh.addProperty(scroll + ".details",
-                "保留旧存档记录；同源名刀锭刀装仍可继承原刀登记的SA或SE。");
+                "旧存档中的刀谱仍可查看。");
     }
 
     private void putGenericModule(String part) {
@@ -268,7 +264,7 @@ public final class NamedLegacyPack extends AbstractPackResources {
     public static void addPack(AddPackFindersEvent event) {
         event.addRepositorySource(consumer -> {
             Pack pack = Pack.readMetaAndCreate("blade_tetra_named_patterns",
-                    Component.literal("Blade Tetra named patterns"), true, NamedLegacyPack::new,
+                    Component.translatable("pack.blade_tetra.named_legacy"), true, NamedLegacyPack::new,
                     event.getPackType(), Pack.Position.BOTTOM, PackSource.BUILT_IN);
             if (pack != null) consumer.accept(pack);
         });

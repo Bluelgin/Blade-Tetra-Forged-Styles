@@ -37,7 +37,7 @@ public record MikageVisitorDialoguePacket(String nodeId, String textKey,
 
     private static List<Option> appendDivineTopic(List<Option> original) {
         List<Option> result = new ArrayList<>(original);
-        result.add(new Option("divine_lore", "关于神域"));
+        result.add(new Option("divine_lore", "screen.blade_tetra.divine.topic"));
         return List.copyOf(result);
     }
 

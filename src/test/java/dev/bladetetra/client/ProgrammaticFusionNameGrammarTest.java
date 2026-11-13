@@ -1,107 +1,54 @@
 package dev.bladetetra.client;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import dev.bladetetra.combat.ProgrammaticFusionProfile;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProgrammaticFusionNameGrammarTest {
     @Test
-    void vocabularyCoversEveryCombatSemantic() {
-        assertTrue(ProgrammaticFusionNameGrammar.coversEverySemantic());
-    }
-
-    @Test
-    void nativeNativeUsesBladeTetraGrammar() {
-        assertEquals("断界·十文字", ProgrammaticFusionNameGrammar.compose(
-                id("slashblade:judgement_cut"),
-                ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
-                "次元斩",
-                id("slashblade:sakura_end"),
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                "樱之终焉",
-                "zh_cn"));
-        assertEquals("Severance · Cross", ProgrammaticFusionNameGrammar.compose(
-                id("slashblade:judgement_cut"),
-                ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
-                "Judgement Cut",
-                id("slashblade:sakura_end"),
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                "Sakura End",
-                "en_us"));
-    }
-
-    @Test
-    void nativeAddonKeepsAddonSourceNameOnResponseSide() {
-        assertEquals("断界·Scarlet Moon Requiem", ProgrammaticFusionNameGrammar.compose(
-                id("slashblade:judgement_cut"),
-                ProgrammaticFusionProfile.Entry.JUDGEMENT_CUT,
-                "Judgement Cut",
-                id("yakumoblade:scarlet_moon_requiem"),
-                ProgrammaticFusionProfile.Response.SAKURA_CROSS,
-                "Scarlet Moon Requiem",
-                "zh_cn"));
-    }
-
-    @Test
-    void addonNativeKeepsAddonSourceNameOnReleaseSide() {
-        assertEquals("Scarlet Moon Requiem · Echo", ProgrammaticFusionNameGrammar.compose(
-                id("yakumoblade:scarlet_moon_requiem"),
-                ProgrammaticFusionProfile.Entry.SAKURA_END,
-                "Scarlet Moon Requiem",
-                id("slashblade:judgement_cut"),
-                ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO,
-                "Judgement Cut",
-                "en_us"));
-    }
-
-    @Test
-    void addonAddonPreservesBothSourceNames() {
-        assertEquals("Scarlet Moon Requiem · Heaven's Judgment",
-                ProgrammaticFusionNameGrammar.compose(
-                        id("yakumoblade:scarlet_moon_requiem"),
-                        ProgrammaticFusionProfile.Entry.SAKURA_END,
-                        "Scarlet Moon Requiem",
-                        id("slashblade_addon:heavens_judgment"),
-                        ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO,
-                        "Heaven's Judgment",
-                        "en_us"));
-    }
-
-    @Test
-    void missingAddonSourceNameFallsBackToSemanticGrammar() {
-        assertEquals("虚空·轮舞", ProgrammaticFusionNameGrammar.compose(
-                id("unknown_addon:nameless_void"),
-                ProgrammaticFusionProfile.Entry.VOID_SLASH,
-                null,
-                id("unknown_addon:nameless_ring"),
-                ProgrammaticFusionProfile.Response.CIRCLE_RING,
-                null,
-                "zh_cn"));
-    }
-
-    @Test
-    void everyOrderedSemanticCombinationStillHasGrammarFallback() {
-        for (ProgrammaticFusionProfile.Entry entry
-                : ProgrammaticFusionProfile.Entry.values()) {
-            for (ProgrammaticFusionProfile.Response response
-                    : ProgrammaticFusionProfile.Response.values()) {
-                String chinese = ProgrammaticFusionNameGrammar.compose(
-                        entry, response, "zh_cn");
-                String english = ProgrammaticFusionNameGrammar.compose(
-                        entry, response, "en_us");
-                assertFalse(chinese.isBlank());
-                assertFalse(english.isBlank());
-                assertTrue(chinese.contains("·"));
-                assertTrue(english.contains(" · "));
+    void everySemanticHasANameInBothBundledLocales() throws Exception {
+        for (String locale : new String[]{"en_us", "zh_cn"}) {
+            String resource = "/assets/blade_tetra/lang/" + locale + ".json";
+            try (var stream = getClass().getResourceAsStream(resource)) {
+                assertNotNull(stream, resource);
+                JsonObject translations = JsonParser.parseReader(
+                        new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+                assertEquals(locale.equals("zh_cn") ? "%1$s·%2$s" : "%1$s · %2$s",
+                        translations.get("name.blade_tetra.fusion.format").getAsString());
+                checkTerms(translations, "entry", ProgrammaticFusionProfile.Entry.values());
+                checkTerms(translations, "response", ProgrammaticFusionProfile.Response.values());
             }
         }
     }
 
-    private static ResourceLocation id(String value) {
-        return new ResourceLocation(value);
+    @Test
+    void keepsTranslatedAddonNamesAndFallsBackForNativeOrMissingNames() {
+        var semantic = ProgrammaticFusionProfile.Response.JUDGEMENT_ECHO;
+        var addon = new ResourceLocation("example", "echo");
+        var nativeArt = new ResourceLocation("slashblade", "judgement_cut");
+        assertEquals("slash_art.example.echo",
+                ProgrammaticFusionNameGrammar.termKey(addon, "response", semantic, key -> true));
+        String fallback = "name.blade_tetra.fusion.response.judgement_echo";
+        assertEquals(fallback,
+                ProgrammaticFusionNameGrammar.termKey(addon, "response", semantic, key -> false));
+        assertEquals(fallback,
+                ProgrammaticFusionNameGrammar.termKey(nativeArt, "response", semantic, key -> true));
+    }
+
+    private static void checkTerms(JsonObject translations, String role, Enum<?>[] semantics) {
+        for (Enum<?> semantic : semantics) {
+            String key = ProgrammaticFusionNameGrammar.termKey(null, role, semantic, k -> false);
+            assertTrue(translations.has(key), key);
+            assertTrue(!translations.get(key).getAsString().isBlank(), key);
+        }
     }
 }

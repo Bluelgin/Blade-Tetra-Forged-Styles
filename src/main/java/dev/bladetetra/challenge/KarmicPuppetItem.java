@@ -66,23 +66,23 @@ public final class KarmicPuppetItem extends Item {
             } catch (IllegalArgumentException ignored) {
                 tier = DivineDomainTier.ECHO;
             }
-            return Component.literal("业镜 · " + tier.displayName());
+            return Component.translatable("tooltip.blade_tetra.karmic_mirror.named", tier.displayName());
         }
-        return Component.literal("无铭业镜");
+        return Component.translatable(getDescriptionId());
     }
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level,
             List<Component> tooltip, TooltipFlag flag) {
         if (hasSnapshot(stack)) {
-            tooltip.add(Component.literal("映照杀业：" + stack.getTag().getLong(TAG_KILLS))
+            tooltip.add(Component.translatable("tooltip.blade_tetra.karmic_mirror.kills", stack.getTag().getLong(TAG_KILLS))
                     .withStyle(ChatFormatting.DARK_RED));
-            tooltip.add(Component.literal("取镜的一刻，刀下亡魂已被定格。")
+            tooltip.add(Component.translatable("tooltip.blade_tetra.karmic_mirror.snapshot")
                     .withStyle(ChatFormatting.GRAY));
-            tooltip.add(Component.literal("投入祭火，以此杀业叩问神域。")
+            tooltip.add(Component.translatable("tooltip.blade_tetra.karmic_mirror.use")
                     .withStyle(ChatFormatting.DARK_GRAY));
         } else {
-            tooltip.add(Component.literal("尚未映照持刀者的杀业。")
+            tooltip.add(Component.translatable("tooltip.blade_tetra.karmic_mirror.blank")
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
         DivineDomainWipNotice.appendTooltip(tooltip);
