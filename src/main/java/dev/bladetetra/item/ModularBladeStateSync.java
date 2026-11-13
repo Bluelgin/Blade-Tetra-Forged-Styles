@@ -127,6 +127,14 @@ final class ModularBladeStateSync {
             case STANDARD -> "orthodox";
             case CUSTOM -> CustomBladeLength.from(stack).modelName();
         };
+        var fishBlade = SaltyFishParts.blade(stack);
+        if (fishBlade != null) {
+            blade = switch (fishBlade) {
+                case SHORT -> "wakizashi";
+                case STANDARD -> "orthodox";
+                case LONG -> "nodachi";
+            };
+        }
         String saya = ComponentEffectResolver.hasModule(
                 stack, ModularSlashBladeItem.SAYA_SLOT,
                 ModularSlashBladeItem.QUICKDRAW_SAYA_MODULE) ? "quickdraw"

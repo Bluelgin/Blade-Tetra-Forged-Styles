@@ -1,0 +1,27 @@
+{
+  "key": "salted_fish",
+  "category": "fish",
+  "primary": 0,
+  "secondary": 0,
+  "tertiary": 0,
+  "durability": 24,
+  "integrityCost": 0,
+  "integrityGain": 0,
+  "magicCapacity": 0,
+  "toolLevel": "minecraft:wood",
+  "toolEfficiency": 1,
+  "tints": {
+    "glyph": "8EABAE",
+    "texture": "71959C"
+  },
+  "textures": [
+    "crude",
+    "default"
+  ],
+  "material": {
+    "items": [
+      "minecraft:cod",
+      "minecraft:salmon"
+    ]
+  }
+}

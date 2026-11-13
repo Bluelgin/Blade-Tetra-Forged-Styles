@@ -8,6 +8,7 @@ import dev.bladetetra.forging.LegacyImprintKind;
 import dev.bladetetra.forging.LegacyCalibration;
 import dev.bladetetra.forging.LegacyCalibrationProfile;
 import dev.bladetetra.forging.LegacyModelAdapter;
+import dev.bladetetra.item.SaltyFishParts.Length;
 import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.GroupObject;
@@ -18,6 +19,8 @@ import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -110,6 +113,187 @@ public final class LegacyModelPartRenderer {
         if (!"item_bladens".equals(target)) {
             renderPart(event, parts.saya(), Part.SAYA, target,
                     ordinaryTexture, ordinaryEmissive);
+        }
+    }
+
+    /** Fish uses the same native blade and sheath passes, with the stock guard seat as its datum. */
+    static void renderFish(RenderOverrideEvent event, Length blade, Length saya,
+            LegacyImprintKind salvaged, ResourceLocation ordinary, ResourceLocation emissive) {
+        String target = event.getOriginalTarget();
+        var named = NamedLegacyParts.visualFromStack(event.getStack());
+        var namedBlade = NamedLegacyParts.visualBladeFromStack(event.getStack());
+        LegacyImprintKind guard = named.tsuba();
+        if (guard == null && salvaged != null && salvaged.visualUsable()) guard = salvaged;
+
+        event.setCanceled(true);
+        if ("sheath".equals(target)) {
+            if (saya == null) renderPart(event, named.saya(), Part.SAYA, target, ordinary, emissive);
+            else drawFish(event, saya, "saya", target, null);
+            return;
+        }
+
+        boolean icon = InventoryBladeModel.isIcon(target);
+        boolean showSaya = icon && !"item_bladens".equals(target) && !"item_damaged".equals(target);
+        String group = "item_damaged".equals(target) ? "blade_damaged" : icon ? "blade" : target;
+        PoseStack poses = event.getPoseStack();
+        poses.pushPose();
+        try {
+            if (icon) {
+                // Draw the same geometry/UVs used in hand. Fit in the native 142-unit icon quad.
+                var originalBlade = bounds(faces(event.getOriginalModel(), group));
+                var originalSaya = bounds(faces(event.getOriginalModel(), "sheath"));
+                float tip = blade != null ? ("blade_damaged".equals(group) ? -122 : blade.bladeTip)
+                        : originalBlade.valid() ? originalBlade.min : -282;
+                if (showSaya) tip = Math.min(tip,
+                        saya != null ? saya.sayaTip : originalSaya.valid() ? originalSaya.min : -294);
+                float scale = 142 / (42 - tip);
+                poses.translate(0, 0, 16);
+                poses.mulPose(Axis.ZP.rotationDegrees(135));
+                poses.scale(scale, scale, scale);
+                poses.translate(-(42 + tip) * .5F, -4, 0);
+            }
+
+            Float coveredTo = null;
+            if (showSaya) {
+                if (saya != null) {
+                    // The narrow tail fin is decorative. Leave enough room for a long blade to show.
+                    coveredTo = (float) saya.sayaTip;
+                } else {
+                    var shell = bounds(faces(event.getOriginalModel(), "sheath"));
+                    if (shell.valid()) coveredTo = shell.min;
+                }
+            }
+            WavefrontObject guardView = fishGuard(event, guard, group);
+            boolean hideBlade = blade != null || namedBlade != null;
+            boolean hideGuard = guardView != null;
+            drawStockFishAssembly(event, group, hideBlade, hideGuard, coveredTo, ordinary, emissive);
+
+            if (blade != null) {
+                if (SenbonzakuraDispersedRender.bladeFraction(event.getStack(), target) > .001F) {
+                    drawFish(event, blade, "blade", group, coveredTo);
+                }
+            } else if (namedBlade != null && coveredTo == null) {
+                renderPart(event, namedBlade, Part.BLADE, group, ordinary, emissive);
+            }
+            if (hideGuard) drawFishPass(event, guardView, group, guard.texture(), null);
+            if (showSaya) {
+                if (saya == null) renderPart(event, named.saya(), Part.SAYA, "sheath", ordinary, emissive);
+                else drawFish(event, saya, "saya", "sheath", null);
+            }
+        } finally {
+            poses.popPose();
+        }
+    }
+
+    private static void drawStockFishAssembly(RenderOverrideEvent event, String group, boolean hideBlade,
+            boolean hideGuard, Float coveredTo, ResourceLocation ordinary, ResourceLocation emissive) {
+        WavefrontObject source = event.getModel();
+        if (!hideBlade && !hideGuard && coveredTo == null) {
+            drawFishPass(event, source, group, ordinary, emissive);
+            return;
+        }
+        String key = System.identityHashCode(source) + "|fish|" + group + "|" + hideBlade
+                + "|" + hideGuard + "|" + coveredTo;
+        WavefrontObject filtered = fishView(key, group, () -> {
+            List<Face> selected = new ArrayList<>();
+            for (Face face : faces(source, group)) {
+                if (hideGuard && InventoryGuardGeometry.isGuard(face)) continue;
+                if (!DispersedBladeGeometry.steel(face)) selected.add(face);
+                else if (!hideBlade) {
+                    if (coveredTo == null) selected.add(face);
+                    else selected.addAll(clipBefore(face, coveredTo));
+                }
+            }
+            return selected;
+        });
+        drawFishPass(event, filtered, group, ordinary, emissive);
+    }
+
+    private static WavefrontObject fishGuard(RenderOverrideEvent event, LegacyImprintKind guard, String group) {
+        if (guard == null || "blade_fragment".equals(group)) return null;
+        WavefrontObject source = BladeModelManager.getInstance().getModel(guard.model());
+        register(source, guard.model());
+        var profile = guard.visualProfile();
+        String key = System.identityHashCode(source) + "|fish_guard|" + group + "|"
+                + profile.tsubaCenter() + "|" + profile.tsubaRadius();
+        return fishView(key, group, () -> {
+            var selected = select(source, "blade", Part.TSUBA, profile);
+            var extent = extent(selected);
+            if (!extent.valid()) return List.of();
+            // The lips are fixed at x=-34. Normalize a guard's seat and depth while retaining
+            // its outline. Large fittings still read as large, without swallowing the head.
+            float x = (extent.maxX + extent.minX) * .5F;
+            float thickness = 4 / (extent.maxX - extent.minX);
+            float radial = Math.min(1.2F, Math.max(.65F, extent.thickness() / 25))
+                    * 28 / extent.thickness();
+            List<Face> fitted = new ArrayList<>(selected.size());
+            for (Face original : selected) {
+                Face face = new Face();
+                face.vertices = new Vertex[original.vertices.length];
+                for (int i = 0; i < face.vertices.length; i++) {
+                    Vertex v = original.vertices[i];
+                    face.vertices[i] = new Vertex(-36 + (v.x - x) * thickness,
+                            4 + (v.y - extent.centerY()) * radial,
+                            (v.z - extent.centerZ()) * radial);
+                }
+                face.textureCoordinates = original.textureCoordinates;
+                face.faceNormal = face.calculateFaceNormal();
+                fitted.add(face);
+            }
+            return fitted;
+        });
+    }
+
+    private static void drawFish(RenderOverrideEvent event, Length length, String part, String group,
+            Float coveredTo) {
+        String path = "model/modular/salty_fish/";
+        String name = length.part(part);
+        WavefrontObject model = BladeModelManager.getInstance().getModel(
+                new ResourceLocation("blade_tetra", path + name + ".obj"));
+        if (coveredTo != null) {
+            if (length.bladeTip >= coveredTo) return;
+            WavefrontObject source = model;
+            String key = System.identityHashCode(source) + "|fish_tip|" + group + "|" + coveredTo;
+            model = fishView(key, group, () -> faces(source, group).stream()
+                    .flatMap(face -> clipBefore(face, coveredTo).stream()).toList());
+        }
+        String texture = name;
+        if ("blade".equals(part)) {
+            texture = "fishbone";
+        } else if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, event.getStack()) > 0) {
+            texture = name + "_cooked";
+        }
+        drawFishPass(event, model, group, new ResourceLocation("blade_tetra", path + texture + ".png"), null);
+    }
+
+    private static List<Face> clipBefore(Face face, float x) {
+        var polygon = clipPlane(polygon(face), x, false);
+        List<Face> result = new ArrayList<>();
+        for (int i = 1; i + 1 < polygon.size(); i++) {
+            result.add(face(polygon.get(0), polygon.get(i), polygon.get(i + 1)));
+        }
+        return result;
+    }
+
+    private static WavefrontObject fishView(String key, String group,
+            java.util.function.Supplier<List<Face>> faces) {
+        if (!VIEWS.containsKey(key)) {
+            var selected = faces.get();
+            VIEWS.put(key, selected.isEmpty() ? null : RuntimeWavefrontViewFactory.create(group, selected));
+        }
+        return VIEWS.get(key);
+    }
+
+    private static void drawFishPass(RenderOverrideEvent event, WavefrontObject model, String group,
+            ResourceLocation texture, ResourceLocation emissive) {
+        if (model == null) return;
+        BladeRenderState.resetCol();
+        BladeRenderState.renderOverrided(event.getStack(), model, group, texture,
+                event.getPoseStack(), event.getBuffer(), event.getPackedLightIn(),
+                event.getGetRenderType(), event.isEnableEffect());
+        if (emissive != null) {
+            BladeRenderState.renderOverridedLuminous(event.getStack(), model, group, emissive,
+                    event.getPoseStack(), event.getBuffer(), event.getPackedLightIn());
         }
     }
 

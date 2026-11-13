@@ -73,6 +73,17 @@ public final class BladeNameResolver {
             return Component.translatable(BASE_NAME);
         }
 
+        var fishBlade = SaltyFishParts.blade(stack);
+        var fishSaya = SaltyFishParts.saya(stack);
+        if (fishBlade != null && !inheritedLegacy && !has(stack, ModularSlashBladeItem.INSCRIPTION_SLOT,
+                ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE)) {
+            if (fishSaya != null && !(fishBlade == SaltyFishParts.Length.SHORT && fishSaya == fishBlade)) {
+                return Component.translatable(fishBlade == SaltyFishParts.Length.LONG && fishSaya == fishBlade
+                        ? "name.blade_tetra.salty_fish.long" : "name.blade_tetra.salty_fish");
+            }
+            return Component.translatable("name.blade_tetra.fishbone." + fishBlade.id);
+        }
+
         String material = MaterialAppearance.fromStack(stack).blade();
         Component materialName = Component.translatableWithFallback(
                 "tetra.material." + material + ".prefix",

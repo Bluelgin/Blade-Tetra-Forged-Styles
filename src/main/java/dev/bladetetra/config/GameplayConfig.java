@@ -24,6 +24,8 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE, SAKURA_RECALL_DAMAGE_SCALE;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue SALTY_FISH_SCROLL_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue SALTY_FISH_BLADE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
     public static final ForgeConfigSpec.BooleanValue ENABLE_CONTRACT_BLADE_INTEGRATION;
     public static final ForgeConfigSpec.BooleanValue ENABLE_DEVELOPER_TOOLS;
@@ -187,6 +189,12 @@ public final class GameplayConfig {
                         "Chance that a village weaponsmith chest receives one Blade Tetra forging scroll.",
                         "0 disables scroll injection; 1 guarantees one scroll per matching chest.")
                 .defineInRange("forgingScrollChance", 0.55D, 0.0D, 1.0D);
+        SALTY_FISH_SCROLL_CHANCE = builder
+                .comment("Bonus scroll chance per vanilla fishing table roll, independent of Luck of the Sea.")
+                .defineInRange("saltyFishScrollChance", 0.01D, 0.0D, 1.0D);
+        SALTY_FISH_BLADE_CHANCE = builder
+                .comment("Bonus assembled blade chance per vanilla fishing table roll.")
+                .defineInRange("saltyFishBladeChance", 0.001D, 0.0D, 1.0D);
         TECHNIQUE_SCROLL_CHANCE = builder
                 .comment(
                         "Chance that a matching structure chest receives its Blade Tetra technique scroll.",

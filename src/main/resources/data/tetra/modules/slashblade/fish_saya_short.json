@@ -1,0 +1,26 @@
+{
+  "replace": true,
+  "slots": [
+    "slashblade/saya"
+  ],
+  "type": "tetra:basic_module",
+  "renderLayer": "lower",
+  "variants": [
+    {
+      "materials": [
+        "tetra:fish/salted_fish"
+      ],
+      "key": "fish_saya_short/",
+      "durability": 20,
+      "integrity": 1,
+      "extract": {
+        "durability": 0.25,
+        "glyph": {
+          "textureLocation": "blade_tetra:textures/gui/fish_parts.png",
+          "textureX": 0,
+          "textureY": 16
+        }
+      }
+    }
+  ]
+}

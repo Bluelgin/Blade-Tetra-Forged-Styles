@@ -14,7 +14,8 @@
       "storage",
       "manual",
       "motion",
-      "tooltip"
+      "tooltip",
+      "salty_fish"
     ],
     "compat": [
       "addon_ingots",
@@ -55,6 +56,13 @@
         "BLADE_STORAGE_SMOKE_PASS",
         "BLADE_STARTER_SMOKE_PASS"
       ],
+      "flags": []
+    },
+    "salty_fish": {
+      "kind": "client",
+      "property": "saltyFishReview",
+      "directory": "salty-fish-review",
+      "markers": ["SALTY_FISH_REVIEW_PASS"],
       "flags": []
     },
     "tooltip": {

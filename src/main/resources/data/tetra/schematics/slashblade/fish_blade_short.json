@@ -1,0 +1,41 @@
+{
+  "replace": true,
+  "slots": [
+    "slashblade/blade"
+  ],
+  "materialSlotCount": 1,
+  "displayType": "major",
+  "translation": {
+    "primaryAttributes": {
+      "generic.attack_damage": 3,
+      "generic.attack_speed": -2
+    },
+    "durability": 4,
+    "integrity": -3,
+    "magicCapacity": 3
+  },
+  "outcomes": [
+    {
+      "material": {
+        "items": [
+          "minecraft:bone"
+        ],
+        "count": 1
+      },
+      "requiredTools": {
+        "hammer_dig": "minecraft:wood"
+      },
+      "moduleKey": "slashblade/fish_blade_short",
+      "moduleVariant": "fish_blade_short/bone"
+    }
+  ],
+  "glyph": {
+    "textureLocation": "blade_tetra:textures/gui/fish_parts.png",
+    "textureX": 0,
+    "textureY": 0
+  },
+  "requirement": {
+    "type": "tetra:locked",
+    "key": "tetra:slashblade/fish_blade_standard"
+  }
+}
