@@ -72,8 +72,8 @@ public final class BladeExportPackageSmoke {
                 }
                 var descriptor = new String(archive.getInputStream(
                         archive.getEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
-                if (descriptor.contains("modId=\\\"blade_tetra\\\"")
-                        || descriptor.contains("modId=\\\"tetra\\\"")) {
+                if (descriptor.contains("modId=\"blade_tetra\\\"")
+                        || descriptor.contains("modId=\"tetra\\\"")) {
                     throw new IllegalStateException("Generated add-on depends on the exporter");
                 }
                 var definitionEntry = archive.getEntry(
