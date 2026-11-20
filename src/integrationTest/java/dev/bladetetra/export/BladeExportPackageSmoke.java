@@ -65,6 +65,17 @@ public final class BladeExportPackageSmoke {
                     List.of(new BladeExportArchive.Dependency("slashblade", modVersion)),
                     List.of(), evidence, Map.of());
             try (ZipFile archive = new ZipFile(file.toFile())) {
+                // Data-only mode must never accidentally require the bundled runtime.
+                if (archive.getEntry("META-INF/jarjar/metadata.json") != null
+                        || archive.getEntry("META-INF/jarjar/bt-export-runtime-1.1.0.jar") != null) {
+                    throw new IllegalStateException("Native package unexpectedly bundles a runtime");
+                }
+                var descriptor = new String(archive.getInputStream(
+                        archive.getEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
+                if (descriptor.contains("modId=\\\"blade_tetra\\\"")
+                        || descriptor.contains("modId=\\\"tetra\\\"")) {
+                    throw new IllegalStateException("Generated add-on depends on the exporter");
+                }
                 var definitionEntry = archive.getEntry(
                         "data/bt_export_test/slashblade/named_blades/sealed_blade.json");
                 try (var reader = new InputStreamReader(archive.getInputStream(definitionEntry),
@@ -139,6 +150,12 @@ public final class BladeExportPackageSmoke {
                 var original = BladeExportSnapshot.capture(admin, InteractionHand.MAIN_HAND);
                 var snapshot = BladeSealPackets.decodeSnapshot(BladeSealPackets.encodeSnapshot(original));
                 if (!original.equals(snapshot)) throw new IllegalStateException("Export packet changed the blade");
+                try {
+                    StandaloneBladeExport.checkNative(snapshot);
+                    throw new IllegalStateException("Source-specific style was silently allowed in native-only export");
+                } catch (IllegalArgumentException rejected) {
+                    // Full seal is the only valid option for these non-standard combos.
+                }
                 var metadata = new BladeExportArchive.Metadata("bt_export_" + slug, "1.0.0",
                         "封存 " + slug, "Blade Tetra", "Export runtime smoke test");
                 boolean client = net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient();
