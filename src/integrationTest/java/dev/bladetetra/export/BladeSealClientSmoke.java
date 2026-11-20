@@ -48,6 +48,7 @@ public final class BladeSealClientSmoke {
         if (!(client.screen instanceof BladeSealScreen screen)) return;
         var output = client.gameDirectory.toPath().resolve("blade-exports");
         try {
+            Files.createDirectories(output);
             if (before == null) {
                 try (var files = Files.list(output)) {
                     before = files.map(path -> path.getFileName().toString()).collect(Collectors.toSet());
