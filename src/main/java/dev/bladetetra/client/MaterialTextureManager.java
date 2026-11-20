@@ -574,19 +574,8 @@ public final class MaterialTextureManager {
         Minecraft minecraft = Minecraft.getInstance();
         boolean firstGeneratedTexture = MaterialTextureCache.materialsEmpty();
         try {
-            NativeImage image = MaterialTextureCache.copyAtlas(
-                    minecraft.getResourceManager());
-
-            prepareItemBladeTemplate(image, textureLayout);
-            ForgedGuardPainter.prepareTexture(image);
-            MaterialTextureCompositor.recolor(
-                    image,
-                    appearance,
-                    minecraft.getResourceManager(),
-                    textureLayout);
-            applyLegacyBaseArt(image, glowState, textureLayout);
-            if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
-            AwakenedWeaponArt.apply(image,appearance,textureLayout,glowState.broken(),AwakenedWeaponArt.fromName(glowState.soul().name()));
+            NativeImage image = MaterialTextureCache.copyAtlas(minecraft.getResourceManager());
+            paintBaseAtlas(image, appearance, glowState, textureLayout, minecraft.getResourceManager());
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID,
@@ -615,15 +604,38 @@ public final class MaterialTextureManager {
         }
     }
 
+    /** Bakes the world and GUI atlases without uploading a GPU texture. */
+    static byte[] bakeCombinedAtlas(net.minecraft.world.item.ItemStack blade,
+            ResourceManager resources) throws IOException {
+        var appearance = MaterialAppearance.fromStack(blade);
+        var glow = GlowState.fromStack(blade);
+        try (NativeImage world = MaterialTextureCache.readAtlas(resources);
+                NativeImage item = MaterialTextureCache.readAtlas(resources);
+                NativeImage combined = new NativeImage(world.getWidth(), world.getHeight() * 2, false)) {
+            paintBaseAtlas(world, appearance, glow, TextureLayout.WORLD, resources);
+            paintBaseAtlas(item, appearance, glow, TextureLayout.ITEM, resources);
+            for (int y = 0; y < world.getHeight(); y++) {
+                for (int x = 0; x < world.getWidth(); x++) {
+                    combined.setPixelRGBA(x, y, world.getPixelRGBA(x, y));
+                    combined.setPixelRGBA(x, y + world.getHeight(), item.getPixelRGBA(x, y));
+                }
+            }
+            return combined.asByteArray();
+        }
+    }
 
-
-    /**
-     * Resamples the authored 512px source atlas into the 256px runtime atlas.
-     * UVs remain unchanged because all models use normalized texture
-     * coordinates; the smaller runtime image therefore changes memory cost,
-     * not model compatibility.
-     */
-
+    private static void paintBaseAtlas(NativeImage image, MaterialAppearance appearance,
+            GlowState glow, TextureLayout layout, ResourceManager resources) {
+        prepareItemBladeTemplate(image, layout);
+        ForgedGuardPainter.prepareTexture(image);
+        MaterialTextureCompositor.recolor(image, appearance, resources, layout);
+        applyLegacyBaseArt(image, glow, layout);
+        if (glow.soul() == SoulGlow.AKATSUKI) {
+            AkatsukiArtPainter.apply(image, appearance, layout, glow.broken());
+        }
+        AwakenedWeaponArt.apply(image, appearance, layout, glow.broken(),
+                AwakenedWeaponArt.fromName(glow.soul().name()));
+    }
 
     private static String stableTextureHash(String signature) {
         long hash = 0xcbf29ce484222325L;

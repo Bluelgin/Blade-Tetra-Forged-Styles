@@ -48,14 +48,18 @@ final class RuntimeWavefrontViewFactory {
     }
 
     static WavefrontObject create(Map<String, List<Face>> groups) {
+        return new WavefrontObject(RUNTIME_FILENAME,
+                new ByteArrayInputStream(serialize(groups).getBytes(StandardCharsets.UTF_8)));
+    }
+
+    static String serialize(Map<String, List<Face>> groups) {
         StringBuilder out = new StringBuilder("# Blade Tetra immutable runtime model\n");
         int nextIndex = 1;
         for (var group : groups.entrySet()) {
             nextIndex = append(out, group.getKey(), group.getValue(), nextIndex);
         }
         if (nextIndex == 1) throw new IllegalArgumentException("empty runtime model");
-        return new WavefrontObject(RUNTIME_FILENAME,
-                new ByteArrayInputStream(out.toString().getBytes(StandardCharsets.UTF_8)));
+        return out.toString();
     }
 
     private static int append(StringBuilder out, String groupName, List<Face> faces, int nextIndex) {

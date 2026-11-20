@@ -16,6 +16,9 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 // Forge-only smoke tests and visual reviews are a separate, non-published source set.
 sourceSets {
+    exportRuntime {
+        compileClasspath += sourceSets.main.compileClasspath
+    }
     integrationTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -32,7 +35,7 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'namedIngotSmoke', 'exportPackageSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -152,6 +155,10 @@ minecraft {
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')
                 property 'blade_tetra.namedIngotSmoke', 'true'
+            }
+            if (project.hasProperty('exportPackageSmoke')) {
+                workingDirectory project.file('build/blade-export-package-smoke')
+                property 'blade_tetra.exportPackageSmoke', 'true'
             }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
@@ -426,6 +433,60 @@ tasks.named('processResources', ProcessResources).configure {
     inputs.properties replaceProperties
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
+    }
+}
+
+def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
+    // Forge can load the modular and sealed mods together. Keep their packages disjoint.
+    from('src/main/java/dev/bladetetra/combat') {
+        include 'StyleBranchRules.java', 'StyleCommonCommands.java', 'StyleTargeting.java',
+                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-combat')
+}
+sourceSets.exportRuntime.java.srcDir(portableCombatSources)
+
+tasks.register('exportRuntimeJar', Jar) {
+    archiveFileName = 'bt-export-runtime-1.1.0.jar'
+    destinationDirectory = layout.buildDirectory.dir('export-runtime')
+    from sourceSets.exportRuntime.output
+    from('LICENSE')
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+reobf {
+    exportRuntimeJar {
+        libraries.from(sourceSets.exportRuntime.compileClasspath)
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn 'reobfExportRuntimeJar'
+    from(tasks.named('exportRuntimeJar').flatMap { it.archiveFile }) {
+        into 'META-INF/blade-export'
+    }
+    from('LICENSE') {
+        into 'META-INF/blade-export'
+        rename { 'project-license.txt' }
+    }
+}
+
+if (project.hasProperty('exportRuntimeProbe')) {
+    sourceSets.create('exportRuntimeTest') {
+        compileClasspath += sourceSets.main.compileClasspath
+    }
+    tasks.register('exportRuntimeProbeJar', Jar) {
+        archiveFileName = 'bt-export-runtime-probe.jar'
+        destinationDirectory = layout.buildDirectory.dir('export-runtime')
+        from sourceSets.exportRuntimeTest.output
+    }
+    reobf {
+        exportRuntimeProbeJar {
+            libraries.from(sourceSets.exportRuntimeTest.compileClasspath)
+        }
     }
 }
 

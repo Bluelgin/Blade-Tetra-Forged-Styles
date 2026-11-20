@@ -1,6 +1,7 @@
 package dev.bladetetra.registry;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.export.BladeSealItem;
 import dev.bladetetra.item.ForgedSlashArtOrbItem;
 import dev.bladetetra.item.LifengScrollItem;
 import dev.bladetetra.item.StyleRecorderItem;
@@ -36,6 +37,8 @@ public final class ModItems {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BladeTetra.MOD_ID);
 
+    public static final RegistryObject<BladeSealItem> BLADE_SEAL =
+            ITEMS.register("blade_seal", BladeSealItem::new);
     public static final RegistryObject<ModularSlashBladeItem> MODULAR_SLASHBLADE =
             ITEMS.register("modular_slashblade", ModularSlashBladeItem::new);
     public static final RegistryObject<ForgedSlashArtOrbItem> FORGED_SLASH_ART_ORB =
@@ -108,6 +111,7 @@ public final class ModItems {
                         output.accept(MODULAR_SLASHBLADE.get().createWoodenStarterStack());
                         output.accept(FORGED_SLASH_ART_ORB.get().createDefaultStack());
                         output.accept(STYLE_RECORDER.get());
+                        if (parameters.hasPermissions()) output.accept(BLADE_SEAL.get());
                         output.accept(BLOOD_CRYSTAL.get());
                         output.accept(SAKURA_SOUL_CRYSTAL.get());
                         output.accept(SMITHING_JOURNAL.get().getDefaultInstance());
