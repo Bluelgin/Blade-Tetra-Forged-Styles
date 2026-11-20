@@ -24,6 +24,10 @@ sourceSets {
 configurations {
     integrationTestImplementation.extendsFrom implementation
     integrationTestRuntimeOnly.extendsFrom runtimeOnly
+    // Original, non-FG-remapped artifacts for the opt-in production launcher only.
+    productionSmokeLibraries {
+        transitive = false
+    }
 }
 def developmentProfiles = [
     'devTools', 'manualArtReview', 'namedIngotArtReview', 'bladeStorageSmoke', 'starterBladeReview',
@@ -263,6 +267,13 @@ dependencies {
     }
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
+    // Do not use sourceSets.main or ForgeGradle's deobfuscated runtime here:
+    // these exact original files are copied beside the reobfuscated release jar.
+    productionSmokeLibraries "curse.maven:tetra-289712:${tetra_file_id}"
+    productionSmokeLibraries "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}"
+    productionSmokeLibraries "se.mickelus.mutil:mutil:${mutil_version}"
+    productionSmokeLibraries "dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}"
+
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.ow2.asm:asm:9.5' // Mirror Forge EventBus subscriber metadata in architecture tests.
@@ -500,3 +511,23 @@ tasks.register('verifyProductionJar') {
     }
 }
 tasks.named('check') { dependsOn tasks.named('verifyProductionJar') }
+
+/**
+ * Prepare an isolated, user-style mods directory. Unlike runClient, nothing
+ * from sourceSets.main or integrationTest is put on the game classpath.
+ * This task is NOT wired into check/build/Validation; production-smoke.yml
+ * runs it only after an explicit workflow_dispatch.
+ */
+tasks.register('stageProductionSmoke', Sync) {
+    dependsOn tasks.named('reobfJar'), tasks.named('verifyProductionJar')
+    into layout.buildDirectory.dir('production-smoke/instance/mods')
+    from(tasks.named('jar').flatMap { it.archiveFile })
+    from(configurations.productionSmokeLibraries)
+    doLast {
+        def installed = destinationDir.listFiles().findAll { it.name.endsWith('.jar') }
+        if (installed.count { it.name.startsWith('blade_tetra-') } != 1) {
+            throw new GradleException("Production smoke requires exactly one Blade Tetra release JAR: ${installed*.name}")
+        }
+        logger.lifecycle("Production smoke staged ${installed.size()} original JARs at ${destinationDir}")
+    }
+}
