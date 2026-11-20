@@ -265,6 +265,7 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.ow2.asm:asm:9.5' // Mirror Forge EventBus subscriber metadata in architecture tests.
 
     implementation fg.deobf(project.hasProperty('mmtTest')
             ? "local:tetra:1.20.1-6.9.0"
