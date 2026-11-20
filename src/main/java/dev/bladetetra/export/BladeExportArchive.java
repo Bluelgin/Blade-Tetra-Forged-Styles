@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /** Writes a generated Forge addon using only explicitly supplied, validated resources. */
@@ -278,9 +280,37 @@ final class BladeExportArchive {
                     zip.closeEntry();
                 }
             }
-            return Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
+            // An export must be fully readable before it becomes visible as a .jar.
+            verifyArchive(temporary, entries);
+            try {
+                return Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                // Some removable drives and filesystems cannot atomically rename.
+                // This is a same-directory move of a closed, fully verified file.
+                return Files.move(temporary, output);
+            }
         } finally {
             Files.deleteIfExists(temporary);
+        }
+    }
+
+    private static void verifyArchive(Path archive, Map<String, byte[]> expected) throws IOException {
+        try (ZipFile zip = new ZipFile(archive.toFile())) {
+            if (zip.size() != expected.size()) {
+                throw new IOException("Export archive entry count mismatch");
+            }
+            for (var entry : expected.entrySet()) {
+                ZipEntry zipped = zip.getEntry(entry.getKey());
+                if (zipped == null || zipped.isDirectory() || zipped.getSize() != entry.getValue().length) {
+                    throw new IOException("Export archive is missing or truncates " + entry.getKey());
+                }
+                try (var input = zip.getInputStream(zipped)) {
+                    byte[] bytes = input.readNBytes(MAX_ENTRY_BYTES + 1);
+                    if (bytes.length > MAX_ENTRY_BYTES || !hash(bytes).equals(hash(entry.getValue()))) {
+                        throw new IOException("Export archive verification failed: " + entry.getKey());
+                    }
+                }
+            }
         }
     }
 
