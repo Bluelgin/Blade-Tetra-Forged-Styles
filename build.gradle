@@ -236,7 +236,6 @@ repositories {
         url = 'https://maven.minecraftforge.net'
         content {
             includeGroup 'cpw.mods'
-            includeGroup 'net.minecraftforge'
         }
     }
     // Optional sibling workspace used only by -PcontractBladeTest launches.
