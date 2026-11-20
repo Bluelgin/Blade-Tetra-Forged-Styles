@@ -134,9 +134,6 @@ final class BladeSealScreen extends Screen {
         screen.requestedMode = null;
         if (result.snapshot().isEmpty()) {
             screen.status = Component.translatable("blade_tetra.export.expired");
-            screen.confirm.active = true;
-            screen.modeButton.active = true;
-            screen.confirmed = false;
             return;
         }
         try {
@@ -154,9 +151,6 @@ final class BladeSealScreen extends Screen {
         } catch (IOException | com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException error) {
             LogUtils.getLogger().warn("Failed to seal blade", error);
             screen.status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
-            screen.confirm.active = true;
-            screen.modeButton.active = true;
-            screen.confirmed = false;
         }
     }
 
