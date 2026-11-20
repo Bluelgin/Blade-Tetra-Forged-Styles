@@ -24,11 +24,16 @@ import java.util.*;
 /** Each owner has one targetable echo, with up to four diverted mobs. */
 @Mod.EventBusSubscriber(modid = "blade_tetra")
 public final class KyoukaAfterimages {
+    private static final org.slf4j.Logger V_PROBE =
+            org.slf4j.LoggerFactory.getLogger("BladeTetra-KyoukaVProbe");
     static final Map<UUID, KyoukaAfterimageEntity> ACTIVE = new HashMap<>();
     public record Departure(ServerPlayer player, ItemStack blade, Vec3 origin, float yaw, float pitch,
             net.minecraft.server.level.ServerLevel level) {}
     public static Departure capture(Entity entity) {
         if (!(entity instanceof ServerPlayer p) || !eligible(p)) return null;
+        V_PROBE.info("[KYOUKA-V][CAPTURE] player={} dimension={} pos={} item={}",
+                p.getGameProfile().getName(), p.level().dimension().location(),
+                p.position(), p.getMainHandItem().getHoverName().getString());
         return new Departure(p, p.getMainHandItem(), p.position(), p.getYRot(), p.getXRot(), p.serverLevel());
     }
     private static boolean eligible(ServerPlayer p) {
@@ -41,13 +46,28 @@ public final class KyoukaAfterimages {
         if (departure == null) return;
         var p = departure.player();
         if (!eligible(p) || p.serverLevel() != departure.level() || p.getMainHandItem() != departure.blade()
-                || p.position().distanceToSqr(departure.origin()) < .25) return;
+                || p.position().distanceToSqr(departure.origin()) < .25) {
+            V_PROBE.info("[KYOUKA-V][SKIP] player={} eligible={} sameLevel={} sameBlade={} displacementSq={}",
+                    p.getGameProfile().getName(), eligible(p), p.serverLevel() == departure.level(),
+                    p.getMainHandItem() == departure.blade(), p.position().distanceToSqr(departure.origin()));
+            return;
+        }
         UUID owner = p.getUUID();
         if (!ACTIVE.containsKey(owner) && ACTIVE.size() >= 64) return;
         var echo = ModEntities.KYOUKA_AFTERIMAGE.get().create(p.serverLevel());
-        if (echo == null) return;
+        if (echo == null) {
+            V_PROBE.warn("[KYOUKA-V][CREATE_NULL] type=blade_tetra:kyouka_afterimage player={}",
+                    p.getGameProfile().getName());
+            return;
+        }
         echo.configure(p, departure.blade(), departure.origin(), departure.yaw(), departure.pitch());
-        if (!p.serverLevel().addFreshEntity(echo)) return;
+        if (!p.serverLevel().addFreshEntity(echo)) {
+            V_PROBE.warn("[KYOUKA-V][SPAWN_REJECTED] uuid={} player={}", echo.getUUID(), p.getGameProfile().getName());
+            return;
+        }
+        V_PROBE.info("[KYOUKA-V][SERVER_SPAWN] type=blade_tetra:kyouka_afterimage entityId={} uuid={} dimension={} pos={} player={}",
+                echo.getId(), echo.getUUID(), echo.level().dimension().location(), echo.position(),
+                p.getGameProfile().getName());
         // Publish the replacement before releasing targets so the normal target
         // event can transfer eligible mobs directly to the new echo.
         var previous = ACTIVE.put(owner, echo);
