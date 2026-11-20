@@ -128,7 +128,7 @@ public final class MikageDivineVfxEvents {
     }
 
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static final class Registration {
+    public static final class MikageDivineVfxReloadRegistration {
         @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener((ResourceManagerReloadListener) manager -> clear());
         }
