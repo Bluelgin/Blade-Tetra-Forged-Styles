@@ -9,7 +9,7 @@ from production_smoke import inspect_artifact, find_crash, release_jar
 
 class ProductionSmokeGateTest(unittest.TestCase):
     def write_fixture(self, mods: Path, *, leak=False, omit=None):
-        mods.mkdir(parents=True)
+        mods.mkdir(parents=True, exist_ok=True)
         jar = mods / "blade_tetra-1.6.7.jar"
         entries = {
             "META-INF/mods.toml": '[[mods]]\nmodId="blade_tetra"\n',
