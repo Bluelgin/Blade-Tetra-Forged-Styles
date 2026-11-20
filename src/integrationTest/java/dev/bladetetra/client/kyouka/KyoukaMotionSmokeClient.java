@@ -4,8 +4,10 @@ import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
 import dev.bladetetra.client.awakening.FloatingBladeRenderer;
 import dev.bladetetra.registry.ModItems;
+import dev.bladetetra.registry.ModEntities;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -16,6 +18,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import java.nio.file.*;
+import java.lang.reflect.Field;
+import java.util.Map;
 import org.joml.Matrix4f;
 
 /** Real resource/MMD/OBJ client smoke, without a world, player entity or RenderPlayerEvent. */
@@ -37,6 +41,14 @@ public final class KyoukaMotionSmokeClient {
         int frames, checks;
         Review() { super(Component.literal("Independent VMD sampler smoke")); }
         @Override protected void init() {
+            Map<?, ?> registeredRenderers = rendererMap();
+            require(registeredRenderers.containsKey(ModEntities.KYOUKA_AFTERIMAGE.get()),
+                    "Kyouka afterimage renderer is present in the client dispatcher");
+            require(registeredRenderers.containsKey(ModEntities.MIKAGE_DIVINE_COMPANION.get()),
+                    "Mikage divine companion renderer is present in the client dispatcher");
+            require(registeredRenderers.containsKey(ModEntities.MIKAGE.get()),
+                    "Mikage renderer remains registered after consolidation");
+
             // This off-world test has no synced SERVER config; use defaults in memory only.
             var config = com.electronwill.nightconfig.core.CommentedConfig.inMemory();
             dev.bladetetra.config.GameplayConfig.SPEC.correct(config);
@@ -90,5 +102,15 @@ public final class KyoukaMotionSmokeClient {
             }
         }
     }
+    private static Map<?, ?> rendererMap() {
+        try {
+            Field field = EntityRenderDispatcher.class.getDeclaredField("renderers");
+            field.setAccessible(true);
+            return (Map<?, ?>) field.get(Minecraft.getInstance().getEntityRenderDispatcher());
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Unable to inspect client entity renderer registrations", failure);
+        }
+    }
+
     private KyoukaMotionSmokeClient() {}
 }
