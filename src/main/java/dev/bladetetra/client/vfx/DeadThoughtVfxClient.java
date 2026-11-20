@@ -264,7 +264,7 @@ public final class DeadThoughtVfxClient {
     }
 
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static final class Registration {
+    public static final class DeadThoughtVfxClientRegistration {
         @SubscribeEvent
         public static void setup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
