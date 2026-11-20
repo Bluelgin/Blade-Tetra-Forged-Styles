@@ -106,6 +106,9 @@ public final class ModItems {
                     .displayItems((parameters, output) -> {
                         output.accept(MODULAR_SLASHBLADE.get().createDefaultStack());
                         output.accept(MODULAR_SLASHBLADE.get().createWoodenStarterStack());
+                        // Internal diagnostic build: initialized awakened Kyouka for one-click creative testing.
+                        var diagnosticKyouka = dev.bladetetra.easteregg.KyoukaTestBladeCommand.createDiagnosticBlade();
+                        if (!diagnosticKyouka.isEmpty()) output.accept(diagnosticKyouka);
                         output.accept(FORGED_SLASH_ART_ORB.get().createDefaultStack());
                         output.accept(STYLE_RECORDER.get());
                         output.accept(BLOOD_CRYSTAL.get());
