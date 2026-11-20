@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/production-smoke-acceptance.yml'
       - 'tools/ci/production_smoke.py'
+      - 'build.gradle'
       - 'src/main/java/dev/bladetetra/client/ProductionRendererSmoke.java'
 
 permissions:
