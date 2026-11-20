@@ -36,5 +36,4 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
         return WaterMirrorVisuals.WATER;
     }
 
-
 }
