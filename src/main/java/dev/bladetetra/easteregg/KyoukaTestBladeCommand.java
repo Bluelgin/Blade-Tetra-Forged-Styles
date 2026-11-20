@@ -5,6 +5,7 @@ import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.visual.SayaPresetSkin;
 import net.minecraft.commands.Commands;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -25,22 +26,8 @@ public final class KyoukaTestBladeCommand {
                 .requires(source -> source.hasPermission(2))
                 .executes(context -> {
                     var player = context.getSource().getPlayerOrException();
-                    ModularSlashBladeItem item = ModItems.MODULAR_SLASHBLADE.get();
-                    ItemStack blade = item.createDefaultStack();
-                    IModularItem.putModuleInSlot(blade,
-                            ModularSlashBladeItem.BLADE_SLOT,
-                            ModularSlashBladeItem.BLADE_MODULE,
-                            ModularSlashBladeItem.BLADE_MODULE + "_material",
-                            "katana_blade/amethyst");
-                    IModularItem.putModuleInSlot(blade,
-                            ModularSlashBladeItem.INSCRIPTION_SLOT,
-                            ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE,
-                            ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE + "_material",
-                            "awakened_soul_inscription/proudsoul_sphere");
-                    IModularItem.updateIdentifier(blade);
-                    item.syncDerivedBladeState(blade);
-                    SayaPresetSkin.apply(blade, SayaPresetSkin.KYOUKA);
-                    if (!KyoukaAwakening.unlockForDebug(blade)) {
+                    ItemStack blade = createDiagnosticBlade();
+                    if (blade.isEmpty()) {
                         context.getSource().sendFailure(Component.translatable("command.blade_tetra.kyouka_test.failure"));
                         return 0;
                     }
@@ -49,6 +36,33 @@ public final class KyoukaTestBladeCommand {
                             Component.translatable("command.blade_tetra.kyouka_test.success"), false);
                     return 1;
                 }));
+    }
+
+    /**
+     * Internal V-teleport diagnostic build only. This is the exact same initialized
+     * awakened blade for the creative tab and the existing OP command. Not a raw
+     * modular item: Tetra modules and SlashBlade state are initialized first.
+     */
+    public static ItemStack createDiagnosticBlade() {
+        ModularSlashBladeItem item = ModItems.MODULAR_SLASHBLADE.get();
+        ItemStack blade = item.createDefaultStack();
+        IModularItem.putModuleInSlot(blade,
+                ModularSlashBladeItem.BLADE_SLOT,
+                ModularSlashBladeItem.BLADE_MODULE,
+                ModularSlashBladeItem.BLADE_MODULE + "_material",
+                "katana_blade/amethyst");
+        IModularItem.putModuleInSlot(blade,
+                ModularSlashBladeItem.INSCRIPTION_SLOT,
+                ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE,
+                ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE + "_material",
+                "awakened_soul_inscription/proudsoul_sphere");
+        IModularItem.updateIdentifier(blade);
+        item.syncDerivedBladeState(blade);
+        SayaPresetSkin.apply(blade, SayaPresetSkin.KYOUKA);
+        if (!KyoukaAwakening.unlockForDebug(blade)) return ItemStack.EMPTY;
+        blade.setHoverName(Component.literal("[TEST] 镜花水月 · V残影诊断")
+                .withStyle(ChatFormatting.AQUA));
+        return blade;
     }
 
     private KyoukaTestBladeCommand() {}
