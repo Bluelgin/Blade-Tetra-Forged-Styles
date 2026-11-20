@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -41,12 +43,14 @@ class EventBusSubscriberUniqueNameTest {
         }
     }
 
+    private record Callback(String name, String eventName, String descriptor) { }
+
     private static void inspect(Path path, Path root, Map<String, String> generatedNames) {
         try {
             ClassReader reader = new ClassReader(Files.readAllBytes(path));
             String[] internalName = new String[1];
             boolean[] subscriber = new boolean[1];
-            Map<String, String> callbacks = new HashMap<>();
+            List<Callback> callbacks = new ArrayList<>();
 
             reader.accept(new ClassVisitor(Opcodes.ASM9) {
                 @Override
@@ -70,7 +74,7 @@ class EventBusSubscriberUniqueNameTest {
                         @Override
                         public AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                             if (SUBSCRIBE_EVENT.equals(annotation)) {
-                                callbacks.put(name, arguments[0].getClassName() + "|" + descriptor);
+                                callbacks.add(new Callback(name, arguments[0].getClassName(), descriptor));
                             }
                             return null;
                         }
@@ -87,20 +91,26 @@ class EventBusSubscriberUniqueNameTest {
                     int nested = className.lastIndexOf('$');
                     String simpleName = nested < 0 ? className : className.substring(nested + 1);
 
-                    callbacks.forEach((method, signature) -> {
-                        int separator = signature.indexOf('|');
-                        String eventName = signature.substring(0, separator);
-                        String descriptor = signature.substring(separator + 1);
-                        int eventSeparator = Math.max(eventName.lastIndexOf('.'), eventName.lastIndexOf('$'));
-                        String eventSimpleName = eventName.substring(eventSeparator + 1);
+                    for (Callback method : callbacks) {
+                        int eventSeparator = Math.max(method.eventName.lastIndexOf('.'),
+                                method.eventName.lastIndexOf('
+                }
+            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+    }
+}
+));
+                        String eventSimpleName = method.eventName.substring(eventSeparator + 1);
                         String generatedName = String.format("%s.__%s_%s_%s",
-                                packageName, simpleName, method, eventSimpleName);
-                        String callback = binaryName + "#" + method + descriptor;
+                                packageName, simpleName, method.name, eventSimpleName);
+                        String callback = binaryName + "#" + method.name + method.descriptor;
                         String previous = generatedNames.putIfAbsent(generatedName, callback);
                         assertTrue(previous == null || previous.equals(callback),
                                 () -> "Forge EventBus 6.0.5 generated listener-name collision: "
                                         + generatedName + " maps to both " + previous + " and " + callback);
-                    });
+                    }
                 }
             }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
         } catch (IOException exception) {
