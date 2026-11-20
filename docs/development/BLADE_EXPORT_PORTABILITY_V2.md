@@ -12,7 +12,7 @@ The exporter is not a general Java-code copier. When a source mechanic is unport
 
 | Mode | Output | Eligibility | Intended use |
 | --- | --- | --- | --- |
-| **Full seal** (default) | data-only Forge add-on + shaded/compiled `bt_export_runtime` through Forge Jar-in-Jar | Server checks source-only effects, model support, state identity and third-party assets. Currently supports the mapped standard, iaido, rengeki, dangaku and bounded custom-combo roots | Normal finished sword with portable combat |
+| **Full seal** (default) | data-only Forge add-on + separately compiled/reobfuscated `bt_export_runtime` through Forge Jar-in-Jar | Server checks source-only effects, model support, state identity and third-party assets. Currently supports the mapped standard, iaido, rengeki, dangaku and bounded custom-combo roots | Normal finished sword with portable combat |
 | **Native-only** | data-only Forge add-on with **no embedded runtime or extra runtime dependency** | Strict subset of Full seal: standard native combo, zero custom attribute modifiers, zero Tetra component effects. No abilities are downgraded | A genuinely plain SlashBlade-compatible sword |
 
 UI toggle changes the package format, not the live held weapon. A single-use server token approves an exact snapshot. The client packages resources only after receiving authorization. Saved files go to `<game-directory>/blade-exports/` with a unique UUID and a fixed `.jar` suffix.
