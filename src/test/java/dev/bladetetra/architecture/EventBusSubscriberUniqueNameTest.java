@@ -39,13 +39,13 @@ class EventBusSubscriberUniqueNameTest {
         Map<String, String> generatedNames = new HashMap<>();
         try (Stream<Path> paths = Files.walk(classes)) {
             paths.filter(path -> path.toString().endsWith(".class"))
-                    .forEach(path -> inspect(path, classes, generatedNames));
+                    .forEach(path -> inspect(path, generatedNames));
         }
     }
 
     private record Callback(String name, String eventName, String descriptor) { }
 
-    private static void inspect(Path path, Path root, Map<String, String> generatedNames) {
+    private static void inspect(Path path, Map<String, String> generatedNames) {
         try {
             ClassReader reader = new ClassReader(Files.readAllBytes(path));
             String[] internalName = new String[1];
@@ -85,23 +85,15 @@ class EventBusSubscriberUniqueNameTest {
                 public void visitEnd() {
                     if (!subscriber[0] || internalName[0] == null) return;
                     String binaryName = internalName[0].replace('/', '.');
-                    int packageEnd = binaryName.lastIndexOf('.');
+                    int packageEnd = binaryName.lastIndexOf(46);
                     String packageName = packageEnd < 0 ? "" : binaryName.substring(0, packageEnd);
                     String className = packageEnd < 0 ? binaryName : binaryName.substring(packageEnd + 1);
-                    int nested = className.lastIndexOf('$');
+                    int nested = className.lastIndexOf(36);
                     String simpleName = nested < 0 ? className : className.substring(nested + 1);
 
                     for (Callback method : callbacks) {
-                        int eventSeparator = Math.max(method.eventName.lastIndexOf('.'),
-                                method.eventName.lastIndexOf('
-                }
-            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-        } catch (IOException exception) {
-            throw new UncheckedIOException(exception);
-        }
-    }
-}
-));
+                        int eventSeparator = Math.max(method.eventName.lastIndexOf(46),
+                                method.eventName.lastIndexOf(36));
                         String eventSimpleName = method.eventName.substring(eventSeparator + 1);
                         String generatedName = String.format("%s.__%s_%s_%s",
                                 packageName, simpleName, method.name, eventSimpleName);
