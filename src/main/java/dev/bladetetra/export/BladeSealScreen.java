@@ -172,7 +172,7 @@ final class BladeSealScreen extends Screen {
         graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + 111, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.recipe"), left, top + 121, 0xFFFFFF);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left + 151, top + 186, 149, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 210, PANEL_WIDTH, 0xFFFFFF);
         }
     }
 }
