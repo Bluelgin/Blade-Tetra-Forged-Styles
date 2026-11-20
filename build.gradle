@@ -229,6 +229,16 @@ sourceSets.main.resources {
 }
 
 repositories {
+    // Forge runtime artifacts (ModLauncher/EventBus) are not guaranteed to be
+    // cached by ForgeGradle on a clean CI runner.
+    maven {
+        name = 'Forge runtime artifacts'
+        url = 'https://maven.minecraftforge.net'
+        content {
+            includeGroup 'cpw.mods'
+            includeGroup 'net.minecraftforge'
+        }
+    }
     // Optional sibling workspace used only by -PcontractBladeTest launches.
     // Keeping this repository declaration inert preserves normal release builds.
     flatDir {
