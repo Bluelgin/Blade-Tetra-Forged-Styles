@@ -217,7 +217,8 @@
       "markers": [
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
         "BLADE_EXPORT_RUNTIME_FIXTURE:",
-        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63"
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
       ],
       "flags": []
     },
@@ -228,7 +229,8 @@
       "markers": [
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
         "BLADE_EXPORT_RUNTIME_FIXTURE:",
-        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65"
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
       ],
       "flags": [
         "slashblade1965"
