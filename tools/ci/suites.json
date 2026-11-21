@@ -216,7 +216,8 @@
       "directory": "blade-export-package-smoke",
       "markers": [
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
-        "BLADE_EXPORT_RUNTIME_FIXTURE:"
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63"
       ],
       "flags": []
     },
@@ -226,7 +227,8 @@
       "directory": "blade-export-package-smoke-1965",
       "markers": [
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
-        "BLADE_EXPORT_RUNTIME_FIXTURE:"
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65"
       ],
       "flags": [
         "slashblade1965"
