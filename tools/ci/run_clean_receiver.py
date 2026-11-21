@@ -93,6 +93,18 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
     return exports
 
 
+def verify_probe_isolation(path: Path) -> None:
+    # Forge places every discovered mod JAR on the module path. A probe class in
+    # the real runtime's Java package creates a JPMS split-package ResolutionException.
+    with ZipFile(path) as archive:
+        names = set(archive.namelist())
+        if any(name.startswith("dev/btsealed/runtime/") and name.endswith(".class")
+               for name in names):
+            raise RuntimeError("Probe JAR contains classes in the standalone runtime module package")
+        if "dev/btsealed/probe/ExportRuntimeProbe.class" not in names:
+            raise RuntimeError("Probe JAR is missing its independent Forge test entry point")
+
+
 def find_slashblade(version: str) -> Path:
     suffix = CURSE_IDS[version]
     gradle = Path(os.environ.get("GRADLE_USER_HOME", "~/.gradle")).expanduser()
@@ -193,6 +205,8 @@ def main():
     if not opts.probe_jar.is_file():
         raise RuntimeError("Missing receiver probe: run ./gradlew -PexportRuntimeProbe "
                            "reobfExportRuntimeProbeJar first")
+    verify_probe_isolation(opts.probe_jar)
+    print("BLADE_EXPORT_PROBE_ISOLATION_PASS", flush=True)
     slashblade_jar = find_slashblade(opts.slashblade)
     forge_installer = fetch_installer(opts.forge)
     receiver = ROOT / "build/clean-receiver" / opts.slashblade.replace(".", "")
