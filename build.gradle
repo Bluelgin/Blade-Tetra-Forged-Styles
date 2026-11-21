@@ -35,7 +35,7 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'namedIngotSmoke', 'exportPackageSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'namedIngotSmoke', 'exportPackageSmoke', 'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -155,6 +155,10 @@ minecraft {
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')
                 property 'blade_tetra.namedIngotSmoke', 'true'
+            }
+            if (project.hasProperty('exportSealClientSmoke')) {
+                workingDirectory project.file('build/blade-export-client-smoke')
+                property 'blade_tetra.exportSealClientSmoke', 'true'
             }
             if (project.hasProperty('exportPackageSmoke')) {
                 workingDirectory project.file(project.hasProperty('slashblade1965')
