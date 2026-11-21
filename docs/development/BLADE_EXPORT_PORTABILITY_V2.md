@@ -1,70 +1,71 @@
-# Blade Seal / OoO Exporter — portability v2
+# Blade Seal — unified standalone exporter
 
-> Development branch based on `OoO/blade-exporter`. This is an **unreleased, draft implementation**, not a promise that arbitrary final swords can be safely exported.
+> Draft development contract for `OoO/blade-exporter` / PR #72. This is an **incremental implementation**, not a release or a claim that arbitrary graduation swords are portable.
 
-## Product goal
+## One player-facing operation
 
-One finished modular sword should be exportable as an individually named Forge add-on: its model, material colors, recipe, base SlashBlade state, supported styles and compatible combat effects survive without requiring Tetra or Blade Tetra **in the receiving modpack**. The original build remains in the author's save; exporting must never mutate the stack.
+A player in creative mode with operator permission holds the Blade Seal opposite the original modular sword, then opens **one** export dialog. They choose the exported weapon/mod name, ID, author, version and crafting grid. There is **no native-only/portable mode switch**.
 
-The exporter is not a general Java-code copier. When a source mechanic is unportable, export must **refuse it with a specific explanation**, never silently strip its ability or create a deceptively weaker sword.
+The pipeline is always:
 
-## Two explicit export modes
+1. Capture a server-side, nonmutating snapshot of the exact held stack.
+2. Run a capability and appearance preflight. A known unportable feature results in a clear disabled export button, **not** a weaker sword.
+3. On confirmation, consume a single-use token bound to the player's held stack and session.
+4. On the client, validate active resource/provider bytes and legal embedding constraints; bake world and item models, plus their texture atlas, from supported shapes.
+5. Encode the native SlashBlade named-blade definition, recipe and language resources, plus a **versioned independent battle profile** and the Forge Jar-in-Jar `bt_export_runtime` provider.
+6. Reopen and hash-check all staged JAR entries before publishing a uniquely named file in `blade-exports/`.
 
-| Mode | Output | Eligibility | Intended use |
-| --- | --- | --- | --- |
-| **Full seal** (default) | data-only Forge add-on + separately compiled/reobfuscated `bt_export_runtime` through Forge Jar-in-Jar | Server checks source-only effects, model support, state identity and third-party assets. Currently supports the mapped standard, iaido, rengeki, dangaku and bounded custom-combo roots | Normal finished sword with portable combat |
-| **Native-only** | data-only Forge add-on with **no embedded runtime or extra runtime dependency** | Strict subset of Full seal: standard native combo, zero custom attribute modifiers, zero Tetra component effects. No abilities are downgraded | A genuinely plain SlashBlade-compatible sword |
+Exports never alter or remove the original item. Once exported, the add-on must not require Tetra or Blade Tetra to be installed on the receiving server/client. The single runtime owns only whitelisted data-driven effects; the source mod's Java classes cannot be referenced at runtime.
 
-UI toggle changes the package format, not the live held weapon. A single-use server token approves an exact snapshot. The client packages resources only after receiving authorization. Saved files go to `<game-directory>/blade-exports/` with a unique UUID and a fixed `.jar` suffix.
+## Implemented pathways (not yet the whole product)
 
-Both modes still require **Minecraft 1.20.1, Forge 47.x, and an installed SlashBlade: Resharped provider**. The present full runtime has been written against **SlashBlade 1.9.63**; larger version ranges must not be declared before separate runtime verification. Neither exported mode declares `tetra` nor `blade_tetra` as a dependency.
+- Server snapshots: base SlashBlade state, combat style, attributes, enchants, native SA/SE, material appearance, source identity for every named fitting, special traditions, soul records, component effects.
+- Portable combat code: named custom moves (bounded at six), Iaido, Rengeki, Dangaku and the component effects explicitly handled by `PortableComponentEffects`.
+- Static alpha9 modular OBJ and material PNG baking into generated resources.
+- Stable generated identity through `bt_export_<suffix>:sealed_blade`; per-export ID in the certificate; title, author, version, description, recipe, package hashes and provider evidence.
+- One embedded `bt_export_runtime` release for **every** generated add-on, including swords with otherwise-native combos. Multiple exports use the same Maven coordinates/version and data is scoped by exact named-blade translation key.
+- Early **server-side** diagnostic summary and final **client-side** resource verification. Passing preflight is not a guarantee that external resources will validate at packaging.
 
-## Current feature / compatibility matrix
+## Explicit blockers
 
-| Source feature | Full seal | Native-only | Rule |
-| --- | --- | --- | --- |
-| Native SlashBlade attack, durability, color, native SA, native SE, enchantments | code path present | code path present | All registry and provider references must resolve |
-| Regular Blade Tetra modular OBJ / atlas | static baker present | static baker present | Needs the expected alpha9 source model and required rendering groups |
-| Iaido / Rengeki / Dangaku | portable combo runtime implemented | refused | Uses exported combo roots, not Blade Tetra at runtime |
-| Custom sword style | up to six supported moves | refused | Bounded timing and known action IDs only |
-| Quickdraw saya, spirit saya, heavy pommel, stable grip, guard tsuba | runtime handlers present | refused | Preserved only while their runtime profile can represent the effect |
-| Precision / reinforced habaki | refused | refused | Rank decay and knockback hooks require explicit standalone ports before enabling |
-| Boundary forging, special soul inscriptions, awakened ability chains, source-only SA / SE, Shoshin / Bairen / Bansho / NBT Sage | refused | refused | **Never discard hidden combat mechanics in a release artifact** |
-| Named-ingot mixed blade, sheath, guard or backplate | refused | refused | Exact provider geometry and art permissions are unresolved; do not bake a fake replacement |
-| Salty Fish modular parts or special saya banner decorations | refused | refused | Dynamic geometry / material projections not yet safely reproducible |
-| Resource-pack overrides | verified/rejected | verified/rejected | Selected input bytes must match approved original provider, unless explicitly embedded with documented rights |
+| Feature | Status | Why |
+| --- | --- | --- |
+| Modular alpha9 blade with standard / portable style | Implemented; requires clean receiver testing | Static OBJ, PNG and bounded runtime paths exist |
+| Mixed named-ingot blade/saya/tsuba + named backplate | **Blocked** | Needs actual geometry/UV flattening, texture provenance and redistributable source art |
+| Salty Fish lengths / alternate fish geometry | **Blocked** | Dynamic per-part 3D construction cannot be flattened faithfully by the current static baker |
+| Saya banner decorations | **Blocked** | Banner-specific render path is absent from the static atlas baker |
+| Precision / reinforced habaki | **Blocked** | Original behavior modifies Rank decay and actual melee knockback; inaccurate approximation would weaken the sword |
+| Special forged SA / source-only SE | **Blocked** | No verified independent implementation yet |
+| Soul inscriptions, awakening/ritual abilities, Shoshin/Bairen/Bansho/NBT Sage | **Blocked** | Needs persistent state, combat/visual hooks and clean-room behavioral tests |
+| Arbitrary external resource pack overrides | **Blocked unless verified** | Source bytes and rights must be attributable; copying an unknown pack would not establish licensing |
 
-This table describes **implemented paths and guards**. It is not a statement of successful end-to-end tests.
+**Safety gate:** never treat an external model's availability as permission to redistribute it. The pack's visible rights and any allowed dependencies have to be evaluated before embedding derived OBJ/PNG. Public redistribution is not supported by the current private-modpack export policy.
 
-## Safety and compatibility decisions
+## Architecture for further implementation
 
-1. Package the generated OBJ and PNG only after confirming their input provenance; keep source license notices. Do not copy arbitrary third-party OBJ/PNG merely because they are installed.
-2. Record each archive entry's SHA-256 in `blade-export.json`. The writer additionally reopens and verifies every staged ZIP entry **before making the output file visible**. On filesystems without atomic rename, use a same-directory move of the already verified staged file.
-3. Keep `bt_export_runtime` as one versioned, uniquely identified Jar-in-Jar dependency across exports; bump its artifact version only when testing side-by-side mixed exports and old worlds.
-4. Source saves must not be mutated or deleted. Every session is one-time, bound to the server-side held ItemStack and its snapshot.
-5. Never claim support for Tetra 6.x, other SlashBlade 1.x builds, third-party blade models, AE2, dedicated multiplayer, or original-provider redistribution solely because a local smoke test passes.
-6. Reject unrecognized registry IDs, invalid source paths, unknown asset permissions, oversized archives, and custom effects that cannot be represented. Preserve clear user-visible failure messages.
+**Visual Baker.** Treat rendering as a scene graph of world/item groups with each source's model, clipping, mount transform, material/UV region and license evidence. Bake the same final geometry seen in game into an exported OBJ and its texture atlas; handle durability backplates and dynamic emissive effects separately. Test 1st/3rd person, icon, sheathed/unsheathed, dual model variations and 2+ named source mods.
 
-## Required evidence before merging into main
+**Portable capability registry.** Each supported capability defines its stable ID, version, serializer, game logic and side restrictions. Resolve the blade's features to a graph of exact capabilities and dependencies, then reject unknown or conflicting behavior. No generic code copying, Java scripting or silent fallback. Keep persistent per-blade/player state namespaced by export ID.
 
-- **Java 17** Gradle build, production JAR / runtime reobfuscation and resource validation.
-- Native Forge `exportPackageSmoke`: one-time authorization, snapshot roundtrip, zip hashes, no accidental Tetra dependency, and correct native-only no-runtime package.
-- Clean receiving **dedicated server** with only Minecraft, Forge, SlashBlade, exported add-on(s), and test probe: recipe output, save/reload, combo timing, attribute ownership, SA, durability and no missing classes.
-- Clean receiving **client** with same dependency boundary: icon, first person, third person, GUI / atlas UV and model orientation.
-- Two exports installed together with the **same runtime version**. Confirm no duplicate registry, resource reload or Jar-in-Jar conflicts.
-- Reinstall the same export in an old world, remove it, then reinstall; report what Minecraft does to missing named-blade definitions rather than promising reversibility.
-- Version matrix (minimum): exporting instance Tetra 6.3.0 and one current 6.x; receiving SlashBlade 1.9.63 and separately 1.9.65; integrated client plus dedicated server.
-- Negative cases: named/fish/banner/awakening/boundary/extended habaki all block **before** writing any JAR; malformed item IDs and oversized assets fail without leaving partial output.
+**Shared runtime.** Continue `bt_export_runtime`, with one Forge Jar-in-Jar artifact/version for the whole modpack. Never casually ship incompatible runtime classes with the same Maven version. Use schema migrations for future exported worlds, check multiple generated add-ons side by side, and test reload/removal/reinstall.
 
-Suggested narrow commands from the existing build configuration: `./gradlew build verifyProductionJar`, `./gradlew runServer -PexportPackageSmoke`, `./gradlew runClient -PexportPackageSmoke`. The existing `src/exportRuntimeTest` probes require a **separately constructed receiver environment** (do not count a source-mod run as a standalone pass).
+**Identity.** Preserve the player-selected title, mod metadata, recipe and source provenance. Keep the icon and visual appearance owned by the exported resources, without overriding global SlashBlade textures/definitions.
 
-## Remaining implementation milestones
+## Required release evidence
 
-1. **Named mixed fittings**: build a geometry/UV flattening layer that uses *exactly the rendered source* (body, saya, tsuba, backplate, inventory groups), with user-supplied or independently redistributable art inputs and byte-level provenance. Validate source provider rendering and allow opt-in fallback only if clearly labeled as **visually degraded**, never as a faithful export.
-2. **Complex combat**: introduce capability-scoped modules for habaki, awakened states, Soul/SA, and source-only styles. Use a stable data schema and explicit runtime hooks. Never implement a generic arbitrary Java-code export.
-3. **Compatibility**: verify clean standalone Forge 47/SlashBlade version matrix, dedicated multiplayer, third-party resource packs, reinstall persistence, and mixed exported-mod coexistence.
-4. **Player UX**: compatibility report / preview per ability, dependency list and required permissions, plus human-readable failure summary for complex swords.
+- Java 17 / Forge 47.x build and release-JAR verification.
+- Dedicated Forge packaging smoke, including a blocked mixed named-fitting preview and proof that the output always includes the battle profile plus Jar-in-Jar runtime.
+- Clean receiving dedicated server and client **without** `blade_tetra` or `tetra`: craft, combo timing, damage, attributes, save/reload, source-restriction and render checks.
+- Two+ exported add-ons installed together; mixed-version shared-runtime resolution, world reopen, removal/reinstall.
+- SlashBlade: Resharped **1.9.63** verified initially; test **1.9.65** independently before expanding the declared dependency range. Test the exporting environment with Tetra 6.3.0 and a later 6.x.
+- Negative export coverage for named mix, backplates, fish, banner, habaki, forged art, and soul/awakening; none may produce a misleading successful JAR.
+- Third-party models, resource packs and licenses inspected before any derived assets are embedded.
 
-## Release gate
+## Near-term priorities
 
-**Draft only.** The above remaining milestones and clean-room runs must be completed before this exporter is described as a universally portable finished-sword tool.
+1. Complete the single-mode and early diagnostic changes with CI.
+2. Prototype a source-rights-aware scene-graph bake: geometry and UV verification first, permissions as an enforceable gate, not an afterthought.
+3. Add portable habaki and optional source-only abilities only with parity tests against the originating weapon.
+4. Create clean receiving client/server automation instead of counting an exporter-side `runServer` as standalone proof.
+
+**No merge to main or public release until the corresponding behavior is verified.**
