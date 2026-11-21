@@ -98,7 +98,13 @@ public final class BladeExportPackageSmoke {
                 var certificateEntry = archive.getEntry("blade-export.json");
                 try (var reader = new InputStreamReader(archive.getInputStream(certificateEntry),
                         StandardCharsets.UTF_8)) {
-                    var hashes = JsonParser.parseReader(reader).getAsJsonObject().getAsJsonObject("sha256");
+                    var certificate = JsonParser.parseReader(reader).getAsJsonObject();
+                    var capabilities = certificate.getAsJsonArray("capabilities");
+                    if (capabilities == null || capabilities.size() != 1
+                            || !capabilities.get(0).getAsString().equals("slashblade:native_blade_v1")) {
+                        throw new IllegalStateException("Missing base capability in sealed certificate");
+                    }
+                    var hashes = certificate.getAsJsonObject("sha256");
                     if (hashes.size() != archive.size() - 1) {
                         throw new IllegalStateException("Certificate did not cover every exported file");
                     }
