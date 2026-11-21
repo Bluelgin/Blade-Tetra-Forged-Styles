@@ -87,8 +87,10 @@ final class BladeSealSessions {
     static Approved takeConfirmed(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
         var draft = DRAFTS.get(player);
         if (draft == null || !draft.token().equals(token)) return null;
-        DRAFTS.remove(player);
+        // Declining awakening loss is not a valid confirmation; retain the draft
+        // so the player can choose consent without having to re-open the tool.
         if (draft.omitsAwakening() && !acknowledgeAwakeningLoss) return null;
+        DRAFTS.remove(player);
         if (!BladeExportSnapshot.mayExport(player) || draft.expiresAt() < player.server.getTickCount()
                 || player.getItemInHand(draft.bladeHand()) != draft.blade()
                 || !ItemStack.matches(draft.frozen(), draft.blade())
