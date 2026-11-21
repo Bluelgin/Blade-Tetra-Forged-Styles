@@ -482,7 +482,7 @@ tasks.named('processResources') {
 
 if (project.hasProperty('exportRuntimeProbe')) {
     sourceSets.create('exportRuntimeTest') {
-        compileClasspath += sourceSets.main.compileClasspath
+        compileClasspath += sourceSets.exportRuntime.output + sourceSets.main.compileClasspath
     }
     tasks.register('exportRuntimeProbeJar', Jar) {
         archiveFileName = 'bt-export-runtime-probe.jar'
