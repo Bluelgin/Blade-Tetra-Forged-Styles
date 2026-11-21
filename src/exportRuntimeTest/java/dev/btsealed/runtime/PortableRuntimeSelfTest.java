@@ -50,7 +50,12 @@ public final class PortableRuntimeSelfTest {
             throw new IllegalStateException("Spirit Saya expiry affected a different exported add-on");
         }
         // Save/reload must retain each sword's own window.
-        var restored = net.minecraft.nbt.TagParser.parseTag(data.toString());
+        net.minecraft.nbt.CompoundTag restored;
+        try {
+            restored = net.minecraft.nbt.TagParser.parseTag(data.toString());
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException invalid) {
+            throw new IllegalStateException("Spirit Saya state did not serialize as valid NBT", invalid);
+        }
         if (PortableComponentEffects.spiritUntil(restored, second, 160) != 180
                 || PortableComponentEffects.spiritUntil(restored, second, 181) != 0) {
             throw new IllegalStateException("Spirit Saya state failed save/reload or expiration");
