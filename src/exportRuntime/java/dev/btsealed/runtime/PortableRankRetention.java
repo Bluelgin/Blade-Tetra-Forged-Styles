@@ -18,7 +18,7 @@ import java.util.WeakHashMap;
  * by one tick. Explicit gains, expenditures, floors and sync are not duplicated.
  * State keys are weak to avoid retaining disconnected/dimension-replaced players.</p>
  */
-final class PortableRankRetention {
+public final class PortableRankRetention {
     private static final Map<ServerPlayer, Tracking> CLOCKS = new WeakHashMap<>();
 
     static void tick(TickEvent.PlayerTickEvent event) {
@@ -44,11 +44,11 @@ final class PortableRankRetention {
     }
 
     /** Each exported weapon identity has to begin its own consecutive-tick window. */
-    static final class Tracking {
+    public static final class Tracking {
         private String activeBlade;
         private Clock clock = new Clock();
 
-        boolean advance(long now, String bladeId) {
+        public boolean advance(long now, String bladeId) {
             if (!Objects.equals(activeBlade, bladeId)) {
                 activeBlade = bladeId;
                 clock = new Clock();
@@ -58,12 +58,12 @@ final class PortableRankRetention {
     }
 
     /** Mirrors the source precision-habaki consecutive-tick counter. */
-    static final class Clock {
+    public static final class Clock {
         private long previousTick = Long.MIN_VALUE;
         private boolean previousProtected;
         private int consecutiveProtected;
 
-        boolean advance(long now, boolean protectedBlade) {
+        public boolean advance(long now, boolean protectedBlade) {
             boolean compensate = false;
             if (now == previousTick + 1L && previousProtected) {
                 if (++consecutiveProtected == 2) {
