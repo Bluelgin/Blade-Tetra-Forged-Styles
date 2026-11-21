@@ -45,17 +45,17 @@ class CleanReceiverContractTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.directory = Path(self.temp.name)
 
-    def make_three(self, **overrides):
+    def make_four(self, **overrides):
         for name in EXPECTED_SWORDS:
             make_package(self.directory, name, **overrides)
 
     def test_complete_independent_packages(self):
-        self.make_three()
-        self.assertEqual(len(inspect_exports(self.directory, "1.9.63")), 3)
+        self.make_four()
+        self.assertEqual(len(inspect_exports(self.directory, "1.9.63")), 4)
 
     def test_65_package_versions_must_match_target(self):
         self.make_three(slashblade="1.9.65")
-        self.assertEqual(len(inspect_exports(self.directory, "1.9.65")), 3)
+        self.assertEqual(len(inspect_exports(self.directory, "1.9.65")), 4)
         with self.assertRaisesRegex(RuntimeError, "targets SlashBlade"):
             inspect_exports(self.directory, "1.9.63")
 
@@ -77,7 +77,7 @@ class CleanReceiverContractTests(unittest.TestCase):
 
     def test_refuse_missing_fixture(self):
         make_package(self.directory, "bt_export_custom")
-        with self.assertRaisesRegex(RuntimeError, "Expected exactly 3"):
+        with self.assertRaisesRegex(RuntimeError, "Expected exactly 4"):
             inspect_exports(self.directory, "1.9.63")
 
 
