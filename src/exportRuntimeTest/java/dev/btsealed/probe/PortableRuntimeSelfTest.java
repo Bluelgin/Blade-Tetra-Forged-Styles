@@ -35,6 +35,17 @@ public final class PortableRuntimeSelfTest {
                 || !tracking.advance(207, "item.bt_export_custom.sealed_blade")) {
             throw new IllegalStateException("Precision clock retained state after re-equipping a sealed blade");
         }
+        // The source counts the outgoing sword's last elapsed tick during a
+        // swap. Losing that half-tick changes native Rank at tick 20 by one.
+        var edge = new PortableRankRetention.Tracking();
+        if (edge.advance(300, "item.bt_export_custom.sealed_blade")
+                || edge.advance(301, "item.bt_export_custom.sealed_blade")
+                || !edge.advance(302, null)
+                || edge.advance(303, "item.bt_export_custom_second.sealed_blade")
+                || edge.advance(304, "item.bt_export_custom_second.sealed_blade")
+                || !edge.advance(305, "item.bt_export_custom_second.sealed_blade")) {
+            throw new IllegalStateException("Precision clock lost the outgoing sword's final Rank credit");
+        }
         System.out.println("BLADE_EXPORT_PRECISION_CLOCK_PASS");
     }
 
