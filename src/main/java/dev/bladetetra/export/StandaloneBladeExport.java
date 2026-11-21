@@ -17,28 +17,6 @@ import java.util.TreeSet;
 
 /** Projects supported combat into the standalone format and validates the appearance inputs. */
 final class StandaloneBladeExport {
-    /** Full seal uses the bundled runtime. Native mode never silently drops source-only abilities. */
-    enum ExportMode { SEALED, NATIVE }
-
-    static void checkNative(BladeExportSnapshot snapshot) {
-        checkCombat(snapshot);
-        if (!"STANDARD".equals(snapshot.style())) {
-            throw new IllegalArgumentException("Native-only export requires the standard SlashBlade combo");
-        }
-        if (!snapshot.attributes().isEmpty()) {
-            throw new IllegalArgumentException("Native-only export cannot preserve Tetra attribute modifiers; use full seal");
-        }
-        var effects = snapshot.componentEffects();
-        if (effects.drawBonus() != 0 || effects.spiritBonus() != 0 || effects.spiritTicks() != 0
-                || effects.heavyPommel() || effects.rankDivisor() != 0 || effects.guardReduction() != 0
-                || effects.guardDurability() != 0 || effects.unsupported()) {
-            throw new IllegalArgumentException("Native-only export cannot preserve Tetra component effects; use full seal");
-        }
-        if (isSourceOnly(snapshot.combo())) {
-            throw new IllegalArgumentException("Native-only combo requires Blade Tetra; use full seal");
-        }
-    }
-
     static void checkCombat(BladeExportSnapshot snapshot) {
         if (snapshot.broken()) throw new IllegalArgumentException("Repair the blade before exporting");
         var missing = new ArrayList<String>();
@@ -81,14 +59,7 @@ final class StandaloneBladeExport {
 
     static Path write(Path gameDirectory, ResourceManager resources, BladeExportSnapshot snapshot,
             BladeExportArchive.Metadata metadata, BladeExportRecipe recipe, BladeExportArt artwork) throws IOException {
-        return write(gameDirectory, resources, snapshot, metadata, recipe, artwork, ExportMode.SEALED);
-    }
-
-    static Path write(Path gameDirectory, ResourceManager resources, BladeExportSnapshot snapshot,
-            BladeExportArchive.Metadata metadata, BladeExportRecipe recipe, BladeExportArt artwork,
-            ExportMode mode) throws IOException {
-        if (mode == ExportMode.NATIVE) checkNative(snapshot);
-        else checkCombat(snapshot);
+        checkCombat(snapshot);
 
         List<BladeExportArchive.Fitting> fittings = new ArrayList<>();
         for (var source : snapshot.namedParts()) {
@@ -118,7 +89,7 @@ final class StandaloneBladeExport {
                 snapshot.bewitched(), snapshot.sealed(), snapshot.unbreakable());
         return BladeExportArchive.write(gameDirectory, metadata, version("blade_tetra"), definition,
                 recipe, dependencies, fittings, artwork.inputs(), artwork.assets(),
-                mode == ExportMode.SEALED ? ExportBattleProfile.from(snapshot) : null);
+                ExportBattleProfile.from(snapshot));
     }
 
     private static ResourceLocation combo(BladeExportSnapshot snapshot) {
