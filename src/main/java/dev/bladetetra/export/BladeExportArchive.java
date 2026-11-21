@@ -151,7 +151,7 @@ final class BladeExportArchive {
             }
         }
 
-        addBattleRuntime(entries, blade, battle);
+        addBattleRuntime(entries, blade, definition.combo(), battle);
 
         UUID exportId = UUID.randomUUID();
         Map<String, String> digests = new TreeMap<>();
@@ -162,7 +162,7 @@ final class BladeExportArchive {
     }
 
     private static void addBattleRuntime(Map<String, byte[]> entries, ResourceLocation blade,
-            ExportBattleProfile battle) throws IOException {
+            ResourceLocation comboRoot, ExportBattleProfile battle) throws IOException {
         String path = "META-INF/jarjar/bt-export-runtime-" + ExportBattleProfile.RUNTIME_VERSION + ".jar";
         try (var runtime = BladeExportArchive.class.getResourceAsStream(ExportBattleProfile.RESOURCE)) {
             if (runtime == null) throw new IOException("Sealed blade runtime is missing from this build");
@@ -188,8 +188,13 @@ final class BladeExportArchive {
         add(entries, "META-INF/jarjar/metadata.json", JSON.toJson(jarJar));
 
         String profile = "/" + blade.getNamespace() + "/blade_export/" + blade.getPath() + ".json";
-        add(entries, "data" + profile, JSON.toJson(battle));
-        add(entries, "assets" + profile, JSON.toJson(battle));
+        JsonObject payload = JSON.toJsonTree(battle).getAsJsonObject();
+        payload.addProperty("comboRoot", comboRoot.toString());
+        var capabilities = new com.google.gson.JsonArray();
+        battle.capabilities(comboRoot).forEach(capabilities::add);
+        payload.add("capabilities", capabilities);
+        add(entries, "data" + profile, JSON.toJson(payload));
+        add(entries, "assets" + profile, JSON.toJson(payload));
     }
 
     private record Certificate(int schema, UUID exportId, String exporterVersion, ResourceLocation blade,
