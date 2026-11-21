@@ -38,14 +38,16 @@ final class LegacyBladeMounts {
         }
         float stockLength = to.span(ordinary).length();
         float fromLength = anchor.span(faces).length();
-        float scale = source.rules.preserveShape(part.key()) ? 1 : stockLength / fromLength;
+        float units = authoredIcon ? 1 : source.rules.unitScale();
+        float scale = source.rules.preserveShape(part.key()) ? units : stockLength / fromLength;
         if (icon && source.rules.preserveShape(part.key()) && !authoredIcon) {
             var world = LegacyModelPartRenderer.modularFaces(target, worldGroup(part), stockPart(part));
             var worldLength = WORLD.span(world);
             if (!worldLength.valid()) return null;
-            scale = stockLength / worldLength.length();
+            scale *= stockLength / worldLength.length();
         }
-        if (!Float.isFinite(scale) || scale < .25F || scale > 4) return null;
+        float proportional = scale / units;
+        if (!Float.isFinite(proportional) || proportional < .25F || proportional > 4) return null;
 
         var adjustment = switch (part) {
             case BLADE -> source.profile.bladeTransform();

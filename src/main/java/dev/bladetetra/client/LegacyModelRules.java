@@ -51,6 +51,7 @@ record LegacyModelRules(JsonObject json, LegacyModelAdapter legacy) {
         axis("axis", null);
         axis("width_axis", null);
         geometryModel(null);
+        unitScale();
         if (json.has("reversed") && !json.getAsJsonPrimitive("reversed").isBoolean()) {
             throw new IllegalArgumentException("reversed must be boolean");
         }
@@ -78,6 +79,12 @@ record LegacyModelRules(JsonObject json, LegacyModelAdapter legacy) {
             throw new IllegalArgumentException("geometry_model must identify an OBJ");
         }
         return location;
+    }
+
+    float unitScale() {
+        float scale = number(json, "unit_scale", 1);
+        if (scale < .0001F || scale > 10_000) throw new IllegalArgumentException("invalid unit_scale");
+        return scale;
     }
 
     Axis explicitAxis() { return axis("axis", legacy == LegacyModelAdapter.STANDARD ? null : legacy.axis()); }

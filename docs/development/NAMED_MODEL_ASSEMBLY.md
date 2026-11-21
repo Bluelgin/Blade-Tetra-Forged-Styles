@@ -43,6 +43,7 @@ The resource manager picks the highest-priority resource for each path. An optio
 - Base and luminous groups can be declared independently. An empty array disables that channel. Existing `*_luminous` entries in legacy base lists are treated as luminous groups.
 - Named `blade_groups` describe an already isolated edge unless an anchor or a separate handle defines a cut. Set `split_hilt` to `false` if material to the rear of the blade socket cannot provide a complete hilt.
 - `geometry_model` can name a different OBJ for assembly while preserving the source identity and texture. The alternative OBJ must use that texture's UV layout.
+- `unit_scale` converts source OBJ units to SlashBlade model units independently of the blade length. It does not affect explicitly declared item meshes.
 - `*_fit` accepts `proportional` or `preserve`. A `*_transform` may specify `scale`, `rotation` in degrees, `offset_x`, `offset_y`, `length` and `width` as a deliberate override. Components use the target frame's axes for these adjustments.
 - State-specific names start with the native group, then the component, followed by `_groups` or `_luminous_groups`. Supported state prefixes are `blade_damaged`, `blade_fragment`, `item_blade`, `item_bladens` and `item_damaged`. Declared icon meshes use native icon units and XY projection.
 

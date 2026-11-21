@@ -104,7 +104,7 @@ final class NamedBladeRenderPlan {
             if (!span.valid()) return null;
             float cutoff = span.at(1 - key.step / 16F);
             var base = LegacyRenderSources.view(state, mesh.clip(full.base(), cutoff, Float.POSITIVE_INFINITY));
-            var glow = LegacyRenderSources.view(state, mesh.clip(full.luminous(), cutoff, Float.POSITIVE_INFINITY));
+            var glow = LegacyRenderSources.view(state + "_luminous", mesh.clip(full.luminous(), cutoff, Float.POSITIVE_INFINITY));
             var views = new LegacyRenderSources.Views(base, glow,
                     LegacyRenderSources.triangleCount(base) + LegacyRenderSources.triangleCount(glow));
             return views.empty() ? null : views;
@@ -149,7 +149,7 @@ final class NamedBladeRenderPlan {
                     BladeRenderState.renderOverrided(stack, mounted.views.base(), state, kind.texture(), poses, buffer, light);
                 }
                 if (mounted.views.luminous() != null) {
-                    BladeRenderState.renderOverridedLuminous(stack, mounted.views.luminous(), state, kind.texture(),
+                    BladeRenderState.renderOverridedLuminous(stack, mounted.views.luminous(), state + "_luminous", kind.texture(),
                             poses, buffer, light);
                 }
             } finally {
@@ -174,7 +174,7 @@ final class NamedBladeRenderPlan {
                 }
             }
             if (draw.views.luminous() != null) {
-                BladeRenderState.renderOverridedLuminous(event.getStack(), draw.views.luminous(), state,
+                BladeRenderState.renderOverridedLuminous(event.getStack(), draw.views.luminous(), state + "_luminous",
                         draw.texture, poses, event.getBuffer(), event.getPackedLightIn());
             }
         } finally {

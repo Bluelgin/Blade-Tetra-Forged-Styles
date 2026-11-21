@@ -27,6 +27,8 @@ public final class NamedIngotArtReview {
     private static boolean started, opened;
     private static int ticks, ready, bladeFrame, bladeView;
     private static boolean sawNamedBlade;
+    private static java.util.concurrent.CompletableFuture<Void> resourceReload;
+    private static LegacyRenderSources.Source sourceBeforeReload;
     private static net.minecraft.world.item.ItemStack reviewBlade;
 
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST, receiveCanceled = true)
@@ -59,6 +61,19 @@ public final class NamedIngotArtReview {
                 reviewNamedBlade(mc);
                 return;
             }
+            var fox = dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX;
+            if (resourceReload == null) {
+                sourceBeforeReload = LegacyRenderSources.resolve(fox);
+                resourceReload = mc.reloadResourcePacks();
+                return;
+            }
+            if (!resourceReload.isDone()) return;
+            resourceReload.join();
+            var refreshed = LegacyRenderSources.resolve(fox);
+            if (refreshed == sourceBeforeReload || refreshed.mesh() == null) {
+                throw new IllegalStateException("Named model source was not rebuilt after resource reload");
+            }
+            LogUtils.getLogger().info("NAMED_MODEL_RELOAD_PASS: source was rebuilt after an actual resource reload");
             opened = true;
             if (net.minecraftforge.fml.ModList.get().isLoaded("patchouli")) {
                 var server = mc.getSingleplayerServer();
@@ -248,7 +263,14 @@ public final class NamedIngotArtReview {
     private static final class BladeJointReview extends net.minecraft.client.gui.screens.Screen {
         private int frames;
         private final java.util.List<net.minecraft.world.item.ItemStack> blades = java.util.List.of(
-                namedBlade(false), namedBlade(true));
+                namedBlade(false), namedBlade(true), brokenBlade());
+
+        private static net.minecraft.world.item.ItemStack brokenBlade() {
+            var stack = namedBlade(true);
+            stack.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                    .resolve().orElseThrow().setBroken(true);
+            return stack;
+        }
 
         BladeJointReview() {
             super(net.minecraft.network.chat.Component.literal("名刀刀身接合检查"));
@@ -258,7 +280,7 @@ public final class NamedIngotArtReview {
             graphics.fill(0, 0, width, height, 0xff28323c);
             for (int row = 0; row < blades.size(); row++) {
                 var stack = blades.get(row);
-                int y = height * (row + 1) / 3;
+                int y = height * (row + 1) / (blades.size() + 1);
                 graphics.drawString(font, stack.getHoverName(), width / 12, y - 33, 0xffffff);
                 var poses = graphics.pose();
                 graphics.flush();
@@ -270,8 +292,9 @@ public final class NamedIngotArtReview {
                         .resolve().orElseThrow();
                 var model = mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager.getInstance()
                         .getModel(state.getModel().orElseThrow());
+                String target = state.isBroken() ? "blade_damaged" : "blade";
                 mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
-                        stack, model, "blade", state.getTexture().orElseThrow(), poses,
+                        stack, model, target, state.getTexture().orElseThrow(), poses,
                         graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
                 graphics.flush();
                 poses.translate(0, -34, 0);

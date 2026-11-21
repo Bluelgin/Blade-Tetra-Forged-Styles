@@ -118,7 +118,7 @@ final class LegacyRenderSources {
         return VIEWS.get(new ViewKey(source.identity, part, group), key -> {
             Layers layers = geometry(source, key.part, key.group);
             var base = view(key.group, layers.base());
-            var luminous = view(key.group, layers.luminous());
+            var luminous = view(key.group + "_luminous", layers.luminous());
             return new Views(base, luminous, triangleCount(base) + triangleCount(luminous));
         });
     }
