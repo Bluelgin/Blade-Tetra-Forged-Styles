@@ -40,7 +40,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Generate three independent sealed swords with server-side source mod
+      - name: Generate four independent sealed swords with server-side source mod
         run: |
           if [ "$SLASHBLADE_VERSION" = '1.9.65' ]; then
             python3 tools/ci/run_suite.py export_package_1965
