@@ -111,20 +111,21 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
                 ModularSlashBladeItem.TSUKA_SLOT, ModularSlashBladeItem.STABLE_TSUKA_MODULE);
         boolean guard = ComponentEffectResolver.hasModule(stack,
                 ModularSlashBladeItem.TSUBA_SLOT, ModularSlashBladeItem.GUARD_TSUBA_MODULE);
-        boolean habaki = ComponentEffectResolver.hasModule(stack,
-                ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE)
-                || ComponentEffectResolver.hasModule(stack,
+        boolean precisionHabaki = ComponentEffectResolver.hasModule(stack,
+                ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE);
+        boolean reinforcedHabaki = ComponentEffectResolver.hasModule(stack,
                 ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.REINFORCED_HABAKI_MODULE);
-        boolean unsupported = habaki || dev.bladetetra.challenge.BoundaryForging.isForged(stack);
+        boolean unsupported = reinforcedHabaki || dev.bladetetra.challenge.BoundaryForging.isForged(stack);
         return new ComponentEffects(draw ? ComponentCombatValues.DRAW_BONUS : 0,
                 spirit ? ComponentCombatValues.SPIRIT_BONUS : 0, spirit ? ComponentCombatValues.SPIRIT_TICKS : 0,
                 heavy, rank ? ComponentCombatValues.RANK_UNIT_DIVISOR : 0,
                 guard ? ComponentCombatValues.GUARD_REDUCTION : 0,
-                guard ? ComponentCombatValues.GUARD_DURABILITY_COST : 0, unsupported);
+                guard ? ComponentCombatValues.GUARD_DURABILITY_COST : 0, precisionHabaki, unsupported);
     }
 
     public record ComponentEffects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
-                                   int rankDivisor, float guardReduction, int guardDurability, boolean unsupported) {}
+                                   int rankDivisor, float guardReduction, int guardDurability,
+                                   boolean precisionHabaki, boolean unsupported) {}
 
     public record CustomStyle(String name, List<ResourceLocation> actions, String length) {
         public CustomStyle {
