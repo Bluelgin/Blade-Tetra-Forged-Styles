@@ -27,6 +27,8 @@ public final class NamedIngotArtReview {
     private static boolean started, opened;
     private static int ticks, ready, bladeFrame, bladeView;
     private static boolean sawNamedBlade;
+    private static java.util.concurrent.CompletableFuture<Void> resourceReload;
+    private static LegacyRenderSources.Source sourceBeforeReload;
     private static net.minecraft.world.item.ItemStack reviewBlade;
 
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST, receiveCanceled = true)
@@ -59,6 +61,19 @@ public final class NamedIngotArtReview {
                 reviewNamedBlade(mc);
                 return;
             }
+            var fox = dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX;
+            if (resourceReload == null) {
+                sourceBeforeReload = LegacyRenderSources.resolve(fox);
+                resourceReload = mc.reloadResourcePacks();
+                return;
+            }
+            if (!resourceReload.isDone()) return;
+            resourceReload.join();
+            var refreshed = LegacyRenderSources.resolve(fox);
+            if (refreshed == sourceBeforeReload || refreshed.mesh() == null) {
+                throw new IllegalStateException("Named model source was not rebuilt after resource reload");
+            }
+            LogUtils.getLogger().info("NAMED_MODEL_RELOAD_PASS: source was rebuilt after an actual resource reload");
             opened = true;
             if (net.minecraftforge.fml.ModList.get().isLoaded("patchouli")) {
                 var server = mc.getSingleplayerServer();
@@ -84,15 +99,44 @@ public final class NamedIngotArtReview {
         String module = longBlade ? item.CUSTOM_LONG_BLADE_MODULE : item.WAKIZASHI_MODULE;
         var tag = stack.getOrCreateTag();
         tag.putString(item.BLADE_SLOT, module);
-        tag.putString(module + "_material", module.substring(module.indexOf('/') + 1) + "/named_blade_ingot");
-        var source = dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX;
-        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(tag, "blade", source.id());
-        if (!dev.bladetetra.forging.NamedLegacyImprintStorage.putSnapshot(stack, "blade", source)
-                || !source.visualUsable()) {
-            throw new IllegalStateException("Missing named blade source for the render review");
+        boolean addon = net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon");
+        if (addon) {
+            var catalog = dev.bladetetra.forging.NamedLegacyCatalog.values();
+            var blade = findSource(catalog, longBlade ? "kirisaya" : "toyako");
+            var hilt = findSource(catalog, "murakumo");
+            var sheath = findSource(catalog, "dark_raven");
+            install(stack, "blade", blade, LegacySourceMesh.Component.BLADE);
+            install(stack, "tsuba", hilt, LegacySourceMesh.Component.HILT);
+            install(stack, "saya", sheath, LegacySourceMesh.Component.SAYA);
+        } else {
+            install(stack, "blade", dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX,
+                    LegacySourceMesh.Component.BLADE);
         }
         item.syncDerivedBladeState(stack);
         return stack;
+    }
+
+    private static dev.bladetetra.forging.LegacyImprintKind findSource(
+            java.util.Collection<dev.bladetetra.forging.LegacyImprintKind> catalog, String path) {
+        return catalog.stream().filter(kind -> kind.name().getNamespace().equals("slashblade_addon")
+                && kind.name().getPath().equals(path)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Missing SJAP review source " + path));
+    }
+
+    private static void install(net.minecraft.world.item.ItemStack stack, String slot,
+            dev.bladetetra.forging.LegacyImprintKind kind, LegacySourceMesh.Component part) {
+        var tag = stack.getOrCreateTag();
+        String module = tag.getString("slashblade/" + slot);
+        if (module.isEmpty()) throw new IllegalStateException("Missing review module for " + slot);
+        tag.putString(module + "_material", module.substring(module.indexOf('/') + 1) + "/"
+                + dev.bladetetra.forging.NamedBladeMaterial.KEY);
+        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(tag, slot, kind.id());
+        boolean stored = dev.bladetetra.forging.NamedLegacyImprintStorage.putSnapshot(stack, slot, kind);
+        var source = LegacyRenderSources.resolve(kind);
+        var support = source.support(part);
+        if (!stored || (support != LegacyRenderSources.Support.FULL && support != LegacyRenderSources.Support.PARTIAL)) {
+            throw new IllegalStateException("Cannot mount " + kind.id() + "/" + part + ": " + support + " " + source.reason());
+        }
     }
 
     private static void reviewNamedBlade(Minecraft mc) {
@@ -136,7 +180,8 @@ public final class NamedIngotArtReview {
         if (++bladeView == 6) {
             mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
             reviewBlade = null;
-            LogUtils.getLogger().info("NAMED_BLADE_HELD_REVIEW: short and custom long blade with ordinary fittings");
+            LogUtils.getLogger().info("NAMED_BLADE_HELD_REVIEW: short and custom long assembly, SJAP mixed sources={}",
+                    net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon"));
         }
     }
 
@@ -222,7 +267,14 @@ public final class NamedIngotArtReview {
     private static final class BladeJointReview extends net.minecraft.client.gui.screens.Screen {
         private int frames;
         private final java.util.List<net.minecraft.world.item.ItemStack> blades = java.util.List.of(
-                namedBlade(false), namedBlade(true));
+                namedBlade(false), namedBlade(true), brokenBlade());
+
+        private static net.minecraft.world.item.ItemStack brokenBlade() {
+            var stack = namedBlade(true);
+            stack.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                    .resolve().orElseThrow().setBroken(true);
+            return stack;
+        }
 
         BladeJointReview() {
             super(net.minecraft.network.chat.Component.literal("名刀刀身接合检查"));
@@ -232,26 +284,32 @@ public final class NamedIngotArtReview {
             graphics.fill(0, 0, width, height, 0xff28323c);
             for (int row = 0; row < blades.size(); row++) {
                 var stack = blades.get(row);
-                int y = height * (row + 1) / 3;
+                int y = height * (row + 1) / (blades.size() + 1);
                 graphics.drawString(font, stack.getHoverName(), width / 12, y - 33, 0xffffff);
                 var poses = graphics.pose();
                 graphics.flush();
                 poses.pushPose();
                 poses.translate(width * .74, y, 150);
-                float scale = width * .48F / 440F;
+                float scale = width * .40F / 490F;
                 poses.scale(scale, -scale, scale);
                 var state = stack.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
                         .resolve().orElseThrow();
                 var model = mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager.getInstance()
                         .getModel(state.getModel().orElseThrow());
+                String target = state.isBroken() ? "blade_damaged" : "blade";
                 mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
-                        stack, model, "blade", state.getTexture().orElseThrow(), poses,
+                        stack, model, target, state.getTexture().orElseThrow(), poses,
+                        graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
+                graphics.flush();
+                poses.translate(0, -78, 0);
+                mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
+                        stack, model, "sheath", state.getTexture().orElseThrow(), poses,
                         graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
                 graphics.flush();
                 poses.popPose();
                 poses.pushPose();
-                poses.translate(width * .81, y - 20, 0);
-                poses.scale(2.5F, 2.5F, 1);
+                poses.translate(width * .84, y - 15, 0);
+                poses.scale(1.55F, 1.55F, 1);
                 graphics.renderItem(stack, 0, 0);
                 graphics.flush();
                 poses.popPose();

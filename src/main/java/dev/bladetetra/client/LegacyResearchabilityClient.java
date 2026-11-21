@@ -1,27 +1,19 @@
 package dev.bladetetra.client;
 
 import dev.bladetetra.forging.LegacyImprintKind;
-import dev.bladetetra.forging.LegacyResearchability;
-import net.minecraft.world.item.ItemStack;
 
-/** Client-only final research gate: semantic eligibility plus visual support. */
+/** Reports source appearance coverage without affecting research or extraction. */
 public final class LegacyResearchabilityClient {
-    public record Result(boolean researchable, LegacyImprintKind kind, String reason) {}
+    record Result(java.util.Map<LegacySourceMesh.Component, LegacyRenderSources.Support> parts) {}
 
-    public static Result inspect(ItemStack stack) {
-        LegacyResearchability.Result semantic = LegacyResearchability.inspect(stack);
-        if (!semantic.researchable()) {
-            return new Result(false, semantic.kind(), semantic.status().name().toLowerCase());
+    static Result inspect(LegacyImprintKind kind) {
+        var source = LegacyRenderSources.resolve(kind);
+        var parts = new java.util.EnumMap<LegacySourceMesh.Component, LegacyRenderSources.Support>(
+                LegacySourceMesh.Component.class);
+        for (var part : LegacySourceMesh.Component.values()) {
+            parts.put(part, source.support(part));
         }
-        return inspect(semantic.kind());
-    }
-
-    public static Result inspect(LegacyImprintKind kind) {
-        if (kind == null) return new Result(false, null, "unknown blade");
-        if (!kind.visualUsable()) {
-            return new Result(false, kind, kind.visualFailureReason());
-        }
-        return new Result(true, kind, "supported");
+        return new Result(java.util.Collections.unmodifiableMap(parts));
     }
 
     private LegacyResearchabilityClient() {}

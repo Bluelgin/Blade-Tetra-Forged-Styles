@@ -9,7 +9,7 @@ import net.minecraftforge.registries.ForgeRegistries;
  *
  * <p>This class is deliberately side-neutral. It answers whether the stack is a
  * valid research subject from gameplay/state data only. Client-only geometry
- * support is layered on top by {@code LegacyResearchabilityClient}.</p>
+ * support is displayed separately by the client.</p>
  */
 public final class LegacyResearchability {
     public enum Status {
