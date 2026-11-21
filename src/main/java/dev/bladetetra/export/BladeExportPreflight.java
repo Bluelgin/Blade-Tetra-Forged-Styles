@@ -47,6 +47,7 @@ final class BladeExportPreflight {
         if (effects.rankDivisor() > 0) preserved.add("rank grip");
         if (effects.guardReduction() > 0) preserved.add("guard tsuba");
         if (effects.precisionHabaki()) preserved.add("precision habaki (half rank decay)");
+        if (effects.reinforcedHabaki()) preserved.add("reinforced habaki (+50% ordinary horizontal knockback)");
 
         try {
             StandaloneBladeExport.checkCombat(snapshot);
