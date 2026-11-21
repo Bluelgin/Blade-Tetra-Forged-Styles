@@ -31,7 +31,7 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 | Feature | Status | Why |
 | --- | --- | --- |
 | Modular alpha9 blade with standard / portable style | Implemented; requires clean receiver testing | Static OBJ, PNG and bounded runtime paths exist |
-| Mixed named-ingot blade/saya/tsuba + named backplate | **Blocked** | Needs actual geometry/UV flattening, texture provenance and redistributable source art |
+| Mixed named-ingot blade/saya/tsuba + named backplate | **Draft implementation in PR #76** | Static OBJ/UV/atlas projection and portrait resource output are implemented only for audited source namespaces; clean-client parity and external source permissions are still required |
 | Salty Fish lengths / alternate fish geometry | **Blocked** | Dynamic per-part 3D construction cannot be flattened faithfully by the current static baker |
 | Saya banner decorations | **Blocked** | Banner-specific render path is absent from the static atlas baker |
 | Precision habaki (Rank decay) | **Source-free server verified** | Native Rank, switching/re-equipping and full explicit Rank costs tested on SlashBlade 1.9.63 and 1.9.65 |
@@ -44,7 +44,7 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 
 ## Architecture for further implementation
 
-**Visual Baker.** Treat rendering as a scene graph of world/item groups with each source's model, clipping, mount transform, material/UV region and license evidence. Bake the same final geometry seen in game into an exported OBJ and its texture atlas; handle durability backplates and dynamic emissive effects separately. Test 1st/3rd person, icon, sheathed/unsheathed, dual model variations and 2+ named source mods.
+**Visual Baker.** PR #76 introduces a client-side frozen assembly path. Treat rendering as a scene graph of world/item groups with each source's model, clipping, mount transform, material/UV region and license evidence. Bake the same final geometry seen in game into an exported OBJ and its texture atlas; handle durability backplates and dynamic emissive effects separately. Test 1st/3rd person, icon, sheathed/unsheathed, dual model variations and 2+ named source mods.
 
 **Portable capability registry.** `PortableCapabilityCatalog` is the single Java source rewritten into the independent runtime's package at build time. Each supported capability declares a stable ID, payload key, execution side and first runtime version. The exporter derives an immutable capability list from the exact combo/effect shape; the independent runtime independently re-derives and validates it from the packaged profile on resource load, refusing absent/unknown/conflicting features. This is a **contract foundation**, not yet a full behavior-handler registry for special SA/SE or awakened state machines. Preserve persistent per-blade/player state under stable export identities.
 
@@ -66,13 +66,13 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 - Clean receiving dedicated server and client **without** `blade_tetra` or `tetra`: craft, combo timing, damage, attributes, save/reload, source-restriction and render checks.
 - Two+ exported add-ons installed together; mixed-version shared-runtime resolution, world reopen, removal/reinstall.
 - SlashBlade: Resharped **1.9.63** verified initially; test **1.9.65** independently before expanding the declared dependency range. Test the exporting environment with Tetra 6.3.0 and a later 6.x.
-- Negative export coverage for named mix, backplates, fish, banner, boundary forging, forged art, and soul/awakening; none may produce a misleading successful JAR. Both precision and reinforced habaki must be positively captured and validated on real source-free combat paths.
+- Negative export coverage for third-party named art without audited embedding permission, malformed custom backplate pictures, fish, banner, boundary forging, forged art, and soul/awakening; none may produce a misleading successful JAR. Both precision and reinforced habaki must be positively captured and validated on real source-free combat paths.
 - Third-party models, resource packs and licenses inspected before any derived assets are embedded.
 
 ## Near-term priorities
 
 1. Complete the single-mode and early diagnostic changes with CI.
-2. Prototype a source-rights-aware scene-graph bake: geometry and UV verification first, permissions as an enforceable gate, not an afterthought.
+2. Validate PR #76's source-rights-aware scene-graph bake with real mixed-component export and a clean client; keep unsupported third-party model sources blocked pending explicit audited rights.
 3. Preserve the now-tested precision/reinforced habaki server parity while adding co-installed Blade Tetra + sealed add-on coverage, legacy-runtime version resolution and true client rendering acceptance.
 4. Extend the capability catalog with real portable SA/SE handlers, persistent state codecs and awakened traditions one verified feature at a time; keep unsupported weapons blocked.
 5. Add separate production-client tests without Tetra/Blade Tetra, rather than counting source development `runClient` as standalone proof.
