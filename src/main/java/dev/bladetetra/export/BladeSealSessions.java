@@ -18,7 +18,8 @@ final class BladeSealSessions {
     private static final Map<ServerPlayer, Draft> DRAFTS = new WeakHashMap<>();
 
     private record Draft(UUID token, InteractionHand bladeHand, ItemStack blade,
-                         BladeExportSnapshot snapshot, MaterialAppearance appearance, long expiresAt) {}
+                         ItemStack frozen, BladeExportSnapshot snapshot,
+                         MaterialAppearance appearance, long expiresAt) {}
 
     static boolean open(ServerPlayer player, InteractionHand toolHand) {
         if (!BladeExportSnapshot.mayExport(player)) {
@@ -48,7 +49,7 @@ final class BladeSealSessions {
         UUID token = UUID.randomUUID();
         // No authorization token is stored when the current build is known to be non-portable.
         if (report.ready()) {
-            DRAFTS.put(player, new Draft(token, bladeHand, blade, snapshot,
+            DRAFTS.put(player, new Draft(token, bladeHand, blade, blade.copy(), snapshot,
                     MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
         }
         return new BladeSealPackets.Preview(token, blade.getHoverName().copy(),
@@ -82,6 +83,7 @@ final class BladeSealSessions {
         DRAFTS.remove(player);
         if (!BladeExportSnapshot.mayExport(player) || draft.expiresAt() < player.server.getTickCount()
                 || player.getItemInHand(draft.bladeHand()) != draft.blade()
+                || !ItemStack.matches(draft.frozen(), draft.blade())
                 || !(player.getItemInHand(other(draft.bladeHand())).getItem() instanceof BladeSealItem)) {
             return null;
         }
