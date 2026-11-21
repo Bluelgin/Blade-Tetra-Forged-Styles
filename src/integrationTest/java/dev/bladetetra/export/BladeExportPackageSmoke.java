@@ -52,6 +52,12 @@ public final class BladeExportPackageSmoke {
             verifyAuthorization(event.getServer().overworld());
             var modVersion = ModList.get().getModContainerById("slashblade").orElseThrow()
                     .getModInfo().getVersion().toString();
+            String expectedVersion = System.getProperty("blade_tetra.expectedSlashbladeVersion", "1.9.63");
+            if (!expectedVersion.equals(modVersion)) {
+                throw new IllegalStateException("Wrong SlashBlade version in export smoke: expected "
+                        + expectedVersion + ", got " + modVersion);
+            }
+            LOGGER.info("BLADE_EXPORT_SLASHBLADE_VERSION: {}", modVersion);
             var recipe = new BladeExportRecipe(List.of(ResourceLocation.parse("minecraft:iron_ingot")), 1 << 4);
             var spec = new NativeBladeExport(7.5F, 120, ComboStateRegistry.STANDBY.getId(),
                     SlashArtsRegistry.WAVE_EDGE.getId(), List.of(), List.of(),
