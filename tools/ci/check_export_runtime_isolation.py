@@ -20,7 +20,7 @@ COPIED = {
 }
 
 def imports(source: str):
-    return re.findall(r"(?m)^\\s*import\\s+(?:static\\s+)?([^;\\s]+)\\s*;", source)
+    return re.findall(r"(?m)^\s*import\s+(?:static\s+)?([^;\s]+)\s*;", source)
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
     for file in files:
         source = file.read_text(encoding="utf-8")
         if file.is_relative_to(RUNTIME):
-            if not re.search(r"(?m)^\\s*package\\s+dev\\.btsealed\\.runtime\\s*;", source):
+            if not re.search(r"(?m)^\s*package\s+dev\.btsealed\.runtime\s*;", source):
                 raise SystemExit(f"Runtime source has unexpected package: {file}")
         for imported in imports(source):
             if imported.startswith("dev.bladetetra.") and (
