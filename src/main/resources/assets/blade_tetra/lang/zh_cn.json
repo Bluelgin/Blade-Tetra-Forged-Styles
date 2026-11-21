@@ -11,6 +11,8 @@
   "blade_tetra.export.description": "附属简介",
   "blade_tetra.export.recipe": "合成格（物品 ID）",
   "blade_tetra.export.ingredient": "材料物品 ID",
+  "blade_tetra.export.preflight.ready": "基础能力检查通过：%s。资源许可和最终依赖将在封存时再次验证。",
+  "blade_tetra.export.preflight.blocked": "这把刀暂不能完整封存：%s。请保留原刀，待对应能力完成移植。",
   "blade_tetra.export.confirm": "导出附属 JAR",
   "blade_tetra.export.waiting": "正在确认持刀……",
   "blade_tetra.export.saved": "已保存到 blade-exports。",
