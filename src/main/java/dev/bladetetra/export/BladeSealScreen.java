@@ -46,6 +46,8 @@ final class BladeSealScreen extends Screen {
     private int left;
     private int top;
     private int scrollPixels;
+    private int panelWidth;
+    private int authorColumnWidth;
 
     private BladeSealScreen(BladeSealPackets.Preview preview) {
         super(Component.translatable("item.blade_tetra.blade_seal"));
@@ -59,17 +61,20 @@ final class BladeSealScreen extends Screen {
     @Override
     protected void init() {
         scrollPixels = 0;
-        left = (width - PANEL_WIDTH) / 2;
+        panelWidth = Math.max(140, Math.min(PANEL_WIDTH, width - 12));
+        authorColumnWidth = Math.min(105, Math.max(60, panelWidth / 3));
+        left = (width - panelWidth) / 2;
         top = Math.max(0, (height - 365) / 2);
-        name = field(left, top + 51, PANEL_WIDTH, 100, "blade_tetra.export.name",
+        name = field(left, top + 51, panelWidth, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
-        addon = field(left, top + 78, 222, 50, "blade_tetra.export.id",
+        addon = field(left, top + 78, panelWidth - 78, 50, "blade_tetra.export.id",
                 addon == null ? "blade_" + preview.token().toString().substring(0, 8) : addon.getValue());
-        version = field(left + 228, top + 78, 72, 30, "blade_tetra.export.version",
+        version = field(left + panelWidth - 72, top + 78, 72, 30, "blade_tetra.export.version",
                 version == null ? "1.0.0" : version.getValue());
-        author = field(left, top + 105, 105, 64, "blade_tetra.export.author",
+        author = field(left, top + 105, authorColumnWidth, 64, "blade_tetra.export.author",
                 author == null ? "" : author.getValue());
-        description = field(left + 111, top + 105, 189, 800, "blade_tetra.export.description",
+        description = field(left + authorColumnWidth + 6, top + 105,
+                panelWidth - authorColumnWidth - 6, 800, "blade_tetra.export.description",
                 description == null ? "" : description.getValue());
         for (int index = 0; index < ingredients.length; index++) {
             String value = ingredients[index] != null ? ingredients[index].getValue()
@@ -78,17 +83,25 @@ final class BladeSealScreen extends Screen {
                         case 7 -> "minecraft:stick";
                         default -> "";
                     };
-            ingredients[index] = field(left + 101 * (index % 3), top + 132 + ROW_HEIGHT * (index / 3),
-                    98, 96, "blade_tetra.export.ingredient", value);
+            int column = index % 3;
+            int fieldX = left + panelWidth * column / 3;
+            int fieldEnd = left + panelWidth * (column + 1) / 3;
+            ingredients[index] = field(fieldX, top + 132 + ROW_HEIGHT * (index / 3),
+                    fieldEnd - fieldX - 2, 96, "blade_tetra.export.ingredient", value);
         }
+        int modeWidth = Math.min(87, panelWidth / 3);
+        int browseWidth = Math.min(48, panelWidth / 4);
+        int pictureWidth = panelWidth - modeWidth - browseWidth - 8;
         backplateModeButton = addRenderableWidget(Button.builder(backplateLabel(),
-                button -> cycleBackplateMode()).bounds(left, top + 188, 87, 20).build());
-        backplatePath = field(left + 91, top + 189, 157, 1024, "blade_tetra.export.backplate_file",
+                button -> cycleBackplateMode()).bounds(left, top + 188, modeWidth, 20).build());
+        backplatePath = field(left + modeWidth + 4, top + 189, pictureWidth, 1024,
+                "blade_tetra.export.backplate_file",
                 backplatePath == null ? "" : backplatePath.getValue());
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
-                button -> chooseBackplate()).bounds(left + 252, top + 188, 48, 20).build());
+                button -> chooseBackplate()).bounds(left + modeWidth + 4 + pictureWidth + 4,
+                        top + 188, browseWidth, 20).build());
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 214, PANEL_WIDTH, 20).build());
+                button -> request()).bounds(left, top + 214, panelWidth, 20).build());
         confirm.active = !confirmed && preview.ready();
     }
 
@@ -252,19 +265,19 @@ final class BladeSealScreen extends Screen {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, delta);
         graphics.drawString(font, title, left, top + 4, 0xFFFFFF);
-        graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.placeholder"), left, top + 17, PANEL_WIDTH, 0xFFD480);
+        graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.placeholder"), left, top + 17, panelWidth, 0xFFD480);
         graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, top + 40, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.id"), left, top + 67, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + 228, top + 67, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + panelWidth - 72, top + 67, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 94, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + 111, top + 94, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.recipe"), left, top + 121, 0xFFFFFF);
         graphics.drawWordWrap(font,
                 Component.translatable(preview.ready()
                         ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 244, PANEL_WIDTH, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
+                        preview.summary()), left, top + 244, panelWidth, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 311, PANEL_WIDTH, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 311, panelWidth, 0xFFFFFF);
         }
     }
 }
