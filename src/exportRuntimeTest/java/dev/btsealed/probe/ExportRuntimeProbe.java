@@ -123,10 +123,14 @@ public final class ExportRuntimeProbe {
                         tick >= 20 && tick < 30 ? ItemStack.EMPTY : focusBlade);
                 playerTick(player);
                 if (tick == 20 && rank.getRankPoint(now) != initial - 10L) {
-                    throw new IllegalStateException("Precision Habaki did not halve native Rank decay");
+                    throw new IllegalStateException("Precision Habaki did not halve native Rank decay: expected="
+                            + (initial - 10L) + ", actual=" + rank.getRankPoint(now)
+                            + ", lastUpdate=" + rank.getLastUpdate());
                 }
                 if (tick == 30 && rank.getRankPoint(now) != initial - 20L) {
-                    throw new IllegalStateException("Precision Habaki leaked Rank across a weapon swap");
+                    throw new IllegalStateException("Precision Habaki swap parity failed: expected="
+                            + (initial - 20L) + ", actual=" + rank.getRankPoint(now)
+                            + ", lastUpdate=" + rank.getLastUpdate());
                 }
             }
             if (rank.getRankPoint(firstTick + 40) != initial - 25L) {
