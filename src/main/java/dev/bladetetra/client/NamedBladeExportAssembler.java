@@ -15,7 +15,8 @@ import java.util.*;
 
 /** Flatten named parts through the same socket pipeline as the live client. */
 public final class NamedBladeExportAssembler {
-    public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sourceTextures) {}
+    public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sourceTextures,
+                       Map<String, List<ResourceLocation>> selectedInputs) {}
     private record Tile(NativeImage image, int x) {}
     private static final List<String> STATES = List.of("blade", "blade_damaged", "blade_fragment",
             "sheath", "item_blade", "item_bladens", "item_damaged");
@@ -27,8 +28,33 @@ public final class NamedBladeExportAssembler {
         if (parts.tsuba() != null) named.put(LegacySourceMesh.Component.HILT, parts.tsuba());
         if (parts.saya() != null) named.put(LegacySourceMesh.Component.SAYA, parts.saya());
         if (named.isEmpty()) throw new IOException("Missing named model sources");
-        for (var kind : named.values()) if (!permitted(kind.model()) || !permitted(kind.texture()))
-            throw new IOException("Third-party OBJ requires documented embedding rights: " + kind.id());
+        // The semantic source can be a descriptor. Freeze the OBJ actually selected by
+        // Model Assembly 2.0 (including any installed JSON adapter) into the certificate.
+        var selectedInputs = new LinkedHashMap<String, List<ResourceLocation>>();
+        for (var entry : named.entrySet()) {
+            var kind = entry.getValue();
+            var rules = LegacyModelRules.load(resources, kind);
+            ResourceLocation actualGeometry = rules.geometryModel(kind.model());
+            if (!permitted(actualGeometry) || !permitted(kind.texture()))
+                throw new IOException("Named OBJ/texture needs audited embedding rights: " + kind.id());
+
+            var paths = new ArrayList<ResourceLocation>();
+            paths.add(actualGeometry);
+            paths.add(kind.texture());
+            String prefix = "bladetetra/legacy_models/" + kind.model().getPath();
+            var defaultRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
+                    prefix + ".json");
+            var namedRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
+                    prefix + "/" + kind.name().getNamespace() + "/" + kind.name().getPath() + ".json");
+            for (var adapter : List.of(defaultRules, namedRules))
+                if (resources.getResource(adapter).isPresent()) paths.add(adapter);
+            String slot = switch (entry.getKey()) {
+                case BLADE -> "blade";
+                case HILT -> "tsuba";
+                case SAYA -> "saya";
+            };
+            selectedInputs.put(slot, List.copyOf(paths));
+        }
 
         WavefrontObject raw;
         try (var stream = resources.getResourceOrThrow(modelId).open()) {
@@ -73,6 +99,10 @@ public final class NamedBladeExportAssembler {
                                 LegacyRenderSources.resolve(kind), component, target, state);
                         if (mounted == null) {
                             var fallback = LegacyModelPartRenderer.modularFaces(target, state, stockPart(component));
+                            if (kind != null && List.of("blade", "sheath", "item_blade").contains(state)) {
+                                throw new IOException("Cannot embed a named source without its required "
+                                        + state + " geometry: " + kind.id());
+                            }
                             if (fallback.isEmpty() && kind != null && !state.equals("blade_fragment"))
                                 throw new IOException("Missing model fallback for " + kind.id() + " / " + state);
                             append(output, state, stockFaces(fallback, stock, width, height, inventory));
@@ -84,10 +114,26 @@ public final class NamedBladeExportAssembler {
                         }
                     }
                 }
+                // Keep every native non-replaced group (in particular 'effect') rather
+                // than silently deleting original SlashBlade rendering geometry.
+                for (var group : world.groupObjects) {
+                    if (group == null || group.faces == null || group.faces.isEmpty()
+                            || InventoryBladeModel.isIcon(group.name) || output.containsKey(group.name)
+                            || STATES.contains(group.name)) continue;
+                    append(output, group.name, stockFaces(group.faces, stock, width, height, false));
+                }
+                for (var group : icon.groupObjects) {
+                    if (group == null || group.faces == null || group.faces.isEmpty()
+                            || !InventoryBladeModel.isIcon(group.name) || output.containsKey(group.name)
+                            || STATES.contains(group.name)) continue;
+                    append(output, group.name, stockFaces(group.faces, stock, width, height, true));
+                }
                 if (!output.containsKey("blade") || !output.containsKey("sheath")
                         || !output.containsKey("item_blade")) throw new IOException("Incomplete sealed model groups");
-                return new Bake(RuntimeWavefrontViewFactory.serialize(output).getBytes(StandardCharsets.UTF_8),
-                        atlas.asByteArray(), List.copyOf(textures.keySet()));
+                byte[] model = RuntimeWavefrontViewFactory.serialize(output).getBytes(StandardCharsets.UTF_8);
+                if (model.length > 8 * 1024 * 1024) throw new IOException("Sealed OBJ exceeds archive asset limit");
+                return new Bake(model, atlas.asByteArray(), List.copyOf(textures.keySet()),
+                        Map.copyOf(selectedInputs));
             }
         } finally {
             textures.values().forEach(NativeImage::close);
@@ -148,9 +194,11 @@ public final class NamedBladeExportAssembler {
             face.textureCoordinates = new TextureCoordinate[input.vertices.length];
             for (int i = 0; i < input.vertices.length; i++) {
                 var uv = input.textureCoordinates == null ? null : input.textureCoordinates[i];
+                if (uv == null || !Float.isFinite(uv.u) || !Float.isFinite(uv.v))
+                    throw new IllegalArgumentException("Stock model contains an untextured face");
                 face.textureCoordinates[i] = new TextureCoordinate(
-                        (uv == null ? 0 : uv.u * stock.getWidth()) / width,
-                        (uv == null ? 0 : uv.v * stock.getHeight() / 2f
+                        (uv.u * stock.getWidth()) / width,
+                        (uv.v * stock.getHeight() / 2f
                                 + (inventory ? stock.getHeight() / 2f : 0)) / height);
             }
             out.add(face);

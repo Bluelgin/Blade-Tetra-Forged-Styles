@@ -16,7 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 record BladeExportArt(ResourceLocation model, ResourceLocation texture,
-                      List<ExportResourceEvidence> inputs, Map<ResourceLocation, byte[]> assets) {
+                      List<ExportResourceEvidence> inputs, Map<ResourceLocation, byte[]> assets,
+                      Map<String, List<ResourceLocation>> namedInputs) {
+    BladeExportArt(ResourceLocation model, ResourceLocation texture,
+                   List<ExportResourceEvidence> inputs, Map<ResourceLocation, byte[]> assets) {
+        this(model, texture, inputs, assets, Map.of());
+    }
     private static final ResourceLocation TEMPLATE = ResourceLocation.parse("blade_tetra:model/modular/standard_256.png");
 
     static BladeExportArt bake(String modId, BladeExportSnapshot snapshot,
@@ -36,14 +41,15 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
             evidence.add(projectInput(resources, appearance.sayaPreset().textureLocation()));
         }
         byte[] bakedModel, bakedTexture;
+        Map<String, List<ResourceLocation>> namedInputs = Map.of();
         if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
             var assembled = NamedBladeExportAssembler.bake(stack, sourceModel, resources);
             bakedModel = assembled.model();
             bakedTexture = assembled.texture();
-            for (var id : assembled.sourceTextures()) evidence.add(projectNamedInput(resources, id));
-            for (var part : snapshot.namedParts()) if (!part.slot().equals("backplate")) {
-                evidence.add(projectNamedInput(resources, part.declaredModel()));
-            }
+            namedInputs = assembled.selectedInputs();
+            var verified = new java.util.LinkedHashSet<ResourceLocation>();
+            for (var selected : namedInputs.values()) verified.addAll(selected);
+            for (var id : verified) evidence.add(projectNamedInput(resources, id));
         } else {
             var artwork = StaticBladeArt.bake(stack, sourceModel, resources);
             bakedModel = artwork.model();
@@ -66,7 +72,8 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
             assets.put(picture, portrait.png());
             evidence.add(portrait.evidence());
         }
-        return new BladeExportArt(model, texture, List.copyOf(evidence), Map.copyOf(assets));
+        return new BladeExportArt(model, texture, List.copyOf(evidence), Map.copyOf(assets),
+                namedInputs);
     }
 
     static void check(BladeExportSnapshot snapshot, ItemStack stack) {
@@ -97,10 +104,17 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         var provider = id.getNamespace();
         if (!java.util.Set.of("slashblade", "blade_tetra").contains(provider))
             throw new IOException("External source embedding is not yet approved: " + id);
-        var verified = ExportResourceEvidence.reference(resources, id, provider);
+        ExportResourceEvidence verified;
+        try {
+            verified = ExportResourceEvidence.reference(resources, id, provider);
+        } catch (IOException missingProviderOrOverride) {
+            // Blade Tetra adapters may legitimately live under the upstream asset namespace.
+            if ("blade_tetra".equals(provider)) throw missingProviderOrOverride;
+            verified = ExportResourceEvidence.reference(resources, id, "blade_tetra");
+        }
         return new ExportResourceEvidence(id, verified.packId(), verified.ownerModId(),
                 verified.ownerModVersion(), verified.sha256(),
-                "Native/project source embedded in private export; original license applies", true);
+                "Selected source/adapter embedded in private export; upstream license applies", true);
     }
 
     private static ExportResourceEvidence projectInput(ResourceManager resources, ResourceLocation id) throws IOException {
