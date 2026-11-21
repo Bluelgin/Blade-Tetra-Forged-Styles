@@ -4,7 +4,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.ForgedSlashArtEntrypoint;
 import dev.bladetetra.combat.ForgedSlashArtPlan;
 import dev.bladetetra.combat.ModComboStates;
-import dev.bladetetra.combat.ProgrammaticFusionPlan;
+import dev.bladetetra.combat.ProgrammaticFusionHandler;
 import dev.bladetetra.forging.LegacyFusion;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.specialeffects.SpecialEffect;
@@ -26,12 +26,10 @@ public final class ModSlashBladeAbilities {
      * pair is resolved from the item at cast time rather than registered per pair.
      */
     public static final RegistryObject<SlashArts> PROGRAMMATIC_FUSION =
-            SLASH_ARTS.register("programmatic_fusion", () -> new SlashArts(entity ->
-                    programmaticCombo(entity, ProgrammaticTrigger.NORMAL))
-                    .setComboStateJust(entity -> programmaticCombo(
-                            entity, ProgrammaticTrigger.JUST))
-                    .setComboStateSuper(entity -> programmaticCombo(
-                            entity, ProgrammaticTrigger.SUPER))
+            SLASH_ARTS.register("programmatic_fusion", () -> new SlashArts(ProgrammaticFusionHandler::normalCombo)
+                    .setComboStateJust(ProgrammaticFusionHandler::justCombo)
+                    // The validated native releaseSSA hook owns Super's commit.
+                    .setComboStateSuper(entity -> ComboStateRegistry.NONE.getId())
                     .setProudSoulCost(45));
 
     /** One structural registry entry for every four-part Tetra-authored Slash Art. */
@@ -126,35 +124,6 @@ public final class ModSlashBladeAbilities {
                 : ComboStateRegistry.STANDBY.getId();
     }
 
-    private static ResourceLocation programmaticCombo(LivingEntity entity,
-            ProgrammaticTrigger trigger) {
-        ProgrammaticFusionPlan plan = ProgrammaticFusionPlan.from(entity.getMainHandItem());
-        if (plan == null) {
-            return ComboStateRegistry.NONE.getId();
-        }
-        return switch (plan.release().entry()) {
-            case JUDGEMENT_CUT -> switch (trigger) {
-                case JUST -> ComboStateRegistry.JUDGEMENT_CUT_SLASH_JUST.getId();
-                case SUPER -> ComboStateRegistry.JUDGEMENT_CUT_END.getId();
-                case NORMAL -> entity.onGround()
-                        ? ComboStateRegistry.JUDGEMENT_CUT.getId()
-                        : ComboStateRegistry.JUDGEMENT_CUT_SLASH_AIR.getId();
-            };
-            case SAKURA_END -> entity.onGround()
-                    ? ComboStateRegistry.SAKURA_END_LEFT.getId()
-                    : ComboStateRegistry.SAKURA_END_LEFT_AIR.getId();
-            case VOID_SLASH -> ComboStateRegistry.VOID_SLASH.getId();
-            case CIRCLE_SLASH -> ComboStateRegistry.CIRCLE_SLASH.getId();
-            case DRIVE_VERTICAL -> ComboStateRegistry.DRIVE_VERTICAL.getId();
-            case DRIVE_HORIZONTAL -> ComboStateRegistry.DRIVE_HORIZONTAL.getId();
-            case WAVE_EDGE -> ComboStateRegistry.WAVE_EDGE_VERTICAL.getId();
-            case PIERCING -> trigger == ProgrammaticTrigger.NORMAL
-                    ? ComboStateRegistry.PIERCING.getId()
-                    : ComboStateRegistry.PIERCING_JUST.getId();
-            case DIRECT -> ComboStateRegistry.STANDBY.getId();
-        };
-    }
-
     private static SlashArts standbyArt(LegacyFusion fusion, int proudSoulCost) {
         return new SlashArts(entity -> isActive(entity.getMainHandItem(), fusion)
                 ? ComboStateRegistry.STANDBY.getId()
@@ -205,11 +174,6 @@ public final class ModSlashBladeAbilities {
         return LegacyFusion.active(stack) == expected;
     }
 
-    private enum ProgrammaticTrigger {
-        NORMAL,
-        JUST,
-        SUPER
-    }
 
     private ModSlashBladeAbilities() {
     }

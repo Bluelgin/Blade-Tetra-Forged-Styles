@@ -4,6 +4,7 @@ import dev.bladetetra.BladeTetra;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
+import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,6 +15,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.event.level.LevelEvent;
@@ -43,11 +46,6 @@ public final class LegacyFusionHandler {
         var art = event.getSlashBladeState().getSlashArtsKey();
         if (ModSlashBladeAbilities.FORGED_SLASH_ART.getId().equals(art)) {
             ForgedSlashArtHandler.onSlashArt(event,
-                    player, blade, event.getSlashBladeState());
-            return;
-        }
-        if (ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId().equals(art)) {
-            ProgrammaticFusionHandler.onSlashArt(event,
                     player, blade, event.getSlashBladeState());
             return;
         }
@@ -81,6 +79,21 @@ public final class LegacyFusionHandler {
         }
         TwinFoxFusionHandler.onSlashArt(
                 player, blade, event.getSlashBladeState());
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onFusionRelease(SlashBladeEvent.PerformSlashArtEvent event) {
+        ProgrammaticFusionHandler.observeRelease(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onFusionTimeout(SlashBladeEvent.NextOfTimeOutComboEvent event) {
+        ProgrammaticFusionHandler.observeTimeout(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onFusionMotion(BladeMotionEvent event) {
+        ProgrammaticFusionHandler.observeMotion(event);
     }
 
     @SubscribeEvent
@@ -136,6 +149,27 @@ public final class LegacyFusionHandler {
         VoidScatteringFusionHandler.tick(event);
         TsukumoCrossNativeHandler.tick(event);
         SignatureFusionBatchHandler.tick(event);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            ProgrammaticFusionHandler.removePlayer(player, "logged out");
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            ProgrammaticFusionHandler.removePlayer(player, "changed dimension");
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onPlayerDeath(LivingDeathEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            ProgrammaticFusionHandler.removePlayer(player, "died");
+        }
     }
 
     @SubscribeEvent

@@ -29,10 +29,6 @@ public final class ProgrammaticFusionTooltip {
             replaceProgrammaticSlashArtName(event, plan);
         }
 
-        if (ProgrammaticFusionPlan.hasUnadaptedThirdPartyArt(event.getItemStack())) {
-            event.getToolTip().add(Component.translatable("tooltip.blade_tetra.fusion.unsupported")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
-        }
     }
 
     private static void replaceForgedSlashArtName(
