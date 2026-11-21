@@ -260,6 +260,12 @@ public final class BladeExportPackageSmoke {
         }
         var captured = snapshot.namedParts();
         if (captured.size() != 4) throw new IllegalStateException("Missing named part provenance: " + captured);
+        admin.setItemInHand(InteractionHand.OFF_HAND, ModItems.BLADE_SEAL.get().getDefaultInstance());
+        var preview = BladeSealSessions.begin(admin, InteractionHand.OFF_HAND);
+        if (preview.ready() || !preview.summary().contains("appearance:")
+                || BladeSealSessions.takeConfirmed(admin, preview.token()) != null) {
+            throw new IllegalStateException("Unsupported named fitting export was approved: " + preview);
+        }
         for (var part : captured) {
             var expected = part.slot().equals("backplate") ? LegacyImprintKind.WHITE_FOX : sources.get(part.slot());
             if (!expected.id().equals(part.sourceId())) {
