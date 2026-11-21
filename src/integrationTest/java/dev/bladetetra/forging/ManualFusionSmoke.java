@@ -73,7 +73,7 @@ final class ManualFusionSmoke {
         check(dev.bladetetra.lore.SmithingLore.knows(player, "akatsuki"), "Original clue lost");
         com.mojang.logging.LogUtils.getLogger().info("MANUAL_FUSION_SMOKE_PASS: preview, confirm, save, source replacement, old active migration, authored priority, optional recipe");
     }
-    private static void fit(ItemStack stack, String part, LegacyImprintKind source) {
+    static void fit(ItemStack stack, String part, LegacyImprintKind source) {
         var tag = stack.getOrCreateTag();
         String module = tag.getString("slashblade/" + part);
         tag.putString(module + "_material", module + "/named_blade_ingot");

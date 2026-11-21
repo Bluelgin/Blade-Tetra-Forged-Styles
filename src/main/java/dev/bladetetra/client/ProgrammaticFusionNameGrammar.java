@@ -1,42 +1,26 @@
 package dev.bladetetra.client;
 
+import dev.bladetetra.combat.ProgrammaticFusionHandler;
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
 import net.minecraft.Util;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.Locale;
-import java.util.function.Predicate;
-
-/** Uses addon art names where available and Blade Tetra's vocabulary otherwise. */
+/** Presents the original registered arts in casting order. */
 public final class ProgrammaticFusionNameGrammar {
-    private static final String PREFIX = "name.blade_tetra.fusion.";
-
     public static Component name(ProgrammaticFusionPlan plan) {
-        String release = termKey(plan.releaseAbility(), "entry", plan.release().entry(),
-                ProgrammaticFusionNameGrammar::hasSourceName);
-        String response = termKey(plan.responseAbility(), "response", plan.response().response(),
-                ProgrammaticFusionNameGrammar::hasSourceName);
-        return Component.translatable(PREFIX + "format",
-                Component.translatable(release), Component.translatable(response));
+        return Component.translatable("name.blade_tetra.fusion.format",
+                term(plan.releaseAbility()), term(plan.responseAbility()));
     }
 
-    static String termKey(ResourceLocation ability, String role, Enum<?> semantic,
-            Predicate<String> hasTranslation) {
-        if (ability != null && !"slashblade".equals(ability.getNamespace())) {
-            String key = Util.makeDescriptionId("slash_art", ability);
-            if (hasTranslation.test(key)) {
-                return key;
-            }
+    private static Component term(ResourceLocation id) {
+        if (!ProgrammaticFusionHandler.available(id)) {
+            return Component.translatable("name.blade_tetra.fusion.unavailable");
         }
-        return PREFIX + role + "." + semantic.name().toLowerCase(Locale.ROOT);
+        String key = Util.makeDescriptionId("slash_art", id);
+        return I18n.exists(key) ? Component.translatable(key) : Component.literal(id.toString());
     }
 
-    private static boolean hasSourceName(String key) {
-        return I18n.exists(key) && !I18n.get(key).isBlank();
-    }
-
-    private ProgrammaticFusionNameGrammar() {
-    }
+    private ProgrammaticFusionNameGrammar() {}
 }

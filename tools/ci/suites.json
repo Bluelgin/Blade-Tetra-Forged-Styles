@@ -112,7 +112,8 @@
       "directory": "named-ingot-smoke",
       "markers": [
         "NAMED_INGOT_SMOKE_PASS",
-        "MANUAL_FUSION_SMOKE_PASS"
+        "MANUAL_FUSION_SMOKE_PASS",
+        "NATIVE_FUSION_SMOKE_PASS"
       ],
       "flags": []
     },

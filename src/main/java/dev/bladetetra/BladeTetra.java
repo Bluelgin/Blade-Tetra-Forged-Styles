@@ -8,7 +8,6 @@ import dev.bladetetra.compat.LegacyFusionRequirement;
 import dev.bladetetra.compat.LegacyImprintCraftingCondition;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
 import dev.bladetetra.compat.SoulFusionRequirement;
-import dev.bladetetra.compat.fusion.ProgrammaticFusionCompat;
 import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.network.ModNetwork;
@@ -77,7 +76,6 @@ public final class BladeTetra {
                     "blade_tetra:custom_style_craft", CustomStyleCraftingCondition.class);
             CraftingEffectRegistry.registerEffectType(
                     "blade_tetra:apply_custom_style_spec", CustomStyleCraftingOutcome.class);
-            ProgrammaticFusionCompat.registerLoadedAddons();
         });
     }
 }

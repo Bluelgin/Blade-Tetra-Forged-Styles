@@ -32,6 +32,7 @@
 - [现行离线分享码协议](development/CUSTOM_STYLE_COMMUNITY_PROTOCOL.md)
 - [美术源图、导出和校验](custom-style-art/README.md)
 - [客户端美术交付记录与待接接口](custom-style-art/CLIENT_INTEGRATION.md)
+- [原生双源融合 SA](development/NATIVE_FUSION.md)
 - [材料提供方效果兼容](development/PROVIDER_EFFECT_COMPATIBILITY.md)
 - [御影响应式战斗设计记录](development/MIKAGE_REACTIVE_ENCOUNTER.md)
 - [第三方资源与许可](../THIRD_PARTY_NOTICES.md)
