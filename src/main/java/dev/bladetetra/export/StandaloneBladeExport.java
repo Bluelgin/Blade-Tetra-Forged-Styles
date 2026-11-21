@@ -79,8 +79,11 @@ final class StandaloneBladeExport {
         snapshot.attributes().forEach(value -> required.add(value.id().getNamespace()));
         required.removeAll(Set.of("minecraft", "forge"));
         var dependencies = required.stream().map(id -> new BladeExportArchive.Dependency(id, version(id))).toList();
-        if (!"1.9.63".equals(version("slashblade"))) {
-            throw new IllegalArgumentException("This standalone runtime requires SlashBlade 1.9.63");
+        String slashbladeVersion = version("slashblade");
+        if (!Set.of("1.9.63", "1.9.65").contains(slashbladeVersion)) {
+            throw new IllegalArgumentException(
+                    "Standalone export has not been validated against SlashBlade " + slashbladeVersion
+                            + "; supported targets: 1.9.63, 1.9.65");
         }
 
         var definition = new NativeBladeExport(snapshot.attack(), snapshot.durability(), combo(snapshot),
