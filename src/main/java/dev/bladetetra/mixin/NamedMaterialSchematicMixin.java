@@ -78,23 +78,10 @@ public abstract class NamedMaterialSchematicMixin {
     @Inject(method = "acceptsMaterial", at = @At("HEAD"), cancellable = true)
     private void bladeTetra$validateSource(ItemStack target, String slot, int index,
             ItemStack ingredient, CallbackInfoReturnable<Boolean> cir) {
-        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)) {
-            if (NamedBladeIngotItem.source(ingredient) == null) cir.setReturnValue(false);
-        } else if (ingredient.getItem() instanceof NamedBladeIngotItem
+        if (ingredient.getItem() instanceof NamedBladeIngotItem
                 && (NamedBladeIngotItem.source(ingredient) == null
                     || !NamedBladeMaterial.supportedSlot(slot))) {
             cir.setReturnValue(false);
-        }
-    }
-
-    @Inject(method = "applyUpgrade", at = @At("HEAD"), cancellable = true)
-    private void bladeTetra$validateBackplateCraft(ItemStack target, ItemStack[] materials,
-            boolean consume, String slot, Player player, CallbackInfoReturnable<ItemStack> cir) {
-        // Tetra supplies all workbench material slots even for a one-slot schematic.
-        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)
-                && (!(target.getItem() instanceof ModularSlashBladeItem) || materials.length == 0
-                    || materials[0].isEmpty() || NamedBladeIngotItem.source(materials[0]) == null)) {
-            cir.setReturnValue(target.copy());
         }
     }
 
@@ -103,10 +90,6 @@ public abstract class NamedMaterialSchematicMixin {
             boolean consume, String slot, Player player, CallbackInfoReturnable<ItemStack> cir) {
         // applyUpgrade is also the real workbench preview path, before crafting effects.
         NamedBladeMaterial.capture(cir.getReturnValue(), slot, materials);
-        if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot) && materials.length > 0) {
-            // The final consumed ingot still has its tag, but empty stacks report AIR.
-            NamedBackplate.installSource(cir.getReturnValue(), NamedBladeIngotItem.storedSourceId(materials[0]));
-        }
         dev.bladetetra.combat.ProgrammaticFusionAttunement.preserveUnchangedPair(target, cir.getReturnValue());
     }
 }
