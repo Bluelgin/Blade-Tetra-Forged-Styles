@@ -436,15 +436,32 @@ public final class BladeExportPackageSmoke {
         } finally {
             packet.release();
         }
-        if (preview.ready() || !preview.summary().contains("appearance:")
+        // Recognized native assets are now eligible for the client-side static baker.
+        // A successful server preview still does not promise client resource/license acceptance.
+        if (!preview.ready() || BladeSealSessions.takeConfirmed(admin, preview.token()) == null
                 || BladeSealSessions.takeConfirmed(admin, preview.token()) != null) {
-            throw new IllegalStateException("Unsupported named fitting export was approved: " + preview);
+            throw new IllegalStateException("Supported named fitting export was rejected or reused: " + preview);
         }
         for (var part : captured) {
             var expected = part.slot().equals("backplate") ? LegacyImprintKind.WHITE_FOX : sources.get(part.slot());
             if (!expected.id().equals(part.sourceId())) {
                 throw new IllegalStateException("Named part provenance attributed to wrong blade: " + part);
             }
+        }
+
+        // An unknown provider is never acceptable merely because its semantic snapshot exists.
+        var forgedSource = new LegacyImprintKind("untrusted_export_smoke",
+                ResourceLocation.parse("untrusted_provider:blade"),
+                ResourceLocation.parse("untrusted_provider:model/blade.obj"),
+                ResourceLocation.parse("untrusted_provider:model/blade.png"),
+                "minecraft:stone", LegacyImprintKind.BLACK_FOX.defaultProfile(),
+                3.0D, 200, null, List.of());
+        NamedLegacyImprintStorage.putSource(tag, "blade", forgedSource.id());
+        NamedLegacyImprintStorage.putSnapshot(blade, "blade", forgedSource);
+        var denied = BladeSealSessions.begin(admin, InteractionHand.OFF_HAND);
+        if (denied.ready() || !denied.summary().contains("appearance:")
+                || BladeSealSessions.takeConfirmed(admin, denied.token()) != null) {
+            throw new IllegalStateException("Unlicensed model provider bypassed preflight: " + denied);
         }
     }
 

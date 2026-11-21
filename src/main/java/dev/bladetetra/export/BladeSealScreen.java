@@ -35,6 +35,8 @@ final class BladeSealScreen extends Screen {
     private EditBox backplatePath;
     private CustomBackplateImage.Mode backplateMode = CustomBackplateImage.Mode.ORIGINAL;
     private CustomBackplateImage.Selection requestedBackplate;
+    private BladeExportSnapshot approvedSnapshot;
+    private ItemStack approvedBlade;
     private boolean confirmed;
     private BladeExportArchive.Metadata requestedMetadata;
     private BladeExportRecipe requestedRecipe;
@@ -152,10 +154,17 @@ final class BladeSealScreen extends Screen {
             requestedRecipe = new BladeExportRecipe(List.copyOf(items), occupied);
             requestedMetadata = metadata;
             requestedBackplate = new CustomBackplateImage.Selection(backplateMode, backplatePath.getValue().strip());
+            if (backplateMode != CustomBackplateImage.Mode.ORIGINAL && requestedBackplate.filename().isBlank()) {
+                throw new IllegalArgumentException("Select a PNG or JPEG backplate picture before exporting");
+            }
             confirmed = true;
             confirm.active = false;
             status = Component.translatable("blade_tetra.export.waiting");
-            ModNetwork.CHANNEL.sendToServer(new BladeSealPackets.Confirm(preview.token()));
+            if (approvedSnapshot != null && approvedBlade != null) {
+                exportApproved();
+            } else {
+                ModNetwork.CHANNEL.sendToServer(new BladeSealPackets.Confirm(preview.token()));
+            }
         } catch (IllegalArgumentException error) {
             status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
         }
@@ -165,31 +174,50 @@ final class BladeSealScreen extends Screen {
         var client = Minecraft.getInstance();
         if (client.getConnection() == null || !(client.screen instanceof BladeSealScreen screen)
                 || !screen.preview.token().equals(result.token()) || screen.requestedMetadata == null) return;
-        var metadata = screen.requestedMetadata;
-        var recipe = screen.requestedRecipe;
-        var backplate = screen.requestedBackplate;
-        screen.requestedMetadata = null;
-        screen.requestedRecipe = null;
-        screen.requestedBackplate = null;
         if (result.snapshot().isEmpty()) {
+            screen.confirmed = false;
+            screen.confirm.active = screen.preview.ready();
             screen.status = Component.translatable("blade_tetra.export.expired");
+            // A rejected/expired server authorization cannot be reused. Open a new seal.
+            screen.confirm.active = false;
             return;
         }
         try {
-            var snapshot = BladeSealPackets.decodeSnapshot(result.snapshot());
-            var blade = new ItemStack(ModItems.MODULAR_SLASHBLADE.get());
-            blade.setTag(TagParser.parseTag(result.appearanceTag()));
-            var resources = client.getResourceManager();
-            var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources, backplate);
-            var file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources,
-                    snapshot, metadata, recipe, art);
-            screen.status = Component.translatable("blade_tetra.export.saved");
-            if (client.player != null) {
-                client.player.sendSystemMessage(Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
-            }
-        } catch (IOException | com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException error) {
-            LogUtils.getLogger().warn("Failed to seal blade", error);
+            screen.approvedSnapshot = BladeSealPackets.decodeSnapshot(result.snapshot());
+            screen.approvedBlade = new ItemStack(ModItems.MODULAR_SLASHBLADE.get());
+            screen.approvedBlade.setTag(TagParser.parseTag(result.appearanceTag()));
+            screen.exportApproved();
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException error) {
+            LogUtils.getLogger().warn("Failed to decode authorized blade", error);
             screen.status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
+            screen.confirmed = false;
+            screen.confirm.active = false;
+        }
+    }
+
+    /** Reuse only the server-approved frozen stack on local packaging failures. */
+    private void exportApproved() {
+        if (approvedSnapshot == null || approvedBlade == null
+                || requestedMetadata == null || requestedRecipe == null) return;
+        try {
+            var resources = Minecraft.getInstance().getResourceManager();
+            var art = BladeExportArt.bake(requestedMetadata.modId(), approvedSnapshot,
+                    approvedBlade, resources, requestedBackplate);
+            var file = StandaloneBladeExport.write(Minecraft.getInstance().gameDirectory.toPath(),
+                    resources, approvedSnapshot, requestedMetadata, requestedRecipe, art);
+            status = Component.translatable("blade_tetra.export.saved");
+            requestedMetadata = null;
+            requestedRecipe = null;
+            requestedBackplate = null;
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().player.sendSystemMessage(
+                        Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
+            }
+        } catch (IOException | RuntimeException error) {
+            LogUtils.getLogger().warn("Failed to seal blade", error);
+            status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
+            confirmed = false;
+            confirm.active = preview.ready();
         }
     }
 

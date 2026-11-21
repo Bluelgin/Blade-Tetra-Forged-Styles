@@ -32,7 +32,8 @@ final class CustomBackplateImage {
         if (selection == null) selection = Selection.original();
         boolean named = NamedBackplate.sourceId(blade) != null;
         if (selection.mode() == Mode.ORIGINAL && !named) return null;
-        try (NativeImage original = selection.mode() == Mode.REPLACE ? null
+        // An overlay without a named portrait degrades to a regular image, not a crash.
+        try (NativeImage original = selection.mode() == Mode.REPLACE || !named ? null
                 : NamedBackplateExportSource.bake(blade, resources);
              NativeImage custom = selection.mode() == Mode.ORIGINAL ? null : readUserImage(selection.filename());
              NativeImage result = new NativeImage(256, 256, true)) {
