@@ -222,6 +222,13 @@ public final class BladeExportPackageSmoke {
         if (BladeSealSessions.takeConfirmed(admin, swapped) != null) {
             throw new IllegalStateException("Swapping a blade kept the old export authorization");
         }
+        var modified = BladeSealSessions.begin(admin, InteractionHand.MAIN_HAND).token();
+        admin.getItemInHand(InteractionHand.OFF_HAND).getOrCreateTag().putInt("sealSmokeOnly", 1);
+        if (BladeSealSessions.takeConfirmed(admin, modified) != null) {
+            throw new IllegalStateException("A mutated blade retained its export authorization");
+        }
+        admin.getItemInHand(InteractionHand.OFF_HAND).getOrCreateTag().remove("sealSmokeOnly");
+
         var approved = BladeSealSessions.begin(admin, InteractionHand.MAIN_HAND).token();
         if (BladeSealSessions.takeConfirmed(admin, approved) == null
                 || BladeSealSessions.takeConfirmed(admin, approved) != null) {
