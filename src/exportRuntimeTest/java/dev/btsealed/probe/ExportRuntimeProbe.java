@@ -100,6 +100,7 @@ public final class ExportRuntimeProbe {
             PortableRuntimeSelfTest.verifyPrecisionClock();
             PortableRuntimeSelfTest.verifySpiritSwordIsolation();
             PortableRuntimeSelfTest.verifyReinforcedArithmetic();
+            PortableRuntimeSelfTest.verifyCapabilityContracts();
             LogUtils.getLogger().info("BLADE_EXPORT_RUNTIME_PROBE_PASS");
         } catch (RuntimeException error) {
             LogUtils.getLogger().error("BLADE_EXPORT_RUNTIME_PROBE_FAIL", error);
