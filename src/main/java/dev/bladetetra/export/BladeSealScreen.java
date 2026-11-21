@@ -6,6 +6,8 @@ import dev.bladetetra.registry.ModItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.util.Mth;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.TagParser;
@@ -43,6 +45,7 @@ final class BladeSealScreen extends Screen {
     private Component status;
     private int left;
     private int top;
+    private int scrollPixels;
 
     private BladeSealScreen(BladeSealPackets.Preview preview) {
         super(Component.translatable("item.blade_tetra.blade_seal"));
@@ -55,6 +58,7 @@ final class BladeSealScreen extends Screen {
 
     @Override
     protected void init() {
+        scrollPixels = 0;
         left = (width - PANEL_WIDTH) / 2;
         top = Math.max(0, (height - 365) / 2);
         name = field(left, top + 51, PANEL_WIDTH, 100, "blade_tetra.export.name",
@@ -77,23 +81,20 @@ final class BladeSealScreen extends Screen {
             ingredients[index] = field(left + 101 * (index % 3), top + 132 + ROW_HEIGHT * (index / 3),
                     98, 96, "blade_tetra.export.ingredient", value);
         }
-        backplateModeButton = addRenderableWidget(Button.builder(Component.literal(backplateLabel()),
+        backplateModeButton = addRenderableWidget(Button.builder(backplateLabel(),
                 button -> cycleBackplateMode()).bounds(left, top + 188, 87, 20).build());
         backplatePath = field(left + 91, top + 189, 157, 1024, "blade_tetra.export.backplate_file",
                 backplatePath == null ? "" : backplatePath.getValue());
-        addRenderableWidget(Button.builder(Component.literal("Browse..."),
+        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
                 button -> chooseBackplate()).bounds(left + 252, top + 188, 48, 20).build());
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
                 button -> request()).bounds(left, top + 214, PANEL_WIDTH, 20).build());
         confirm.active = !confirmed && preview.ready();
     }
 
-    private String backplateLabel() {
-        return switch (backplateMode) {
-            case ORIGINAL -> "Backplate: original";
-            case REPLACE -> "Backplate: image";
-            case OVERLAY -> "Backplate: overlay";
-        };
+    private Component backplateLabel() {
+        return Component.translatable("blade_tetra.export.backplate."
+                + backplateMode.name().toLowerCase(java.util.Locale.ROOT));
     }
 
     private void cycleBackplateMode() {
@@ -102,7 +103,7 @@ final class BladeSealScreen extends Screen {
             case REPLACE -> CustomBackplateImage.Mode.OVERLAY;
             case OVERLAY -> CustomBackplateImage.Mode.ORIGINAL;
         };
-        backplateModeButton.setMessage(Component.literal(backplateLabel()));
+        backplateModeButton.setMessage(backplateLabel());
     }
 
     private void chooseBackplate() {
@@ -117,6 +118,7 @@ final class BladeSealScreen extends Screen {
                     String selected = Path.of(directory, filename).toAbsolutePath().toString();
                     Minecraft.getInstance().execute(() -> {
                         if (backplatePath != null) backplatePath.setValue(selected);
+                        if (backplateMode == CustomBackplateImage.Mode.ORIGINAL) cycleBackplateMode();
                     });
                 }
             } catch (RuntimeException | java.awt.AWTError failure) {
@@ -155,7 +157,8 @@ final class BladeSealScreen extends Screen {
             requestedMetadata = metadata;
             requestedBackplate = new CustomBackplateImage.Selection(backplateMode, backplatePath.getValue().strip());
             if (backplateMode != CustomBackplateImage.Mode.ORIGINAL && requestedBackplate.filename().isBlank()) {
-                throw new IllegalArgumentException("Select a PNG or JPEG backplate picture before exporting");
+                throw new IllegalArgumentException(
+                        Component.translatable("blade_tetra.export.backplate.picture_required").getString());
             }
             confirmed = true;
             confirm.active = false;
@@ -219,6 +222,24 @@ final class BladeSealScreen extends Screen {
             confirmed = false;
             confirm.active = preview.ready();
         }
+    }
+
+    /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int maximum = Math.max(0, 365 - height + 20);
+        if (maximum == 0) return super.mouseScrolled(mouseX, mouseY, delta);
+        int next = Mth.clamp(scrollPixels - (int) Math.round(delta * 24), 0, maximum);
+        int shift = scrollPixels - next;
+        if (shift == 0) return true;
+        scrollPixels = next;
+        top += shift;
+        for (var child : children()) {
+            if (child instanceof AbstractWidget widget) {
+                widget.setY(widget.getY() + shift);
+            }
+        }
+        return true;
     }
 
     @Override

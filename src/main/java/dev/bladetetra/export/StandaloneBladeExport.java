@@ -65,7 +65,11 @@ final class StandaloneBladeExport {
 
         List<BladeExportArchive.Fitting> fittings = new ArrayList<>();
         for (var source : snapshot.namedParts()) {
-            if (source.namedBlade() == null || source.declaredModel() == null || source.declaredTexture() == null) {
+            boolean pictureReplacement = "backplate".equals(source.slot())
+                    && artwork.namedInputs().containsKey("backplate");
+            if (!pictureReplacement
+                    && (source.namedBlade() == null || source.declaredModel() == null
+                    || source.declaredTexture() == null)) {
                 throw new IOException("Missing named blade source for " + source.slot() + ": " + source.sourceId());
             }
             // A semantic declared model may redirect to another OBJ through an

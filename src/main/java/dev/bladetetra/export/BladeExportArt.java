@@ -61,6 +61,7 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         assets.put(model, bakedModel);
         assets.put(texture, bakedTexture);
         var portrait = CustomBackplateImage.bake(modId, backplate, stack, resources);
+        var fittingInputs = new LinkedHashMap<String, List<ResourceLocation>>(namedInputs);
         if (portrait != null) {
             var frame = ResourceLocation.parse("blade_tetra:model/util/durability_filled.obj");
             evidence.add(projectInput(resources, frame));
@@ -71,9 +72,23 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
             }
             assets.put(picture, portrait.png());
             evidence.add(portrait.evidence());
+            var source = snapshot.namedParts().stream().filter(part -> "backplate".equals(part.slot()))
+                    .findFirst().orElse(null);
+            if (source != null) {
+                var selected = new ArrayList<ResourceLocation>();
+                if (backplate.mode() != CustomBackplateImage.Mode.REPLACE
+                        && source.declaredModel() != null && source.declaredTexture() != null) {
+                    selected.add(source.declaredModel());
+                    selected.add(source.declaredTexture());
+                    evidence.add(projectNamedInput(resources, source.declaredModel()));
+                    evidence.add(projectNamedInput(resources, source.declaredTexture()));
+                }
+                selected.add(picture);
+                fittingInputs.put("backplate", List.copyOf(selected));
+            }
         }
         return new BladeExportArt(model, texture, List.copyOf(evidence), Map.copyOf(assets),
-                namedInputs);
+                Map.copyOf(fittingInputs));
     }
 
     static void check(BladeExportSnapshot snapshot, ItemStack stack) {
@@ -87,6 +102,9 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
             throw new IllegalArgumentException("Banner-pattern saya is not supported by the static exporter");
         }
         for (var part : snapshot.namedParts()) {
+            // A missing original portrait does not prevent the player replacing it with
+            // their own image; original/overlay is validated on the client at bake time.
+            if ("backplate".equals(part.slot())) continue;
             if (part.namedBlade() == null || part.declaredModel() == null || part.declaredTexture() == null)
                 throw new IllegalArgumentException("Missing named source: " + part.sourceId());
             if (!part.slot().equals("backplate")

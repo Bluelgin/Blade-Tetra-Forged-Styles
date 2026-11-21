@@ -63,7 +63,12 @@ final class CustomBackplateImage {
         if (!name.endsWith(".png") && !name.endsWith(".jpg") && !name.endsWith(".jpeg")) {
             throw new IOException("Only PNG and JPEG portraits are supported");
         }
-        byte[] bytes = Files.readAllBytes(path);
+        byte[] bytes;
+        try (var input = Files.newInputStream(path)) {
+            bytes = input.readNBytes(4 * 1024 * 1024 + 1);
+        }
+        if (bytes.length > 4 * 1024 * 1024)
+            throw new IOException("Picture grew beyond the 4 MiB input limit");
         BufferedImage image;
         try (var input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             if (input == null) throw new IOException("Cannot open image decoder");

@@ -105,7 +105,8 @@ public final class BladeSealClientSmoke {
                 if (!ImageIO.write(image, "png", picture.toFile()))
                     throw new IllegalStateException("No PNG encoder available");
                 var mode = screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
-                        .filter(button -> button.getMessage().getString().equals("Backplate: original"))
+                        .filter(button -> button.getMessage().equals(
+                                Component.translatable("blade_tetra.export.backplate.original")))
                         .findFirst().orElseThrow();
                 mode.onPress(); // original -> user-image replacement
                 var field = screen.children().stream().filter(EditBox.class::isInstance).map(EditBox.class::cast)
