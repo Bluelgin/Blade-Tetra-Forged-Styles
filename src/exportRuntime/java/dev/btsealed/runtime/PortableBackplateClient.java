@@ -8,7 +8,6 @@ import mods.flammpfeil.slashblade.init.DefaultResources;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 
@@ -18,8 +17,7 @@ public final class PortableBackplateClient {
     static void register() { MinecraftForge.EVENT_BUS.addListener(PortableBackplateClient::render); }
 
     private static void render(RenderOverrideEvent event) {
-        if (INSIDE.get() || !DefaultResources.resourceDurabilityTexture.equals(event.getOriginalTexture())
-                || !"base".equals(event.getOriginalTarget())) return;
+        if (INSIDE.get() || !DefaultResources.resourceDurabilityTexture.equals(event.getOriginalTexture())) return;
         var state = event.getStack().getCapability(ItemSlashBlade.BLADESTATE).resolve().orElse(null);
         if (state == null) return;
         String key = state.getTranslationKey();
@@ -32,17 +30,22 @@ public final class PortableBackplateClient {
         if (manager.getResource(texture).isEmpty() || manager.getResource(model).isEmpty()) return;
         var frame = BladeModelManager.getInstance().getModel(model);
         if (frame == null) return;
+        // The original renderer uses the custom frame for base and durability-gauge groups.
+        event.setModel(frame);
+        event.setGetRenderType(PortableBackplateRenderType::get);
+        event.setPackedLightIn(LightTexture.FULL_BRIGHT);
+        if (!"base".equals(event.getOriginalTarget())) return;
         event.setCanceled(true);
         INSIDE.set(true);
         PoseStack poses = event.getPoseStack();
         try {
             BladeRenderState.renderOverrided(event.getStack(), frame, "base",
                     DefaultResources.resourceDurabilityTexture, poses, event.getBuffer(),
-                    event.getPackedLightIn(), RenderType::entityCutoutNoCull, false);
+                    event.getPackedLightIn(), PortableBackplateRenderType::get, false);
             BladeRenderState.resetCol();
             BladeRenderState.renderOverrided(event.getStack(), frame, "portrait", texture,
                     poses, event.getBuffer(), LightTexture.FULL_BRIGHT,
-                    RenderType::entityCutoutNoCull, false);
+                    PortableBackplateRenderType::get, false);
         } finally {
             INSIDE.set(false);
             BladeRenderState.resetCol();
