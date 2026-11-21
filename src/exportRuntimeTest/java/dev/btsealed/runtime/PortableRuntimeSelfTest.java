@@ -35,5 +35,28 @@ public final class PortableRuntimeSelfTest {
         System.out.println("BLADE_EXPORT_PRECISION_CLOCK_PASS");
     }
 
+    public static void verifySpiritSwordIsolation() {
+        var data = new net.minecraft.nbt.CompoundTag();
+        String first = "item.bt_export_custom.sealed_blade";
+        String second = "item.bt_export_custom_second.sealed_blade";
+        PortableComponentEffects.startSpiritWindow(data, first, 140);
+        if (PortableComponentEffects.spiritUntil(data, first, 110) != 140
+                || PortableComponentEffects.spiritUntil(data, second, 110) != 0) {
+            throw new IllegalStateException("Spirit Saya buff leaked into a different exported add-on");
+        }
+        PortableComponentEffects.startSpiritWindow(data, second, 180);
+        if (PortableComponentEffects.spiritUntil(data, first, 141) != 0
+                || PortableComponentEffects.spiritUntil(data, second, 141) != 180) {
+            throw new IllegalStateException("Spirit Saya expiry affected a different exported add-on");
+        }
+        // Save/reload must retain each sword's own window.
+        var restored = net.minecraft.nbt.TagParser.parseTag(data.toString());
+        if (PortableComponentEffects.spiritUntil(restored, second, 160) != 180
+                || PortableComponentEffects.spiritUntil(restored, second, 181) != 0) {
+            throw new IllegalStateException("Spirit Saya state failed save/reload or expiration");
+        }
+        System.out.println("BLADE_EXPORT_SPIRIT_ISOLATION_PASS");
+    }
+
     private PortableRuntimeSelfTest() {}
 }
