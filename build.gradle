@@ -411,6 +411,9 @@ dependencies {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    if (project.hasProperty('sjapModelFixtures')) {
+        systemProperty 'blade_tetra.sjapFixtures', project.file(project.property('sjapModelFixtures')).absolutePath
+    }
     if (project.hasProperty('providerEffectAuditJars')) {
         systemProperty 'blade_tetra.providerEffectAuditJars', project.property('providerEffectAuditJars')
     }

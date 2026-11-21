@@ -1,0 +1,9 @@
+{
+  "axis": "x",
+  "blade_groups": [],
+  "blade_luminous_groups": ["blade_luminous"],
+  "blade_anchor": [-39, 3.4, 0],
+  "split_hilt": false,
+  "saya_anchor": [-40, 2.8, 0],
+  "saya_direction": [1, 0, 0]
+}

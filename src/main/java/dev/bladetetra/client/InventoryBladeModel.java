@@ -1,6 +1,7 @@
 package dev.bladetetra.client;
 
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.ModelFormatException;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.TextureCoordinate;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
@@ -11,7 +12,8 @@ import java.util.Map;
 
 /** Immutable icon UV view; shared hand/world models are never mutated. */
 final class InventoryBladeModel {
-    private static final Map<WavefrontObject, WavefrontObject> CACHE = new LinkedHashMap<>();
+    private static final LegacyMeshCache<WavefrontObject, WavefrontObject> CACHE =
+            new LegacyMeshCache<>(128, 160_000, LegacyRenderSources::triangleCount);
     private InventoryBladeModel() {}
 
     static boolean isIcon(String target) {
@@ -21,17 +23,23 @@ final class InventoryBladeModel {
 
     static synchronized WavefrontObject forTarget(WavefrontObject source, String target) {
         if (!isIcon(target)) return source;
-        WavefrontObject cached = CACHE.get(source);
-        if (cached != null) return cached;
+        var view = CACHE.get(source, InventoryBladeModel::view);
+        return view == null ? source : view;
+    }
+
+    private static WavefrontObject view(WavefrontObject source) {
         Map<String, List<Face>> groups = new LinkedHashMap<>();
         for (var group : source.groupObjects) {
-            groups.put(group.name, isIcon(group.name)
-                    ? InventoryGuardGeometry.correct(remap(group.faces)) : group.faces);
+            if (group == null || group.faces == null || group.faces.isEmpty()) continue;
+            groups.computeIfAbsent(group.name, ignored -> new ArrayList<>()).addAll(group.faces);
         }
-        WavefrontObject view = RuntimeWavefrontViewFactory.create(groups);
-        CACHE.put(source, view);
-        if (CACHE.size() > 128) CACHE.remove(CACHE.keySet().iterator().next());
-        return view;
+        groups.replaceAll((name, faces) -> isIcon(name)
+                ? InventoryGuardGeometry.correct(remap(faces)) : faces);
+        try {
+            return RuntimeWavefrontViewFactory.create(groups);
+        } catch (ModelFormatException | IllegalArgumentException unavailable) {
+            return null;
+        }
     }
     static synchronized void clear() { CACHE.clear(); }
 

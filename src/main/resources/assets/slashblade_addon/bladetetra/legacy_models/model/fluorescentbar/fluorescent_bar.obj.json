@@ -1,0 +1,7 @@
+{
+  "axis": "x",
+  "blade_groups": ["blade"],
+  "split_hilt": false,
+  "saya_anchor": [39, 9.9, 0],
+  "saya_direction": [1, 0, 0]
+}

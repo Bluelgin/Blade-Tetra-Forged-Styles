@@ -1,86 +1,245 @@
 package dev.bladetetra.client;
 
-import dev.bladetetra.forging.LegacyModelAnalysis;
+import com.google.gson.JsonParser;
+import com.mojang.blaze3d.vertex.PoseStack;
+import dev.bladetetra.client.LegacySourceMesh.Component;
+import dev.bladetetra.forging.LegacyCalibrationProfile;
+import dev.bladetetra.forging.LegacyModelAdapter;
+import dev.bladetetra.forging.LegacyModelAdapter.Axis;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.TextureCoordinate;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
+import org.joml.Vector3f;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import java.io.*;
+
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class NamedLegacyGeometryTest {
-    @Test void everyBundledModelProducesRealGuardGripAndSayaFaces() throws Exception {
-        for (String file : java.util.List.of("named/sange/sange.obj", "named/dios/dios.obj",
-                "named/agito.obj", "named/yamato.obj", "named/muramasa/muramasa.obj",
-                "named/yasha/yasha.obj", "named/yasha/yasha_true.obj", "blade.obj")) {
-            try (InputStream input = getClass().getResourceAsStream("/assets/slashblade/model/" + file)) {
-                assertNotNull(input, file);
-                byte[] bytes = input.readAllBytes();
-                var analysis = LegacyModelAnalysis.analyze(new InputStreamReader(
-                        new ByteArrayInputStream(bytes), StandardCharsets.UTF_8));
-                var model = new WavefrontObject(file, new ByteArrayInputStream(bytes));
-                var result = LegacyModelPartRenderer.validateModel(model, analysis.profile());
-                assertTrue(result.valid(), file + ": " + result);
-                assertTrue(LegacyModelPartRenderer.supportsAutomaticHiltModel(model, analysis.profile()), file);
-                try (InputStream ironInput = getClass().getResourceAsStream(
-                        "/assets/blade_tetra/model/modular/alpha9/katana_basic_simple_stable.obj")) {
-                    assertNotNull(ironInput);
-                    var iron = new WavefrontObject("iron", ironInput);
-                    for (String part : java.util.List.of("TSUBA", "TSUKA", "SAYA", "HILT")) {
-                        var mount = LegacyModelPartRenderer.inspectMount(model, iron, analysis.profile(), part);
-                        assertNotNull(mount, file + "/" + part);
-                        assertTrue(Float.isFinite(mount.lengthScale()) && mount.lengthScale() > 0);
-                        assertTrue(Float.isFinite(mount.widthScale()) && mount.widthScale() > 0);
-                        var tweak = new dev.bladetetra.forging.LegacyCalibrationProfile.PartTransform(1.2F, 0, 0, 7, 1.3F, .8F);
-                        var root = mount.point(mount.sourceX(), mount.sourceY(), mount.sourceZ(), tweak);
-                        assertEquals(mount.targetX(), root.x, .0001F, file + "/" + part + " anchor X");
-                        assertEquals(mount.targetY(), root.y, .0001F, file + "/" + part + " anchor Y");
-                        assertEquals(mount.targetZ(), root.z, .0001F, file + "/" + part + " anchor Z");
+    @AfterEach
+    void resetGeometryCaches() {
+        LegacyRenderSources.clear();
+        NamedBladeRenderPlan.clear();
+    }
+
+    @Test
+    void clippingUsesAllSixCardinalDirectionsAndInterpolatesUv() {
+        for (Axis axis : Axis.values()) for (boolean flip : List.of(false, true)) {
+            var frame = LegacyMeshFrame.cardinal(axis, flip, axis == Axis.X ? Axis.Y : Axis.X);
+            var along = frame.direction();
+            var width = frame.width();
+            Face face = triangle(vertex(new Vector3f(along).mul(-4)), vertex(new Vector3f(along).mul(4)),
+                    vertex(new Vector3f(along).mul(4).add(width)));
+            var clipped = LegacyFaceClipper.clip(List.of(face), frame::along, -10, 0);
+            assertEquals(1, clipped.size(), axis + "/" + flip);
+            var result = clipped.get(0);
+            for (int i = 0; i < result.vertices.length; i++) {
+                float distance = frame.along(result.vertices[i]);
+                assertTrue(distance <= .0001F);
+                if (Math.abs(distance) < .0001F) assertEquals(.5F, result.textureCoordinates[i].u, .0001F);
+            }
+        }
+    }
+
+    @Test
+    void sourceIdentityAndSeparateChannelsArePreservedForMixedGroups() throws Exception {
+        var model = parse("""
+                o cutting_edge
+                v -250 27 2
+                v -30 27 2
+                v -30 34 2
+                f 1 2 3
+                o trim
+                v -245 24 2
+                v -30 24 2
+                v -30 25 2
+                f 4 5 6
+                o accents
+                v -220 27 1
+                v -30 27 1
+                v -30 34 1
+                f 7 8 9
+                o fitting
+                v -30 25 2
+                v 50 27 2
+                v 50 35 2
+                f 10 11 12
+                """);
+        var rules = rules("""
+                {"blade_groups":["cutting_edge","trim"],"blade_luminous_groups":["accents"],
+                "hilt_groups":["fitting"],"blade_anchor":[-30,29,2]}
+                """);
+        var source = source(model, rules);
+        assertEquals(LegacyRenderSources.Support.PARTIAL, source.support(Component.BLADE));
+        assertEquals(LegacyRenderSources.Support.FULL, source.support(Component.HILT));
+        assertEquals(LegacyRenderSources.Support.UNSUPPORTED, source.support(Component.SAYA));
+        var views = LegacyRenderSources.views(source, Component.BLADE, "blade");
+        assertEquals(2, LegacyRenderSources.triangleCount(views.base()));
+        assertEquals(1, LegacyRenderSources.triangleCount(views.luminous()));
+        assertSame(views, LegacyRenderSources.views(source, Component.BLADE, "blade"));
+        LegacyRenderSources.clear();
+        assertNotSame(views, LegacyRenderSources.views(source, Component.BLADE, "blade"));
+    }
+
+    @Test
+    void fullHiltPreservesLengthAndTheSameMountWorksInThePoseStack() throws Exception {
+        var source = source(model("/assets/slashblade/model/blade.obj"), LegacyModelRules.AUTOMATIC);
+        float previousWorld = 0;
+        for (String style : List.of("wakizashi", "orthodox", "katana", "nodachi")) {
+            var target = target(style);
+            var blade = assertMount(source, target, Component.BLADE, "blade");
+            var hilt = assertMount(source, target, Component.HILT, "blade");
+            assertEquals(1, hilt.scale(), .0001F);
+            assertTrue(blade.target().origin().distance(hilt.target().origin()) < .0001F);
+            assertTrue(blade.scale() > previousWorld);
+            previousWorld = blade.scale();
+            assertMount(source, target, Component.BLADE, "item_blade");
+            assertMount(source, target, Component.BLADE, "item_bladens");
+            assertMount(source, target, Component.BLADE, "item_damaged");
+            assertMount(source, target, Component.SAYA, "sheath");
+            assertMount(source, target, Component.SAYA, "item_blade");
+        }
+    }
+
+    @Test
+    void explicitAnchorAndCalibrationComposeInTargetCoordinates() {
+        var from = LegacyMeshFrame.cardinal(Axis.Z, true, Axis.Y).at(new Vector3f(17, 5, 11));
+        var to = LegacyMeshFrame.cardinal(Axis.X, false, Axis.Y).at(new Vector3f(7, 3, 2));
+        var tweak = new LegacyCalibrationProfile.PartTransform(1.2F, .1F, .2F, 15);
+        var mount = new LegacyMeshFrame.Mount(from, to, tweak, 1, 40);
+        var point = mount.matrix().transformPosition(new Vector3f(from.origin()));
+        assertEquals(11, point.x, .0001F);
+        assertEquals(11, point.y, .0001F);
+        assertEquals(2, point.z, .0001F);
+        var poses = new PoseStack();
+        mount.apply(poses);
+        assertTrue(point.distance(poses.last().pose().transformPosition(new Vector3f(from.origin()))) < .0001F);
+    }
+
+    @Test
+    void weightBudgetAndNegativeCacheHoldUntilReload() {
+        var cache = new LegacyMeshCache<String, Integer>(4, 10, value -> value);
+        assertEquals(8, cache.get("large", key -> 8));
+        assertNull(cache.get("missing", key -> null));
+        assertNull(cache.get("missing", key -> 3));
+        assertEquals(4, cache.get("small", key -> 4));
+        assertEquals(2, cache.get("large", key -> 2));
+        cache.clear();
+        assertEquals(3, cache.get("missing", key -> 3));
+    }
+
+    @Test
+    void malformedFacesAndExcessiveTriangleCountsAreRejected() {
+        WavefrontObject large = parse("""
+                o blade
+                v -250 0 0
+                v -30 2 0
+                v -30 3 0
+                f 1 2 3
+                """);
+        var group = large.groupObjects.get(0);
+        Face invalid = triangle(new Vertex(Float.NaN, 0, 0), new Vertex(1, 0, 0), new Vertex(0, 1, 0));
+        group.faces.add(invalid);
+        var accepted = source(large, rules("{\"blade_groups\":[\"blade\"]}"));
+        assertEquals(1, LegacyRenderSources.geometry(accepted, Component.BLADE, "blade").base().size());
+        group.faces.addAll(java.util.Collections.nCopies(LegacySourceMesh.MAX_TRIANGLES, group.faces.get(0)));
+        assertThrows(IllegalArgumentException.class, () -> source(large, LegacyModelRules.AUTOMATIC));
+    }
+
+    @Test
+    void optionalSjapModelsUseActualProviderGeometry() throws Exception {
+        String fixturePath = System.getProperty("blade_tetra.sjapFixtures");
+        org.junit.jupiter.api.Assumptions.assumeTrue(fixturePath != null);
+        var target = target("katana");
+        for (String file : List.of("toyako/toyako.obj", "murakumo/model.obj", "kirisaya/kirisaya.obj",
+                "fluorescentbar/fluorescent_bar.obj", "murasama/murasama.obj", "darkraven/dark_raven.obj")) {
+            Path override = Path.of("src/main/resources/assets/slashblade_addon/bladetetra/legacy_models/model/" + file + ".json");
+            var rules = Files.exists(override) ? rules(Files.readString(override)) : LegacyModelRules.AUTOMATIC;
+            Path path = Path.of(fixturePath).resolve(file);
+            try (var stream = Files.newInputStream(path)) {
+                var source = source(new WavefrontObject(file, stream), rules);
+                assertMount(source, target, Component.BLADE, "blade");
+                if (file.startsWith("toyako")) {
+                    assertEquals(LegacyRenderSources.Support.UNSUPPORTED, source.support(Component.SAYA));
+                } else {
+                    assertMount(source, target, Component.SAYA, "sheath");
+                }
+                if (file.startsWith("murakumo")) {
+                    assertTrue(source.mesh().separateHilt);
+                    assertMount(source, target, Component.HILT, "blade");
+                    var icon = assertMount(source, target, Component.HILT, "item_blade");
+                    var faces = LegacyRenderSources.geometry(source, Component.HILT, "item_blade").reference();
+                    var matrix = icon.matrix();
+                    for (Face face : faces) for (Vertex v : face.vertices) {
+                        var point = matrix.transformPosition(new Vector3f(v.x, v.y, v.z));
+                        assertTrue(Math.abs(point.x) <= 100 && Math.abs(point.y) <= 100,
+                                "Murakumo's grip must fit inside the normal Tetra icon envelope");
                     }
+                }
+                if (file.startsWith("kirisaya")) {
+                    var views = LegacyRenderSources.views(source, Component.BLADE, "blade");
+                    assertNull(views.base());
+                    assertNotNull(views.luminous());
+                }
+                if (file.startsWith("fluorescentbar")) {
+                    var views = LegacyRenderSources.views(source, Component.BLADE, "blade");
+                    assertNotNull(views.base());
+                    assertNotNull(views.luminous());
                 }
             }
         }
     }
-    @Test void namedBladeRootFollowsTheAuthoredSocketAcrossLengths() throws Exception {
-        String path = "/assets/slashblade/model/named/sange/sange.obj";
-        byte[] bytes;
-        try (var stream = getClass().getResourceAsStream(path)) {
-            assertNotNull(stream, path);
-            bytes = stream.readAllBytes();
-        }
-        var profile = LegacyModelAnalysis.analyze(new InputStreamReader(
-                new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)).profile();
-        var source = new WavefrontObject("sange", new ByteArrayInputStream(bytes));
-        var part = LegacyModelPartRenderer.Part.BLADE;
-        var sourceIcon = LegacyModelPartRenderer.iconSpan(source, "item_blade", part, profile, false);
-        assertNotNull(sourceIcon);
-        float previousWorldLength = 0, previousIconLength = 0;
-        for (String style : java.util.List.of("wakizashi", "orthodox", "katana", "nodachi")) {
-            String filename = "/assets/blade_tetra/model/modular/alpha9/" + style + "_basic_simple_stable.obj";
-            try (var stream = getClass().getResourceAsStream(filename)) {
-                assertNotNull(stream, filename);
-                var target = new WavefrontObject(style, stream);
-                var collar = LegacyModelPartRenderer.modularFaces(target, "blade",
-                        LegacyModelPartRenderer.Part.TSUBA);
-                double front = collar.stream().flatMap(face -> java.util.Arrays.stream(face.vertices))
-                        .mapToDouble(vertex -> vertex.x).min().orElseThrow();
-                var mount = LegacyModelPartRenderer.inspectMount(source, target, profile, "BLADE");
-                assertNotNull(mount, style);
-                assertEquals(mount.sourceMaxX(), mount.sourceX(), .0001F, style + " source uses the blade root");
-                assertTrue(mount.targetX() >= front && mount.targetX() <= front + 6,
-                        style + " blade root must seat inside the ordinary collar");
-                assertTrue(mount.lengthScale() > previousWorldLength, style + " world blade length");
-                previousWorldLength = mount.lengthScale();
 
-                var targetIcon = LegacyModelPartRenderer.iconSpan(target, "item_blade", part,
-                        dev.bladetetra.forging.LegacyCalibrationProfile.DEFAULT, true);
-                assertNotNull(targetIcon, style);
-                var poses = new com.mojang.blaze3d.vertex.PoseStack();
-                LegacyModelPartRenderer.applyIconMount(poses, source, target, "item_blade", part, profile);
-                var fitted = poses.last().pose().transformPosition(new org.joml.Vector3f(sourceIcon.root()));
-                assertTrue(fitted.distance(targetIcon.root()) < .001F, style + " icon socket");
-                assertTrue(targetIcon.length() > previousIconLength, style + " icon blade length");
-                previousIconLength = targetIcon.length();
-            }
+    private static LegacyMeshFrame.Mount assertMount(LegacyRenderSources.Source source, WavefrontObject target,
+            Component part, String group) {
+        var result = NamedBladeRenderPlan.mounted(source, part, target, group);
+        assertNotNull(result, () -> target + "/" + part + "/" + group + " " + source.support(part));
+        var mount = result.mount();
+        var mapped = mount.matrix().transformPosition(new Vector3f(mount.source().origin()));
+        assertTrue(mapped.distance(mount.target().origin()) < .001F);
+        return mount;
+    }
+
+    private static LegacyRenderSources.Source source(WavefrontObject model, LegacyModelRules rules) {
+        return new LegacyRenderSources.Source(new LegacySourceMesh(model, rules, LegacyCalibrationProfile.DEFAULT),
+                LegacyRenderSources.triangleCount(model), "", null);
+    }
+
+    private static LegacyModelRules rules(String json) {
+        return new LegacyModelRules(JsonParser.parseString(json).getAsJsonObject(), LegacyModelAdapter.STANDARD);
+    }
+
+    private static WavefrontObject target(String style) throws Exception {
+        return model("/assets/blade_tetra/model/modular/alpha9/" + style + "_basic_simple_stable.obj");
+    }
+
+    private static WavefrontObject model(String resource) throws Exception {
+        try (var stream = NamedLegacyGeometryTest.class.getResourceAsStream(resource)) {
+            assertNotNull(stream, resource);
+            return new WavefrontObject(resource, stream);
         }
+    }
+
+    private static WavefrontObject parse(String obj) {
+        return new WavefrontObject("fixture", new ByteArrayInputStream(obj.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static Face triangle(Vertex a, Vertex b, Vertex c) {
+        Face face = new Face();
+        face.vertices = new Vertex[]{a, b, c};
+        face.textureCoordinates = new TextureCoordinate[]{new TextureCoordinate(0, 0),
+                new TextureCoordinate(1, 0), new TextureCoordinate(1, 1)};
+        return face;
+    }
+
+    private static Vertex vertex(Vector3f vector) {
+        return new Vertex(vector.x, vector.y, vector.z);
     }
 }

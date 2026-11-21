@@ -121,10 +121,22 @@ public final class NamedLegacyPack extends AbstractPackResources {
                 "Repair the blade before extracting a named ingot");
         zh.addProperty("tooltip.blade_tetra.imprint.ingot_repair",
                 "修复此刀后可提取名刀锭");
-        en.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "Fittings forged with this blade's ingot will use the standard model.");
-        zh.addProperty("tooltip.blade_tetra.imprint.visual_fallback",
-                "用此刀的名刀锭锻造时，刀装会使用普通模型");
+        en.addProperty("tooltip.blade_tetra.imprint.visual_part", "%1$s — %2$s");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual_part", "%1$s · %2$s");
+        en.addProperty("tooltip.blade_tetra.imprint.part.blade", "Blade");
+        zh.addProperty("tooltip.blade_tetra.imprint.part.blade", "刀身");
+        en.addProperty("tooltip.blade_tetra.imprint.part.hilt", "Hilt");
+        zh.addProperty("tooltip.blade_tetra.imprint.part.hilt", "镡柄刀装");
+        en.addProperty("tooltip.blade_tetra.imprint.part.saya", "Sheath");
+        zh.addProperty("tooltip.blade_tetra.imprint.part.saya", "刀鞘");
+        en.addProperty("tooltip.blade_tetra.imprint.visual.partial", "standard geometry in some display states");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual.partial", "部分显示状态使用普通模型");
+        en.addProperty("tooltip.blade_tetra.imprint.visual.needs_adapter", "standard geometry until an adapter is available");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual.needs_adapter", "需要模型适配，当前使用普通模型");
+        en.addProperty("tooltip.blade_tetra.imprint.visual.unsupported", "uses standard geometry");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual.unsupported", "使用普通模型");
+        en.addProperty("tooltip.blade_tetra.imprint.visual.missing_resource", "source resource missing");
+        zh.addProperty("tooltip.blade_tetra.imprint.visual.missing_resource", "来源资源缺失");
         en.addProperty("tooltip.blade_tetra.imprint.catalog_id",
                 "Blade Tetra · Source: %1$s");
         zh.addProperty("tooltip.blade_tetra.imprint.catalog_id",
