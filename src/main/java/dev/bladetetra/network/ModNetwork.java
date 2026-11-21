@@ -10,9 +10,10 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    // Blade Seal preview now carries a capability report and an export eligibility flag.
-    // Reject older clients at handshake instead of decoding an incompatible packet shape.
-    private static final String PROTOCOL = "awakened2-blood-threads-10";
+    // Blade Seal Preview carries awakening-omission notice and Confirm carries
+    // opt-in consent. Older clients cannot safely decode either changed packet.
+    // Bump handshake version to reject wire-incompatible mixed deployments.
+    private static final String PROTOCOL = "awakened2-blood-threads-11";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
