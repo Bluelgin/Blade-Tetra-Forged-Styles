@@ -49,27 +49,27 @@ class CleanReceiverContractTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.directory = Path(self.temp.name)
 
-    def make_four(self, **overrides):
+    def make_five(self, **overrides):
         for name in EXPECTED_SWORDS:
             make_package(self.directory, name, **overrides)
 
     def test_complete_independent_packages(self):
-        self.make_four()
-        self.assertEqual(len(inspect_exports(self.directory, "1.9.63")), 4)
+        self.make_five()
+        self.assertEqual(len(inspect_exports(self.directory, "1.9.63")), 5)
 
     def test_65_package_versions_must_match_target(self):
-        self.make_four(slashblade="1.9.65")
-        self.assertEqual(len(inspect_exports(self.directory, "1.9.65")), 4)
+        self.make_five(slashblade="1.9.65")
+        self.assertEqual(len(inspect_exports(self.directory, "1.9.65")), 5)
         with self.assertRaisesRegex(RuntimeError, "targets SlashBlade"):
             inspect_exports(self.directory, "1.9.63")
 
     def test_refuse_source_dependency(self):
-        self.make_four(source_dependency=True)
+        self.make_five(source_dependency=True)
         with self.assertRaisesRegex(RuntimeError, "source mod"):
             inspect_exports(self.directory, "1.9.63")
 
     def test_detect_tampered_package_hash(self):
-        self.make_four(corrupt=True)
+        self.make_five(corrupt=True)
         with self.assertRaisesRegex(RuntimeError, "Tampered"):
             inspect_exports(self.directory, "1.9.63")
 
@@ -81,7 +81,7 @@ class CleanReceiverContractTests(unittest.TestCase):
 
     def test_refuse_missing_fixture(self):
         make_package(self.directory, "bt_export_custom")
-        with self.assertRaisesRegex(RuntimeError, "Expected exactly 4"):
+        with self.assertRaisesRegex(RuntimeError, "Expected exactly 5"):
             inspect_exports(self.directory, "1.9.63")
     def test_probe_must_not_share_runtime_module_package(self):
         probe = self.directory / "receiver-probe.jar"
