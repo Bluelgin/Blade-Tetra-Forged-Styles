@@ -55,6 +55,7 @@ jobs:
       - name: Test suite-selection boundaries
         run: |
           python3 -m unittest discover -s tools/ci -p 'test_*.py'
+          python3 tools/ci/check_export_runtime_isolation.py
           python3 tools/ci/check_resources.py
       - uses: actions/setup-java@v4
         if: needs.plan.outputs.quick == 'true'
@@ -65,7 +66,7 @@ jobs:
         if: needs.plan.outputs.quick == 'true'
       - name: Compile production and development tools; test; verify release JAR
         if: needs.plan.outputs.quick == 'true'
-        run: ./gradlew build integrationTestClasses verifyProductionJar kyoukaNativeApiAudit
+        run: ./gradlew -PexportRuntimeProbe build integrationTestClasses exportRuntimeTestClasses verifyProductionJar kyoukaNativeApiAudit
       - uses: actions/upload-artifact@v4
         if: always() && needs.plan.outputs.quick == 'true'
         with:

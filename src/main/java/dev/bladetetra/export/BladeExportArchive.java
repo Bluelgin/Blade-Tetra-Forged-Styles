@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
@@ -16,11 +17,13 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /** Writes a generated Forge addon using only explicitly supplied, validated resources. */
@@ -68,16 +71,9 @@ final class BladeExportArchive {
     static Path write(Path gameDirectory, Metadata metadata, String exporterVersion,
             NativeBladeExport definition, BladeExportRecipe recipe, List<Dependency> dependencies,
             List<Fitting> fittings, List<ExportResourceEvidence> appearanceSources,
-            Map<ResourceLocation, byte[]> bakedAssets) throws IOException {
-        return write(gameDirectory, metadata, exporterVersion, definition, recipe, dependencies, fittings,
-                appearanceSources, bakedAssets, null);
-    }
-
-    static Path write(Path gameDirectory, Metadata metadata, String exporterVersion,
-            NativeBladeExport definition, BladeExportRecipe recipe, List<Dependency> dependencies,
-            List<Fitting> fittings, List<ExportResourceEvidence> appearanceSources,
             Map<ResourceLocation, byte[]> bakedAssets, ExportBattleProfile battle) throws IOException {
-        if (battle != null && !battle.moves().isEmpty() && !battle.supports(definition.combo())) {
+        Objects.requireNonNull(battle, "A sealed export always includes a portable battle profile");
+        if (!battle.moves().isEmpty() && !battle.supports(definition.combo())) {
             throw new IllegalArgumentException("Custom moves require the portable custom combo root");
         }
         var blade = ResourceLocation.fromNamespaceAndPath(metadata.modId(), "sealed_blade");
@@ -114,7 +110,7 @@ final class BladeExportArchive {
         }
 
         Map<String, byte[]> entries = new TreeMap<>();
-        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies, battle != null));
+        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies));
         add(entries, "pack.mcmeta", "{\"pack\":{\"pack_format\":15,\"description\":\"Blade Tetra sealed blade\"}}");
         add(entries, "data/" + metadata.modId() + "/slashblade/named_blades/sealed_blade.json",
                 JSON.toJson(definition.encode(blade, mods, bakedAssets.keySet(), battle)));
@@ -155,18 +151,18 @@ final class BladeExportArchive {
             }
         }
 
-        if (battle != null) addBattleRuntime(entries, blade, battle);
+        addBattleRuntime(entries, blade, definition.combo(), battle);
 
         UUID exportId = UUID.randomUUID();
         Map<String, String> digests = new TreeMap<>();
         entries.forEach((name, bytes) -> digests.put(name, hash(bytes)));
         add(entries, "blade-export.json", JSON.toJson(new Certificate(1, exportId, exporterVersion,
-                blade, dependencies, fittings, appearanceSources, digests)));
+                blade, battle.capabilities(definition.combo()), dependencies, fittings, appearanceSources, digests)));
         return writeArchive(gameDirectory, metadata, exportId, entries);
     }
 
     private static void addBattleRuntime(Map<String, byte[]> entries, ResourceLocation blade,
-            ExportBattleProfile battle) throws IOException {
+            ResourceLocation comboRoot, ExportBattleProfile battle) throws IOException {
         String path = "META-INF/jarjar/bt-export-runtime-" + ExportBattleProfile.RUNTIME_VERSION + ".jar";
         try (var runtime = BladeExportArchive.class.getResourceAsStream(ExportBattleProfile.RESOURCE)) {
             if (runtime == null) throw new IOException("Sealed blade runtime is missing from this build");
@@ -192,12 +188,17 @@ final class BladeExportArchive {
         add(entries, "META-INF/jarjar/metadata.json", JSON.toJson(jarJar));
 
         String profile = "/" + blade.getNamespace() + "/blade_export/" + blade.getPath() + ".json";
-        add(entries, "data" + profile, JSON.toJson(battle));
-        add(entries, "assets" + profile, JSON.toJson(battle));
+        JsonObject payload = JSON.toJsonTree(battle).getAsJsonObject();
+        payload.addProperty("comboRoot", comboRoot.toString());
+        var capabilities = new com.google.gson.JsonArray();
+        battle.capabilities(comboRoot).forEach(capabilities::add);
+        payload.add("capabilities", capabilities);
+        add(entries, "data" + profile, JSON.toJson(payload));
+        add(entries, "assets" + profile, JSON.toJson(payload));
     }
 
     private record Certificate(int schema, UUID exportId, String exporterVersion, ResourceLocation blade,
-                               List<Dependency> dependencies, List<Fitting> namedFittings,
+                               List<String> capabilities, List<Dependency> dependencies, List<Fitting> namedFittings,
                                List<ExportResourceEvidence> appearanceInputs, Map<String, String> sha256) {}
 
     private static void appendEvidence(StringBuilder notices, ExportResourceEvidence asset) {
@@ -208,15 +209,15 @@ final class BladeExportArchive {
                 .append(asset.permission()).append('\n');
     }
 
-    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies, boolean runtime) {
+    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies) {
         return "modLoader=\"lowcodefml\"\nloaderVersion=\"[47,48)\"\nlicense=" + toml(LICENSE_TITLE)
                 + "\n[[mods]]\nmodId=" + toml(metadata.modId()) + "\nversion=" + toml(metadata.version())
                 + "\ndisplayName=" + toml(metadata.title()) + "\nauthors=" + toml(metadata.author())
                 + "\ndescription=" + toml(metadata.description().strip() + "\n\n" + NOTICE) + "\n"
                 + dependency(metadata.modId(), "forge", "[47,48)")
                 + dependency(metadata.modId(), "minecraft", "[1.20.1]")
-                + (runtime ? dependency(metadata.modId(), ExportBattleProfile.RUNTIME_ID,
-                    "[" + ExportBattleProfile.RUNTIME_VERSION + "]") : "")
+                + dependency(metadata.modId(), ExportBattleProfile.RUNTIME_ID,
+                    "[" + ExportBattleProfile.RUNTIME_VERSION + "]")
                 + dependencies.stream().sorted(java.util.Comparator.comparing(Dependency::modId))
                         .map(dep -> dependency(metadata.modId(), dep.modId(), "[" + dep.version() + "]"))
                         .collect(java.util.stream.Collectors.joining());
@@ -278,9 +279,37 @@ final class BladeExportArchive {
                     zip.closeEntry();
                 }
             }
-            return Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
+            // An export must be fully readable before it becomes visible as a .jar.
+            verifyArchive(temporary, entries);
+            try {
+                return Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                // Some removable drives and filesystems cannot atomically rename.
+                // This is a same-directory move of a closed, fully verified file.
+                return Files.move(temporary, output);
+            }
         } finally {
             Files.deleteIfExists(temporary);
+        }
+    }
+
+    private static void verifyArchive(Path archive, Map<String, byte[]> expected) throws IOException {
+        try (ZipFile zip = new ZipFile(archive.toFile())) {
+            if (zip.size() != expected.size()) {
+                throw new IOException("Export archive entry count mismatch");
+            }
+            for (var entry : expected.entrySet()) {
+                ZipEntry zipped = zip.getEntry(entry.getKey());
+                if (zipped == null || zipped.isDirectory() || zipped.getSize() != entry.getValue().length) {
+                    throw new IOException("Export archive is missing or truncates " + entry.getKey());
+                }
+                try (var input = zip.getInputStream(zipped)) {
+                    byte[] bytes = input.readNBytes(MAX_ENTRY_BYTES + 1);
+                    if (bytes.length > MAX_ENTRY_BYTES || !hash(bytes).equals(hash(entry.getValue()))) {
+                        throw new IOException("Export archive verification failed: " + entry.getKey());
+                    }
+                }
+            }
         }
     }
 

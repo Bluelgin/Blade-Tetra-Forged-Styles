@@ -3,6 +3,7 @@ package dev.btsealed.probe;
 import com.mojang.logging.LogUtils;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
+import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -19,6 +20,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraftforge.common.MinecraftForge;
@@ -91,13 +94,130 @@ public final class ExportRuntimeProbe {
             if (hit.getAmount() != 7.5F || secondState.getDamage() != damageBefore + 1) {
                 throw new IllegalStateException("Guard tsuba effect was not retained");
             }
+            verifyPrecisionRank(world, player, second);
+            verifyReinforcedKnockback(world, player);
             verifyDangaku(world, player);
+            PortableRuntimeSelfTest.verifyPrecisionClock();
+            PortableRuntimeSelfTest.verifySpiritSwordIsolation();
+            PortableRuntimeSelfTest.verifyReinforcedArithmetic();
+            PortableRuntimeSelfTest.verifyCapabilityContracts();
             LogUtils.getLogger().info("BLADE_EXPORT_RUNTIME_PROBE_PASS");
         } catch (RuntimeException error) {
             LogUtils.getLogger().error("BLADE_EXPORT_RUNTIME_PROBE_FAIL", error);
             throw error;
         } finally {
             event.getServer().halt(false);
+        }
+    }
+
+    /** Compare actual native Rank balances with the original Blade Tetra precision-habaki acceptance fixture. */
+    private static void verifyPrecisionRank(ServerLevel world, ServerPlayer player, ItemStack focusBlade) {
+        var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
+        long originalTime = world.getGameTime();
+        // Match the source-mod parity fixture: the pre-start zero tick is not
+        // a real elapsed combat tick and must not influence Rank decay.
+        long firstTick = Math.max(1L, originalTime);
+        long initial = rank.getUnitCapacity() * 2L + 120L;
+        try {
+            rank.setRawRankPoint(initial);
+            rank.setLastUpdte(firstTick);
+            for (int tick = 0; tick <= 40; tick++) {
+                long now = firstTick + tick;
+                world.getServer().getWorldData().overworldData().setGameTime(now);
+                player.setItemInHand(InteractionHand.MAIN_HAND,
+                        tick >= 20 && tick < 30 ? ItemStack.EMPTY : focusBlade);
+                playerTick(player);
+                if (tick == 20 && rank.getRankPoint(now) != initial - 10L) {
+                    throw new IllegalStateException("Precision Habaki did not halve native Rank decay: expected="
+                            + (initial - 10L) + ", actual=" + rank.getRankPoint(now)
+                            + ", lastUpdate=" + rank.getLastUpdate());
+                }
+                if (tick == 30 && rank.getRankPoint(now) != initial - 20L) {
+                    throw new IllegalStateException("Precision Habaki swap parity failed: expected="
+                            + (initial - 20L) + ", actual=" + rank.getRankPoint(now)
+                            + ", lastUpdate=" + rank.getLastUpdate());
+                }
+            }
+            if (rank.getRankPoint(firstTick + 40) != initial - 25L) {
+                throw new IllegalStateException("Precision Habaki resumed with wrong native Rank decay");
+            }
+            rank.addRankPoint(player, -60L);
+            if (rank.getRankPoint(firstTick + 40) != initial - 85L) {
+                throw new IllegalStateException("Precision Habaki explicit Rank cost mismatch: expected="
+                        + (initial - 85L) + ", actual=" + rank.getRankPoint(firstTick + 40));
+            }
+            LogUtils.getLogger().info("BLADE_EXPORT_PRECISION_RANK_PASS");
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, focusBlade);
+            world.getServer().getWorldData().overworldData().setGameTime(originalTime);
+        }
+    }
+
+    /** Actual native slash/velocity parity with Blade Tetra's reinforced-habaki Forge smoke. */
+    private static void verifyReinforcedKnockback(ServerLevel world, ServerPlayer player) {
+        world.getChunk(0, 0);
+        long originalTime = world.getGameTime();
+        var originalHand = player.getMainHandItem().copy();
+        try {
+            world.getServer().getWorldData().overworldData().setGameTime(Math.max(1L, originalTime));
+            player.moveTo(4, 200, 4, 0, 0);
+            player.setYHeadRot(0);
+            player.yBodyRot = 0;
+            player.setShiftKeyDown(false);
+            player.setPose(net.minecraft.world.entity.Pose.STANDING);
+            player.setOnGround(true);
+
+            var ordinary = slashMomentum(world, player, "bt_export_custom", KnockBacks.cancel);
+            var strong = slashMomentum(world, player, "bt_export_reinforced", KnockBacks.cancel);
+            var toss = slashMomentum(world, player, "bt_export_reinforced", KnockBacks.toss);
+            if (Math.abs(ordinary.z - .12D) > .02D || Math.abs(ordinary.y - .04D) > .01D) {
+                throw new IllegalStateException("Ordinary native slash momentum changed: " + ordinary);
+            }
+            if (!(strong.z > .60D) || Math.abs(strong.y - .04D) > .01D) {
+                throw new IllegalStateException("Reinforced slash did not preserve source horizontal/y parity: "
+                        + strong + " (ordinary=" + ordinary + ")");
+            }
+            if (toss.y < .75D) {
+                throw new IllegalStateException("Reinforced Habaki altered native special toss: " + toss);
+            }
+            LogUtils.getLogger().info("BLADE_EXPORT_REINFORCED_KNOCKBACK_PASS: ordinary={}, strong={}, toss={}",
+                    ordinary, strong, toss);
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, originalHand);
+            world.getServer().getWorldData().overworldData().setGameTime(originalTime);
+        }
+    }
+
+    private static Vec3 slashMomentum(ServerLevel world, ServerPlayer player, String namespace,
+            KnockBacks knockback) {
+        var blade = craft(world, namespace);
+        player.setItemInHand(InteractionHand.MAIN_HAND, blade);
+        var state = blade.getCapability(ItemSlashBlade.BLADESTATE).resolve().orElseThrow();
+        state.setComboSeq(ComboStateRegistry.COMBO_A1.getId());
+        state.setLastActionTime(world.getGameTime());
+        var target = new Zombie(world);
+        target.setNoAi(true);
+        target.setPos(4, 200, 5.5);
+        target.setOnGround(true);
+        target.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        target.setDeltaMovement(0D, .04D, .12D);
+        if (!world.addFreshEntity(target)) throw new IllegalStateException("Native knockback target was not registered");
+        state.setTargetEntityId(target.getId());
+        var slash = mods.flammpfeil.slashblade.util.AttackManager.doSlash(
+                player, 0, Vec3.ZERO, false, true, 1, knockback);
+        try {
+            if (slash == null || slash.getShooter() != player) {
+                throw new IllegalStateException("Failed to create a native SlashBlade slash for " + namespace);
+            }
+            slash.tickCount = 2;
+            slash.tick();
+            if (target.getHealth() >= target.getMaxHealth()) {
+                throw new IllegalStateException("Native slash missed its test target: " + namespace);
+            }
+            return target.getDeltaMovement();
+        } finally {
+            if (slash != null) slash.discard();
+            target.discard();
         }
     }
 

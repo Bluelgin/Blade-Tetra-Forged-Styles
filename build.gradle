@@ -157,8 +157,11 @@ minecraft {
                 property 'blade_tetra.namedIngotSmoke', 'true'
             }
             if (project.hasProperty('exportPackageSmoke')) {
-                workingDirectory project.file('build/blade-export-package-smoke')
+                workingDirectory project.file(project.hasProperty('slashblade1965')
+                        ? 'build/blade-export-package-smoke-1965' : 'build/blade-export-package-smoke')
                 property 'blade_tetra.exportPackageSmoke', 'true'
+                property 'blade_tetra.expectedSlashbladeVersion',
+                        project.hasProperty('slashblade1965') ? '1.9.65' : '1.9.63'
             }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
@@ -277,8 +280,11 @@ dependencies {
             ? "local:tetra:1.20.1-6.9.0"
             : "curse.maven:tetra-289712:${tetra_file_id}")
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
+    // Explicit compatibility fixture: SlashBlade: Resharped 1.9.65 (CurseForge file 8090912).
+    // The default stays on 1.9.63 until the independent matrix has passed.
+    def slashbladeFixtureFile = project.hasProperty('slashblade1965') ? '8090912' : slashblade_resharped_file_id
     implementation fg.deobf(
-            "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+            "curse.maven:slashblade-resharped-1022428:${slashbladeFixtureFile}")
     // Compile the optional public animation-map alias; no new runtime requirement.
     compileOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
@@ -448,11 +454,24 @@ def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
 }
 sourceSets.exportRuntime.java.srcDir(portableCombatSources)
 
+// One pure Java capability contract is compiled once for the exporter and
+// rewritten into a disjoint namespace for the source-free runtime.
+def portableCapabilitySources = tasks.register('prepareExportCapabilitySources', Sync) {
+    from('src/main/java/dev/bladetetra/export') {
+        include 'PortableCapabilityCatalog.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.export', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-capabilities')
+}
+sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
+
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.1.0.jar'
+    archiveFileName = 'bt-export-runtime-1.3.0.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')
+    manifest { attributes 'MixinConfigs': 'bt_export_runtime.mixins.json' }
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
@@ -476,7 +495,7 @@ tasks.named('processResources') {
 
 if (project.hasProperty('exportRuntimeProbe')) {
     sourceSets.create('exportRuntimeTest') {
-        compileClasspath += sourceSets.main.compileClasspath
+        compileClasspath += sourceSets.exportRuntime.output + sourceSets.main.compileClasspath
     }
     tasks.register('exportRuntimeProbeJar', Jar) {
         archiveFileName = 'bt-export-runtime-probe.jar'

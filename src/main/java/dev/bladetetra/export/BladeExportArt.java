@@ -57,6 +57,8 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
     private static ExportResourceEvidence projectInput(ResourceManager resources, ResourceLocation id) throws IOException {
         var verified = ExportResourceEvidence.reference(resources, id, "blade_tetra");
         return new ExportResourceEvidence(id, verified.packId(), verified.ownerModId(), verified.ownerModVersion(),
-                verified.sha256(), "Blade Tetra contributors — MIT; baked into the exported appearance", true);
+                verified.sha256(),
+                "Blade Tetra authored model/atlas input; consult bundled project license and asset notices; private use only",
+                true);
     }
 }

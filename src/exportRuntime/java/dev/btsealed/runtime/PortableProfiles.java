@@ -104,7 +104,32 @@ final class PortableProfiles {
             }
             moves.add(new Move(action, ticks));
         }
-        return new Profile(List.copyOf(modifiers), List.copyOf(moves), effects(json.getAsJsonObject("effects")));
+        var effectData = json.getAsJsonObject("effects");
+        if (effectData != null && effectData.has("unsupported")
+                && effectData.get("unsupported").getAsBoolean()) {
+            throw new IllegalArgumentException("Exported sword contains an explicitly unsupported effect: " + id);
+        }
+        var loadedEffects = effects(effectData);
+        var declared = json.getAsJsonArray("capabilities");
+        if (declared == null || !json.has("comboRoot")) {
+            throw new IllegalArgumentException("Missing versioned portable capability manifest: " + id);
+        }
+        List<String> ids = new ArrayList<>();
+        for (JsonElement feature : declared) {
+            String capability = feature.getAsString();
+            PortableCapabilityCatalog.requireKnown(capability);
+            ids.add(capability);
+        }
+        var expected = PortableCapabilityCatalog.forShape(json.get("comboRoot").getAsString(),
+                !modifiers.isEmpty(), moves.size(), loadedEffects.drawBonus() > 0,
+                loadedEffects.spiritBonus() > 0, loadedEffects.heavyPommel(),
+                loadedEffects.rankDivisor() > 0, loadedEffects.guardReduction() > 0,
+                loadedEffects.precisionHabaki(), loadedEffects.reinforcedHabaki());
+        if (!ids.equals(expected)) {
+            throw new IllegalArgumentException("Portable capability manifest disagrees with actual blade data: "
+                    + id + " (declared=" + ids + ", expected=" + expected + ")");
+        }
+        return new Profile(List.copyOf(modifiers), List.copyOf(moves), loadedEffects);
     }
 
     private static PortableComponentEffects.Effects effects(JsonObject json) {
@@ -113,7 +138,9 @@ final class PortableProfiles {
                 factor(json.get("drawBonus").getAsDouble()), factor(json.get("spiritBonus").getAsDouble()),
                 bounded(json.get("spiritTicks").getAsInt(), 200), json.get("heavyPommel").getAsBoolean(),
                 bounded(json.get("rankDivisor").getAsInt(), 1000), (float) factor(json.get("guardReduction").getAsDouble()),
-                bounded(json.get("guardDurability").getAsInt(), 32));
+                bounded(json.get("guardDurability").getAsInt(), 32),
+                json.has("precisionHabaki") && json.get("precisionHabaki").getAsBoolean(),
+                json.has("reinforcedHabaki") && json.get("reinforcedHabaki").getAsBoolean());
     }
 
     private static double factor(double amount) {

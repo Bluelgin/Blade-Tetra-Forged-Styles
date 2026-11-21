@@ -28,14 +28,19 @@ public final class BladeSealPackets {
         return JSON.fromJson(data, BladeExportSnapshot.class);
     }
 
-    public record Preview(UUID token, Component title) {
+    public record Preview(UUID token, Component title, boolean ready, String summary) {
+        private static final int MAX_SUMMARY = 512;
+
         public void encode(FriendlyByteBuf buf) {
             buf.writeUUID(token);
             buf.writeComponent(title);
+            buf.writeBoolean(ready);
+            buf.writeUtf(summary, MAX_SUMMARY);
         }
 
         public static Preview decode(FriendlyByteBuf buf) {
-            return new Preview(buf.readUUID(), buf.readComponent());
+            return new Preview(buf.readUUID(), buf.readComponent(), buf.readBoolean(),
+                    buf.readUtf(MAX_SUMMARY));
         }
 
         public void handle(Supplier<NetworkEvent.Context> context) {

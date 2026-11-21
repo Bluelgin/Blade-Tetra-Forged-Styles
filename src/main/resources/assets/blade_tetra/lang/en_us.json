@@ -11,6 +11,8 @@
   "blade_tetra.export.description": "Add-on description",
   "blade_tetra.export.recipe": "Crafting grid (item IDs)",
   "blade_tetra.export.ingredient": "Ingredient item ID",
+  "blade_tetra.export.preflight.ready": "Basic capability check passed: %s. Assets and dependencies are rechecked while sealing.",
+  "blade_tetra.export.preflight.blocked": "This sword cannot yet be sealed without loss: %s. Keep the original until these features are ported.",
   "blade_tetra.export.confirm": "Export add-on JAR",
   "blade_tetra.export.waiting": "Checking the held blade…",
   "blade_tetra.export.saved": "Saved in blade-exports.",

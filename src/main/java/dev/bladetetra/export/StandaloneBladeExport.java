@@ -26,7 +26,10 @@ final class StandaloneBladeExport {
         if (snapshot.traditions().bairen()) missing.add("Bairen");
         if (snapshot.traditions().bansho()) missing.add("Bansho");
         if (snapshot.traditions().nbtSage()) missing.add("NBT Sage");
-        if (snapshot.componentEffects().unsupported()) missing.add("Habaki or boundary forging technique");
+        if (snapshot.componentEffects().unsupported()) missing.add("boundary forging technique");
+        if ("STANDARD".equals(snapshot.style()) && isSourceOnly(snapshot.combo())) {
+            missing.add("source-only combo root " + snapshot.combo());
+        }
         if (snapshot.slashArt() != null && isSourceOnly(snapshot.slashArt())) missing.add(snapshot.slashArt().toString());
         snapshot.specialEffects().stream().filter(StandaloneBladeExport::isSourceOnly)
                 .forEach(effect -> missing.add(effect.toString()));
@@ -39,8 +42,7 @@ final class StandaloneBladeExport {
             throw new IllegalArgumentException("This blade uses a custom model position");
         }
         if (snapshot.slashArt() == null) throw new IllegalArgumentException("Missing Slash Art identifier");
-        combo(snapshot);
-        ExportBattleProfile.from(snapshot);
+        ExportBattleProfile.from(snapshot).capabilities(combo(snapshot));
     }
 
     private static boolean isSourceOnly(ResourceLocation id) {
@@ -79,8 +81,11 @@ final class StandaloneBladeExport {
         snapshot.attributes().forEach(value -> required.add(value.id().getNamespace()));
         required.removeAll(Set.of("minecraft", "forge"));
         var dependencies = required.stream().map(id -> new BladeExportArchive.Dependency(id, version(id))).toList();
-        if (!"1.9.63".equals(version("slashblade"))) {
-            throw new IllegalArgumentException("This standalone runtime requires SlashBlade 1.9.63");
+        String slashbladeVersion = version("slashblade");
+        if (!Set.of("1.9.63", "1.9.65").contains(slashbladeVersion)) {
+            throw new IllegalArgumentException(
+                    "Standalone export has not been validated against SlashBlade " + slashbladeVersion
+                            + "; supported targets: 1.9.63, 1.9.65");
         }
 
         var definition = new NativeBladeExport(snapshot.attack(), snapshot.durability(), combo(snapshot),
@@ -88,7 +93,8 @@ final class StandaloneBladeExport {
                 snapshot.color(), snapshot.colorInverse(), CarryType.valueOf(snapshot.carryType()),
                 snapshot.bewitched(), snapshot.sealed(), snapshot.unbreakable());
         return BladeExportArchive.write(gameDirectory, metadata, version("blade_tetra"), definition,
-                recipe, dependencies, fittings, artwork.inputs(), artwork.assets(), ExportBattleProfile.from(snapshot));
+                recipe, dependencies, fittings, artwork.inputs(), artwork.assets(),
+                ExportBattleProfile.from(snapshot));
     }
 
     private static ResourceLocation combo(BladeExportSnapshot snapshot) {

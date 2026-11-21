@@ -47,7 +47,7 @@ final class BladeSealScreen extends Screen {
     @Override
     protected void init() {
         left = (width - PANEL_WIDTH) / 2;
-        top = Math.max(0, (height - 236) / 2);
+        top = Math.max(0, (height - 325) / 2);
         name = field(left, top + 51, PANEL_WIDTH, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
         addon = field(left, top + 78, 222, 50, "blade_tetra.export.id",
@@ -69,8 +69,8 @@ final class BladeSealScreen extends Screen {
                     98, 96, "blade_tetra.export.ingredient", value);
         }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 186, 143, 20).build());
-        confirm.active = !confirmed;
+                button -> request()).bounds(left, top + 186, PANEL_WIDTH, 20).build());
+        confirm.active = !confirmed && preview.ready();
     }
 
     private EditBox field(int x, int y, int width, int limit, String key, String value) {
@@ -81,6 +81,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void request() {
+        if (!preview.ready()) return;
         try {
             var metadata = new BladeExportArchive.Metadata("bt_export_" + addon.getValue().strip(), version.getValue().strip(),
                     name.getValue().strip(), author.getValue().strip(), description.getValue().strip());
@@ -153,8 +154,12 @@ final class BladeSealScreen extends Screen {
         graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + 111, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.recipe"), left, top + 121, 0xFFFFFF);
+        graphics.drawWordWrap(font,
+                Component.translatable(preview.ready()
+                        ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
+                        preview.summary()), left, top + 214, PANEL_WIDTH, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left + 151, top + 186, 149, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 281, PANEL_WIDTH, 0xFFFFFF);
         }
     }
 }

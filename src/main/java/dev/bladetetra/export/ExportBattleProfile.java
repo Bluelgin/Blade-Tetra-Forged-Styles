@@ -9,8 +9,8 @@ import java.util.List;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.1.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.1.0.jar";
+    static final String RUNTIME_VERSION = "1.3.0";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.3.0.jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");
@@ -47,6 +47,21 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
     boolean supports(ResourceLocation combo) {
         if (moves.isEmpty()) return IAIDO_ROOT.equals(combo) || RENGEKI_ROOT.equals(combo) || DANGAKU_ROOT.equals(combo);
         return CUSTOM_ROOT.equals(combo);
+    }
+
+    /**
+     * Stable feature inventory for the exported package certificate. All listed behavior
+     * must be supplied by the native definition or this exact runtime version.
+     * This is an audit manifest, not a request to load separate copies of runtime classes.
+     */
+    List<String> capabilities(ResourceLocation combo) {
+        if (effects.unsupported()) {
+            throw new IllegalArgumentException("Unportable Tetra component effects cannot be certified");
+        }
+        return PortableCapabilityCatalog.forShape(combo.toString(), !attributes.isEmpty(), moves.size(),
+                effects.drawBonus() > 0, effects.spiritBonus() > 0, effects.heavyPommel(),
+                effects.rankDivisor() > 0, effects.guardReduction() > 0,
+                effects.precisionHabaki(), effects.reinforcedHabaki());
     }
 
     private static ResourceLocation root(String name) {
