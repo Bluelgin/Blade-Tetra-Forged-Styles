@@ -163,18 +163,38 @@ public final class NamedBladeExportAssembler {
         if (view == null) return List.of();
         var out = new ArrayList<Face>();
         var matrix = mount.matrix();
+        // Nonuniform source fitting requires an inverse-transpose normal matrix.
+        // Recomputing all OBJ normals from triangles changes authored smooth shading.
+        var normalMatrix = matrix.normal(new org.joml.Matrix3f());
         for (var group : view.groupObjects) for (var input : group.faces) {
             var face = new Face();
             face.vertices = new Vertex[input.vertices.length];
+            face.vertexNormals = input.vertexNormals == null ? null : new Vertex[input.vertices.length];
             face.textureCoordinates = new TextureCoordinate[input.vertices.length];
             for (int i = 0; i < input.vertices.length; i++) {
                 var v = input.vertices[i];
                 var point = matrix.transformPosition(new Vector3f(v.x, v.y, v.z));
+                if (!Float.isFinite(point.x) || !Float.isFinite(point.y) || !Float.isFinite(point.z))
+                    throw new IOException("Named source has a non-finite mounted vertex");
                 face.vertices[i] = new Vertex(point.x, point.y, point.z);
+                if (face.vertexNormals != null && i < input.vertexNormals.length
+                        && input.vertexNormals[i] != null) {
+                    var nativeNormal = input.vertexNormals[i];
+                    var normal = normalMatrix.transform(new Vector3f(
+                            nativeNormal.x, nativeNormal.y, nativeNormal.z)).normalize();
+                    if (!Float.isFinite(normal.x) || !Float.isFinite(normal.y)
+                            || !Float.isFinite(normal.z)) throw new IOException("Invalid source normal");
+                    face.vertexNormals[i] = new Vertex(normal.x, normal.y, normal.z);
+                }
                 if (input.textureCoordinates == null || i >= input.textureCoordinates.length
                         || input.textureCoordinates[i] == null)
                     throw new IOException("Named source has an untextured face");
                 var uv = input.textureCoordinates[i];
+                // A packed atlas cannot preserve source tile-repeat semantics without
+                // splitting every triangle crossing a UV tile boundary.
+                if (!Float.isFinite(uv.u) || !Float.isFinite(uv.v)
+                        || uv.u < 0 || uv.u > 1 || uv.v < 0 || uv.v > 1)
+                    throw new IOException("Named source UV repeat/overflow is not portable yet");
                 face.textureCoordinates[i] = new TextureCoordinate(
                         (tile.x() + uv.u * tile.image().getWidth()) / width,
                         uv.v * tile.image().getHeight() / height);

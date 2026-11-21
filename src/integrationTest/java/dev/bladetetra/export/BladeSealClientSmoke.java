@@ -154,6 +154,15 @@ public final class BladeSealClientSmoke {
                 var groups = obj.groupObjects.stream().map(group -> group.name).collect(Collectors.toSet());
                 for (var required : Set.of("blade", "sheath", "item_blade", "effect"))
                     if (!groups.contains(required)) throw new IllegalStateException("Missing output group " + required);
+                for (var group : obj.groupObjects) for (var face : group.faces) {
+                    if (face.vertices == null || face.textureCoordinates == null)
+                        throw new IllegalStateException("Unrenderable exported face in " + group.name);
+                    for (var uv : face.textureCoordinates) {
+                        if (uv == null || !Float.isFinite(uv.u) || !Float.isFinite(uv.v)
+                                || uv.u < 0 || uv.u > 1 || uv.v < 0 || uv.v > 1)
+                            throw new IllegalStateException("Output atlas UV escaped its tile: " + group.name);
+                    }
+                }
             }
             try (var image = zip.getInputStream(atlas)) {
                 var png = ImageIO.read(image);
