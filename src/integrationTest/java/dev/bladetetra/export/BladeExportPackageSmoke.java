@@ -63,12 +63,15 @@ public final class BladeExportPackageSmoke {
                     ExportResourceEvidence.installedModAsset(spec.texture(), "slashblade"));
             Path file = BladeExportArchive.write(Path.of("."), metadata, "test", spec, recipe,
                     List.of(new BladeExportArchive.Dependency("slashblade", modVersion)),
-                    List.of(), evidence, Map.of());
+                    List.of(), evidence, Map.of(), new ExportBattleProfile(1, List.of(), List.of(),
+                    new BladeExportSnapshot.ComponentEffects(0, 0, 0, false, 0, 0, 0, false)));
             try (ZipFile archive = new ZipFile(file.toFile())) {
-                // Data-only mode must never accidentally require the bundled runtime.
-                if (archive.getEntry("META-INF/jarjar/metadata.json") != null
-                        || archive.getEntry("META-INF/jarjar/bt-export-runtime-1.1.0.jar") != null) {
-                    throw new IllegalStateException("Native package unexpectedly bundles a runtime");
+                // Every sealed blade, including one with only native combos, carries the shared runtime.
+                if (archive.getEntry("META-INF/jarjar/metadata.json") == null
+                        || archive.getEntry("META-INF/jarjar/bt-export-runtime-"
+                                + ExportBattleProfile.RUNTIME_VERSION + ".jar") == null
+                        || archive.getEntry("data/bt_export_test/blade_export/sealed_blade.json") == null) {
+                    throw new IllegalStateException("Unified export omitted its portable runtime or profile");
                 }
                 var descriptor = new String(archive.getInputStream(
                         archive.getEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
@@ -150,11 +153,11 @@ public final class BladeExportPackageSmoke {
                 var original = BladeExportSnapshot.capture(admin, InteractionHand.MAIN_HAND);
                 var snapshot = BladeSealPackets.decodeSnapshot(BladeSealPackets.encodeSnapshot(original));
                 if (!original.equals(snapshot)) throw new IllegalStateException("Export packet changed the blade");
-                try {
-                    StandaloneBladeExport.checkNative(snapshot);
-                    throw new IllegalStateException("Source-specific style was silently allowed in native-only export");
-                } catch (IllegalArgumentException rejected) {
-                    // Full seal is the only valid option for these non-standard combos.
+                StandaloneBladeExport.checkCombat(snapshot);
+                if (!ExportBattleProfile.from(snapshot).supports(
+                        "CUSTOM".equals(snapshot.style()) ? ExportBattleProfile.CUSTOM_ROOT
+                                : ExportBattleProfile.DANGAKU_ROOT)) {
+                    throw new IllegalStateException("Sealed style lost its portable combo root");
                 }
                 var metadata = new BladeExportArchive.Metadata("bt_export_" + slug, "1.0.0",
                         "封存 " + slug, "Blade Tetra", "Export runtime smoke test");
