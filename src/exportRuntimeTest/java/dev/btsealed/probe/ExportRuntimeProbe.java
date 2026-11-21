@@ -106,7 +106,7 @@ public final class ExportRuntimeProbe {
 
     /** Compare actual native Rank balances with the original Blade Tetra precision-habaki acceptance fixture. */
     private static void verifyPrecisionRank(ServerLevel world, ServerPlayer player, ItemStack focusBlade) {
-        var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow();
+        var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow(IllegalStateException::new);
         long originalTime = world.getGameTime();
         // Match the source-mod parity fixture: the pre-start zero tick is not
         // a real elapsed combat tick and must not influence Rank decay.
