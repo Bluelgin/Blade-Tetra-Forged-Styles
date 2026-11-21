@@ -26,7 +26,7 @@ final class StandaloneBladeExport {
         if (snapshot.traditions().bairen()) missing.add("Bairen");
         if (snapshot.traditions().bansho()) missing.add("Bansho");
         if (snapshot.traditions().nbtSage()) missing.add("NBT Sage");
-        if (snapshot.componentEffects().unsupported()) missing.add("Habaki or boundary forging technique");
+        if (snapshot.componentEffects().unsupported()) missing.add("boundary forging technique");
         if ("STANDARD".equals(snapshot.style()) && isSourceOnly(snapshot.combo())) {
             missing.add("source-only combo root " + snapshot.combo());
         }
