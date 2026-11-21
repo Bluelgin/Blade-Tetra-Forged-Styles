@@ -330,6 +330,16 @@ public final class BladeExportPackageSmoke {
         if (captured.size() != 4) throw new IllegalStateException("Missing named part provenance: " + captured);
         admin.setItemInHand(InteractionHand.OFF_HAND, ModItems.BLADE_SEAL.get().getDefaultInstance());
         var preview = BladeSealSessions.begin(admin, InteractionHand.OFF_HAND);
+        var packet = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        try {
+            preview.encode(packet);
+            var decoded = BladeSealPackets.Preview.decode(packet);
+            if (!decoded.equals(preview)) {
+                throw new IllegalStateException("Blade Seal compatibility diagnosis changed in transit");
+            }
+        } finally {
+            packet.release();
+        }
         if (preview.ready() || !preview.summary().contains("appearance:")
                 || BladeSealSessions.takeConfirmed(admin, preview.token()) != null) {
             throw new IllegalStateException("Unsupported named fitting export was approved: " + preview);
