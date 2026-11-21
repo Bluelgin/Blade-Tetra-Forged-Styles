@@ -105,7 +105,7 @@ public final class NamedIngotArtReview {
             var catalog = dev.bladetetra.forging.NamedLegacyCatalog.values();
             var blade = findSource(catalog, longBlade ? "kirisaya" : "toyako");
             var hilt = findSource(catalog, "murakumo");
-            var sheath = findSource(catalog, "hf_murasama");
+            var sheath = findSource(catalog, "dark_raven");
             install(stack, "blade", blade, LegacySourceMesh.Component.BLADE);
             install(stack, "tsuba", hilt, LegacySourceMesh.Component.HILT);
             install(stack, "saya", sheath, LegacySourceMesh.Component.SAYA);
