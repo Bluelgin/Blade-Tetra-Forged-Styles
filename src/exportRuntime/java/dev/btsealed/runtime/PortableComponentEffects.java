@@ -17,8 +17,8 @@ public final class PortableComponentEffects {
 
     record Effects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
                    int rankDivisor, float guardReduction, int guardDurability,
-                   boolean precisionHabaki) {
-        static final Effects NONE = new Effects(0, 0, 0, false, 0, 0, 0, false);
+                   boolean precisionHabaki, boolean reinforcedHabaki) {
+        static final Effects NONE = new Effects(0, 0, 0, false, 0, 0, 0, false, false);
     }
 
     static void slash(SlashBladeEvent.DoSlashEvent event) {
