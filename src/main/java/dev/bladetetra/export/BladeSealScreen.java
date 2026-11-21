@@ -28,9 +28,6 @@ final class BladeSealScreen extends Screen {
     private EditBox author;
     private EditBox description;
     private Button confirm;
-    private Button modeButton;
-    private StandaloneBladeExport.ExportMode exportMode = StandaloneBladeExport.ExportMode.SEALED;
-    private StandaloneBladeExport.ExportMode requestedMode;
     private boolean confirmed;
     private BladeExportArchive.Metadata requestedMetadata;
     private BladeExportRecipe requestedRecipe;
@@ -72,19 +69,8 @@ final class BladeSealScreen extends Screen {
                     98, 96, "blade_tetra.export.ingredient", value);
         }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 186, 143, 20).build());
+                button -> request()).bounds(left, top + 186, PANEL_WIDTH, 20).build());
         confirm.active = !confirmed;
-        modeButton = addRenderableWidget(Button.builder(modeLabel(), button -> {
-            exportMode = exportMode == StandaloneBladeExport.ExportMode.SEALED
-                    ? StandaloneBladeExport.ExportMode.NATIVE : StandaloneBladeExport.ExportMode.SEALED;
-            button.setMessage(modeLabel());
-        }).bounds(left + 151, top + 186, 149, 20).build());
-        modeButton.active = !confirmed;
-    }
-
-    private Component modeLabel() {
-        return Component.translatable(exportMode == StandaloneBladeExport.ExportMode.SEALED
-                ? "blade_tetra.export.mode.sealed" : "blade_tetra.export.mode.native");
     }
 
     private EditBox field(int x, int y, int width, int limit, String key, String value) {
@@ -111,10 +97,8 @@ final class BladeSealScreen extends Screen {
             }
             requestedRecipe = new BladeExportRecipe(List.copyOf(items), occupied);
             requestedMetadata = metadata;
-            requestedMode = exportMode;
             confirmed = true;
             confirm.active = false;
-            modeButton.active = false;
             status = Component.translatable("blade_tetra.export.waiting");
             ModNetwork.CHANNEL.sendToServer(new BladeSealPackets.Confirm(preview.token()));
         } catch (IllegalArgumentException error) {
@@ -128,10 +112,8 @@ final class BladeSealScreen extends Screen {
                 || !screen.preview.token().equals(result.token()) || screen.requestedMetadata == null) return;
         var metadata = screen.requestedMetadata;
         var recipe = screen.requestedRecipe;
-        var selectedMode = screen.requestedMode;
         screen.requestedMetadata = null;
         screen.requestedRecipe = null;
-        screen.requestedMode = null;
         if (result.snapshot().isEmpty()) {
             screen.status = Component.translatable("blade_tetra.export.expired");
             return;
@@ -143,7 +125,7 @@ final class BladeSealScreen extends Screen {
             var resources = client.getResourceManager();
             var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources);
             var file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources,
-                    snapshot, metadata, recipe, art, selectedMode);
+                    snapshot, metadata, recipe, art);
             screen.status = Component.translatable("blade_tetra.export.saved");
             if (client.player != null) {
                 client.player.sendSystemMessage(Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
