@@ -22,7 +22,7 @@
   "blade_tetra.export.waiting": "Checking the held blade…",
   "blade_tetra.export.saved": "Saved in blade-exports.",
   "blade_tetra.export.path": "Blade exported to %s",
-  "blade_tetra.export.awakening.notice": "Awakened-only powers, forms and VFX will NOT be exported. Base construction is checked separately; the original blade stays unchanged.",
+  "blade_tetra.export.awakening.notice": "Awakening powers, forms and VFX (including Akatsuki Power I if present) are omitted. Other abilities are still checked; the original stays unchanged.",
   "blade_tetra.export.awakening.acknowledge": "I understand and accept removing awakening content",
   "blade_tetra.export.awakening.acknowledged": "✓ Awakening removal accepted (click to undo)",
   "screen.blade_tetra.custom_style.title": "Qianmen Sword Manual",

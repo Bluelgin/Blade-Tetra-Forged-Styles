@@ -5,6 +5,7 @@ import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.easteregg.SoulSkillState;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import net.minecraft.nbt.CompoundTag;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -46,6 +47,14 @@ final class BladeAwakeningExportPolicy {
         if (hasSavedAwakening && omitted.isEmpty()) omitted.add("AWAKENING_PROGRESS");
         if (omitted.isEmpty()) return new Projection(original, exported, List.of());
 
+        // Some early awakened saves predate the explicit soul-contract
+        // provenance marker. A magically bewitched state without that marker
+        // cannot be presumed to have been an independent blade property.
+        boolean hadPreviousDefault = tag.getBoolean("blade_tetra_soul_contract_previous_default");
+        if (namedInscription && !hadPreviousDefault) {
+            exported.getCapability(ItemSlashBlade.BLADESTATE)
+                    .ifPresent(state -> state.setDefaultBewitched(false));
+        }
         if (namedInscription) {
             tag.remove(ModularSlashBladeItem.INSCRIPTION_SLOT);
             String prefix = ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE;

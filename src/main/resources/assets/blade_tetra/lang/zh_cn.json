@@ -22,7 +22,7 @@
   "blade_tetra.export.waiting": "正在确认持刀……",
   "blade_tetra.export.saved": "已保存到 blade-exports。",
   "blade_tetra.export.path": "封存附属已写入 %s",
-  "blade_tetra.export.awakening.notice": "觉醒刀的专属能力、形态及演出不会导出。基础武器仍需通过兼容性检查，原刀不会改变。",
+  "blade_tetra.export.awakening.notice": "觉醒专属能力、形态及演出不会导出；赤月附带的力量 I 附魔也可能被剥离。其他能力继续检查，原刀不变。",
   "blade_tetra.export.awakening.acknowledge": "我已知晓并同意剥离觉醒内容",
   "blade_tetra.export.awakening.acknowledged": "✓ 已同意剥离觉醒内容（点击撤销）",
   "screen.blade_tetra.custom_style.title": "千门剑谱 · 编纂",
