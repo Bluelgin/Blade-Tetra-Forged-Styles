@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -70,16 +71,9 @@ final class BladeExportArchive {
     static Path write(Path gameDirectory, Metadata metadata, String exporterVersion,
             NativeBladeExport definition, BladeExportRecipe recipe, List<Dependency> dependencies,
             List<Fitting> fittings, List<ExportResourceEvidence> appearanceSources,
-            Map<ResourceLocation, byte[]> bakedAssets) throws IOException {
-        return write(gameDirectory, metadata, exporterVersion, definition, recipe, dependencies, fittings,
-                appearanceSources, bakedAssets, null);
-    }
-
-    static Path write(Path gameDirectory, Metadata metadata, String exporterVersion,
-            NativeBladeExport definition, BladeExportRecipe recipe, List<Dependency> dependencies,
-            List<Fitting> fittings, List<ExportResourceEvidence> appearanceSources,
             Map<ResourceLocation, byte[]> bakedAssets, ExportBattleProfile battle) throws IOException {
-        if (battle != null && !battle.moves().isEmpty() && !battle.supports(definition.combo())) {
+        Objects.requireNonNull(battle, "A sealed export always includes a portable battle profile");
+        if (!battle.moves().isEmpty() && !battle.supports(definition.combo())) {
             throw new IllegalArgumentException("Custom moves require the portable custom combo root");
         }
         var blade = ResourceLocation.fromNamespaceAndPath(metadata.modId(), "sealed_blade");
@@ -116,7 +110,7 @@ final class BladeExportArchive {
         }
 
         Map<String, byte[]> entries = new TreeMap<>();
-        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies, battle != null));
+        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies));
         add(entries, "pack.mcmeta", "{\"pack\":{\"pack_format\":15,\"description\":\"Blade Tetra sealed blade\"}}");
         add(entries, "data/" + metadata.modId() + "/slashblade/named_blades/sealed_blade.json",
                 JSON.toJson(definition.encode(blade, mods, bakedAssets.keySet(), battle)));
@@ -157,7 +151,7 @@ final class BladeExportArchive {
             }
         }
 
-        if (battle != null) addBattleRuntime(entries, blade, battle);
+        addBattleRuntime(entries, blade, battle);
 
         UUID exportId = UUID.randomUUID();
         Map<String, String> digests = new TreeMap<>();
@@ -210,15 +204,15 @@ final class BladeExportArchive {
                 .append(asset.permission()).append('\n');
     }
 
-    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies, boolean runtime) {
+    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies) {
         return "modLoader=\"lowcodefml\"\nloaderVersion=\"[47,48)\"\nlicense=" + toml(LICENSE_TITLE)
                 + "\n[[mods]]\nmodId=" + toml(metadata.modId()) + "\nversion=" + toml(metadata.version())
                 + "\ndisplayName=" + toml(metadata.title()) + "\nauthors=" + toml(metadata.author())
                 + "\ndescription=" + toml(metadata.description().strip() + "\n\n" + NOTICE) + "\n"
                 + dependency(metadata.modId(), "forge", "[47,48)")
                 + dependency(metadata.modId(), "minecraft", "[1.20.1]")
-                + (runtime ? dependency(metadata.modId(), ExportBattleProfile.RUNTIME_ID,
-                    "[" + ExportBattleProfile.RUNTIME_VERSION + "]") : "")
+                + dependency(metadata.modId(), ExportBattleProfile.RUNTIME_ID,
+                    "[" + ExportBattleProfile.RUNTIME_VERSION + "]")
                 + dependencies.stream().sorted(java.util.Comparator.comparing(Dependency::modId))
                         .map(dep -> dependency(metadata.modId(), dep.modId(), "[" + dep.version() + "]"))
                         .collect(java.util.stream.Collectors.joining());
