@@ -29,6 +29,7 @@ REQUIRED_MARKERS = (
     "BLADE_EXPORT_RUNTIME_PROBE_PASS",
     "BLADE_EXPORT_PRECISION_CLOCK_PASS",
     "BLADE_EXPORT_PRECISION_RANK_PASS",
+    "BLADE_EXPORT_SPIRIT_ISOLATION_PASS",
 )
 CURSE_IDS = {"1.9.63": "8018222", "1.9.65": "8090912"}
 # Pinned against the official Forge 1.20.1 download index; never trust a mirror's own digest.
