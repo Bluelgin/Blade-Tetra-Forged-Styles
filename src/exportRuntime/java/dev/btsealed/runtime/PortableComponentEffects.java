@@ -12,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.LogicalSide;
 
-final class PortableComponentEffects {
+public final class PortableComponentEffects {
     private static final String SPIRIT_UNTIL = "bt_export_spirit_saya_by_blade";
 
     record Effects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
@@ -79,14 +79,14 @@ final class PortableComponentEffects {
                 .map(state -> state.getTranslationKey()).orElse(null);
     }
 
-    static void startSpiritWindow(CompoundTag playerData, String bladeKey, long until) {
+    public static void startSpiritWindow(CompoundTag playerData, String bladeKey, long until) {
         if (bladeKey == null || !bladeKey.startsWith("item.bt_export_")) return;
         CompoundTag windows = playerData.getCompound(SPIRIT_UNTIL);
         windows.putLong(bladeKey, until);
         playerData.put(SPIRIT_UNTIL, windows);
     }
 
-    static long spiritUntil(CompoundTag playerData, String bladeKey, long now) {
+    public static long spiritUntil(CompoundTag playerData, String bladeKey, long now) {
         if (bladeKey == null || !bladeKey.startsWith("item.bt_export_")) return 0;
         CompoundTag windows = playerData.getCompound(SPIRIT_UNTIL);
         long until = windows.getLong(bladeKey);
