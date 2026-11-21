@@ -137,8 +137,9 @@ public final class ExportRuntimeProbe {
                 throw new IllegalStateException("Precision Habaki resumed with wrong native Rank decay");
             }
             rank.addRankPoint(player, -60L);
-            if (rank.getRankPoint(originalTime + 40) != initial - 85L) {
-                throw new IllegalStateException("Precision Habaki discounted an explicit Rank expenditure");
+            if (rank.getRankPoint(firstTick + 40) != initial - 85L) {
+                throw new IllegalStateException("Precision Habaki explicit Rank cost mismatch: expected="
+                        + (initial - 85L) + ", actual=" + rank.getRankPoint(firstTick + 40));
             }
             LogUtils.getLogger().info("BLADE_EXPORT_PRECISION_RANK_PASS");
         } finally {
