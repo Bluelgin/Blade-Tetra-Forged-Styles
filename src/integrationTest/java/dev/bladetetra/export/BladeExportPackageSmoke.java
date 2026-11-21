@@ -80,6 +80,7 @@ public final class BladeExportPackageSmoke {
                         || archive.getEntry("data/bt_export_test/blade_export/sealed_blade.json") == null) {
                     throw new IllegalStateException("Unified export omitted its portable runtime or profile");
                 }
+                verifyEmbeddedRuntimeMetadata(archive);
                 var descriptor = new String(archive.getInputStream(
                         archive.getEntry("META-INF/mods.toml")).readAllBytes(), StandardCharsets.UTF_8);
                 if (descriptor.contains("modId=\"blade_tetra\"")
@@ -133,6 +134,29 @@ public final class BladeExportPackageSmoke {
             if (net.minecraftforge.fml.loading.FMLEnvironment.dist.isDedicatedServer()) {
                 event.getServer().halt(false);
             }
+        }
+    }
+
+    private static void verifyEmbeddedRuntimeMetadata(ZipFile archive) throws Exception {
+        String path = "META-INF/jarjar/bt-export-runtime-" + ExportBattleProfile.RUNTIME_VERSION + ".jar";
+        var runtimeEntry = archive.getEntry(path);
+        if (runtimeEntry == null) throw new IllegalStateException("Missing nested runtime: " + path);
+        String descriptor = null;
+        try (var inner = new java.util.zip.ZipInputStream(
+                new java.io.ByteArrayInputStream(archive.getInputStream(runtimeEntry).readAllBytes()))) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = inner.getNextEntry()) != null) {
+                if ("META-INF/mods.toml".equals(entry.getName())) {
+                    descriptor = new String(inner.readAllBytes(), StandardCharsets.UTF_8);
+                    break;
+                }
+            }
+        }
+        if (descriptor == null
+                || !descriptor.contains("modId=\"bt_export_runtime\"")
+                || !descriptor.contains("version=\"" + ExportBattleProfile.RUNTIME_VERSION + "\"")
+                || !descriptor.contains("versionRange=\"[1.9.63,1.9.66)\"")) {
+            throw new IllegalStateException("Inner Forge runtime metadata disagrees with Jar-in-Jar identity");
         }
     }
 
