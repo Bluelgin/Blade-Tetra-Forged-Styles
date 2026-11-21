@@ -174,6 +174,14 @@ class NamedLegacyGeometryTest {
                 if (file.startsWith("murakumo")) {
                     assertTrue(source.mesh().separateHilt);
                     assertMount(source, target, Component.HILT, "blade");
+                    var icon = assertMount(source, target, Component.HILT, "item_blade");
+                    var faces = LegacyRenderSources.geometry(source, Component.HILT, "item_blade").reference();
+                    var matrix = icon.matrix();
+                    for (Face face : faces) for (Vertex v : face.vertices) {
+                        var point = matrix.transformPosition(new Vector3f(v.x, v.y, v.z));
+                        assertTrue(Math.abs(point.x) <= 100 && Math.abs(point.y) <= 100,
+                                "Murakumo's grip must fit inside the normal Tetra icon envelope");
+                    }
                 }
                 if (file.startsWith("kirisaya")) {
                     var views = LegacyRenderSources.views(source, Component.BLADE, "blade");

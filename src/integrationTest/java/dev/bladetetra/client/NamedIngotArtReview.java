@@ -290,7 +290,7 @@ public final class NamedIngotArtReview {
                 graphics.flush();
                 poses.pushPose();
                 poses.translate(width * .74, y, 150);
-                float scale = width * .48F / 440F;
+                float scale = width * .40F / 490F;
                 poses.scale(scale, -scale, scale);
                 var state = stack.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
                         .resolve().orElseThrow();
@@ -301,15 +301,15 @@ public final class NamedIngotArtReview {
                         stack, model, target, state.getTexture().orElseThrow(), poses,
                         graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
                 graphics.flush();
-                poses.translate(0, -34, 0);
+                poses.translate(0, -78, 0);
                 mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
                         stack, model, "sheath", state.getTexture().orElseThrow(), poses,
                         graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
                 graphics.flush();
                 poses.popPose();
                 poses.pushPose();
-                poses.translate(width * .81, y - 20, 0);
-                poses.scale(2.5F, 2.5F, 1);
+                poses.translate(width * .84, y - 15, 0);
+                poses.scale(1.55F, 1.55F, 1);
                 graphics.renderItem(stack, 0, 0);
                 graphics.flush();
                 poses.popPose();

@@ -54,8 +54,56 @@ final class LegacyBladeMounts {
             case HILT -> source.profile.tsubaTransform();
             case SAYA -> source.profile.sayaTransform();
         };
-        return new LegacyMeshFrame.Mount(anchor, to, source.rules.adjustment(part.key(), adjustment),
+        var mount = new LegacyMeshFrame.Mount(anchor, to, source.rules.adjustment(part.key(), adjustment),
                 scale, icon ? 20 : 40);
+        return icon ? fitIconEnvelope(mount, displayed, target, state) : mount;
+    }
+
+    /** Keep unusual grips and decorations inside the footprint of the authored icon. */
+    private static LegacyMeshFrame.Mount fitIconEnvelope(LegacyMeshFrame.Mount mount, Layers mesh,
+            WavefrontObject target, String state) {
+        float minX = Float.POSITIVE_INFINITY, minY = minX;
+        float maxX = Float.NEGATIVE_INFINITY, maxY = maxX;
+        for (var part : Component.values()) {
+            if (part == Component.SAYA && !state.equals("item_blade")) continue;
+            var faces = LegacyModelPartRenderer.modularFaces(target, state, stockPart(part));
+            for (Face face : faces) for (var v : face.vertices) {
+                minX = Math.min(minX, v.x);
+                maxX = Math.max(maxX, v.x);
+                minY = Math.min(minY, v.y);
+                maxY = Math.max(maxY, v.y);
+            }
+        }
+        if (!(minX < maxX && minY < maxY)) return null;
+
+        // Allow a small margin for curves or authored decorations while keeping
+        // the socket fixed and scaling the part uniformly in all directions.
+        float marginX = (maxX - minX) * .04F, marginY = (maxY - minY) * .04F;
+        minX -= marginX;
+        maxX += marginX;
+        minY -= marginY;
+        maxY += marginY;
+        var transform = mount.matrix();
+        Vector3f pivot = transform.transformPosition(new Vector3f(mount.source().origin()));
+        if (pivot.x < minX || pivot.x > maxX || pivot.y < minY || pivot.y > maxY) return null;
+        Vector3f point = new Vector3f();
+        float fit = 1;
+        for (var layer : List.of(mesh.base(), mesh.luminous())) {
+            for (Face face : layer) for (var v : face.vertices) {
+                transform.transformPosition(point.set(v.x, v.y, v.z));
+                fit = Math.min(fit, axisFit(pivot.x, point.x, minX, maxX));
+                fit = Math.min(fit, axisFit(pivot.y, point.y, minY, maxY));
+            }
+        }
+        if (!Float.isFinite(fit) || fit < .20F) return null;
+        return fit == 1 ? mount : new LegacyMeshFrame.Mount(mount.source(), mount.target(),
+                mount.adjustment(), mount.scale() * fit, mount.offsetUnits());
+    }
+
+    private static float axisFit(float pivot, float point, float min, float max) {
+        if (point < min) return (min - pivot) / (point - pivot);
+        if (point > max) return (max - pivot) / (point - pivot);
+        return 1;
     }
 
     private static String worldGroup(Component part) {
