@@ -10,8 +10,8 @@ import java.util.TreeSet;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.2.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.2.0.jar";
+    static final String RUNTIME_VERSION = "1.3.0";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.3.0.jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");
@@ -72,6 +72,7 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
         if (effects.rankDivisor() > 0) ids.add("bt_export_runtime:stable_tsuka_v1");
         if (effects.guardReduction() > 0) ids.add("bt_export_runtime:guard_tsuba_v1");
         if (effects.precisionHabaki()) ids.add("bt_export_runtime:precision_habaki_v1");
+        if (effects.reinforcedHabaki()) ids.add("bt_export_runtime:reinforced_habaki_v1");
         if (effects.unsupported()) {
             throw new IllegalArgumentException("Unportable Tetra component effects cannot be certified");
         }
