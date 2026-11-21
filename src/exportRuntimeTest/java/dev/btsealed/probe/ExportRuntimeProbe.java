@@ -95,6 +95,7 @@ public final class ExportRuntimeProbe {
             verifyPrecisionRank(world, player, second);
             verifyDangaku(world, player);
             dev.btsealed.runtime.PortableRuntimeSelfTest.verifyPrecisionClock();
+            dev.btsealed.runtime.PortableRuntimeSelfTest.verifySpiritSwordIsolation();
             LogUtils.getLogger().info("BLADE_EXPORT_RUNTIME_PROBE_PASS");
         } catch (RuntimeException error) {
             LogUtils.getLogger().error("BLADE_EXPORT_RUNTIME_PROBE_FAIL", error);
