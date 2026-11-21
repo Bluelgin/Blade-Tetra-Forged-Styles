@@ -113,7 +113,7 @@ public final class MikageThousandGatesVfxClient {
         Scene(TechniqueVfxData data, String kind) { this.data = data; this.kind = kind; }
     }
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static final class Reload {
+    public static final class MikageThousandGatesReloadRegistration {
         @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener((ResourceManagerReloadListener) manager -> SCENES.clear());
         }

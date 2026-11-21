@@ -135,7 +135,7 @@ public final class MikageCorridorVfxClient {
         Vec3 at() { return new Vec3(data.startX(), data.startY(), data.startZ()); }
     }
     @Mod.EventBusSubscriber(modid = BladeTetra.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static final class Reload {
+    public static final class MikageCorridorReloadRegistration {
         @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener((ResourceManagerReloadListener) manager -> SCENES.clear());
         }

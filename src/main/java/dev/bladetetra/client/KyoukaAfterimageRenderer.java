@@ -4,15 +4,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.bladetetra.client.kyouka.WaterMirrorVisuals;
 import dev.bladetetra.kyouka.KyoukaAfterimageEntity;
-import dev.bladetetra.registry.ModEntities;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /** Renders the targetable echo using the same water film as Water Mirror Armor. */
 public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterimageEntity> {
@@ -41,13 +36,4 @@ public final class KyoukaAfterimageRenderer extends EntityRenderer<KyoukaAfterim
         return WaterMirrorVisuals.WATER;
     }
 
-    @Mod.EventBusSubscriber(modid = "blade_tetra",
-            bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static final class Registration {
-        @SubscribeEvent
-        public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(ModEntities.KYOUKA_AFTERIMAGE.get(),
-                    KyoukaAfterimageRenderer::new);
-        }
-    }
 }
