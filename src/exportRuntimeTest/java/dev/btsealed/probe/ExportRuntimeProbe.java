@@ -108,12 +108,15 @@ public final class ExportRuntimeProbe {
     private static void verifyPrecisionRank(ServerLevel world, ServerPlayer player, ItemStack focusBlade) {
         var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow();
         long originalTime = world.getGameTime();
+        // Match the source-mod parity fixture: the pre-start zero tick is not
+        // a real elapsed combat tick and must not influence Rank decay.
+        long firstTick = Math.max(1L, originalTime);
         long initial = rank.getUnitCapacity() * 2L + 120L;
         try {
             rank.setRawRankPoint(initial);
-            rank.setLastUpdte(originalTime);
+            rank.setLastUpdte(firstTick);
             for (int tick = 0; tick <= 40; tick++) {
-                long now = originalTime + tick;
+                long now = firstTick + tick;
                 world.getServer().getWorldData().overworldData().setGameTime(now);
                 player.setItemInHand(InteractionHand.MAIN_HAND,
                         tick >= 20 && tick < 30 ? ItemStack.EMPTY : focusBlade);
@@ -125,7 +128,7 @@ public final class ExportRuntimeProbe {
                     throw new IllegalStateException("Precision Habaki leaked Rank across a weapon swap");
                 }
             }
-            if (rank.getRankPoint(originalTime + 40) != initial - 25L) {
+            if (rank.getRankPoint(firstTick + 40) != initial - 25L) {
                 throw new IllegalStateException("Precision Habaki resumed with wrong native Rank decay");
             }
             rank.addRankPoint(player, -60L);
