@@ -31,8 +31,11 @@ def main():
     for file in files:
         source = file.read_text(encoding="utf-8")
         if file.is_relative_to(RUNTIME):
-            if not re.search(r"(?m)^\s*package\s+dev\.btsealed\.runtime\s*;", source):
-                raise SystemExit(f"Runtime source has unexpected package: {file}")
+            # Mixin adapters must live outside the core runtime package to
+            # preserve a stable JNI/JPMS boundary with the separate test probe.
+            expected = "dev.btsealed.mixin" if file.parent.name == "mixin" else "dev.btsealed.runtime"
+            if not re.search(r"(?m)^\s*package\s+" + re.escape(expected) + r"\s*;", source):
+                raise SystemExit(f"Runtime source has unexpected package: {file} (expected {expected})")
         for imported in imports(source):
             if imported.startswith("dev.bladetetra.") and (
                 file.is_relative_to(RUNTIME) or not imported.startswith("dev.bladetetra.combat.")
