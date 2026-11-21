@@ -141,6 +141,7 @@ public final class BladeExportPackageSmoke {
         var pack = new PathPackResources("mod:slashblade", true, assets.getParent());
         var projectAssets = ModList.get().getModFileById("blade_tetra").getFile().findResource("assets");
         var projectPack = new PathPackResources("mod:blade_tetra", true, projectAssets.getParent());
+        var exported = new java.util.ArrayList<Path>();
         try (var resources = new MultiPackResourceManager(PackType.CLIENT_RESOURCES, List.of(pack, projectPack))) {
             var first = ComboStateRegistry.COMBO_A1.getId();
             var second = ComboStateRegistry.COMBO_C.getId();
@@ -183,9 +184,57 @@ public final class BladeExportPackageSmoke {
                 } else {
                     file = StandaloneBladeExport.write(Path.of("."), resources, snapshot, metadata, recipe);
                 }
+                exported.add(file);
                 LOGGER.info("BLADE_EXPORT_RUNTIME_FIXTURE: {}", file.toAbsolutePath().normalize());
             }
         }
+        verifySharedRuntime(exported);
+    }
+
+    /** Structural coexistence proof; an isolated receiving server is still required. */
+    private static void verifySharedRuntime(List<Path> exported) throws Exception {
+        if (exported.size() != 3) throw new IllegalStateException("Missing generated sword fixtures");
+        String commonRuntimeHash = null;
+        var identities = new java.util.HashSet<String>();
+        for (Path file : exported) {
+            try (var zip = new ZipFile(file.toFile())) {
+                var runtime = zip.getEntry("META-INF/jarjar/bt-export-runtime-"
+                        + ExportBattleProfile.RUNTIME_VERSION + ".jar");
+                var descriptor = zip.getEntry("META-INF/jarjar/metadata.json");
+                var certificate = zip.getEntry("blade-export.json");
+                if (runtime == null || descriptor == null || certificate == null) {
+                    throw new IllegalStateException("Sealed sword lacks a versioned runtime: " + file);
+                }
+                String digest = BladeExportArchive.hash(zip.getInputStream(runtime).readAllBytes());
+                if (commonRuntimeHash == null) commonRuntimeHash = digest;
+                else if (!commonRuntimeHash.equals(digest)) {
+                    throw new IllegalStateException("Exports shipped conflicting bytes for one runtime version");
+                }
+                var jarJar = JsonParser.parseString(new String(zip.getInputStream(descriptor).readAllBytes(),
+                        StandardCharsets.UTF_8)).getAsJsonObject();
+                var info = jarJar.getAsJsonArray("jars").get(0).getAsJsonObject();
+                if (!"bt-export-runtime".equals(info.getAsJsonObject("identifier").get("artifact").getAsString())
+                        || !ExportBattleProfile.RUNTIME_VERSION.equals(
+                                info.getAsJsonObject("version").get("artifactVersion").getAsString())) {
+                    throw new IllegalStateException("Inconsistent Jar-in-Jar runtime coordinates");
+                }
+                var manifest = JsonParser.parseString(new String(zip.getInputStream(certificate).readAllBytes(),
+                        StandardCharsets.UTF_8)).getAsJsonObject();
+                String swordId = manifest.get("blade").getAsString();
+                if (!identities.add(swordId)) {
+                    throw new IllegalStateException("Two sealed swords share the same immutable definition ID");
+                }
+                var capabilities = manifest.getAsJsonArray("capabilities");
+                String expected = swordId.equals("bt_export_dangaku:sealed_blade")
+                        ? "bt_export_runtime:dangaku_v1" : "bt_export_runtime:custom_combo_v1";
+                boolean present = false;
+                for (var capability : capabilities) {
+                    if (expected.equals(capability.getAsString())) present = true;
+                }
+                if (!present) throw new IllegalStateException("Missing combat capability " + expected);
+            }
+        }
+        LOGGER.info("BLADE_EXPORT_SHARED_RUNTIME_PASS");
     }
 
     static void verifyArtwork(Path file, String modId) throws Exception {
