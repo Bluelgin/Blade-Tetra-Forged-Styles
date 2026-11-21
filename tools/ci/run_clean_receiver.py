@@ -24,11 +24,13 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_SWORDS = frozenset({
     "bt_export_test", "bt_export_custom", "bt_export_custom_second", "bt_export_dangaku",
+    "bt_export_reinforced",
 })
 REQUIRED_MARKERS = (
     "BLADE_EXPORT_RUNTIME_PROBE_PASS",
     "BLADE_EXPORT_PRECISION_CLOCK_PASS",
     "BLADE_EXPORT_PRECISION_RANK_PASS",
+    "BLADE_EXPORT_REINFORCED_KNOCKBACK_PASS",
     "BLADE_EXPORT_SPIRIT_ISOLATION_PASS",
 )
 CURSE_IDS = {"1.9.63": "8018222", "1.9.65": "8090912"}
@@ -41,7 +43,7 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
         raise RuntimeError(f"Missing generated add-on directory: {directory}")
     exports = sorted(directory.glob("*.jar"))
     if len(exports) != len(EXPECTED_SWORDS):
-        raise RuntimeError(f"Expected exactly 4 generated JARs; found {len(exports)}")
+        raise RuntimeError(f"Expected exactly 5 generated JARs; found {len(exports)}")
     seen = set()
     runtimes = set()
     for file in exports:
