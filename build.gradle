@@ -160,6 +160,8 @@ minecraft {
                 workingDirectory project.file(project.hasProperty('slashblade1965')
                         ? 'build/blade-export-package-smoke-1965' : 'build/blade-export-package-smoke')
                 property 'blade_tetra.exportPackageSmoke', 'true'
+                property 'blade_tetra.expectedSlashbladeVersion',
+                        project.hasProperty('slashblade1965') ? '1.9.65' : '1.9.63'
             }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
