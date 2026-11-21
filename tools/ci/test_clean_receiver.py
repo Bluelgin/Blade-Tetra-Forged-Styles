@@ -1,11 +1,15 @@
 """Offline contract tests for the real, source-free Forge receiver acceptance harness."""
 import hashlib
+import io
 import json
+import urllib.error
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from zipfile import ZipFile
 
+import run_clean_receiver
 from run_clean_receiver import EXPECTED_SWORDS, inspect_exports
 
 
@@ -79,6 +83,37 @@ class CleanReceiverContractTests(unittest.TestCase):
         make_package(self.directory, "bt_export_custom")
         with self.assertRaisesRegex(RuntimeError, "Expected exactly 4"):
             inspect_exports(self.directory, "1.9.63")
+    def test_pinned_forge_mirror_fallback_and_cache(self):
+        payload = b"sample verifier installer" * 60000
+        sha1 = hashlib.sha1(payload).hexdigest()
+        seen = []
+
+        def download(request, timeout=0):
+            url = request.full_url
+            seen.append(url)
+            if "maven.minecraftforge.net" in url:
+                raise urllib.error.HTTPError(url, 403, "CDN refused CI runner", {}, None)
+            return io.BytesIO(payload)
+
+        with patch.object(run_clean_receiver, "ROOT", self.directory), \
+             patch.dict(run_clean_receiver.FORGE_INSTALLER_SHA1,
+                        {"1.20.1-47.4.0": sha1}), \
+             patch("urllib.request.urlopen", side_effect=download):
+            path = run_clean_receiver.fetch_installer("1.20.1-47.4.0")
+            self.assertEqual(path.read_bytes(), payload)
+            self.assertGreaterEqual(len(seen), 2)
+            self.assertEqual(run_clean_receiver.fetch_installer("1.20.1-47.4.0"), path)
+            self.assertEqual(len(seen), 2, "verified installer cache caused a second download")
+
+    def test_reject_forge_mirror_with_wrong_signature(self):
+        payload = b"untrusted installer" * 80000
+        with patch.object(run_clean_receiver, "ROOT", self.directory), \
+             patch("urllib.request.urlopen", return_value=io.BytesIO(payload)):
+            with self.assertRaisesRegex(RuntimeError, "verified Forge installer"):
+                run_clean_receiver.fetch_installer("1.20.1-47.4.0")
+        self.assertFalse((self.directory / "build/clean-receiver/installers/"
+                          "forge-1.20.1-47.4.0-installer.jar").exists())
+
 
 
 if __name__ == "__main__":
