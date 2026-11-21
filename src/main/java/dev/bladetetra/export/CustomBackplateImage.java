@@ -63,10 +63,23 @@ final class CustomBackplateImage {
             throw new IOException("Only PNG and JPEG portraits are supported");
         }
         byte[] bytes = Files.readAllBytes(path);
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-        if (image == null || image.getWidth() < 1 || image.getHeight() < 1
-                || image.getWidth() > 2048 || image.getHeight() > 2048) {
-            throw new IOException("Picture dimensions must be between 1 and 2048 pixels");
+        BufferedImage image;
+        try (var input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            if (input == null) throw new IOException("Cannot open image decoder");
+            var readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) throw new IOException("Unsupported PNG or JPEG encoding");
+            var reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                int width = reader.getWidth(0), height = reader.getHeight(0);
+                if (width < 1 || height < 1 || width > 2048 || height > 2048) {
+                    throw new IOException("Picture dimensions must be between 1 and 2048 pixels");
+                }
+                image = reader.read(0);
+                if (image == null) throw new IOException("Image decoder returned no pixels");
+            } finally {
+                reader.dispose();
+            }
         }
         NativeImage normalized = new NativeImage(256, 256, true);
         // Letterbox while preserving the aspect ratio; PNG transparency is retained.
