@@ -4,11 +4,11 @@ import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.compat.LegacyImprintCraftingOutcome;
+import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import dev.bladetetra.recipe.NamedBladeIngotRecipe;
 import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -18,13 +18,10 @@ import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.registries.ForgeRegistries;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import se.mickelus.tetra.blocks.workbench.WorkbenchTile;
 import se.mickelus.tetra.data.DataManager;
 import se.mickelus.tetra.module.schematic.ConfigSchematic;
 
@@ -104,70 +101,35 @@ public final class NamedIngotSmokeTest {
         }
     }
 
-    private static void verifyBackplate(ServerPlayer player) throws Exception {
-        var level = player.serverLevel();
-        var pos = new BlockPos(8, 80, 8);
-        var block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.fromNamespaceAndPath("tetra", "basic_workbench"));
-        check(block != null, "native workbench registered");
-        var previousBlock = level.getBlockState(pos);
-        level.setBlockAndUpdate(pos, block.defaultBlockState());
-        try {
-            check(level.getBlockEntity(pos) instanceof WorkbenchTile, "native workbench created");
-            verifyBackplateCraft(player, (WorkbenchTile) level.getBlockEntity(pos));
-        } finally {
-            level.setBlockAndUpdate(pos, previousBlock);
-        }
-    }
+    private static void verifyBackplate(ServerPlayer player) {
+        check(DataManager.instance.schematicData.getData(
+                ResourceLocation.fromNamespaceAndPath("tetra", NamedBackplate.MODULE)) == null,
+                "named backplate installation and replacement schematic is retired");
 
-    private static void verifyBackplateCraft(ServerPlayer player, WorkbenchTile bench) throws Exception {
         var item = ModItems.MODULAR_SLASHBLADE.get();
         var blade = item.createDefaultStack();
-        String slot = dev.bladetetra.item.ModularSlashBladeItem.BACKPLATE_SLOT;
-        var definition = DataManager.instance.schematicData.getData(
-                ResourceLocation.fromNamespaceAndPath("tetra", NamedBackplate.MODULE));
-        var schematic = new ConfigSchematic(definition);
-        var ingot = NamedBladeIngotItem.create(LegacyImprintKind.WOODEN_PUPPET);
-        var inventory = (IItemHandlerModifiable) bench.getCapability(ForgeCapabilities.ITEM_HANDLER)
-                .orElseThrow(IllegalStateException::new);
-        inventory.setStackInSlot(0, blade);
-        inventory.setStackInSlot(1, ingot);
-        bench.setCurrentSchematic(schematic, slot);
-        var materials = bench.getMaterials();
-        check(schematic.isApplicableForSlot(slot, blade) && schematic.isMaterialsValid(blade, slot, materials),
-                "workbench accepts a sourced ingot in the empty backplate slot");
-        check(!schematic.isMaterialsValid(blade, slot, new ItemStack[]{NamedBladeIngotItem.create(null)})
-                && !schematic.isMaterialsValid(blade, slot, new ItemStack[]{new ItemStack(net.minecraft.world.item.Items.IRON_INGOT)}),
-                "backplate rejects unbound and ordinary ingots");
-        check(schematic.getRequiredQuantity(blade, 0, ingot) == 1, "backplate costs one ingot");
-        var preview = schematic.applyUpgrade(blade, materials, false, slot, player);
-        check(inventory.getStackInSlot(1).getCount() == 1 && NamedBackplate.sourceId(blade) == null,
-                "preview does not spend or modify");
-        check(LegacyImprintKind.WOODEN_PUPPET.id().equals(NamedBackplate.sourceId(preview)), "preview gets source");
-        bench.craft(player);
-        var crafted = bench.getTargetItemStack();
-        check(inventory.getStackInSlot(1).isEmpty(), "craft consumes the last ingot");
-        var loaded = ItemStack.of(crafted.save(new net.minecraft.nbt.CompoundTag()));
-        check(NamedBackplate.sourceId(preview).equals(NamedBackplate.sourceId(loaded)), "source survives reload");
+        String slot = ModularSlashBladeItem.BACKPLATE_SLOT;
+        String source = LegacyImprintKind.WOODEN_PUPPET.id();
+        // Recreate the saved tags from the former workbench outcome.
+        se.mickelus.tetra.items.modular.IModularItem.putModuleInSlot(
+                blade, slot, NamedBackplate.MODULE, NamedBackplate.MODULE + "_material",
+                "named_backplate/ingot");
+        blade.getOrCreateTag().putString("blade_tetra_backplate_source", source);
+
+        var loaded = ItemStack.of(blade.save(new net.minecraft.nbt.CompoundTag()));
+        check(source.equals(NamedBackplate.sourceId(loaded)), "legacy backplate source survives reload");
         var module = item.getModuleFromSlot(loaded, slot);
+        check(module != null && NamedBackplate.MODULE.equals(module.getKey()),
+                "legacy backplate module is still registered");
         var stats = module.getVariantData(loaded);
         check(stats.durability == 0 && stats.integrity == 0 && stats.magicCapacity == 0
                         && (stats.attributes == null || stats.attributes.isEmpty()),
-                "cosmetic module has zero stat contribution");
-        var secondSource = NamedLegacyCatalog.values().stream()
-                .filter(kind -> !kind.id().equals(NamedBackplate.sourceId(loaded)))
-                .findFirst().orElseThrow();
-        var replacementIngot = NamedBladeIngotItem.create(secondSource);
-        inventory.setStackInSlot(0, loaded);
-        inventory.setStackInSlot(1, replacementIngot);
-        bench.setCurrentSchematic(schematic, slot);
-        bench.craft(player);
-        var replacement = bench.getTargetItemStack();
-        check(inventory.getStackInSlot(1).isEmpty() && secondSource.id().equals(NamedBackplate.sourceId(replacement)),
-                "replacement consumes its ingot and updates the design");
+                "legacy cosmetic module has zero stat contribution");
         var removal = new se.mickelus.tetra.module.schematic.RemoveSchematic();
-        var removed = removal.applyUpgrade(replacement, new ItemStack[0], true, slot, player);
-        check(item.getModuleFromSlot(removed, slot) == null && NamedBackplate.sourceId(removed) == null,
-                "native removal restores empty slot");
+        var removed = removal.applyUpgrade(loaded, new ItemStack[0], true, slot, player);
+        check(item.getModuleFromSlot(removed, slot) == null
+                        && !removed.getOrCreateTag().contains("blade_tetra_backplate_source"),
+                "native removal clears both the legacy module and its source");
         check(player.getInventory().items.stream().noneMatch(stack -> stack.getItem() instanceof NamedBladeIngotItem),
                 "removal does not return an ingot");
         LogUtils.getLogger().info("NAMED_BACKPLATE_SMOKE_PASS");
