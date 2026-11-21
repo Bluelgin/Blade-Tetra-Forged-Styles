@@ -3,6 +3,7 @@ package dev.btsealed.probe;
 import com.mojang.logging.LogUtils;
 import mods.flammpfeil.slashblade.SlashBlade;
 import mods.flammpfeil.slashblade.capability.inputstate.CapabilityInputState;
+import mods.flammpfeil.slashblade.capability.concentrationrank.CapabilityConcentrationRank;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
@@ -91,6 +92,7 @@ public final class ExportRuntimeProbe {
             if (hit.getAmount() != 7.5F || secondState.getDamage() != damageBefore + 1) {
                 throw new IllegalStateException("Guard tsuba effect was not retained");
             }
+            verifyPrecisionRank(world, player, second);
             verifyDangaku(world, player);
             dev.btsealed.runtime.PortableRuntimeSelfTest.verifyPrecisionClock();
             LogUtils.getLogger().info("BLADE_EXPORT_RUNTIME_PROBE_PASS");
@@ -99,6 +101,41 @@ public final class ExportRuntimeProbe {
             throw error;
         } finally {
             event.getServer().halt(false);
+        }
+    }
+
+    /** Compare actual native Rank balances with the original Blade Tetra precision-habaki acceptance fixture. */
+    private static void verifyPrecisionRank(ServerLevel world, ServerPlayer player, ItemStack focusBlade) {
+        var rank = player.getCapability(CapabilityConcentrationRank.RANK_POINT).orElseThrow();
+        long originalTime = world.getGameTime();
+        long initial = rank.getUnitCapacity() * 2L + 120L;
+        try {
+            rank.setRawRankPoint(initial);
+            rank.setLastUpdte(originalTime);
+            for (int tick = 0; tick <= 40; tick++) {
+                long now = originalTime + tick;
+                world.getServer().getWorldData().overworldData().setGameTime(now);
+                player.setItemInHand(InteractionHand.MAIN_HAND,
+                        tick >= 20 && tick < 30 ? ItemStack.EMPTY : focusBlade);
+                playerTick(player);
+                if (tick == 20 && rank.getRankPoint(now) != initial - 10L) {
+                    throw new IllegalStateException("Precision Habaki did not halve native Rank decay");
+                }
+                if (tick == 30 && rank.getRankPoint(now) != initial - 20L) {
+                    throw new IllegalStateException("Precision Habaki leaked Rank across a weapon swap");
+                }
+            }
+            if (rank.getRankPoint(originalTime + 40) != initial - 25L) {
+                throw new IllegalStateException("Precision Habaki resumed with wrong native Rank decay");
+            }
+            rank.addRankPoint(player, -60L);
+            if (rank.getRankPoint(originalTime + 40) != initial - 85L) {
+                throw new IllegalStateException("Precision Habaki discounted an explicit Rank expenditure");
+            }
+            LogUtils.getLogger().info("BLADE_EXPORT_PRECISION_RANK_PASS");
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, focusBlade);
+            world.getServer().getWorldData().overworldData().setGameTime(originalTime);
         }
     }
 
