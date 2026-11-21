@@ -37,7 +37,8 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 | Precision habaki (Rank decay) | **Source-free server verified** | Native Rank, switching/re-equipping and full explicit Rank costs tested on SlashBlade 1.9.63 and 1.9.65 |
 | Reinforced habaki (knockback) | **Source-free server verified in v1.3 candidate** | Native melee/slash Mixin hooks preserve horizontal impulse (0.12 ordinary vs 0.66 reinforced) without changing Y or Toss; dual-version independent server proof exists. Co-installation/client parity remains open |
 | Special forged SA / source-only SE | **Blocked** | No verified independent implementation yet |
-| Soul inscriptions, awakening/ritual abilities, Shoshin/Bairen/Bansho/NBT Sage | **Blocked** | Needs persistent state, combat/visual hooks and clean-room behavioral tests |
+| Awakened soul inscriptions, exclusive abilities, rituals and forms | **Explicit opt-in omission (PR #76)** | Source stack remains untouched; export is reconstructed from a normalized ordinary sword copy. A warning and server-validated player acknowledgement are mandatory. Awakening skills, forms, soul state, art and VFX are not exported. |
+| Shoshin/Bairen/Bansho/NBT Sage and non-awakening unsupported abilities | **Blocked** | Not part of the awakening omission; must be implemented before export or explicitly handled in a future scoped consent policy |
 | Arbitrary external resource pack overrides | **Blocked unless verified** | Source bytes and rights must be attributable; copying an unknown pack would not establish licensing |
 
 **Safety gate:** never treat an external model's availability as permission to redistribute it. The pack's visible rights and any allowed dependencies have to be evaluated before embedding derived OBJ/PNG. Public redistribution is not supported by the current private-modpack export policy.
@@ -66,7 +67,7 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 - Clean receiving dedicated server and client **without** `blade_tetra` or `tetra`: craft, combo timing, damage, attributes, save/reload, source-restriction and render checks.
 - Two+ exported add-ons installed together; mixed-version shared-runtime resolution, world reopen, removal/reinstall.
 - SlashBlade: Resharped **1.9.63** verified initially; test **1.9.65** independently before expanding the declared dependency range. Test the exporting environment with Tetra 6.3.0 and a later 6.x.
-- Negative export coverage for third-party named art without audited embedding permission, malformed custom backplate pictures, fish, banner, boundary forging, forged art, and soul/awakening; none may produce a misleading successful JAR. Both precision and reinforced habaki must be positively captured and validated on real source-free combat paths.
+- Negative export coverage for third-party named art without audited embedding permission, malformed custom backplate pictures, fish, banner, boundary forging, forged art, and non-awakening abilities; none may produce a misleading successful JAR. Awakened soul export must be rejected **without explicit omission consent**, must strip only awakening-scoped content from a copy, and must preserve or separately block all non-awakening abilities. Both precision and reinforced habaki must be positively captured and validated on real source-free combat paths.
 - Third-party models, resource packs and licenses inspected before any derived assets are embedded.
 
 ## Near-term priorities
