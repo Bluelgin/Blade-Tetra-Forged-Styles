@@ -157,7 +157,8 @@ minecraft {
                 property 'blade_tetra.namedIngotSmoke', 'true'
             }
             if (project.hasProperty('exportPackageSmoke')) {
-                workingDirectory project.file('build/blade-export-package-smoke')
+                workingDirectory project.file(project.hasProperty('slashblade1965')
+                        ? 'build/blade-export-package-smoke-1965' : 'build/blade-export-package-smoke')
                 property 'blade_tetra.exportPackageSmoke', 'true'
             }
             if (project.hasProperty('legacySmokeTest')) {
@@ -277,8 +278,11 @@ dependencies {
             ? "local:tetra:1.20.1-6.9.0"
             : "curse.maven:tetra-289712:${tetra_file_id}")
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
+    // Explicit compatibility fixture: SlashBlade: Resharped 1.9.65 (CurseForge file 8090912).
+    // The default stays on 1.9.63 until the independent matrix has passed.
+    def slashbladeFixtureFile = project.hasProperty('slashblade1965') ? '8090912' : slashblade_resharped_file_id
     implementation fg.deobf(
-            "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+            "curse.maven:slashblade-resharped-1022428:${slashbladeFixtureFile}")
     // Compile the optional public animation-map alias; no new runtime requirement.
     compileOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
