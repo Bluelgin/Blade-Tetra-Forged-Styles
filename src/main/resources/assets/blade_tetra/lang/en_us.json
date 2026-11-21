@@ -12,8 +12,6 @@
   "blade_tetra.export.recipe": "Crafting grid (item IDs)",
   "blade_tetra.export.ingredient": "Ingredient item ID",
   "blade_tetra.export.confirm": "Export add-on JAR",
-  "blade_tetra.export.mode.sealed": "Full seal (bundled runtime)",
-  "blade_tetra.export.mode.native": "Native-only (no runtime)",
   "blade_tetra.export.waiting": "Checking the held blade…",
   "blade_tetra.export.saved": "Saved in blade-exports.",
   "blade_tetra.export.path": "Blade exported to %s",
