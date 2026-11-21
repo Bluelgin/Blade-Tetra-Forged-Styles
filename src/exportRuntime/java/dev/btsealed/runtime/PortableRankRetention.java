@@ -50,8 +50,15 @@ public final class PortableRankRetention {
 
         public boolean advance(long now, String bladeId) {
             if (!Objects.equals(activeBlade, bladeId)) {
+                // Match the source Mixin's tick ordering: the previous weapon's
+                // final elapsed tick is settled BEFORE the held weapon changes.
+                // Reset only after that settlement, so a different exported sword
+                // never inherits the preceding blade's partial half-tick.
+                boolean finalCredit = activeBlade != null && clock.advance(now, false);
                 activeBlade = bladeId;
                 clock = new Clock();
+                if (bladeId != null) clock.advance(now, true);
+                return finalCredit;
             }
             return clock.advance(now, bladeId != null);
         }
