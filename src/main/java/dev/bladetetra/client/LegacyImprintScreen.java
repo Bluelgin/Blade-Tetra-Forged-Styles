@@ -6,9 +6,6 @@ import dev.bladetetra.forging.LegacyImprintKind;
 import dev.bladetetra.network.LegacyImprintOpenPacket;
 import dev.bladetetra.network.LegacyImprintResultPacket;
 import dev.bladetetra.network.ModNetwork;
-import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
-import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
-import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -430,7 +427,6 @@ public final class LegacyImprintScreen extends Screen {
     private int partX(int cx, int part) {
         if (part == 2) return cx;
         float center = part == 0 ? profile.tsubaCenter() : profile.tsukaCenter();
-        if (profile.flipped()) center = 1.0F - center;
         return Math.round(Mth.lerp(center, cx - 104, cx + 104));
     }
 
@@ -462,21 +458,16 @@ public final class LegacyImprintScreen extends Screen {
     private void renderSourcePart(GuiGraphics graphics, int cx, int cy, String group, float partialTick) {
         PoseStack poses = graphics.pose();
         poses.pushPose();
-        float[] axis = LegacyModelPartRenderer.previewBounds(kind.model());
         float bob = reducedMotion ? 0.0F : Mth.sin((phaseTicks + partialTick) * .055F) * 1.6F;
         poses.translate(cx, cy + bob, 180.0F);
-        float scale = axis[1];
-        poses.scale(profile.flipped() ? -scale : scale, -scale, scale);
-        poses.translate(-axis[0], 0, 0);
+        poses.scale(.60F, -.60F, .60F);
+        poses.translate(group.equals("sheath") ? 165 : 118, 0, 0);
         try {
-            WavefrontObject model = BladeModelManager.getInstance().getModel(kind.model());
-            BladeRenderState.resetCol();
-            BladeRenderState.renderOverrided(ItemStack.EMPTY, model, group, kind.texture(), poses,
-                    Minecraft.getInstance().renderBuffers().bufferSource(), 0xF000F0);
-            Minecraft.getInstance().renderBuffers().bufferSource().endBatch();
+            var buffer = Minecraft.getInstance().renderBuffers().bufferSource();
+            NamedBladeRenderPlan.preview(poses, buffer, kind, profile, group);
+            buffer.endBatch();
         } finally {
             poses.popPose();
-            BladeRenderState.resetCol();
         }
     }
 

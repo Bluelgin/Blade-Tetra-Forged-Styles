@@ -85,14 +85,39 @@ public final class NamedIngotArtReview {
         var tag = stack.getOrCreateTag();
         tag.putString(item.BLADE_SLOT, module);
         tag.putString(module + "_material", module.substring(module.indexOf('/') + 1) + "/named_blade_ingot");
-        var source = dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX;
-        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(tag, "blade", source.id());
-        if (!dev.bladetetra.forging.NamedLegacyImprintStorage.putSnapshot(stack, "blade", source)
-                || !source.visualUsable()) {
-            throw new IllegalStateException("Missing named blade source for the render review");
+        boolean addon = net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon");
+        if (addon) {
+            var catalog = dev.bladetetra.forging.NamedLegacyCatalog.values();
+            var blade = findSource(catalog, longBlade ? "kirisaya" : "toyako");
+            var hilt = findSource(catalog, "murakumo");
+            var sheath = findSource(catalog, "hf_murasama");
+            install(stack, "blade", blade, LegacySourceMesh.Component.BLADE);
+            install(stack, "tsuba", hilt, LegacySourceMesh.Component.HILT);
+            install(stack, "saya", sheath, LegacySourceMesh.Component.SAYA);
+        } else {
+            install(stack, "blade", dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX,
+                    LegacySourceMesh.Component.BLADE);
         }
         item.syncDerivedBladeState(stack);
         return stack;
+    }
+
+    private static dev.bladetetra.forging.LegacyImprintKind findSource(
+            java.util.Collection<dev.bladetetra.forging.LegacyImprintKind> catalog, String path) {
+        return catalog.stream().filter(kind -> kind.name().getNamespace().equals("slashblade_addon")
+                && kind.name().getPath().equals(path)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Missing SJAP review source " + path));
+    }
+
+    private static void install(net.minecraft.world.item.ItemStack stack, String slot,
+            dev.bladetetra.forging.LegacyImprintKind kind, LegacySourceMesh.Component part) {
+        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(stack.getOrCreateTag(), slot, kind.id());
+        boolean stored = dev.bladetetra.forging.NamedLegacyImprintStorage.putSnapshot(stack, slot, kind);
+        var source = LegacyRenderSources.resolve(kind);
+        var support = source.support(part);
+        if (!stored || (support != LegacyRenderSources.Support.FULL && support != LegacyRenderSources.Support.PARTIAL)) {
+            throw new IllegalStateException("Cannot mount " + kind.id() + "/" + part + ": " + support + " " + source.reason());
+        }
     }
 
     private static void reviewNamedBlade(Minecraft mc) {
@@ -136,7 +161,8 @@ public final class NamedIngotArtReview {
         if (++bladeView == 6) {
             mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
             reviewBlade = null;
-            LogUtils.getLogger().info("NAMED_BLADE_HELD_REVIEW: short and custom long blade with ordinary fittings");
+            LogUtils.getLogger().info("NAMED_BLADE_HELD_REVIEW: short and custom long assembly, SJAP mixed sources={}",
+                    net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon"));
         }
     }
 
@@ -246,6 +272,11 @@ public final class NamedIngotArtReview {
                         .getModel(state.getModel().orElseThrow());
                 mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
                         stack, model, "blade", state.getTexture().orElseThrow(), poses,
+                        graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
+                graphics.flush();
+                poses.translate(0, -34, 0);
+                mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState.renderOverrided(
+                        stack, model, "sheath", state.getTexture().orElseThrow(), poses,
                         graphics.bufferSource(), net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
                 graphics.flush();
                 poses.popPose();

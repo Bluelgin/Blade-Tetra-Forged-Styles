@@ -32,11 +32,19 @@ public final class LegacyResearchTooltipClient {
                     .withStyle(ChatFormatting.GRAY));
         }
 
-        if (ClientTooltipKeyState.isAltDown()
-                && !LegacyResearchabilityClient.inspect(extraction.kind()).researchable()) {
-            event.getToolTip().add(Component.translatable(
-                    "tooltip.blade_tetra.imprint.visual_fallback")
-                    .withStyle(ChatFormatting.DARK_GRAY));
+        if (ClientTooltipKeyState.isAltDown()) {
+            var visual = LegacyResearchabilityClient.inspect(extraction.kind());
+            for (var entry : visual.parts().entrySet()) {
+                var part = entry.getKey();
+                var support = entry.getValue();
+                if (support == LegacyRenderSources.Support.FULL) continue;
+                String status = support.name().toLowerCase(java.util.Locale.ROOT);
+                event.getToolTip().add(Component.translatable(
+                        "tooltip.blade_tetra.imprint.visual_part",
+                        Component.translatable("tooltip.blade_tetra.imprint.part." + part.key()),
+                        Component.translatable("tooltip.blade_tetra.imprint.visual." + status))
+                        .withStyle(ChatFormatting.DARK_GRAY));
+            }
         }
         if (event.getFlags().isAdvanced()) {
             event.getToolTip().add(Component.translatable(

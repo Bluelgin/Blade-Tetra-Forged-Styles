@@ -1,0 +1,64 @@
+# Named model assembly
+
+The server continues to resolve named-blade definitions and persist the original component identities and combat metadata. A client with the provider installed can resolve these snapshots into model and texture resources. Geometry compatibility has no effect on extracting an ingot, applying a component, inheriting a Slash Art or inheriting a Special Effect.
+
+## Render path
+
+1. Resolve and parse the source OBJ through SlashBlade's Wavefront constructor after checking the source texture and the OBJ byte budget.
+2. Build a right-handed frame in which the longitudinal coordinate increases from tip to grip. The frame controls the cut, anchor selection, and source-to-target rotation. Separate handle groups, known cross-sections and declared anchors supply evidence for the blade/hilt boundary.
+3. Partition each component into normal and luminous geometry. Each component can use several groups. A missing or ambiguous component uses the corresponding modular geometry. An unavailable damaged group uses the modular damaged section.
+4. Match the source socket to the native Tetra socket. The blade and complete hilt use the same target socket. The sheath uses its mouth and a local direction. Uniform proportional fitting is bounded to 0.25–4 times authored scale. The hilt keeps its world proportions by default.
+5. Validate the views and mounts required by the current display state before canceling the native event. Continue through SlashBlade's native render state for lighting and buffers. The runtime OBJ used by the backend contains final geometry during construction, including for constructor-time baking.
+6. Inventory rendering uses a declared part-specific item mesh when available. Otherwise it reuses the world mesh and its texture UVs and fits it to the corresponding authored Tetra icon pose. The original Tetra atlas still identifies **target** parts. Provider UV islands are never used to guess part ownership.
+
+JOML post-multiplies the socket transformation as `targetFrame · adjustment · scale · inverse(sourceFrame)`. The renderer applies matching PoseStack operations to keep position and normal transforms synchronized. Research previews mount onto the stock iron katana using the same path.
+
+## Provider and resource pack settings
+
+Use a client resource named `assets/<model namespace>/bladetetra/legacy_models/<model path>.json`. Include the original `.obj` extension in the model path. For example, the declaration for `some_addon:model/katana.obj` goes in `assets/some_addon/bladetetra/legacy_models/model/katana.obj.json`.
+
+The resource manager picks the highest-priority resource for each path. An optional variant declaration at `<model path>/<named blade namespace>/<named blade path>.json` replaces individual fields from the model declaration. Use the same resource path to override a supplied declaration in a higher-priority resource pack. Malformed files are logged and ignored. Older provider declarations in `data/blade_tetra/legacy_adapters` still supply defaults. Conflicting legacy declarations still fall back to standard conventions.
+
+```json
+{
+  "axis": "z",
+  "reversed": true,
+  "width_axis": "y",
+  "blade_groups": ["edge", "inlay"],
+  "blade_luminous_groups": ["edge_emission"],
+  "hilt_groups": ["guard", "grip"],
+  "hilt_luminous_groups": ["guard_emission"],
+  "saya_groups": ["scabbard_shell", "cord"],
+  "blade_anchor": [0, 4, -52],
+  "saya_anchor": [0, 4, -48],
+  "saya_direction": [0, 0, -1],
+  "saya_fit": "preserve",
+  "hilt_transform": {"offset_y": 0.025},
+  "blade_damaged_blade_groups": ["broken_edge"],
+  "item_blade_blade_groups": ["inventory_edge"]
+}
+```
+
+- Axes take `x`, `y` or `z`. Anchors are absolute OBJ points; directions point from the tip toward the socket. `width_axis` fixes the transverse orientation. Per-component `blade_anchor`, `hilt_anchor`, `saya_anchor` and corresponding `*_direction` fields are supported.
+- Base and luminous groups can be declared independently. An empty array disables that channel. Existing `*_luminous` entries in legacy base lists are treated as luminous groups.
+- Named `blade_groups` describe an already isolated edge unless an anchor or a separate handle defines a cut. Set `split_hilt` to `false` if material to the rear of the blade socket cannot provide a complete hilt.
+- `geometry_model` can name a different OBJ for assembly while preserving the source identity and texture. The alternative OBJ must use that texture's UV layout.
+- `*_fit` accepts `proportional` or `preserve`. A `*_transform` may specify `scale`, `rotation` in degrees, `offset_x`, `offset_y`, `length` and `width` as a deliberate override. Components use the target frame's axes for these adjustments.
+- State-specific names start with the native group, then the component, followed by `_groups` or `_luminous_groups`. Supported state prefixes are `blade_damaged`, `blade_fragment`, `item_blade`, `item_bladens` and `item_damaged`. Declared icon meshes use native icon units and XY projection.
+
+The OBJ grammar is the one supported by the installed SlashBlade version, including triangles and quads. A fused source with no reliable boundary may need an explicit anchor or an independently authored alternate OBJ. A luminous-only blade keeps its own luminous layer. Decorations on the selected component stay with it, and unassigned groups are ignored.
+
+## Budgets and diagnostics
+
+Source OBJ input is limited to 8 MiB, 2,048 groups and 32,768 source triangles. Derived model views triangulate and discard degenerate triangles before writing indexed OBJ positions, UVs and normalized normals. Mesh caches limit both entry counts and retained triangle counts. Parsed sources, partitions, compiled views, mount results and unsuccessful resolutions are invalidated on resource reload. The advanced visual diagnosis reports source capability per component independently of the ingot's gameplay eligibility.
+
+## On-demand verification
+
+```sh
+./gradlew test --tests '*NamedLegacyGeometryTest' --tests '*RuntimeWavefrontViewFactoryTest'
+./gradlew test --tests '*NamedLegacyGeometryTest' -PsjapModelFixtures=/path/to/extracted/assets/slashblade_addon/model
+./gradlew runServer -PnamedIngotSmoke
+./gradlew runClient -PnamedIngotArtReview
+```
+
+Use the OBJ files extracted from the actual add-on JAR for the second command. The client review uses its existing isolated world and writes screenshots into `build/named-ingot-art-review`. Geometry tests validate OBJ parsing, view construction and transforms. Screenshots from a Forge client are needed to verify final appearance, including with client optimization mods.

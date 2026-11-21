@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeWavefrontViewFactoryTest {
     @Test
@@ -47,6 +48,28 @@ class RuntimeWavefrontViewFactoryTest {
         assertEquals(1, view.groupObjects.size());
         assertEquals(3, view.groupObjects.get(0).faces.size());
         view.groupObjects.get(0).faces.forEach(face -> assertEquals(3, face.vertices.length));
+    }
+
+    @Test
+    void emptyGroupsAreOmittedAndInvalidNormalsAreReconstructed() {
+        var modelGroups = new java.util.LinkedHashMap<String, List<Face>>();
+        modelGroups.put("leading_empty", List.of());
+        var triangle = face(3);
+        triangle.vertexNormals[0] = new Vertex(0, 0, 0);
+        triangle.vertexNormals[1] = new Vertex(Float.NaN, 0, 0);
+        modelGroups.put("first", List.of(triangle));
+        modelGroups.put("middle_empty", List.of(new Face()));
+        modelGroups.put("second", List.of(triangle));
+        modelGroups.put("trailing_empty", List.of());
+        var view = RuntimeWavefrontViewFactory.create(modelGroups);
+        assertEquals(List.of("first", "second"), view.groupObjects.stream().map(group -> group.name).toList());
+        view.groupObjects.forEach(group -> {
+            assertEquals(1, group.faces.size());
+            for (var normal : group.faces.get(0).vertexNormals) {
+                assertTrue(Float.isFinite(normal.z));
+                assertEquals(1, Math.abs(normal.z), .0001F);
+            }
+        });
     }
 
     private static Face face(int vertices) {
