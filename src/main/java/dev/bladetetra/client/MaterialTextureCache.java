@@ -36,28 +36,45 @@ final class MaterialTextureCache {
             new LinkedHashMap<>(16, 0.75F, true);
     private static NativeImage atlasTemplate;
     private static final Map<AwakenedWeaponArt.Theme, NativeImage> BACKPLATES = new java.util.EnumMap<>(AwakenedWeaponArt.Theme.class);
-    private static NativeImage flowTemplate;
+    private static NativeImage rodaiAtlas;
+
+    static synchronized NativeImage rodaiAtlas(ResourceManager resources) throws IOException {
+        if (rodaiAtlas == null) {
+            var resource = resources.getResource(
+                    ResourceLocation.fromNamespaceAndPath("slashblade", "model/rodai_netherite.png"));
+            if (resource.isPresent()) {
+                try (InputStream stream = resource.get().open()) {
+                    rodaiAtlas = NativeImage.read(stream);
+                }
+            }
+        }
+        return rodaiAtlas;
+    }
+
     private static long materialBuilds, emissionAttempts;
     record BuildStats(long materials,long emissions) {}
     static BuildStats buildStats() {return new BuildStats(materialBuilds,emissionAttempts);}
     static void recordEmissionAttempt() {emissionAttempts++;}
 
     static synchronized NativeImage copyBackplate(ResourceManager resources, AwakenedWeaponArt.Theme theme) throws IOException {
-        NativeImage template = theme == AwakenedWeaponArt.Theme.NONE ? flowTemplate : BACKPLATES.get(theme);
+        NativeImage template = BACKPLATES.get(theme);
         if (template == null) {
-            String path=theme==AwakenedWeaponArt.Theme.NONE ? "textures/item/flow_backplate.png"
-                    : "textures/item/awakened_"+theme.name().toLowerCase(java.util.Locale.ROOT)+"_backplate.png";
-            Resource resource=resources.getResourceOrThrow(ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID,path));
-            try(InputStream stream=resource.open();NativeImage source=NativeImage.read(stream)) {
-                template=new NativeImage(256,256,true);
-                source.resizeSubRectTo(0,0,source.getWidth(),source.getHeight(),template);
+            String path = "textures/item/awakened_"
+                    + theme.name().toLowerCase(java.util.Locale.ROOT) + "_backplate.png";
+            Resource resource = resources.getResourceOrThrow(
+                    ResourceLocation.fromNamespaceAndPath(BladeTetra.MOD_ID, path));
+            try (InputStream stream = resource.open(); NativeImage source = NativeImage.read(stream)) {
+                template = new NativeImage(256, 256, true);
+                source.resizeSubRectTo(0, 0, source.getWidth(), source.getHeight(), template);
             }
-            if(theme==AwakenedWeaponArt.Theme.NONE) flowTemplate=template;
-            else {
-                for(int y=0;y<256;y++) for(int x=0;x<256;x++)
-                    if(!AwakenedWeaponArt.insideBackplate(x,y,256,256)) template.setPixelRGBA(x,y,0);
-                BACKPLATES.put(theme,template);
+            for (int y = 0; y < 256; y++) {
+                for (int x = 0; x < 256; x++) {
+                    if (!AwakenedWeaponArt.insideBackplate(x, y, 256, 256)) {
+                        template.setPixelRGBA(x, y, 0);
+                    }
+                }
             }
+            BACKPLATES.put(theme, template);
         }
         NativeImage copy = new NativeImage(256, 256, true);
         copy.copyFrom(template);
@@ -134,9 +151,9 @@ final class MaterialTextureCache {
         NO_EMISSIVE.clear();
         MikageBackplateRenderType.clear();
         NamedBackplateArtwork.clear();
-        if (flowTemplate != null) {
-            flowTemplate.close();
-            flowTemplate = null;
+        if (rodaiAtlas != null) {
+            rodaiAtlas.close();
+            rodaiAtlas = null;
         }
         BACKPLATES.values().forEach(NativeImage::close);
         BACKPLATES.clear();

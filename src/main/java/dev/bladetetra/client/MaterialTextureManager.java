@@ -67,7 +67,7 @@ public final class MaterialTextureManager {
     private static final ResourceLocation TEMPLATE =
             ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID, "model/modular/standard_256.png");
-    private static final ResourceLocation DURABILITY_MODEL =
+    private static final ResourceLocation BACKPLATE_PORTRAIT_MODEL =
             ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID, "model/util/durability_filled.obj");
     private static final int LOGICAL_ATLAS_SIZE = 128;
@@ -109,36 +109,28 @@ public final class MaterialTextureManager {
                 event.getOriginalTexture())) {
             event.setGetRenderType(MikageBackplateRenderType::get);
             event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
-            // Keep the native hollow frame/gauges; render the portrait separately.
-            event.setModel(BladeModelManager.getInstance()
-                    .getModel(DURABILITY_MODEL));
-            var backplateTheme=AwakenedWeaponArt.fromStack(event.getStack());
             if ("base".equals(event.getOriginalTarget())) {
                 ResourceLocation baseTexture = NamedBackplateArtwork.texture(
                         dev.bladetetra.forging.NamedBackplate.sourceId(event.getStack()));
-                if (baseTexture == null) baseTexture = ensureDurabilityBaseTexture(appearance.blade(), backplateTheme);
+                if (baseTexture == null) {
+                    baseTexture = ensureDurabilityBaseTexture(
+                            appearance, AwakenedWeaponArt.fromStack(event.getStack()));
+                }
                 if (baseTexture != null) {
-                    // The portrait has its own colors: do not multiply it by
-                    // the native gray-to-magenta damage tint or foil glint.
                     event.setCanceled(true);
                     RENDERING_INTERNAL_PASS.set(true);
                     try {
-                        // Preserve the native dark/damage-tinted frame color.
-                        // Resetting it before this pass turns the outline white.
+                        // Draw the original frame with SlashBlade's current damage tint.
                         BladeRenderState.renderOverrided(
-                                event.getStack(),
-                                event.getModel(),
-                                event.getTarget(),
-                                DefaultResources.resourceDurabilityTexture,
-                                event.getPoseStack(),
-                                event.getBuffer(),
-                                event.getPackedLightIn(),
-                                event.getGetRenderType(),
-                                false);
+                                event.getStack(), event.getModel(), event.getTarget(),
+                                event.getTexture(), event.getPoseStack(), event.getBuffer(),
+                                event.getPackedLightIn(), event.getGetRenderType(),
+                                event.isEnableEffect());
                         BladeRenderState.resetCol();
                         BladeRenderState.renderOverrided(
-                                event.getStack(), event.getModel(), "portrait", baseTexture,
-                                event.getPoseStack(), event.getBuffer(),
+                                event.getStack(),
+                                BladeModelManager.getInstance().getModel(BACKPLATE_PORTRAIT_MODEL),
+                                "portrait", baseTexture, event.getPoseStack(), event.getBuffer(),
                                 net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
                                 MikageBackplateRenderType::get, false);
                     } finally {
@@ -147,7 +139,7 @@ public final class MaterialTextureManager {
                     }
                 }
             }
-            // Native healthy and broken gauges keep their original texture and color.
+            // Keep the original gauge geometry, texture, and damage offset.
             return;
         }
 
@@ -492,10 +484,12 @@ public final class MaterialTextureManager {
     }
 
     private static synchronized ResourceLocation ensureDurabilityBaseTexture(
-            String bladeMaterial, AwakenedWeaponArt.Theme theme) {
+            MaterialAppearance appearance, AwakenedWeaponArt.Theme theme) {
         long materialRevision = TetraMaterialVisualResolver.revision();
-        String cacheKey = bladeMaterial
-                + "|" + theme.name() + "|" + ART_REVISION
+        String colors = theme == AwakenedWeaponArt.Theme.NONE
+                ? String.join("|", appearance.saya(), appearance.blade(), appearance.tsuka())
+                : theme.name();
+        String cacheKey = colors + "|" + ART_REVISION
                 + "|tetra-material-revision="
                 + materialRevision;
         ResourceLocation cached = MaterialTextureCache.durability(cacheKey);
@@ -505,9 +499,10 @@ public final class MaterialTextureManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         try {
-            NativeImage image = MaterialTextureCache.copyBackplate(minecraft.getResourceManager(), theme);
-
-            if (theme == AwakenedWeaponArt.Theme.NONE) recolorDurabilityBase(image, bladeMaterial);
+            ResourceManager resources = minecraft.getResourceManager();
+            NativeImage image = theme == AwakenedWeaponArt.Theme.NONE
+                    ? materialBackplate(resources, appearance)
+                    : MaterialTextureCache.copyBackplate(resources, theme);
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location =
                     durabilityBaseLocation(cacheKey, materialRevision);
@@ -516,39 +511,44 @@ public final class MaterialTextureManager {
                     cacheKey, location, dynamicTexture, minecraft);
             return location;
         } catch (IOException | RuntimeException exception) {
-            LOGGER.warn(
-                    "Unable to generate durability base texture for {}",
-                    bladeMaterial,
-                    exception);
+            LOGGER.warn("Unable to generate durability base texture for {}", colors, exception);
             return null;
         }
     }
 
-    private static void recolorDurabilityBase(
-            NativeImage image,
-            String bladeMaterial) {
-        Palette palette = styleFor(bladeMaterial).palette();
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
-                int source = image.getPixelRGBA(x, y);
-                int sourceAlpha = alpha(source);
-                if (sourceAlpha == 0) {
+    private static NativeImage materialBackplate(
+            ResourceManager resources, MaterialAppearance appearance) throws IOException {
+        NativeImage atlas = MaterialTextureCache.rodaiAtlas(resources);
+        int saya = styleFor(appearance.saya()).palette().mid();
+        int blade = styleFor(appearance.blade()).palette().mid();
+        int tsuka = styleFor(appearance.tsuka()).palette().mid();
+        int centerColor = Palette.lerp(saya, blade, 0.70F);
+        int borderColor = Palette.lerp(saya, tsuka, 0.65F);
+
+        int size = 64;
+        NativeImage portrait = new NativeImage(size, size, true);
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                if (!AwakenedWeaponArt.insideBackplate(x, y, size, size)) {
                     continue;
                 }
-                int luminance = (
-                        red(source) * 30
-                                + green(source) * 59
-                                + blue(source) * 11)
-                        / 100;
-                float tone = luminance / 255.0F;
-                int materialColor = Palette.lerp(Palette.scale(palette.mid(), 0.45F),
-                        Palette.lerp(palette.highlight(), 0xFFFFFF, 0.30F), tone);
-                image.setPixelRGBA(
-                        x,
-                        y,
-                        abgr(sourceAlpha, materialColor));
+                // The two inner faces of SlashBlade's item icon use a diamond in the
+                // top-left atlas corner. Map the portrait plane to those same UVs.
+                float dx = (x + 0.5F - size / 2.0F) / (size * 55.6562F / 110.0F);
+                float dy = (y + 0.5F - size / 2.0F) / (size * 55.6562F / 110.0F);
+                float u = (10.0F + 9.0F * dx + 0.5F * Math.max(0, -dy)) / 64.0F;
+                float v = (16.0F - 15.0F * dy) / 128.0F;
+                int source = atlas == null ? abgr(255, 0x302C33)
+                        : atlas.getPixelRGBA((int) (u * atlas.getWidth()), (int) (v * atlas.getHeight()));
+                float luminance = (red(source) * 30 + green(source) * 59 + blue(source) * 11) / 25500.0F;
+                // The texture defines the shading and worn edges, while the materials supply the hue.
+                float tone = clamp01(luminance / 0.40F);
+                int materialColor = Palette.lerp(borderColor, centerColor, tone);
+                int tint = Palette.scale(materialColor, 0.28F + 0.72F * tone);
+                portrait.setPixelRGBA(x, y, abgr(alpha(source), tint));
             }
         }
+        return portrait;
     }
 
     static ResourceLocation durabilityBaseLocation(
