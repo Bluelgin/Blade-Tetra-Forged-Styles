@@ -33,6 +33,8 @@ final class BladeSealScreen extends Screen {
     private EditBox author;
     private EditBox description;
     private Button confirm;
+    private Button awakeningConsent;
+    private boolean awakeningAcknowledged;
     private Button backplateModeButton;
     private EditBox backplatePath;
     private CustomBackplateImage.Mode backplateMode = CustomBackplateImage.Mode.ORIGINAL;
@@ -64,7 +66,7 @@ final class BladeSealScreen extends Screen {
         panelWidth = Math.max(140, Math.min(PANEL_WIDTH, width - 12));
         authorColumnWidth = Math.min(105, Math.max(60, panelWidth / 3));
         left = (width - panelWidth) / 2;
-        top = Math.max(0, (height - 365) / 2);
+        top = Math.max(0, (height - (preview.omitsAwakening() ? 440 : 365)) / 2);
         name = field(left, top + 51, panelWidth, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
         addon = field(left, top + 78, panelWidth - 78, 50, "blade_tetra.export.id",
@@ -100,9 +102,25 @@ final class BladeSealScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
                 button -> chooseBackplate()).bounds(left + modeWidth + 4 + pictureWidth + 4,
                         top + 188, browseWidth, 20).build());
+        if (preview.omitsAwakening()) {
+            awakeningConsent = addRenderableWidget(Button.builder(awakeningConsentLabel(),
+                    button -> {
+                        awakeningAcknowledged = !awakeningAcknowledged;
+                        awakeningConsent.setMessage(awakeningConsentLabel());
+                        confirm.active = !confirmed && preview.ready() && awakeningAcknowledged;
+                    }).bounds(left, top + 256, panelWidth, 20).build());
+        }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 214, panelWidth, 20).build());
-        confirm.active = !confirmed && preview.ready();
+                button -> request()).bounds(left, top + (preview.omitsAwakening() ? 282 : 214),
+                        panelWidth, 20).build());
+        confirm.active = !confirmed && preview.ready()
+                && (!preview.omitsAwakening() || awakeningAcknowledged);
+    }
+
+    private Component awakeningConsentLabel() {
+        return Component.translatable(awakeningAcknowledged
+                ? "blade_tetra.export.awakening.acknowledged"
+                : "blade_tetra.export.awakening.acknowledge");
     }
 
     private Component backplateLabel() {
@@ -151,7 +169,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void request() {
-        if (!preview.ready()) return;
+        if (!preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
         try {
             var metadata = new BladeExportArchive.Metadata("bt_export_" + addon.getValue().strip(), version.getValue().strip(),
                     name.getValue().strip(), author.getValue().strip(), description.getValue().strip());
@@ -179,7 +197,8 @@ final class BladeSealScreen extends Screen {
             if (approvedSnapshot != null && approvedBlade != null) {
                 exportApproved();
             } else {
-                ModNetwork.CHANNEL.sendToServer(new BladeSealPackets.Confirm(preview.token()));
+                ModNetwork.CHANNEL.sendToServer(
+                        new BladeSealPackets.Confirm(preview.token(), awakeningAcknowledged));
             }
         } catch (IllegalArgumentException error) {
             status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
@@ -233,14 +252,15 @@ final class BladeSealScreen extends Screen {
             LogUtils.getLogger().warn("Failed to seal blade", error);
             status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
             confirmed = false;
-            confirm.active = preview.ready();
+            confirm.active = preview.ready()
+                    && (!preview.omitsAwakening() || awakeningAcknowledged);
         }
     }
 
     /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int maximum = Math.max(0, 365 - height + 20);
+        int maximum = Math.max(0, (preview.omitsAwakening() ? 440 : 365) - height + 20);
         if (maximum == 0) return super.mouseScrolled(mouseX, mouseY, delta);
         int next = Mth.clamp(scrollPixels - (int) Math.round(delta * 24), 0, maximum);
         int shift = scrollPixels - next;
@@ -272,12 +292,19 @@ final class BladeSealScreen extends Screen {
         graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.recipe"), left, top + 121, 0xFFFFFF);
+        if (preview.omitsAwakening()) {
+            graphics.drawWordWrap(font,
+                    Component.translatable("blade_tetra.export.awakening.notice"),
+                    left, top + 214, panelWidth, 0xFFD480);
+        }
+        int offset = preview.omitsAwakening() ? 90 : 0;
         graphics.drawWordWrap(font,
                 Component.translatable(preview.ready()
                         ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 244, panelWidth, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
+                        preview.summary()), left, top + 244 + offset, panelWidth,
+                preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 311, panelWidth, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 311 + offset, panelWidth, 0xFFFFFF);
         }
     }
 }

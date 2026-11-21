@@ -1,9 +1,6 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.easteregg.AkatsukiAwakening;
-import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
-import dev.bladetetra.easteregg.KyoukaAwakening;
-import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.easteregg.SoulSkillState;
 import dev.bladetetra.item.ModularSlashBladeItem;
@@ -79,7 +76,7 @@ final class BladeAwakeningExportPolicy {
         // Runs normal Tetra -> SlashBlade state synchronization on a COPY,
         // including removal of soul-contract-derived enchantment/bewitching,
         // refresh of durability, base attack, combo and inherited abilities.
-        BladeExportSnapshot normalized = BladeExportSnapshot.captureStack(exported);
+        BladeExportSnapshot normalized = BladeExportSnapshot.captureOwnedStack(exported);
         if (!normalized.inscriptions().isEmpty()) {
             throw new IllegalArgumentException("Awakening state remained after projection");
         }
