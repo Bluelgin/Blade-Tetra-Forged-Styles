@@ -2,6 +2,7 @@ package dev.btsealed.probe;
 
 import dev.btsealed.runtime.PortableRankRetention;
 import dev.btsealed.runtime.PortableComponentEffects;
+import dev.btsealed.runtime.PortableHabakiKnockback;
 
 /** Runs only inside the isolated receiving-server probe JAR, not in production. */
 public final class PortableRuntimeSelfTest {
@@ -75,6 +76,15 @@ public final class PortableRuntimeSelfTest {
             throw new IllegalStateException("Spirit Saya state failed save/reload or expiration");
         }
         System.out.println("BLADE_EXPORT_SPIRIT_ISOLATION_PASS");
+    }
+
+    public static void verifyReinforcedArithmetic() {
+        if (Math.abs(PortableHabakiKnockback.horizontal(.12D, .46D) - .66D) > 1E-9
+                || Math.abs(PortableHabakiKnockback.horizontal(0D, .4D) - .6D) > 1E-9
+                || Math.abs(PortableHabakiKnockback.horizontal(.16D, .08D) - .08D) > 1E-9) {
+            throw new IllegalStateException("Reinforced Habaki horizontal impulse differs from source");
+        }
+        System.out.println("BLADE_EXPORT_REINFORCED_ARITHMETIC_PASS");
     }
 
     private PortableRuntimeSelfTest() {}
