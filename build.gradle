@@ -455,7 +455,7 @@ def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
 sourceSets.exportRuntime.java.srcDir(portableCombatSources)
 
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.1.0.jar'
+    archiveFileName = 'bt-export-runtime-1.2.0.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')
