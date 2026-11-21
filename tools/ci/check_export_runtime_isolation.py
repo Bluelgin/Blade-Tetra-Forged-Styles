@@ -26,6 +26,9 @@ def imports(source: str):
 def main():
     files = sorted(RUNTIME.rglob("*.java"))
     files.extend(COMBAT / name for name in sorted(COPIED))
+    # The generated runtime rewrites this pure-Java exporter contract's package.
+    # Audit it alongside the independent runtime sources.
+    files.append(ROOT / "src/main/java/dev/bladetetra/export/PortableCapabilityCatalog.java")
     if not files or not all(file.is_file() for file in files):
         raise SystemExit("Missing standalone runtime source")
     for file in files:
