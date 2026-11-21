@@ -13,6 +13,7 @@ import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.event.BladeMotionEvent;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import mods.flammpfeil.slashblade.item.SwordType;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
 import mods.flammpfeil.slashblade.slasharts.SlashArts;
@@ -96,11 +97,12 @@ final class NativeFusionSmoke {
 
             probe.reset();
             equip(player, H, V);
-            state(player).setKillCount(1000);
-            player.getMainHandItem().setHoverName(net.minecraft.network.chat.Component.literal("Fusion Super"));
+            prepareSuper(player);
             check(state(player).getSlashArts().doArts(SlashArts.ArtsType.Super, player)
                     .equals(ComboStateRegistry.NONE.getId()), "selector alone cannot bypass Super conditions");
             SuperSlashArts.releaseSSA(player);
+            check(state(player).getComboSeq().equals(ComboStateRegistry.DRIVE_HORIZONTAL.getId()),
+                    "Super selected source A after native durability handling; damage=" + state(player).getDamage());
             advance(level, 145, player);
             // Both real base drive arts inherit the generic Super selector.
             probe.expect(player, List.of(H, V), List.of(H, V));
@@ -109,8 +111,7 @@ final class NativeFusionSmoke {
 
             probe.reset();
             equip(player, SlashArtsRegistry.JUDGEMENT_CUT.getId(), V);
-            state(player).setKillCount(1000);
-            player.getMainHandItem().setHoverName(net.minecraft.network.chat.Component.literal("Fusion Super"));
+            prepareSuper(player);
             SuperSlashArts.releaseSSA(player);
             check(state(player).getComboSeq().equals(ComboStateRegistry.JUDGEMENT_CUT_END.getId()),
                     "explicit native Super combo committed");
@@ -186,6 +187,19 @@ final class NativeFusionSmoke {
         state.setProudSoulCount(100);
         state.setComboSeq(ComboStateRegistry.NONE.getId());
         state.setLastActionTime(player.level().getGameTime());
+    }
+
+    private static void prepareSuper(ServerPlayer player) {
+        // Previous native attack callbacks can change movement state between cases.
+        player.setOnGround(true);
+        ISlashBladeState blade = state(player);
+        blade.setKillCount(1000);
+        blade.setDefaultBewitched(true);
+        var types = SwordType.from(player.getMainHandItem());
+        check(player.onGround() && blade.getDamage() == 0 && !blade.isBroken() && !blade.isSealed()
+                && types.contains(SwordType.BEWITCHED) && types.contains(SwordType.FIERCEREDGE),
+                "Super fixture meets native eligibility: ground=" + player.onGround()
+                        + ", damage=" + blade.getDamage() + ", sword types=" + types);
     }
 
     private static LegacyImprintKind source(String id, ResourceLocation art) {
