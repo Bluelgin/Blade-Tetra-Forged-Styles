@@ -20,7 +20,8 @@
     "compat": [
       "addon_ingots",
       "addon_art",
-      "export_package"
+      "export_package",
+      "export_package_1965"
     ],
     "combat": [
       "aura",
@@ -218,6 +219,18 @@
         "BLADE_EXPORT_RUNTIME_FIXTURE:"
       ],
       "flags": []
+    },
+    "export_package_1965": {
+      "kind": "server",
+      "property": "exportPackageSmoke",
+      "directory": "blade-export-package-smoke-1965",
+      "markers": [
+        "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
+        "BLADE_EXPORT_RUNTIME_FIXTURE:"
+      ],
+      "flags": [
+        "slashblade1965"
+      ]
     }
   },
   "docs": [
@@ -261,7 +274,8 @@
         "src/exportRuntimeTest/**"
       ],
       "suites": [
-        "export_package"
+        "export_package",
+        "export_package_1965"
       ],
       "reason": "Sealed blade packaging, bundled runtime and native portability"
     },
