@@ -26,7 +26,7 @@ final class BladeExportPreflight {
         String summary() {
             String value = ready() ? String.join(", ", preserved) : String.join("; ", blockers);
             // Bounded network/UI summary, not a replacement for the full diagnostic log.
-            return value.length() <= 480 ? value : value.substring(0, 477) + "...";
+            return value.length() <= 180 ? value : value.substring(0, 177) + "...";
         }
     }
 
