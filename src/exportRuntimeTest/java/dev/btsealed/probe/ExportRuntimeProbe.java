@@ -188,7 +188,7 @@ public final class ExportRuntimeProbe {
     }
 
     private static Vec3 slashMomentum(ServerLevel world, ServerPlayer player, String namespace,
-            java.util.function.Consumer<net.minecraft.world.entity.LivingEntity> knockback) {
+            KnockBacks knockback) {
         var blade = craft(world, namespace);
         player.setItemInHand(InteractionHand.MAIN_HAND, blade);
         var state = blade.getCapability(ItemSlashBlade.BLADESTATE).resolve().orElseThrow();
