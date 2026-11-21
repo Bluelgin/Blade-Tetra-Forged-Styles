@@ -1,6 +1,7 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.client.StaticBladeArt;
+import dev.bladetetra.client.NamedBladeExportAssembler;
 import dev.bladetetra.forging.NamedBackplate;
 import java.util.LinkedHashMap;
 import dev.bladetetra.item.SaltyFishParts;
@@ -34,12 +35,25 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         if (appearance.sayaPreset().present()) {
             evidence.add(projectInput(resources, appearance.sayaPreset().textureLocation()));
         }
-        var artwork = StaticBladeArt.bake(stack, sourceModel, resources);
+        byte[] bakedModel, bakedTexture;
+        if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
+            var assembled = NamedBladeExportAssembler.bake(stack, sourceModel, resources);
+            bakedModel = assembled.model();
+            bakedTexture = assembled.texture();
+            for (var id : assembled.sourceTextures()) evidence.add(projectNamedInput(resources, id));
+            for (var part : snapshot.namedParts()) if (!part.slot().equals("backplate")) {
+                evidence.add(projectNamedInput(resources, part.declaredModel()));
+            }
+        } else {
+            var artwork = StaticBladeArt.bake(stack, sourceModel, resources);
+            bakedModel = artwork.model();
+            bakedTexture = artwork.texture();
+        }
         var model = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_blade.obj");
         var texture = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_blade.png");
         var assets = new LinkedHashMap<ResourceLocation, byte[]>();
-        assets.put(model, artwork.model());
-        assets.put(texture, artwork.texture());
+        assets.put(model, bakedModel);
+        assets.put(texture, bakedTexture);
         var portrait = CustomBackplateImage.bake(modId, backplate, stack, resources);
         if (portrait != null) {
             var frame = ResourceLocation.parse("blade_tetra:model/util/durability_filled.obj");
@@ -65,14 +79,28 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         if (appearance.sayaSkin().patternCount() > 0) {
             throw new IllegalArgumentException("Banner-pattern saya is not supported by the static exporter");
         }
-        if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
-            throw new IllegalArgumentException("Named fitting artwork requires a portable model and redistribution permission: "
-                    + String.join(", ", snapshot.namedParts().stream().map(part -> part.slot() + " " + part.sourceId()).toList()));
+        for (var part : snapshot.namedParts()) {
+            if (part.namedBlade() == null || part.declaredModel() == null || part.declaredTexture() == null)
+                throw new IllegalArgumentException("Missing named source: " + part.sourceId());
+            if (!part.slot().equals("backplate")
+                    && (!java.util.Set.of("slashblade", "blade_tetra").contains(part.declaredModel().getNamespace())
+                    || !java.util.Set.of("slashblade", "blade_tetra").contains(part.declaredTexture().getNamespace())))
+                throw new IllegalArgumentException("Named source needs an audited embedding license: " + part.sourceId());
         }
         if (SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null
                 || SaltyFishParts.salvagedGuard(stack) != null) {
             throw new IllegalArgumentException("Salty Fish geometry is not supported by the static exporter");
         }
+    }
+
+    private static ExportResourceEvidence projectNamedInput(ResourceManager resources, ResourceLocation id) throws IOException {
+        var provider = id.getNamespace();
+        if (!java.util.Set.of("slashblade", "blade_tetra").contains(provider))
+            throw new IOException("External source embedding is not yet approved: " + id);
+        var verified = ExportResourceEvidence.reference(resources, id, provider);
+        return new ExportResourceEvidence(id, verified.packId(), verified.ownerModId(),
+                verified.ownerModVersion(), verified.sha256(),
+                "Native/project source embedded in private export; original license applies", true);
     }
 
     private static ExportResourceEvidence projectInput(ResourceManager resources, ResourceLocation id) throws IOException {
