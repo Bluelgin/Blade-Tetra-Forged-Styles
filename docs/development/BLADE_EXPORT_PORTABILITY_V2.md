@@ -23,7 +23,7 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 - Portable combat code: named custom moves (bounded at six), Iaido, Rengeki, Dangaku and the component effects explicitly handled by `PortableComponentEffects`.
 - Static alpha9 modular OBJ and material PNG baking into generated resources.
 - Stable generated identity through `bt_export_<suffix>:sealed_blade`; per-export ID in the certificate; title, author, version, description, recipe, package hashes and provider evidence.
-- One embedded `bt_export_runtime` release for **every** generated add-on, including swords with otherwise-native combos. Multiple exports use the same Maven coordinates/version and data is scoped by exact named-blade translation key.
+- One embedded `bt_export_runtime` release for **every** generated add-on, including swords with otherwise-native combos. Multiple exports use the same Maven coordinates/version and data is scoped by exact named-blade translation key. The precision-habaki extension bumps the runtime from **1.1.0 to 1.2.0**: do not assume older 1.1.0-generated JARs can coexist with 1.2.0 add-ons until Forge Jar-in-Jar mixed-version resolution is tested.
 - Early **server-side** diagnostic summary and final **client-side** resource verification. Passing preflight is not a guarantee that external resources will validate at packaging.
 
 ## Explicit blockers
@@ -34,7 +34,8 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 | Mixed named-ingot blade/saya/tsuba + named backplate | **Blocked** | Needs actual geometry/UV flattening, texture provenance and redistributable source art |
 | Salty Fish lengths / alternate fish geometry | **Blocked** | Dynamic per-part 3D construction cannot be flattened faithfully by the current static baker |
 | Saya banner decorations | **Blocked** | Banner-specific render path is absent from the static atlas baker |
-| Precision / reinforced habaki | **Blocked** | Original behavior modifies Rank decay and actual melee knockback; inaccurate approximation would weaken the sword |
+| Precision habaki (Rank decay) | **Portable implementation in review** | Standalone native Rank clock compensates every second protected tick; parity and clean receiver verification still required |
+| Reinforced habaki (knockback) | **Blocked** | Actual melee knockback is routed through native/mixin impulse handling; simple numeric approximation would change combat |
 | Special forged SA / source-only SE | **Blocked** | No verified independent implementation yet |
 | Soul inscriptions, awakening/ritual abilities, Shoshin/Bairen/Bansho/NBT Sage | **Blocked** | Needs persistent state, combat/visual hooks and clean-room behavioral tests |
 | Arbitrary external resource pack overrides | **Blocked unless verified** | Source bytes and rights must be attributable; copying an unknown pack would not establish licensing |
@@ -58,14 +59,14 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 - Clean receiving dedicated server and client **without** `blade_tetra` or `tetra`: craft, combo timing, damage, attributes, save/reload, source-restriction and render checks.
 - Two+ exported add-ons installed together; mixed-version shared-runtime resolution, world reopen, removal/reinstall.
 - SlashBlade: Resharped **1.9.63** verified initially; test **1.9.65** independently before expanding the declared dependency range. Test the exporting environment with Tetra 6.3.0 and a later 6.x.
-- Negative export coverage for named mix, backplates, fish, banner, habaki, forged art, and soul/awakening; none may produce a misleading successful JAR.
+- Negative export coverage for named mix, backplates, fish, banner, **reinforced** habaki, forged art, and soul/awakening; none may produce a misleading successful JAR. Precision habaki must be positively captured and its Rank timing tested without the source mod.
 - Third-party models, resource packs and licenses inspected before any derived assets are embedded.
 
 ## Near-term priorities
 
 1. Complete the single-mode and early diagnostic changes with CI.
 2. Prototype a source-rights-aware scene-graph bake: geometry and UV verification first, permissions as an enforceable gate, not an afterthought.
-3. Add portable habaki and optional source-only abilities only with parity tests against the originating weapon.
+3. Validate the newly added precision-habaki portable Rank clock against the original, then port reinforced knockback and optional source-only abilities only with parity tests.
 4. Create clean receiving client/server automation instead of counting an exporter-side `runServer` as standalone proof.
 
 **No merge to main or public release until the corresponding behavior is verified.**
