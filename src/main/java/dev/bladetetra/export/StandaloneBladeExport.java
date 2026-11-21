@@ -42,8 +42,7 @@ final class StandaloneBladeExport {
             throw new IllegalArgumentException("This blade uses a custom model position");
         }
         if (snapshot.slashArt() == null) throw new IllegalArgumentException("Missing Slash Art identifier");
-        combo(snapshot);
-        ExportBattleProfile.from(snapshot);
+        ExportBattleProfile.from(snapshot).capabilities(combo(snapshot));
     }
 
     private static boolean isSourceOnly(ResourceLocation id) {
