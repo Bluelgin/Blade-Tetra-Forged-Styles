@@ -6,6 +6,8 @@ import dev.bladetetra.registry.ModItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.util.Mth;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.TagParser;
@@ -14,6 +16,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.IOException;
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,12 +33,23 @@ final class BladeSealScreen extends Screen {
     private EditBox author;
     private EditBox description;
     private Button confirm;
+    private Button awakeningConsent;
+    private boolean awakeningAcknowledged;
+    private Button backplateModeButton;
+    private EditBox backplatePath;
+    private CustomBackplateImage.Mode backplateMode = CustomBackplateImage.Mode.ORIGINAL;
+    private CustomBackplateImage.Selection requestedBackplate;
+    private BladeExportSnapshot approvedSnapshot;
+    private ItemStack approvedBlade;
     private boolean confirmed;
     private BladeExportArchive.Metadata requestedMetadata;
     private BladeExportRecipe requestedRecipe;
     private Component status;
     private int left;
     private int top;
+    private int scrollPixels;
+    private int panelWidth;
+    private int authorColumnWidth;
 
     private BladeSealScreen(BladeSealPackets.Preview preview) {
         super(Component.translatable("item.blade_tetra.blade_seal"));
@@ -46,17 +62,21 @@ final class BladeSealScreen extends Screen {
 
     @Override
     protected void init() {
-        left = (width - PANEL_WIDTH) / 2;
-        top = Math.max(0, (height - 325) / 2);
-        name = field(left, top + 51, PANEL_WIDTH, 100, "blade_tetra.export.name",
+        scrollPixels = 0;
+        panelWidth = Math.max(140, Math.min(PANEL_WIDTH, width - 12));
+        authorColumnWidth = Math.min(105, Math.max(60, panelWidth / 3));
+        left = (width - panelWidth) / 2;
+        top = Math.max(0, (height - (preview.omitsAwakening() ? 440 : 365)) / 2);
+        name = field(left, top + 51, panelWidth, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
-        addon = field(left, top + 78, 222, 50, "blade_tetra.export.id",
+        addon = field(left, top + 78, panelWidth - 78, 50, "blade_tetra.export.id",
                 addon == null ? "blade_" + preview.token().toString().substring(0, 8) : addon.getValue());
-        version = field(left + 228, top + 78, 72, 30, "blade_tetra.export.version",
+        version = field(left + panelWidth - 72, top + 78, 72, 30, "blade_tetra.export.version",
                 version == null ? "1.0.0" : version.getValue());
-        author = field(left, top + 105, 105, 64, "blade_tetra.export.author",
+        author = field(left, top + 105, authorColumnWidth, 64, "blade_tetra.export.author",
                 author == null ? "" : author.getValue());
-        description = field(left + 111, top + 105, 189, 800, "blade_tetra.export.description",
+        description = field(left + authorColumnWidth + 6, top + 105,
+                panelWidth - authorColumnWidth - 6, 800, "blade_tetra.export.description",
                 description == null ? "" : description.getValue());
         for (int index = 0; index < ingredients.length; index++) {
             String value = ingredients[index] != null ? ingredients[index].getValue()
@@ -65,12 +85,80 @@ final class BladeSealScreen extends Screen {
                         case 7 -> "minecraft:stick";
                         default -> "";
                     };
-            ingredients[index] = field(left + 101 * (index % 3), top + 132 + ROW_HEIGHT * (index / 3),
-                    98, 96, "blade_tetra.export.ingredient", value);
+            int column = index % 3;
+            int fieldX = left + panelWidth * column / 3;
+            int fieldEnd = left + panelWidth * (column + 1) / 3;
+            ingredients[index] = field(fieldX, top + 132 + ROW_HEIGHT * (index / 3),
+                    fieldEnd - fieldX - 2, 96, "blade_tetra.export.ingredient", value);
+        }
+        int modeWidth = Math.min(87, panelWidth / 3);
+        int browseWidth = Math.min(48, panelWidth / 4);
+        int pictureWidth = panelWidth - modeWidth - browseWidth - 8;
+        backplateModeButton = addRenderableWidget(Button.builder(backplateLabel(),
+                button -> cycleBackplateMode()).bounds(left, top + 188, modeWidth, 20).build());
+        backplatePath = field(left + modeWidth + 4, top + 189, pictureWidth, 1024,
+                "blade_tetra.export.backplate_file",
+                backplatePath == null ? "" : backplatePath.getValue());
+        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
+                button -> chooseBackplate()).bounds(left + modeWidth + 4 + pictureWidth + 4,
+                        top + 188, browseWidth, 20).build());
+        if (preview.omitsAwakening()) {
+            awakeningConsent = addRenderableWidget(Button.builder(awakeningConsentLabel(),
+                    button -> {
+                        awakeningAcknowledged = !awakeningAcknowledged;
+                        awakeningConsent.setMessage(awakeningConsentLabel());
+                        confirm.active = !confirmed && preview.ready() && awakeningAcknowledged;
+                    }).bounds(left, top + 256, panelWidth, 20).build());
         }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 186, PANEL_WIDTH, 20).build());
-        confirm.active = !confirmed && preview.ready();
+                button -> request()).bounds(left, top + (preview.omitsAwakening() ? 282 : 214),
+                        panelWidth, 20).build());
+        confirm.active = !confirmed && preview.ready()
+                && (!preview.omitsAwakening() || awakeningAcknowledged);
+    }
+
+    private Component awakeningConsentLabel() {
+        return Component.translatable(awakeningAcknowledged
+                ? "blade_tetra.export.awakening.acknowledged"
+                : "blade_tetra.export.awakening.acknowledge");
+    }
+
+    private Component backplateLabel() {
+        return Component.translatable("blade_tetra.export.backplate."
+                + backplateMode.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private void cycleBackplateMode() {
+        backplateMode = switch (backplateMode) {
+            case ORIGINAL -> CustomBackplateImage.Mode.REPLACE;
+            case REPLACE -> CustomBackplateImage.Mode.OVERLAY;
+            case OVERLAY -> CustomBackplateImage.Mode.ORIGINAL;
+        };
+        backplateModeButton.setMessage(backplateLabel());
+    }
+
+    private void chooseBackplate() {
+        Thread picker = new Thread(() -> {
+            try {
+                FileDialog dialog = new FileDialog((Frame) null, "Select backplate PNG or JPEG", FileDialog.LOAD);
+                dialog.setVisible(true);
+                String filename = dialog.getFile();
+                String directory = dialog.getDirectory();
+                dialog.dispose();
+                if (filename != null && directory != null) {
+                    String selected = Path.of(directory, filename).toAbsolutePath().toString();
+                    Minecraft.getInstance().execute(() -> {
+                        if (backplatePath != null) backplatePath.setValue(selected);
+                        if (backplateMode == CustomBackplateImage.Mode.ORIGINAL) cycleBackplateMode();
+                    });
+                }
+            } catch (RuntimeException | java.awt.AWTError failure) {
+                Minecraft.getInstance().execute(() ->
+                    status = Component.literal("Image dialog unavailable; type a file path instead"));
+            }
+        }, "BladeSealBackplatePicker");
+        picker.setDaemon(true);
+        picker.start();
     }
 
     private EditBox field(int x, int y, int width, int limit, String key, String value) {
@@ -81,7 +169,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void request() {
-        if (!preview.ready()) return;
+        if (!preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
         try {
             var metadata = new BladeExportArchive.Metadata("bt_export_" + addon.getValue().strip(), version.getValue().strip(),
                     name.getValue().strip(), author.getValue().strip(), description.getValue().strip());
@@ -98,10 +186,20 @@ final class BladeSealScreen extends Screen {
             }
             requestedRecipe = new BladeExportRecipe(List.copyOf(items), occupied);
             requestedMetadata = metadata;
+            requestedBackplate = new CustomBackplateImage.Selection(backplateMode, backplatePath.getValue().strip());
+            if (backplateMode != CustomBackplateImage.Mode.ORIGINAL && requestedBackplate.filename().isBlank()) {
+                throw new IllegalArgumentException(
+                        Component.translatable("blade_tetra.export.backplate.picture_required").getString());
+            }
             confirmed = true;
             confirm.active = false;
             status = Component.translatable("blade_tetra.export.waiting");
-            ModNetwork.CHANNEL.sendToServer(new BladeSealPackets.Confirm(preview.token()));
+            if (approvedSnapshot != null && approvedBlade != null) {
+                exportApproved();
+            } else {
+                ModNetwork.CHANNEL.sendToServer(
+                        new BladeSealPackets.Confirm(preview.token(), awakeningAcknowledged));
+            }
         } catch (IllegalArgumentException error) {
             status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
         }
@@ -111,30 +209,70 @@ final class BladeSealScreen extends Screen {
         var client = Minecraft.getInstance();
         if (client.getConnection() == null || !(client.screen instanceof BladeSealScreen screen)
                 || !screen.preview.token().equals(result.token()) || screen.requestedMetadata == null) return;
-        var metadata = screen.requestedMetadata;
-        var recipe = screen.requestedRecipe;
-        screen.requestedMetadata = null;
-        screen.requestedRecipe = null;
         if (result.snapshot().isEmpty()) {
+            screen.confirmed = false;
+            screen.confirm.active = screen.preview.ready();
             screen.status = Component.translatable("blade_tetra.export.expired");
+            // A rejected/expired server authorization cannot be reused. Open a new seal.
+            screen.confirm.active = false;
             return;
         }
         try {
-            var snapshot = BladeSealPackets.decodeSnapshot(result.snapshot());
-            var blade = new ItemStack(ModItems.MODULAR_SLASHBLADE.get());
-            blade.setTag(TagParser.parseTag(result.appearanceTag()));
-            var resources = client.getResourceManager();
-            var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources);
-            var file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources,
-                    snapshot, metadata, recipe, art);
-            screen.status = Component.translatable("blade_tetra.export.saved");
-            if (client.player != null) {
-                client.player.sendSystemMessage(Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
-            }
-        } catch (IOException | com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException error) {
-            LogUtils.getLogger().warn("Failed to seal blade", error);
+            screen.approvedSnapshot = BladeSealPackets.decodeSnapshot(result.snapshot());
+            screen.approvedBlade = new ItemStack(ModItems.MODULAR_SLASHBLADE.get());
+            screen.approvedBlade.setTag(TagParser.parseTag(result.appearanceTag()));
+            screen.exportApproved();
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException error) {
+            LogUtils.getLogger().warn("Failed to decode authorized blade", error);
             screen.status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
+            screen.confirmed = false;
+            screen.confirm.active = false;
         }
+    }
+
+    /** Reuse only the server-approved frozen stack on local packaging failures. */
+    private void exportApproved() {
+        if (approvedSnapshot == null || approvedBlade == null
+                || requestedMetadata == null || requestedRecipe == null) return;
+        try {
+            var resources = Minecraft.getInstance().getResourceManager();
+            var art = BladeExportArt.bake(requestedMetadata.modId(), approvedSnapshot,
+                    approvedBlade, resources, requestedBackplate);
+            var file = StandaloneBladeExport.write(Minecraft.getInstance().gameDirectory.toPath(),
+                    resources, approvedSnapshot, requestedMetadata, requestedRecipe, art);
+            status = Component.translatable("blade_tetra.export.saved");
+            requestedMetadata = null;
+            requestedRecipe = null;
+            requestedBackplate = null;
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().player.sendSystemMessage(
+                        Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
+            }
+        } catch (IOException | RuntimeException error) {
+            LogUtils.getLogger().warn("Failed to seal blade", error);
+            status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
+            confirmed = false;
+            confirm.active = preview.ready()
+                    && (!preview.omitsAwakening() || awakeningAcknowledged);
+        }
+    }
+
+    /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int maximum = Math.max(0, (preview.omitsAwakening() ? 440 : 365) - height + 20);
+        if (maximum == 0) return super.mouseScrolled(mouseX, mouseY, delta);
+        int next = Mth.clamp(scrollPixels - (int) Math.round(delta * 24), 0, maximum);
+        int shift = scrollPixels - next;
+        if (shift == 0) return true;
+        scrollPixels = next;
+        top += shift;
+        for (var child : children()) {
+            if (child instanceof AbstractWidget widget) {
+                widget.setY(widget.getY() + shift);
+            }
+        }
+        return true;
     }
 
     @Override
@@ -147,19 +285,26 @@ final class BladeSealScreen extends Screen {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, delta);
         graphics.drawString(font, title, left, top + 4, 0xFFFFFF);
-        graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.placeholder"), left, top + 17, PANEL_WIDTH, 0xFFD480);
+        graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.placeholder"), left, top + 17, panelWidth, 0xFFD480);
         graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, top + 40, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.id"), left, top + 67, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + 228, top + 67, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + panelWidth - 72, top + 67, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 94, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + 111, top + 94, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 94, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.recipe"), left, top + 121, 0xFFFFFF);
+        if (preview.omitsAwakening()) {
+            graphics.drawWordWrap(font,
+                    Component.translatable("blade_tetra.export.awakening.notice"),
+                    left, top + 214, panelWidth, 0xFFD480);
+        }
+        int offset = preview.omitsAwakening() ? 90 : 0;
         graphics.drawWordWrap(font,
                 Component.translatable(preview.ready()
                         ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 214, PANEL_WIDTH, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
+                        preview.summary()), left, top + 244 + offset, panelWidth,
+                preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 281, PANEL_WIDTH, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 311 + offset, panelWidth, 0xFFFFFF);
         }
     }
 }

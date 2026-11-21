@@ -2,6 +2,7 @@ package dev.bladetetra.client;
 
 import dev.bladetetra.visual.MaterialAppearance.TsubaProfile;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.ModelFormatException;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.TextureCoordinate;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
@@ -30,7 +31,12 @@ final class ForgedGuardModel {
             groups.put(group.name, replacement);
             changed |= replacement != group.faces;
         }
-        WavefrontObject result = changed ? RuntimeWavefrontViewFactory.create(groups) : source;
+        WavefrontObject result;
+        try {
+            result = changed ? RuntimeWavefrontViewFactory.create(groups) : source;
+        } catch (ModelFormatException | IllegalArgumentException invalidView) {
+            return source;
+        }
         CACHE.put(key, result);
         if (CACHE.size() > 128) CACHE.remove(CACHE.keySet().iterator().next());
         return result;

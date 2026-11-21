@@ -90,6 +90,14 @@ public final class MaterialTextureManager {
             return;
         }
 
+        String nativeTarget = event.getOriginalTarget();
+        boolean nativeLuminous = nativeTarget.endsWith("_luminous");
+        String target = nativeLuminous ? nativeTarget.substring(0, nativeTarget.length() - "_luminous".length())
+                : nativeTarget;
+        // Most modular assets have no authored glow groups. Source layers and texture
+        // masks are already drawn by the matching base pass.
+        if (nativeLuminous && !LegacyModelPartRenderer.hasFaces(event.getModel(), nativeTarget)) return;
+
         MaterialAppearance appearance =
                 MaterialAppearance.fromStack(event.getStack());
         if (appearance.physicalComponentsMatch("potato")
@@ -147,14 +155,14 @@ public final class MaterialTextureManager {
         var fishBlade = SaltyFishParts.blade(event.getStack());
         var fishSaya = SaltyFishParts.saya(event.getStack());
         var salvagedGuard = SaltyFishParts.salvagedGuard(event.getStack());
-        boolean fishAssembly = LegacyModelPartRenderer.supports(event.getOriginalTarget())
+        boolean fishAssembly = !nativeLuminous && LegacyModelPartRenderer.supports(target)
                 && (fishBlade != null || fishSaya != null || salvagedGuard != null);
         TextureLayout textureLayout = fishAssembly ? TextureLayout.WORLD
-                : TextureLayout.fromTarget(event.getOriginalTarget());
+                : TextureLayout.fromTarget(target);
         if (textureLayout == TextureLayout.ITEM) {
             // Preserve native SlashBlade item lighting, normals and glint.
             // The unlit render type is reserved for the decorative backplate.
-            event.setModel(InventoryBladeModel.forTarget(event.getModel(), event.getOriginalTarget()));
+            event.setModel(InventoryBladeModel.forTarget(event.getModel(), target));
         }
         event.setModel(ForgedGuardModel.forProfile(event.getModel(), appearance.tsubaProfile(), AwakenedWeaponArt.fromName(glowState.soul().name())));
         if (AwakenedWeaponArt.fromName(glowState.soul().name()) != AwakenedWeaponArt.Theme.NONE) {
@@ -180,20 +188,21 @@ public final class MaterialTextureManager {
             }
             return;
         }
-        var namedParts = dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack());
-        if (LegacyModelPartRenderer.supports(event.getOriginalTarget())
-                && (namedParts.present()
-                || dev.bladetetra.forging.NamedLegacyParts.bladeFromStack(event.getStack()) != null)) {
-            RENDERING_INTERNAL_PASS.set(true);
-            try {
-                LegacyModelPartRenderer.render(event, texture, emissive);
-            } finally {
-                RENDERING_INTERNAL_PASS.set(false);
-                BladeRenderState.resetCol();
+        if (LegacyModelPartRenderer.supports(target)) {
+            var namedParts = dev.bladetetra.forging.NamedLegacyParts.fromStack(event.getStack());
+            var namedBlade = dev.bladetetra.forging.NamedLegacyParts.bladeFromStack(event.getStack());
+            if (namedParts.present() || namedBlade != null) {
+                RENDERING_INTERNAL_PASS.set(true);
+                try {
+                    if (NamedBladeRenderPlan.render(event, namedParts, namedBlade, texture, emissive,
+                            target, nativeLuminous)) return;
+                } finally {
+                    RENDERING_INTERNAL_PASS.set(false);
+                    BladeRenderState.resetCol();
+                }
             }
-            return;
         }
-        if (emissive == null) {
+        if (emissive == null || nativeLuminous) {
             event.setTexture(texture);
             return;
         }
@@ -574,8 +583,19 @@ public final class MaterialTextureManager {
         Minecraft minecraft = Minecraft.getInstance();
         boolean firstGeneratedTexture = MaterialTextureCache.materialsEmpty();
         try {
-            NativeImage image = MaterialTextureCache.copyAtlas(minecraft.getResourceManager());
-            paintBaseAtlas(image, appearance, glowState, textureLayout, minecraft.getResourceManager());
+            NativeImage image = MaterialTextureCache.copyAtlas(
+                    minecraft.getResourceManager());
+
+            prepareItemBladeTemplate(image, textureLayout);
+            ForgedGuardPainter.prepareTexture(image);
+            MaterialTextureCompositor.recolor(
+                    image,
+                    appearance,
+                    minecraft.getResourceManager(),
+                    textureLayout);
+            applyLegacyBaseArt(image, glowState, textureLayout);
+            if (glowState.soul()==SoulGlow.AKATSUKI) AkatsukiArtPainter.apply(image,appearance,textureLayout,glowState.broken());
+            AwakenedWeaponArt.apply(image,appearance,textureLayout,glowState.broken(),AwakenedWeaponArt.fromName(glowState.soul().name()));
             DynamicTexture dynamicTexture = new DynamicTexture(image);
             ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
                     BladeTetra.MOD_ID,
@@ -603,6 +623,16 @@ public final class MaterialTextureManager {
             return null;
         }
     }
+
+
+
+    /**
+     * Resamples the authored 512px source atlas into the 256px runtime atlas.
+     * UVs remain unchanged because all models use normalized texture
+     * coordinates; the smaller runtime image therefore changes memory cost,
+     * not model compatibility.
+     */
+
 
     /** Bakes the world and GUI atlases without uploading a GPU texture. */
     static byte[] bakeCombinedAtlas(net.minecraft.world.item.ItemStack blade,

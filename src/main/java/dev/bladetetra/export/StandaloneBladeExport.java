@@ -65,12 +65,31 @@ final class StandaloneBladeExport {
 
         List<BladeExportArchive.Fitting> fittings = new ArrayList<>();
         for (var source : snapshot.namedParts()) {
-            if (source.namedBlade() == null || source.declaredModel() == null || source.declaredTexture() == null) {
+            boolean pictureReplacement = "backplate".equals(source.slot())
+                    && artwork.namedInputs().containsKey("backplate");
+            if (!pictureReplacement
+                    && (source.namedBlade() == null || source.declaredModel() == null
+                    || source.declaredTexture() == null)) {
                 throw new IOException("Missing named blade source for " + source.slot() + ": " + source.sourceId());
             }
-            fittings.add(new BladeExportArchive.Fitting(source, List.of(
-                    reference(resources, source, source.declaredModel()),
-                    reference(resources, source, source.declaredTexture()))));
+            // A semantic declared model may redirect to another OBJ through an
+            // audited model adapter. Do not demand nonexistent semantic OBJ bytes.
+            var selected = artwork.namedInputs().get(source.slot());
+            if (selected == null) {
+                selected = List.of(source.declaredModel(), source.declaredTexture());
+            }
+            var fittingEvidence = new ArrayList<ExportResourceEvidence>();
+            for (var id : selected) {
+                var verified = artwork.inputs().stream().filter(input -> input.id().equals(id)).findFirst();
+                fittingEvidence.add(verified.orElseGet(() -> {
+                    try {
+                        return reference(resources, source, id);
+                    } catch (IOException exception) {
+                        throw new IllegalArgumentException("Missing source proof for " + id, exception);
+                    }
+                }));
+            }
+            fittings.add(new BladeExportArchive.Fitting(source, fittingEvidence));
         }
 
         Set<String> required = new TreeSet<>(recipe.namespaces());

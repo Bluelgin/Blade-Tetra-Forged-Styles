@@ -35,7 +35,7 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'namedIngotSmoke', 'exportPackageSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'namedIngotSmoke', 'exportPackageSmoke', 'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -155,6 +155,10 @@ minecraft {
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')
                 property 'blade_tetra.namedIngotSmoke', 'true'
+            }
+            if (project.hasProperty('exportSealClientSmoke')) {
+                workingDirectory project.file('build/blade-export-client-smoke')
+                property 'blade_tetra.exportSealClientSmoke', 'true'
             }
             if (project.hasProperty('exportPackageSmoke')) {
                 workingDirectory project.file(project.hasProperty('slashblade1965')
@@ -411,6 +415,9 @@ dependencies {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    if (project.hasProperty('sjapModelFixtures')) {
+        systemProperty 'blade_tetra.sjapFixtures', project.file(project.property('sjapModelFixtures')).absolutePath
+    }
     if (project.hasProperty('providerEffectAuditJars')) {
         systemProperty 'blade_tetra.providerEffectAuditJars', project.property('providerEffectAuditJars')
     }
@@ -467,7 +474,7 @@ def portableCapabilitySources = tasks.register('prepareExportCapabilitySources',
 sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
 
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.3.0.jar'
+    archiveFileName = 'bt-export-runtime-1.4.0.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')

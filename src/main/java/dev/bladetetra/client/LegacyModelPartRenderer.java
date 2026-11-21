@@ -2,33 +2,21 @@ package dev.bladetetra.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.renderer.MultiBufferSource;
 import dev.bladetetra.forging.NamedLegacyParts;
 import dev.bladetetra.forging.LegacyImprintKind;
-import dev.bladetetra.forging.LegacyCalibration;
-import dev.bladetetra.forging.LegacyCalibrationProfile;
-import dev.bladetetra.forging.LegacyModelAdapter;
 import dev.bladetetra.item.SaltyFishParts.Length;
 import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
-import mods.flammpfeil.slashblade.client.renderer.model.obj.GroupObject;
-import mods.flammpfeil.slashblade.client.renderer.model.obj.TextureCoordinate;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 /**
  * Runtime view over SlashBlade's own OBJ resources. Faces are selected from
@@ -37,39 +25,11 @@ import java.util.WeakHashMap;
  * safely snapshot/bake them.
  */
 public final class LegacyModelPartRenderer {
-    private static final ResourceLocation FOX_MODEL = ResourceLocation.fromNamespaceAndPath(
-            "slashblade", "model/named/sange/sange.obj");
-    private static final ResourceLocation BLACK_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            "slashblade", "model/named/sange/black.png");
-    private static final ResourceLocation WHITE_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            "slashblade", "model/named/sange/white.png");
-    private static final ResourceLocation IRON_MODEL = ResourceLocation.fromNamespaceAndPath(
-            "blade_tetra", "model/modular/alpha9/katana_basic_simple_stable.obj");
-    private static final ResourceLocation IRON_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            "blade_tetra", "model/modular/standard_256.png");
-    private static final int MAX_CACHE = 160;
-    private static final Map<String, WavefrontObject> VIEWS = new LinkedHashMap<>(64, .75F, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, WavefrontObject> eldest) {
-            return size() > MAX_CACHE;
-        }
-    };
+    private record FishKey(Object source, String group, boolean hideBlade, boolean hideGuard, Float coveredTo) {}
+    private static final LegacyMeshCache<FishKey, WavefrontObject> VIEWS =
+            new LegacyMeshCache<>(160, 100_000, LegacyRenderSources::triangleCount);
 
     enum Part { BLADE, TSUBA, TSUKA, SAYA, HILT }
-    private record MountKey(WavefrontObject source, WavefrontObject target, Part part,
-            float tc, float tr, float hc, float hr) {}
-    private static final Map<MountKey, Mount> MOUNTS = new LinkedHashMap<>(64, .75F, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<MountKey, Mount> entry) {
-            return size() > MAX_CACHE;
-        }
-    };
-    private static final Map<WavefrontObject, Extent> BLADE_EXTENTS = new LinkedHashMap<>(64, .75F, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<WavefrontObject, Extent> entry) {
-            return size() > MAX_CACHE;
-        }
-    };
-    private static final Map<WavefrontObject, LegacyModelAdapter> MODEL_ADAPTERS = new WeakHashMap<>();
-
     public static boolean supports(String target) {
         return "blade".equals(target) || "blade_damaged".equals(target)
                 || "blade_fragment".equals(target)
@@ -77,58 +37,18 @@ public final class LegacyModelPartRenderer {
                 || "item_bladens".equals(target) || "item_damaged".equals(target);
     }
 
-    public static void render(RenderOverrideEvent event,
-            ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
-        String target = event.getOriginalTarget();
-        if (!supports(target)) {
-            return;
-        }
-        // Gameplay identity is semantic. Rendering applies the optional client geometry
-        // capability at this boundary so an unsupported provider falls back visually
-        // without changing affinity, durability or orthodox ability ownership.
-        NamedLegacyParts parts = NamedLegacyParts.visualFromStack(event.getStack());
-        event.setCanceled(true);
-        if ("sheath".equals(target)) {
-            renderPart(event, parts.saya(), Part.SAYA, target,
-                    ordinaryTexture, ordinaryEmissive);
-            return;
-        }
-        if (target.startsWith("blade")) {
-            renderPart(event, NamedLegacyParts.visualBladeFromStack(event.getStack()), Part.BLADE, target,
-                    ordinaryTexture, ordinaryEmissive);
-            if ("blade_fragment".equals(target)) {
-                return;
-            }
-            renderPart(event, parts.tsuba(), Part.TSUBA, target,
-                    ordinaryTexture, ordinaryEmissive);
-            renderPart(event, parts.tsuka(), Part.TSUKA, target,
-                    ordinaryTexture, ordinaryEmissive);
-            return;
-        }
-        renderPart(event, NamedLegacyParts.visualBladeFromStack(event.getStack()), Part.BLADE, target,
-                ordinaryTexture, ordinaryEmissive);
-        renderPart(event, parts.tsuba(), Part.TSUBA, target,
-                ordinaryTexture, ordinaryEmissive);
-        renderPart(event, parts.tsuka(), Part.TSUKA, target,
-                ordinaryTexture, ordinaryEmissive);
-        if (!"item_bladens".equals(target)) {
-            renderPart(event, parts.saya(), Part.SAYA, target,
-                    ordinaryTexture, ordinaryEmissive);
-        }
-    }
-
     /** Fish uses the same native blade and sheath passes, with the stock guard seat as its datum. */
     static void renderFish(RenderOverrideEvent event, Length blade, Length saya,
             LegacyImprintKind salvaged, ResourceLocation ordinary, ResourceLocation emissive) {
         String target = event.getOriginalTarget();
-        var named = NamedLegacyParts.visualFromStack(event.getStack());
-        var namedBlade = NamedLegacyParts.visualBladeFromStack(event.getStack());
+        var named = NamedLegacyParts.fromStack(event.getStack());
+        var namedBlade = NamedLegacyParts.bladeFromStack(event.getStack());
         LegacyImprintKind guard = named.tsuba();
-        if (guard == null && salvaged != null && salvaged.visualUsable()) guard = salvaged;
+        if (guard == null) guard = salvaged;
 
         event.setCanceled(true);
         if ("sheath".equals(target)) {
-            if (saya == null) renderPart(event, named.saya(), Part.SAYA, target, ordinary, emissive);
+            if (saya == null) drawNamedOrStockSaya(event, named.saya(), ordinary, emissive);
             else drawFish(event, saya, "saya", target, null);
             return;
         }
@@ -165,7 +85,9 @@ public final class LegacyModelPartRenderer {
                 }
             }
             WavefrontObject guardView = fishGuard(event, guard, group);
-            boolean hideBlade = blade != null || namedBlade != null;
+            var inheritedBlade = coveredTo == null && blade == null
+                    ? mounted(event, namedBlade, LegacySourceMesh.Component.BLADE, group) : null;
+            boolean hideBlade = blade != null || inheritedBlade != null;
             boolean hideGuard = guardView != null;
             drawStockFishAssembly(event, group, hideBlade, hideGuard, coveredTo, ordinary, emissive);
 
@@ -173,12 +95,14 @@ public final class LegacyModelPartRenderer {
                 if (SenbonzakuraDispersedRender.bladeFraction(event.getStack(), target) > .001F) {
                     drawFish(event, blade, "blade", group, coveredTo);
                 }
-            } else if (namedBlade != null && coveredTo == null) {
-                renderPart(event, namedBlade, Part.BLADE, group, ordinary, emissive);
+            } else if (inheritedBlade != null
+                    && SenbonzakuraDispersedRender.bladeFraction(event.getStack(), target) > .001F) {
+                NamedBladeRenderPlan.drawMounted(event, group, LegacySourceMesh.Component.BLADE,
+                        namedBlade, inheritedBlade);
             }
             if (hideGuard) drawFishPass(event, guardView, group, guard.texture(), null);
             if (showSaya) {
-                if (saya == null) renderPart(event, named.saya(), Part.SAYA, "sheath", ordinary, emissive);
+                if (saya == null) drawNamedOrStockSaya(event, named.saya(), ordinary, emissive);
                 else drawFish(event, saya, "saya", "sheath", null);
             }
         } finally {
@@ -193,8 +117,7 @@ public final class LegacyModelPartRenderer {
             drawFishPass(event, source, group, ordinary, emissive);
             return;
         }
-        String key = System.identityHashCode(source) + "|fish|" + group + "|" + hideBlade
-                + "|" + hideGuard + "|" + coveredTo;
+        var key = new FishKey(source, group, hideBlade, hideGuard, coveredTo);
         WavefrontObject filtered = fishView(key, group, () -> {
             List<Face> selected = new ArrayList<>();
             for (Face face : faces(source, group)) {
@@ -210,38 +133,54 @@ public final class LegacyModelPartRenderer {
         drawFishPass(event, filtered, group, ordinary, emissive);
     }
 
+    private static NamedBladeRenderPlan.Mounted mounted(RenderOverrideEvent event,
+            LegacyImprintKind kind, LegacySourceMesh.Component part, String state) {
+        return kind == null ? null : NamedBladeRenderPlan.mounted(LegacyRenderSources.resolve(kind),
+                part, event.getOriginalModel(), state);
+    }
+
+    private static void drawNamedOrStockSaya(RenderOverrideEvent event, LegacyImprintKind kind,
+            ResourceLocation ordinary, ResourceLocation emissive) {
+        var part = LegacySourceMesh.Component.SAYA;
+        var mounted = mounted(event, kind, part, "sheath");
+        if (mounted == null) drawFishPass(event, event.getModel(), "sheath", ordinary, emissive);
+        else NamedBladeRenderPlan.drawMounted(event, "sheath", part, kind, mounted);
+    }
+
     private static WavefrontObject fishGuard(RenderOverrideEvent event, LegacyImprintKind guard, String group) {
         if (guard == null || "blade_fragment".equals(group)) return null;
-        WavefrontObject source = BladeModelManager.getInstance().getModel(guard.model());
-        register(source, guard.model());
-        var profile = guard.visualProfile();
-        String key = System.identityHashCode(source) + "|fish_guard|" + group + "|"
-                + profile.tsubaCenter() + "|" + profile.tsubaRadius();
-        return fishView(key, group, () -> {
-            var selected = select(source, "blade", Part.TSUBA, profile);
-            var extent = extent(selected);
+        var source = LegacyRenderSources.resolve(guard);
+        if (source.mesh() == null) return null;
+        return fishView(new FishKey(source.identity(), group, false, false, null), group, () -> {
+            var mesh = source.mesh();
+            var hilt = LegacyRenderSources.geometry(source, LegacySourceMesh.Component.HILT, "blade").reference();
+            var span = mesh.frame.span(hilt);
+            if (!span.valid()) return List.of();
+            var selected = mesh.clip(hilt, span.min(), span.at(.28F));
+            var rotation = new org.joml.Quaternionf(mesh.frame.rotation()).conjugate();
+            List<Face> local = new ArrayList<>(selected.size());
+            for (Face face : selected) {
+                Face fitted = new Face();
+                fitted.vertices = java.util.Arrays.stream(face.vertices).map(v -> {
+                    var p = rotation.transform(new org.joml.Vector3f(v.x, v.y, v.z));
+                    return new Vertex(p.x, p.y, p.z);
+                }).toArray(Vertex[]::new);
+                fitted.textureCoordinates = face.textureCoordinates;
+                local.add(fitted);
+            }
+            var extent = extent(local);
             if (!extent.valid()) return List.of();
-            // The lips are fixed at x=-34. Normalize a guard's seat and depth while retaining
-            // its outline. Large fittings still read as large, without swallowing the head.
+            // Fish lips are fixed at x=-34. Preserve the silhouette around that seat.
             float x = (extent.maxX + extent.minX) * .5F;
             float thickness = 4 / (extent.maxX - extent.minX);
             float radial = Math.min(1.2F, Math.max(.65F, extent.thickness() / 25))
                     * 28 / extent.thickness();
-            List<Face> fitted = new ArrayList<>(selected.size());
-            for (Face original : selected) {
-                Face face = new Face();
-                face.vertices = new Vertex[original.vertices.length];
-                for (int i = 0; i < face.vertices.length; i++) {
-                    Vertex v = original.vertices[i];
-                    face.vertices[i] = new Vertex(-36 + (v.x - x) * thickness,
-                            4 + (v.y - extent.centerY()) * radial,
-                            (v.z - extent.centerZ()) * radial);
-                }
-                face.textureCoordinates = original.textureCoordinates;
-                face.faceNormal = face.calculateFaceNormal();
-                fitted.add(face);
+            for (Face face : local) for (Vertex v : face.vertices) {
+                v.x = -36 + (v.x - x) * thickness;
+                v.y = 4 + (v.y - extent.centerY()) * radial;
+                v.z = (v.z - extent.centerZ()) * radial;
             }
-            return fitted;
+            return local;
         });
     }
 
@@ -254,7 +193,7 @@ public final class LegacyModelPartRenderer {
         if (coveredTo != null) {
             if (length.bladeTip >= coveredTo) return;
             WavefrontObject source = model;
-            String key = System.identityHashCode(source) + "|fish_tip|" + group + "|" + coveredTo;
+            var key = new FishKey(source, group, true, false, coveredTo);
             model = fishView(key, group, () -> faces(source, group).stream()
                     .flatMap(face -> clipBefore(face, coveredTo).stream()).toList());
         }
@@ -268,21 +207,12 @@ public final class LegacyModelPartRenderer {
     }
 
     private static List<Face> clipBefore(Face face, float x) {
-        var polygon = clipPlane(polygon(face), x, false);
-        List<Face> result = new ArrayList<>();
-        for (int i = 1; i + 1 < polygon.size(); i++) {
-            result.add(face(polygon.get(0), polygon.get(i), polygon.get(i + 1)));
-        }
-        return result;
+        return LegacyFaceClipper.clip(List.of(face), vertex -> vertex.x, Float.NEGATIVE_INFINITY, x);
     }
 
-    private static WavefrontObject fishView(String key, String group,
-            java.util.function.Supplier<List<Face>> faces) {
-        if (!VIEWS.containsKey(key)) {
-            var selected = faces.get();
-            VIEWS.put(key, selected.isEmpty() ? null : RuntimeWavefrontViewFactory.create(group, selected));
-        }
-        return VIEWS.get(key);
+    private static WavefrontObject fishView(FishKey key, String group,
+            java.util.function.Supplier<List<Face>> builder) {
+        return VIEWS.get(key, ignored -> LegacyRenderSources.view(group, builder.get()));
     }
 
     private static void drawFishPass(RenderOverrideEvent event, WavefrontObject model, String group,
@@ -295,235 +225,6 @@ public final class LegacyModelPartRenderer {
         if (emissive != null) {
             BladeRenderState.renderOverridedLuminous(event.getStack(), model, group, emissive,
                     event.getPoseStack(), event.getBuffer(), event.getPackedLightIn());
-        }
-    }
-
-    private static void renderPart(RenderOverrideEvent event,
-            LegacyImprintKind kind, Part part, String target,
-            ResourceLocation ordinaryTexture, ResourceLocation ordinaryEmissive) {
-        float bladeFraction=SenbonzakuraDispersedRender.bladeFraction(event.getStack(),target);
-        boolean retainedHilt=bladeFraction<.999F&&part!=Part.BLADE;
-        if (bladeFraction<=.001F && part == Part.BLADE) return;
-        NamedLegacyParts installedParts = NamedLegacyParts.visualFromStack(event.getStack());
-        if (part == Part.TSUKA && installedParts.tsuba() != null) return;
-        if (part == Part.TSUBA && kind != null) part = Part.HILT;
-        boolean inherited = kind != null;
-        WavefrontObject source = inherited
-                ? BladeModelManager.getInstance().getModel(kind.model())
-                : event.getModel();
-        if (inherited) register(source, kind.model());
-        LegacyCalibrationProfile profile = inherited
-                ? kind.visualProfile()
-                : LegacyCalibrationProfile.DEFAULT;
-        WavefrontObject view = view(source, target, part, profile, !inherited);
-        if (inherited && (view == null || (part == Part.BLADE || part == Part.HILT)
-                && (target.startsWith("item_")
-                        ? iconSpan(source, target, part, profile, false) == null
-                                || iconSpan(event.getModel(), target, part, LegacyCalibrationProfile.DEFAULT, true) == null
-                        : mount(source, event.getOriginalModel(), profile, part) == null))) {
-            // Optional provider groups can be missing or impossible to mount.
-            renderPart(event, null, part, target, ordinaryTexture, ordinaryEmissive);
-            return;
-        }
-        if (view == null) {
-            return;
-        }
-        ResourceLocation texture = inherited ? kind.texture() : ordinaryTexture;
-        PoseStack poses = event.getPoseStack();
-        poses.pushPose();
-        try {
-            if (inherited) {
-                if (target.startsWith("item_")) {
-                    if (part == Part.BLADE || part == Part.HILT) {
-                        applyIconMount(poses, source, event.getModel(), target, part, profile);
-                    }
-                } else if (part == Part.SAYA) {
-                    if (!kind.id().startsWith("fox_")) fitLegacySaya(poses, source, event.getOriginalModel());
-                } else {
-                    applyMount(poses, source, event.getOriginalModel(), profile, part, source, profile);
-                }
-            }
-            BladeRenderState.resetCol();
-            Runnable draw = () -> {
-                BladeRenderState.renderOverrided(event.getStack(), view, target, texture,
-                        poses, event.getBuffer(), event.getPackedLightIn(),
-                        event.getGetRenderType(), event.isEnableEffect());
-                if (!inherited && ordinaryEmissive != null) {
-                    BladeRenderState.renderOverridedLuminous(event.getStack(), view, target,
-                            ordinaryEmissive, poses, event.getBuffer(), event.getPackedLightIn());
-                }
-            };
-            if (retainedHilt) SenbonzakuraDispersedRender.retainedPart(draw); else draw.run();
-        } finally {
-            poses.popPose();
-            BladeRenderState.resetCol();
-        }
-    }
-
-    private static LegacyCalibrationProfile.PartTransform transform(
-            LegacyCalibrationProfile profile, Part part) {
-        return switch (part) {
-            case TSUBA -> profile.tsubaTransform();
-            case TSUKA -> profile.tsukaTransform();
-            case SAYA -> profile.sayaTransform();
-            default -> LegacyCalibrationProfile.IDENTITY;
-        };
-    }
-
-    private static void fitLegacySaya(PoseStack poses, WavefrontObject source, WavefrontObject target) {
-        Bounds from = bounds(faces(source, "sheath")), to = bounds(faces(target, "sheath"));
-        if (!from.valid() || !to.valid()) return;
-        float scale = (to.max - to.min) / (from.max - from.min);
-        poses.translate(to.max - from.max * scale, 0, 0);
-        poses.scale(scale, scale, scale);
-    }
-
-    private static void applyTransform(PoseStack poses,
-            LegacyCalibrationProfile.PartTransform transform, boolean flipped) {
-        float direction = flipped ? -1.0F : 1.0F;
-        poses.translate(transform.offsetX() * 40.0F,
-                transform.offsetY() * 40.0F, 0.0F);
-        poses.mulPose(Axis.ZP.rotationDegrees(transform.rotation()));
-        poses.scale(transform.scale() * direction, transform.scale(), transform.scale());
-    }
-
-    /** Mount actual cut geometry, never a fraction of the source's complete sword length. */
-    private static void applyMount(PoseStack poses, WavefrontObject source, WavefrontObject target,
-            LegacyCalibrationProfile profile, Part part, WavefrontObject guard,
-            LegacyCalibrationProfile guardProfile) {
-        Mount mount = mount(source, target, profile, part);
-        if (mount == null) return;
-        var tweak = transform(profile, part).normalized();
-        float x = mount.targetX(), y = mount.targetY(), z = mount.targetZ();
-        if (part == Part.TSUKA) {
-            Mount guardMount = mount(guard, target, guardProfile, Part.TSUBA);
-            if (guardMount != null) {
-                var rear = guardMount.point(guardMount.sourceMaxX(), guardMount.sourceY(),
-                        guardMount.sourceZ(), guardProfile.tsubaTransform());
-                x = rear.x; y = rear.y; z = rear.z;
-            }
-        }
-        poses.translate(x + tweak.offsetX() * 40, y + tweak.offsetY() * 40, z);
-        poses.mulPose(Axis.ZP.rotationDegrees(tweak.rotation()));
-        poses.scale(mount.lengthScale() * tweak.scale() * tweak.length(),
-                mount.widthScale() * tweak.scale() * tweak.width(),
-                mount.widthScale() * tweak.scale() * tweak.width());
-        poses.translate(-mount.sourceX(), -mount.sourceY(), -mount.sourceZ());
-    }
-
-    private static void applyBladeTransform(PoseStack poses, WavefrontObject model, LegacyCalibrationProfile profile) {
-        Extent blade = bladeExtent(model);
-        if (!blade.valid()) return;
-        var tweak = profile.normalized().bladeTransform();
-        poses.translate(blade.maxX, blade.centerY(), blade.centerZ());
-        poses.scale(tweak.length(), tweak.width(), tweak.width());
-        poses.translate(-blade.maxX, -blade.centerY(), -blade.centerZ());
-    }
-
-    private static synchronized Mount mount(WavefrontObject source, WavefrontObject target,
-            LegacyCalibrationProfile profile, Part part) {
-        MountKey key = new MountKey(source, target, part, profile.tsubaCenter(), profile.tsubaRadius(),
-                profile.tsukaCenter(), profile.tsukaRadius());
-        if (MOUNTS.containsKey(key)) return MOUNTS.get(key);
-        String group = part == Part.SAYA ? "sheath" : "blade";
-        List<Face> sourceFaces = select(source, group, part, profile);
-        List<Face> targetFaces = modularFaces(target, group, part);
-        Extent from = extent(sourceFaces);
-        Extent to = extent(targetFaces);
-        if (!to.valid()) {
-            targetFaces = select(target, group, part, LegacyCalibrationProfile.DEFAULT);
-            to = extent(targetFaces);
-        }
-        if (!from.valid() || !to.valid()) return null;
-        boolean rear = part == Part.BLADE || part == Part.SAYA;
-        float sourceX = rear ? from.maxX : from.minX;
-        float targetX = rear ? to.maxX : to.minX;
-        Extent fromRoot = part == Part.BLADE ? rearSection(sourceFaces, from) : from;
-        Extent toRoot = part == Part.BLADE ? rearSection(targetFaces, to) : to;
-        Mount result = new Mount(sourceX, fromRoot.centerY(), fromRoot.centerZ(), from.maxX,
-                targetX, toRoot.centerY(), toRoot.centerZ(),
-                (to.maxX - to.minX) / (from.maxX - from.minX),
-                part == Part.HILT ? (to.maxX - to.minX) / (from.maxX - from.minX)
-                        : to.thickness() / from.thickness());
-        MOUNTS.put(key, result);
-        return result;
-    }
-
-    private static Extent rearSection(List<Face> blade, Extent extent) {
-        Extent root = extent(retainFromX(blade, extent.maxX - (extent.maxX - extent.minX) * .02F));
-        return root.valid() ? root : extent;
-    }
-
-    private record IconKey(WavefrontObject source, String group, Part part, LegacyCalibrationProfile profile,
-            boolean modular) {}
-    record IconSpan(Vector3f root, float length) {}
-    private static final Map<IconKey, IconSpan> ICON_SPANS = new LinkedHashMap<>(64, .75F, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<IconKey, IconSpan> entry) {
-            return size() > MAX_CACHE;
-        }
-    };
-
-    static void applyIconMount(PoseStack poses, WavefrontObject source, WavefrontObject target,
-            String group, Part part, LegacyCalibrationProfile profile) {
-        IconSpan from = iconSpan(source, group, part, profile, false);
-        IconSpan to = iconSpan(target, group, part, LegacyCalibrationProfile.DEFAULT, true);
-        if (from == null || to == null) return;
-        // SlashBlade inventory blades point along the down-right diagonal. Scale
-        // along that axis in icon space, keeping the socket and blade width fixed.
-        poses.translate(to.root.x, to.root.y, to.root.z);
-        poses.mulPose(Axis.ZP.rotationDegrees(-45));
-        poses.scale(to.length / from.length, 1, 1);
-        poses.mulPose(Axis.ZP.rotationDegrees(45));
-        poses.translate(-from.root.x, -from.root.y, -from.root.z);
-    }
-
-    static synchronized IconSpan iconSpan(WavefrontObject model, String group, Part part,
-            LegacyCalibrationProfile profile, boolean modular) {
-        IconKey key = new IconKey(model, group, part, profile, modular);
-        if (ICON_SPANS.containsKey(key)) return ICON_SPANS.get(key);
-        var faces = modular ? modularFaces(model, group, part) : select(model, group, part, profile);
-        var vertices = faces.stream().flatMap(face -> java.util.Arrays.stream(face.vertices)).toList();
-        float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY;
-        for (Vertex vertex : vertices) {
-            float along = vertex.x - vertex.y;
-            min = Math.min(min, along);
-            max = Math.max(max, along);
-        }
-        IconSpan span = null;
-        if (max - min > .001F) {
-            // Use the center of the end section, including the original icon depth.
-            boolean blade = part == Part.BLADE;
-            float edge = blade ? min : max;
-            float tolerance = (max - min) * .025F;
-            Extent root = extentOfVertices(vertices.stream().filter(vertex ->
-                    Math.abs(vertex.x - vertex.y - edge) <= tolerance).toList());
-            span = new IconSpan(new Vector3f((root.minX + root.maxX) * .5F, root.centerY(), root.centerZ()),
-                    max - min);
-        }
-        ICON_SPANS.put(key, span);
-        return span;
-    }
-
-    private static synchronized Extent bladeExtent(WavefrontObject model) {
-        return BLADE_EXTENTS.computeIfAbsent(model,
-                m -> extent(select(m, "blade", Part.BLADE, LegacyCalibrationProfile.DEFAULT)));
-    }
-
-    public static Mount inspectMount(WavefrontObject source, WavefrontObject target,
-            LegacyCalibrationProfile profile, String part) {
-        return mount(source, target, profile, Part.valueOf(part));
-    }
-
-    public record Mount(float sourceX, float sourceY, float sourceZ, float sourceMaxX,
-            float targetX, float targetY, float targetZ, float lengthScale, float widthScale) {
-        public org.joml.Vector3f point(float x, float y, float z, LegacyCalibrationProfile.PartTransform tweak) {
-            tweak = tweak.normalized();
-            return new org.joml.Matrix4f().translation(targetX + tweak.offsetX() * 40,
-                    targetY + tweak.offsetY() * 40, targetZ)
-                    .rotateZ((float) Math.toRadians(tweak.rotation()))
-                    .scale(lengthScale * tweak.scale() * tweak.length(),
-                            widthScale * tweak.scale() * tweak.width(), widthScale * tweak.scale() * tweak.width())
-                    .translate(-sourceX, -sourceY, -sourceZ).transformPosition(new org.joml.Vector3f(x, y, z));
         }
     }
 
@@ -549,41 +250,6 @@ public final class LegacyModelPartRenderer {
         float thickness() { return Math.max(maxY - minY, maxZ - minZ); }
     }
 
-    private static ResourceLocation texture(LegacyImprintKind kind) {
-        return kind.texture();
-    }
-
-    private static synchronized WavefrontObject view(WavefrontObject source,
-            String target, Part part, LegacyCalibrationProfile profile) {
-        return view(source, target, part, profile, false);
-    }
-
-    private static synchronized WavefrontObject view(WavefrontObject source,
-            String target, Part part, LegacyCalibrationProfile profile, boolean modular) {
-        String key = System.identityHashCode(source) + "|" + target + "|" + part + "|" + modular
-                + "|" + Float.floatToIntBits(profile.tsubaCenter())
-                + "|" + Float.floatToIntBits(profile.tsubaRadius())
-                + "|" + Float.floatToIntBits(profile.tsukaCenter())
-                + "|" + Float.floatToIntBits(profile.tsukaRadius());
-        if (VIEWS.containsKey(key)) {
-            return VIEWS.get(key);
-        }
-        List<Face> faces = modular ? modularFaces(source, target, part) : select(source, target, part, profile);
-        if (modular && faces.isEmpty()) faces = select(source, target, part, profile);
-        if (faces.isEmpty()) {
-            VIEWS.put(key, null);
-            return null;
-        }
-        try {
-            WavefrontObject result = RuntimeWavefrontViewFactory.create(target, faces);
-            VIEWS.put(key, result);
-            return result;
-        } catch (RuntimeException exception) {
-            VIEWS.put(key, null);
-            return null;
-        }
-    }
-
     /** The authored atlas islands distinguish the blade, collar, guard and grip on every style. */
     static List<Face> modularFaces(WavefrontObject model, String group, Part part) {
         var mesh = faces(model, group);
@@ -601,363 +267,23 @@ public final class LegacyModelPartRenderer {
         };
     }
 
-    private static List<Face> select(WavefrontObject source, String target,
-            Part part, LegacyCalibrationProfile profile) {
-        if (target.startsWith("item_")) {
-            if (part == Part.HILT) {
-                List<Face> combined = new ArrayList<>(selectIcon(source, target, Part.TSUBA, profile));
-                combined.addAll(selectIcon(source, target, Part.TSUKA, profile));
-                return combined;
-            }
-            return selectIcon(source, target, part, profile);
-        }
-        if (part == Part.SAYA) {
-            return faces(source, "sheath");
-        }
-        if (part == Part.HILT) {
-            List<Face> handle = faces(source, "handle");
-            if (!handle.isEmpty()) return handle;
-            // One cut separates the complete hilt from the blade, never guard from grip.
-            Bounds full = bounds(faces(source, "blade"));
-            return full.valid() ? clip(faces(source, "blade"), full, profile.tsubaMin(), 1) : List.of();
-        }
-        Bounds axis = bounds(faces(source, "blade"));
-        if (!axis.valid()) {
-            return List.of();
-        }
-        if (part == Part.BLADE) {
-            return clip(faces(source, target), axis, 0.0F,
-                    Math.min(profile.tsubaMin(), profile.tsukaMin()));
-        }
-        List<Face> handle = faces(source, "handle");
-        List<Face> candidates = handle.isEmpty() ? faces(source, target) : handle;
-        if (part == Part.TSUBA) {
-            return clip(candidates, axis, profile.tsubaMin(), profile.tsubaMax());
-        }
-        List<Face> result = new ArrayList<>();
-        if (profile.tsukaMin() < profile.tsubaMin()) {
-            result.addAll(clip(candidates, axis, profile.tsukaMin(),
-                    Math.min(profile.tsukaMax(), profile.tsubaMin())));
-        }
-        if (profile.tsukaMax() > profile.tsubaMax()) {
-            result.addAll(clip(candidates, axis,
-                    Math.max(profile.tsukaMin(), profile.tsubaMax()), profile.tsukaMax()));
-        }
-        return result;
-    }
-
-    /** Clips source polygons in memory so a large face cannot leak across a selection edge. */
-    private static List<Face> clip(List<Face> input, Bounds axis,
-            float normalizedMin, float normalizedMax) {
-        if (normalizedMax <= normalizedMin) return List.of();
-        float minX = axis.min + (axis.max - axis.min) * normalizedMin;
-        float maxX = axis.min + (axis.max - axis.min) * normalizedMax;
-        List<Face> output = new ArrayList<>();
-        for (Face face : input) {
-            List<ClipVertex> polygon = polygon(face);
-            polygon = clipPlane(polygon, minX, true);
-            polygon = clipPlane(polygon, maxX, false);
-            if (polygon.size() < 3) continue;
-            for (int index = 1; index + 1 < polygon.size(); index++) {
-                output.add(face(polygon.get(0), polygon.get(index), polygon.get(index + 1)));
-            }
-        }
-        return output;
-    }
-
     static List<Face> retainFromX(List<Face> faces, float cutoff) {
-        List<Face> result = new ArrayList<>();
-        for (Face source : faces) {
-            var polygon = clipPlane(polygon(source), cutoff, true);
-            for (int i=1; i+1<polygon.size(); i++)
-                result.add(face(polygon.get(0),polygon.get(i),polygon.get(i+1)));
+        return LegacyFaceClipper.clip(faces, vertex -> vertex.x, cutoff, Float.POSITIVE_INFINITY);
+    }
+
+    static boolean hasFaces(WavefrontObject source, String name) {
+        for (var group : source.groupObjects) {
+            if (group != null && name.equals(group.name) && group.faces != null && !group.faces.isEmpty()) return true;
         }
-        return result;
-    }
-
-    private static List<ClipVertex> polygon(Face face) {
-        if (face.vertices == null) return List.of();
-        List<ClipVertex> result = new ArrayList<>(face.vertices.length);
-        for (int index = 0; index < face.vertices.length; index++) {
-            Vertex normal = face.vertexNormals != null && index < face.vertexNormals.length
-                    ? face.vertexNormals[index] : face.faceNormal;
-            TextureCoordinate uv = face.textureCoordinates != null
-                    && index < face.textureCoordinates.length
-                    ? face.textureCoordinates[index] : new TextureCoordinate(0.0F, 0.0F);
-            result.add(new ClipVertex(face.vertices[index], normal, uv));
-        }
-        return result;
-    }
-
-    private static List<ClipVertex> clipPlane(List<ClipVertex> input,
-            float boundary, boolean keepGreater) {
-        if (input.isEmpty()) return input;
-        List<ClipVertex> output = new ArrayList<>();
-        ClipVertex previous = input.get(input.size() - 1);
-        boolean previousInside = keepGreater
-                ? previous.position.x >= boundary : previous.position.x <= boundary;
-        for (ClipVertex current : input) {
-            boolean currentInside = keepGreater
-                    ? current.position.x >= boundary : current.position.x <= boundary;
-            if (currentInside != previousInside) {
-                float denominator = current.position.x - previous.position.x;
-                float amount = Math.abs(denominator) < 0.000001F
-                        ? 0.0F : (boundary - previous.position.x) / denominator;
-                output.add(interpolate(previous, current, amount));
-            }
-            if (currentInside) output.add(current);
-            previous = current;
-            previousInside = currentInside;
-        }
-        return output;
-    }
-
-    private static ClipVertex interpolate(ClipVertex from, ClipVertex to, float amount) {
-        Vertex position = new Vertex(
-                lerp(from.position.x, to.position.x, amount),
-                lerp(from.position.y, to.position.y, amount),
-                lerp(from.position.z, to.position.z, amount));
-        Vertex normal = from.normal == null || to.normal == null ? null : new Vertex(
-                lerp(from.normal.x, to.normal.x, amount),
-                lerp(from.normal.y, to.normal.y, amount),
-                lerp(from.normal.z, to.normal.z, amount));
-        TextureCoordinate uv = new TextureCoordinate(
-                lerp(from.uv.u, to.uv.u, amount),
-                lerp(from.uv.v, to.uv.v, amount),
-                lerp(from.uv.w, to.uv.w, amount));
-        return new ClipVertex(position, normal, uv);
-    }
-
-    private static float lerp(float from, float to, float amount) {
-        return from + (to - from) * amount;
-    }
-
-    private static Face face(ClipVertex first, ClipVertex second, ClipVertex third) {
-        Face result = new Face();
-        ClipVertex[] values = { first, second, third };
-        result.vertices = new Vertex[3];
-        result.vertexNormals = new Vertex[3];
-        result.textureCoordinates = new TextureCoordinate[3];
-        for (int index = 0; index < values.length; index++) {
-            result.vertices[index] = values[index].position;
-            result.vertexNormals[index] = values[index].normal;
-            result.textureCoordinates[index] = values[index].uv;
-        }
-        result.faceNormal = result.calculateFaceNormal();
-        for (int index = 0; index < result.vertexNormals.length; index++) {
-            if (result.vertexNormals[index] == null) result.vertexNormals[index] = result.faceNormal;
-        }
-        return result;
-    }
-
-    /** Renders the exact face ownership used by the runtime renderer. */
-    public static void renderCalibrationPreview(PoseStack poses,
-            MultiBufferSource buffer, LegacyCalibrationProfile profile,
-            ResourceLocation modelLocation, ResourceLocation texture, int packedLight) {
-        WavefrontObject source = BladeModelManager.getInstance().getModel(modelLocation);
-        register(source, modelLocation);
-        WavefrontObject tsuba = view(source, "blade", Part.TSUBA, profile);
-        WavefrontObject tsuka = view(source, "blade", Part.TSUKA, profile);
-        try {
-            BladeRenderState.setCol(0x553F3B42, false);
-            BladeRenderState.renderOverrided(ItemStack.EMPTY, source, "blade", texture,
-                    poses, buffer, packedLight);
-            if (tsuba != null) {
-                BladeRenderState.setCol(0xFFE8A629, false);
-                BladeRenderState.renderOverrided(ItemStack.EMPTY, tsuba, "blade", texture,
-                        poses, buffer, packedLight);
-            }
-            if (tsuka != null) {
-                BladeRenderState.setCol(0xFF75B260, false);
-                BladeRenderState.renderOverrided(ItemStack.EMPTY, tsuka, "blade", texture,
-                        poses, buffer, packedLight);
-            }
-        } finally {
-            BladeRenderState.resetCol();
-        }
-    }
-
-    /** Uses the same clipping and transforms as live blades, mounted on our iron katana. */
-    public static void renderAssemblyPreview(PoseStack poses, MultiBufferSource buffer,
-            LegacyCalibrationProfile profile, LegacyImprintKind kind, ResourceLocation foxTexture,
-            int packedLight, boolean foxGrip, boolean sheathed) {
-        WavefrontObject iron = BladeModelManager.getInstance().getModel(IRON_MODEL);
-        WavefrontObject fox = BladeModelManager.getInstance().getModel(kind.model());
-        register(fox, kind.model());
-        poses.pushPose();
-        applyBladeTransform(poses, iron, profile);
-        if (!sheathed)
-        renderPreviewPart(poses, buffer, view(iron, "blade", Part.BLADE,
-                LegacyCalibrationProfile.DEFAULT), "blade", IRON_TEXTURE, packedLight,
-                LegacyCalibrationProfile.IDENTITY, false);
-        poses.popPose();
-        if (sheathed) renderAssemblySayaPreview(poses, buffer, profile, kind, packedLight);
-        if (!foxGrip) {
-            poses.pushPose();
-            applyMount(poses, iron, iron, LegacyCalibrationProfile.DEFAULT, Part.TSUKA, fox, profile);
-            renderPreviewPart(poses, buffer, view(iron, "blade", Part.TSUKA,
-                    LegacyCalibrationProfile.DEFAULT), "blade", IRON_TEXTURE, packedLight,
-                    LegacyCalibrationProfile.IDENTITY, false);
-            poses.popPose();
-        }
-        renderMountedPreview(poses, buffer, fox, iron, Part.TSUBA, profile, kind, packedLight);
-        if (foxGrip) {
-            renderMountedPreview(poses, buffer, fox, iron, Part.TSUKA, profile, kind, packedLight);
-        }
-    }
-
-    private static void renderMountedPreview(PoseStack poses, MultiBufferSource buffer,
-            WavefrontObject source, WavefrontObject target, Part part, LegacyCalibrationProfile profile,
-            LegacyImprintKind kind, int light) {
-        poses.pushPose();
-        try {
-            applyMount(poses, source, target, profile, part, source, profile);
-            String group = part == Part.SAYA ? "sheath" : "blade";
-            renderPreviewPart(poses, buffer, view(source, group, part, profile), group,
-                    kind.texture(), light, LegacyCalibrationProfile.IDENTITY, false);
-        } finally { poses.popPose(); }
-    }
-
-    public static void renderAssemblySayaPreview(PoseStack poses, MultiBufferSource buffer,
-            LegacyCalibrationProfile profile, LegacyImprintKind kind, int light) {
-        WavefrontObject source = BladeModelManager.getInstance().getModel(kind.model());
-        register(source, kind.model());
-        renderMountedPreview(poses, buffer, source, BladeModelManager.getInstance().getModel(IRON_MODEL),
-                Part.SAYA, profile, kind, light);
-    }
-
-    public static float[] previewBounds(ResourceLocation modelLocation) {
-        WavefrontObject model = BladeModelManager.getInstance().getModel(modelLocation);
-        register(model, modelLocation);
-        Bounds axis = bounds(faces(model, "blade"));
-        return axis.valid() ? new float[]{(axis.min + axis.max) * .5F, 206F / (axis.max - axis.min)}
-                : new float[]{0F, .62F};
-    }
-
-    public static float[] ironRoot() {
-        Extent blade = bladeExtent(BladeModelManager.getInstance().getModel(IRON_MODEL));
-        return new float[]{blade.maxX, blade.centerY()};
-    }
-
-    private static void renderPreviewPart(PoseStack poses, MultiBufferSource buffer,
-            WavefrontObject model, String target, ResourceLocation texture, int packedLight,
-            LegacyCalibrationProfile.PartTransform transform, boolean flipped) {
-        if (model == null) return;
-        poses.pushPose();
-        applyTransform(poses, transform, flipped);
-        try {
-            BladeRenderState.resetCol();
-            BladeRenderState.renderOverrided(ItemStack.EMPTY, model, target, texture,
-                    poses, buffer, packedLight);
-        } finally {
-            poses.popPose();
-            BladeRenderState.resetCol();
-        }
-    }
-
-    public static Validation validate(ResourceLocation modelLocation, LegacyCalibrationProfile profile) {
-        WavefrontObject source = BladeModelManager.getInstance().getModel(modelLocation);
-        register(source, modelLocation);
-        return validateModel(source, profile);
-    }
-
-    public static boolean supportsAutomaticHilt(ResourceLocation model, LegacyCalibrationProfile profile) {
-        WavefrontObject source = BladeModelManager.getInstance().getModel(model);
-        register(source, model);
-        return supportsAutomaticHiltModel(source, profile);
-    }
-
-    public static boolean supportsAutomaticHiltModel(WavefrontObject model, LegacyCalibrationProfile profile) {
-        return extent(select(model, "blade", Part.HILT, profile)).valid()
-                && extent(faces(model, "sheath")).valid();
-    }
-
-    public static Validation validateModel(WavefrontObject source, LegacyCalibrationProfile profile) {
-        int tsuba = select(source, "blade", Part.TSUBA, profile).size();
-        int tsuka = select(source, "blade", Part.TSUKA, profile).size();
-        int saya = select(source, "sheath", Part.SAYA, profile).size();
-        float overlap = Math.max(0.0F, Math.min(profile.tsubaMax(), profile.tsukaMax())
-                - Math.max(profile.tsubaMin(), profile.tsukaMin()));
-        boolean valid = tsuba >= 2 && tsuka >= 2 && saya >= 2
-                && overlap <= Math.min(profile.tsubaRadius(), profile.tsukaRadius()) * .35F;
-        return new Validation(tsuba, tsuka, saya, overlap > 0.001F, valid);
-    }
-
-    public record Validation(int tsubaFaces, int tsukaFaces, int sayaFaces,
-            boolean overlaps, boolean valid) {
-    }
-
-    private static List<Face> selectIcon(WavefrontObject source, String target,
-            Part requested, LegacyCalibrationProfile profile) {
-        List<Face> icon = faces(source, target);
-        if (icon.isEmpty() && "item_bladens".equals(target)) {
-            icon = faces(source, "item_blade");
-        }
-        if (icon.isEmpty()) {
-            return List.of();
-        }
-        EnumMap<Part, List<UvPoint>> samples = uvSamples(source, profile);
-        return filter(icon, face -> closestPart(uv(face), samples) == requested);
-    }
-
-    private static EnumMap<Part, List<UvPoint>> uvSamples(WavefrontObject source,
-            LegacyCalibrationProfile profile) {
-        EnumMap<Part, List<UvPoint>> result = new EnumMap<>(Part.class);
-        for (Part part : Part.values()) {
-            if (part == Part.HILT) continue;
-            String target = part == Part.SAYA ? "sheath" : "blade";
-            List<Face> selected = select(source, target, part, profile);
-            result.put(part, selected.stream().map(LegacyModelPartRenderer::uv).toList());
-        }
-        return result;
-    }
-
-    private static Part closestPart(UvPoint point, EnumMap<Part, List<UvPoint>> samples) {
-        Part winner = Part.BLADE;
-        double best = Double.MAX_VALUE;
-        for (Part part : Part.values()) {
-            for (UvPoint sample : samples.getOrDefault(part, List.of())) {
-                double distance = point.distanceSquared(sample);
-                if (distance < best) {
-                    best = distance;
-                    winner = part;
-                }
-            }
-        }
-        return winner;
-    }
-
-    private static UvPoint uv(Face face) {
-        if (face.textureCoordinates == null || face.textureCoordinates.length == 0) {
-            return new UvPoint(0.0F, 0.0F);
-        }
-        float u = 0.0F;
-        float v = 0.0F;
-        for (TextureCoordinate coordinate : face.textureCoordinates) {
-            u += coordinate.u;
-            v += coordinate.v;
-        }
-        return new UvPoint(u / face.textureCoordinates.length,
-                v / face.textureCoordinates.length);
+        return false;
     }
 
     private static List<Face> faces(WavefrontObject source, String name) {
-        LegacyModelAdapter adapter = MODEL_ADAPTERS.getOrDefault(source, LegacyModelAdapter.STANDARD);
-        List<String> aliases = switch (name) {
-            case "blade" -> adapter.bladeGroups();
-            case "handle" -> adapter.hiltGroups();
-            case "sheath" -> adapter.sayaGroups();
-            default -> List.of(name);
-        };
         List<Face> result = new ArrayList<>();
-        for (GroupObject group : source.groupObjects) {
-            if (aliases.contains(group.name)) result.addAll(group.faces);
+        for (var group : source.groupObjects) {
+            if (group != null && group.faces != null && name.equals(group.name)) result.addAll(group.faces);
         }
         return result;
-    }
-
-    private static synchronized void register(WavefrontObject model, ResourceLocation location) {
-        MODEL_ADAPTERS.put(model, LegacyModelAdapter.resolve(location));
     }
 
     private static List<Face> filter(List<Face> input,
@@ -984,34 +310,12 @@ public final class LegacyModelPartRenderer {
         return new Bounds(min, max);
     }
 
-    private static float normalizedX(Face face, Bounds bounds) {
-        if (face.vertices == null || face.vertices.length == 0) return 0.0F;
-        float x = 0.0F;
-        for (Vertex vertex : face.vertices) x += vertex.x;
-        return (x / face.vertices.length - bounds.min) / (bounds.max - bounds.min);
-    }
-
     private record Bounds(float min, float max) {
         boolean valid() { return Float.isFinite(min) && Float.isFinite(max) && max > min; }
     }
 
-    private record UvPoint(float u, float v) {
-        double distanceSquared(UvPoint other) {
-            double du = u - other.u;
-            double dv = v - other.v;
-            return du * du + dv * dv;
-        }
-    }
-
-    private record ClipVertex(Vertex position, Vertex normal, TextureCoordinate uv) {
-    }
-
     public static synchronized void clear() {
         VIEWS.clear();
-        MOUNTS.clear();
-        BLADE_EXTENTS.clear();
-        ICON_SPANS.clear();
-        MODEL_ADAPTERS.clear();
     }
 
     private LegacyModelPartRenderer() {

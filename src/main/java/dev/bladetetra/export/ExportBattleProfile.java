@@ -9,8 +9,8 @@ import java.util.List;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.3.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.3.0.jar";
+    static final String RUNTIME_VERSION = "1.4.0";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.4.0.jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");

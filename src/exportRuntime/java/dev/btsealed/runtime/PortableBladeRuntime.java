@@ -6,6 +6,8 @@ import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.ItemAttributeModifierEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(PortableBladeRuntime.ID)
@@ -14,6 +16,7 @@ public final class PortableBladeRuntime {
 
     public PortableBladeRuntime(FMLJavaModLoadingContext context) {
         PortableCombos.COMBOS.register(context.getModEventBus());
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> PortableBackplateClient::register);
         var eventBus = MinecraftForge.EVENT_BUS;
         eventBus.addListener(PortableBladeRuntime::reload);
         eventBus.addListener(PortableBladeRuntime::attributes);
