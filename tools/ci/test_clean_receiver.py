@@ -108,7 +108,7 @@ class CleanReceiverContractTests(unittest.TestCase):
     def test_reject_forge_mirror_with_wrong_signature(self):
         payload = b"untrusted installer" * 80000
         with patch.object(run_clean_receiver, "ROOT", self.directory), \
-             patch("urllib.request.urlopen", return_value=io.BytesIO(payload)):
+             patch("urllib.request.urlopen", side_effect=lambda request, timeout=0: io.BytesIO(payload)):
             with self.assertRaisesRegex(RuntimeError, "verified Forge installer"):
                 run_clean_receiver.fetch_installer("1.20.1-47.4.0")
         self.assertFalse((self.directory / "build/clean-receiver/installers/"
