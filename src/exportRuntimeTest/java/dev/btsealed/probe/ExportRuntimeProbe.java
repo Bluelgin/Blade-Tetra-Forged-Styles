@@ -20,6 +20,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraftforge.common.MinecraftForge;
@@ -93,6 +95,7 @@ public final class ExportRuntimeProbe {
                 throw new IllegalStateException("Guard tsuba effect was not retained");
             }
             verifyPrecisionRank(world, player, second);
+            verifyReinforcedKnockback(world, player);
             verifyDangaku(world, player);
             PortableRuntimeSelfTest.verifyPrecisionClock();
             PortableRuntimeSelfTest.verifySpiritSwordIsolation();
@@ -145,6 +148,74 @@ public final class ExportRuntimeProbe {
         } finally {
             player.setItemInHand(InteractionHand.MAIN_HAND, focusBlade);
             world.getServer().getWorldData().overworldData().setGameTime(originalTime);
+        }
+    }
+
+    /** Actual native slash/velocity parity with Blade Tetra's reinforced-habaki Forge smoke. */
+    private static void verifyReinforcedKnockback(ServerLevel world, ServerPlayer player) {
+        world.getChunk(0, 0);
+        long originalTime = world.getGameTime();
+        var originalHand = player.getMainHandItem().copy();
+        try {
+            world.getServer().getWorldData().overworldData().setGameTime(Math.max(1L, originalTime));
+            player.moveTo(4, 200, 4, 0, 0);
+            player.setYHeadRot(0);
+            player.yBodyRot = 0;
+            player.setShiftKeyDown(false);
+            player.setPose(net.minecraft.world.entity.Pose.STANDING);
+            player.setOnGround(true);
+
+            var ordinary = slashMomentum(world, player, "bt_export_custom", KnockBacks.cancel);
+            var strong = slashMomentum(world, player, "bt_export_reinforced", KnockBacks.cancel);
+            var toss = slashMomentum(world, player, "bt_export_reinforced", KnockBacks.toss);
+            if (Math.abs(ordinary.z - .12D) > .02D || Math.abs(ordinary.y - .04D) > .01D) {
+                throw new IllegalStateException("Ordinary native slash momentum changed: " + ordinary);
+            }
+            if (!(strong.z > .60D) || Math.abs(strong.y - .04D) > .01D) {
+                throw new IllegalStateException("Reinforced slash did not preserve source horizontal/y parity: "
+                        + strong + " (ordinary=" + ordinary + ")");
+            }
+            if (toss.y < .75D) {
+                throw new IllegalStateException("Reinforced Habaki altered native special toss: " + toss);
+            }
+            LogUtils.getLogger().info("BLADE_EXPORT_REINFORCED_KNOCKBACK_PASS: ordinary={}, strong={}, toss={}",
+                    ordinary, strong, toss);
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, originalHand);
+            world.getServer().getWorldData().overworldData().setGameTime(originalTime);
+        }
+    }
+
+    private static Vec3 slashMomentum(ServerLevel world, ServerPlayer player, String namespace,
+            java.util.function.Consumer<net.minecraft.world.entity.LivingEntity> knockback) {
+        var blade = craft(world, namespace);
+        player.setItemInHand(InteractionHand.MAIN_HAND, blade);
+        var state = blade.getCapability(ItemSlashBlade.BLADESTATE).resolve().orElseThrow();
+        state.setComboSeq(ComboStateRegistry.COMBO_A1.getId());
+        state.setLastActionTime(world.getGameTime());
+        var target = new Zombie(world);
+        target.setNoAi(true);
+        target.setPos(4, 200, 5.5);
+        target.setOnGround(true);
+        target.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        target.setDeltaMovement(0D, .04D, .12D);
+        if (!world.addFreshEntity(target)) throw new IllegalStateException("Native knockback target was not registered");
+        state.setTargetEntityId(target.getId());
+        var slash = mods.flammpfeil.slashblade.util.AttackManager.doSlash(
+                player, 0, Vec3.ZERO, false, true, 1, knockback);
+        try {
+            if (slash == null || slash.getShooter() != player) {
+                throw new IllegalStateException("Failed to create a native SlashBlade slash for " + namespace);
+            }
+            slash.tickCount = 2;
+            slash.tick();
+            if (target.getHealth() >= target.getMaxHealth()) {
+                throw new IllegalStateException("Native slash missed its test target: " + namespace);
+            }
+            return target.getDeltaMovement();
+        } finally {
+            if (slash != null) slash.discard();
+            target.discard();
         }
     }
 
