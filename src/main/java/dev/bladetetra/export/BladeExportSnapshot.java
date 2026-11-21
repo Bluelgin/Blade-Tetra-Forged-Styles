@@ -51,7 +51,12 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
         if (!mayExport(player)) {
             throw new IllegalStateException("Export requires an administrator in creative mode");
         }
-        ItemStack stack = player.getItemInHand(bladeHand).copy();
+        return captureStack(player.getItemInHand(bladeHand));
+    }
+
+    /** Re-capture a separate projected stack; never change a player's original blade. */
+    static BladeExportSnapshot captureStack(ItemStack source) {
+        ItemStack stack = source.copy();
         if (!(stack.getItem() instanceof ModularSlashBladeItem modular)) {
             throw new IllegalArgumentException("Hold a Blade Tetra modular blade to export");
         }

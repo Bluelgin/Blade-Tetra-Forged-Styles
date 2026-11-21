@@ -18,8 +18,9 @@ final class BladeSealSessions {
     private static final Map<ServerPlayer, Draft> DRAFTS = new WeakHashMap<>();
 
     private record Draft(UUID token, InteractionHand bladeHand, ItemStack blade,
-                         ItemStack frozen, BladeExportSnapshot snapshot,
-                         MaterialAppearance appearance, long expiresAt) {}
+                         ItemStack frozen, BladeExportSnapshot original,
+                         BladeExportSnapshot exported, ItemStack exportedBlade,
+                         boolean omitsAwakening, MaterialAppearance appearance, long expiresAt) {}
 
     static boolean open(ServerPlayer player, InteractionHand toolHand) {
         if (!BladeExportSnapshot.mayExport(player)) {
@@ -45,22 +46,24 @@ final class BladeSealSessions {
         var bladeHand = other(toolHand);
         var blade = player.getItemInHand(bladeHand);
         var snapshot = BladeExportSnapshot.capture(player, bladeHand);
-        var report = BladeExportPreflight.inspect(snapshot, blade);
+        var projection = BladeAwakeningExportPolicy.project(snapshot, blade);
+        var report = BladeExportPreflight.inspect(projection.snapshot(), projection.blade());
         UUID token = UUID.randomUUID();
         // No authorization token is stored when the current build is known to be non-portable.
         if (report.ready()) {
             DRAFTS.put(player, new Draft(token, bladeHand, blade, blade.copy(), snapshot,
+                    projection.snapshot(), projection.blade(), projection.omitsAwakening(),
                     MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
         }
         return new BladeSealPackets.Preview(token, blade.getHoverName().copy(),
-                report.ready(), report.summary());
+                report.ready(), report.summary(), projection.omitsAwakening());
     }
 
-    static void confirm(ServerPlayer player, UUID token) {
+    static void confirm(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
         String encoded = "";
         String artTag = "";
         try {
-            var snapshot = takeConfirmed(player, token);
+            var snapshot = takeConfirmed(player, token, acknowledgeAwakeningLoss);
             if (snapshot != null) {
                 var tag = snapshot.blade().getTag();
                 artTag = tag == null ? "{}" : tag.toString();
@@ -78,9 +81,14 @@ final class BladeSealSessions {
     record Approved(BladeExportSnapshot data, ItemStack blade) {}
 
     static Approved takeConfirmed(ServerPlayer player, UUID token) {
+        return takeConfirmed(player, token, false);
+    }
+
+    static Approved takeConfirmed(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
         var draft = DRAFTS.get(player);
         if (draft == null || !draft.token().equals(token)) return null;
         DRAFTS.remove(player);
+        if (draft.omitsAwakening() && !acknowledgeAwakeningLoss) return null;
         if (!BladeExportSnapshot.mayExport(player) || draft.expiresAt() < player.server.getTickCount()
                 || player.getItemInHand(draft.bladeHand()) != draft.blade()
                 || !ItemStack.matches(draft.frozen(), draft.blade())
@@ -88,8 +96,9 @@ final class BladeSealSessions {
             return null;
         }
         var current = BladeExportSnapshot.capture(player, draft.bladeHand());
-        return draft.snapshot().equals(current) && draft.appearance().equals(MaterialAppearance.fromStack(draft.blade()))
-                ? new Approved(current, draft.blade()) : null;
+        return draft.original().equals(current)
+                && draft.appearance().equals(MaterialAppearance.fromStack(draft.blade()))
+                ? new Approved(draft.exported(), draft.exportedBlade().copy()) : null;
     }
 
     private static InteractionHand other(InteractionHand hand) {
