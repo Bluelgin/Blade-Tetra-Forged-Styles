@@ -14,6 +14,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.IOException;
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +31,10 @@ final class BladeSealScreen extends Screen {
     private EditBox author;
     private EditBox description;
     private Button confirm;
+    private Button backplateModeButton;
+    private EditBox backplatePath;
+    private CustomBackplateImage.Mode backplateMode = CustomBackplateImage.Mode.ORIGINAL;
+    private CustomBackplateImage.Selection requestedBackplate;
     private boolean confirmed;
     private BladeExportArchive.Metadata requestedMetadata;
     private BladeExportRecipe requestedRecipe;
@@ -47,7 +54,7 @@ final class BladeSealScreen extends Screen {
     @Override
     protected void init() {
         left = (width - PANEL_WIDTH) / 2;
-        top = Math.max(0, (height - 325) / 2);
+        top = Math.max(0, (height - 365) / 2);
         name = field(left, top + 51, PANEL_WIDTH, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
         addon = field(left, top + 78, 222, 50, "blade_tetra.export.id",
@@ -68,9 +75,55 @@ final class BladeSealScreen extends Screen {
             ingredients[index] = field(left + 101 * (index % 3), top + 132 + ROW_HEIGHT * (index / 3),
                     98, 96, "blade_tetra.export.ingredient", value);
         }
+        backplateModeButton = addRenderableWidget(Button.builder(Component.literal(backplateLabel()),
+                button -> cycleBackplateMode()).bounds(left, top + 188, 87, 20).build());
+        backplatePath = field(left + 91, top + 189, 157, 1024, "blade_tetra.export.backplate_file",
+                backplatePath == null ? "" : backplatePath.getValue());
+        addRenderableWidget(Button.builder(Component.literal("Browse..."),
+                button -> chooseBackplate()).bounds(left + 252, top + 188, 48, 20).build());
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + 186, PANEL_WIDTH, 20).build());
+                button -> request()).bounds(left, top + 214, PANEL_WIDTH, 20).build());
         confirm.active = !confirmed && preview.ready();
+    }
+
+    private String backplateLabel() {
+        return switch (backplateMode) {
+            case ORIGINAL -> "Backplate: original";
+            case REPLACE -> "Backplate: image";
+            case OVERLAY -> "Backplate: overlay";
+        };
+    }
+
+    private void cycleBackplateMode() {
+        backplateMode = switch (backplateMode) {
+            case ORIGINAL -> CustomBackplateImage.Mode.REPLACE;
+            case REPLACE -> CustomBackplateImage.Mode.OVERLAY;
+            case OVERLAY -> CustomBackplateImage.Mode.ORIGINAL;
+        };
+        backplateModeButton.setMessage(Component.literal(backplateLabel()));
+    }
+
+    private void chooseBackplate() {
+        Thread picker = new Thread(() -> {
+            try {
+                FileDialog dialog = new FileDialog((Frame) null, "Select backplate PNG or JPEG", FileDialog.LOAD);
+                dialog.setVisible(true);
+                String filename = dialog.getFile();
+                String directory = dialog.getDirectory();
+                dialog.dispose();
+                if (filename != null && directory != null) {
+                    String selected = Path.of(directory, filename).toAbsolutePath().toString();
+                    Minecraft.getInstance().execute(() -> {
+                        if (backplatePath != null) backplatePath.setValue(selected);
+                    });
+                }
+            } catch (RuntimeException | java.awt.AWTError failure) {
+                Minecraft.getInstance().execute(() ->
+                    status = Component.literal("Image dialog unavailable; type a file path instead"));
+            }
+        }, "BladeSealBackplatePicker");
+        picker.setDaemon(true);
+        picker.start();
     }
 
     private EditBox field(int x, int y, int width, int limit, String key, String value) {
@@ -98,6 +151,7 @@ final class BladeSealScreen extends Screen {
             }
             requestedRecipe = new BladeExportRecipe(List.copyOf(items), occupied);
             requestedMetadata = metadata;
+            requestedBackplate = new CustomBackplateImage.Selection(backplateMode, backplatePath.getValue().strip());
             confirmed = true;
             confirm.active = false;
             status = Component.translatable("blade_tetra.export.waiting");
@@ -113,8 +167,10 @@ final class BladeSealScreen extends Screen {
                 || !screen.preview.token().equals(result.token()) || screen.requestedMetadata == null) return;
         var metadata = screen.requestedMetadata;
         var recipe = screen.requestedRecipe;
+        var backplate = screen.requestedBackplate;
         screen.requestedMetadata = null;
         screen.requestedRecipe = null;
+        screen.requestedBackplate = null;
         if (result.snapshot().isEmpty()) {
             screen.status = Component.translatable("blade_tetra.export.expired");
             return;
@@ -124,7 +180,7 @@ final class BladeSealScreen extends Screen {
             var blade = new ItemStack(ModItems.MODULAR_SLASHBLADE.get());
             blade.setTag(TagParser.parseTag(result.appearanceTag()));
             var resources = client.getResourceManager();
-            var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources);
+            var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources, backplate);
             var file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources,
                     snapshot, metadata, recipe, art);
             screen.status = Component.translatable("blade_tetra.export.saved");
@@ -157,9 +213,9 @@ final class BladeSealScreen extends Screen {
         graphics.drawWordWrap(font,
                 Component.translatable(preview.ready()
                         ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 214, PANEL_WIDTH, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
+                        preview.summary()), left, top + 244, PANEL_WIDTH, preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 281, PANEL_WIDTH, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 311, PANEL_WIDTH, 0xFFFFFF);
         }
     }
 }

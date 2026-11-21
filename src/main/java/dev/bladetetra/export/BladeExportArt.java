@@ -1,6 +1,8 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.client.StaticBladeArt;
+import dev.bladetetra.forging.NamedBackplate;
+import java.util.LinkedHashMap;
 import dev.bladetetra.item.SaltyFishParts;
 import dev.bladetetra.visual.MaterialAppearance;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +20,11 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
 
     static BladeExportArt bake(String modId, BladeExportSnapshot snapshot,
             ItemStack stack, ResourceManager resources) throws IOException {
+        return bake(modId, snapshot, stack, resources, CustomBackplateImage.Selection.original());
+    }
+
+    static BladeExportArt bake(String modId, BladeExportSnapshot snapshot,
+            ItemStack stack, ResourceManager resources, CustomBackplateImage.Selection backplate) throws IOException {
         check(snapshot, stack);
         var sourceModel = snapshot.model();
         var appearance = MaterialAppearance.fromStack(stack);
@@ -30,8 +37,22 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         var artwork = StaticBladeArt.bake(stack, sourceModel, resources);
         var model = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_blade.obj");
         var texture = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_blade.png");
-        return new BladeExportArt(model, texture, List.copyOf(evidence),
-                Map.of(model, artwork.model(), texture, artwork.texture()));
+        var assets = new LinkedHashMap<ResourceLocation, byte[]>();
+        assets.put(model, artwork.model());
+        assets.put(texture, artwork.texture());
+        var portrait = CustomBackplateImage.bake(modId, backplate, stack, resources);
+        if (portrait != null) {
+            var frame = ResourceLocation.parse("blade_tetra:model/util/durability_filled.obj");
+            evidence.add(projectInput(resources, frame));
+            var picture = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_backplate.png");
+            var frameOutput = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_backplate_frame.obj");
+            try (var input = resources.getResourceOrThrow(frame).open()) {
+                assets.put(frameOutput, input.readAllBytes());
+            }
+            assets.put(picture, portrait.png());
+            evidence.add(portrait.evidence());
+        }
+        return new BladeExportArt(model, texture, List.copyOf(evidence), Map.copyOf(assets));
     }
 
     static void check(BladeExportSnapshot snapshot, ItemStack stack) {
@@ -44,7 +65,7 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         if (appearance.sayaSkin().patternCount() > 0) {
             throw new IllegalArgumentException("Banner-pattern saya is not supported by the static exporter");
         }
-        if (!snapshot.namedParts().isEmpty()) {
+        if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
             throw new IllegalArgumentException("Named fitting artwork requires a portable model and redistribution permission: "
                     + String.join(", ", snapshot.namedParts().stream().map(part -> part.slot() + " " + part.sourceId()).toList()));
         }
