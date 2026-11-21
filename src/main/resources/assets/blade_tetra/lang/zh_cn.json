@@ -12,8 +12,6 @@
   "blade_tetra.export.recipe": "合成格（物品 ID）",
   "blade_tetra.export.ingredient": "材料物品 ID",
   "blade_tetra.export.confirm": "导出附属 JAR",
-  "blade_tetra.export.mode.sealed": "完整封存（附带运行时）",
-  "blade_tetra.export.mode.native": "原生兼容（无运行时）",
   "blade_tetra.export.waiting": "正在确认持刀……",
   "blade_tetra.export.saved": "已保存到 blade-exports。",
   "blade_tetra.export.path": "封存附属已写入 %s",
