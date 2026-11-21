@@ -13,7 +13,7 @@ class MikageBackplateTest {
         int start = manager.indexOf("if (\"base\".equals(event.getOriginalTarget()))");
         int frame = manager.indexOf("event.getTarget(),", start);
         int reset = manager.indexOf("BladeRenderState.resetCol();", start);
-        int portrait = manager.indexOf("event.getModel(), \"portrait\"", start);
+        int portrait = manager.indexOf("\"portrait\", baseTexture", start);
         assertTrue(frame > start && reset > frame && reset < portrait);
     }
 
