@@ -112,6 +112,13 @@ public final class BladeExportPackageSmoke {
                             || !capabilities.get(0).getAsString().equals("slashblade:native_blade_v1")) {
                         throw new IllegalStateException("Missing base capability in sealed certificate");
                     }
+                    var portable = JsonParser.parseString(new String(archive.getInputStream(
+                            archive.getEntry("data/bt_export_test/blade_export/sealed_blade.json")).readAllBytes(),
+                            StandardCharsets.UTF_8)).getAsJsonObject();
+                    if (!portable.get("comboRoot").getAsString().equals(spec.combo().toString())
+                            || !capabilities.equals(portable.getAsJsonArray("capabilities"))) {
+                        throw new IllegalStateException("Runtime and certificate disagree on portable abilities");
+                    }
                     var hashes = certificate.getAsJsonObject("sha256");
                     if (hashes.size() != archive.size() - 1) {
                         throw new IllegalStateException("Certificate did not cover every exported file");
@@ -276,6 +283,21 @@ public final class BladeExportPackageSmoke {
                     if (expected.equals(capability.getAsString())) present = true;
                 }
                 if (!present) throw new IllegalStateException("Missing combat capability " + expected);
+                if (swordId.equals("bt_export_reinforced:sealed_blade")) {
+                    boolean reinforced = false;
+                    for (var capability : capabilities) {
+                        if ("bt_export_runtime:reinforced_habaki_v1".equals(capability.getAsString())) {
+                            reinforced = true;
+                        }
+                    }
+                    if (!reinforced) throw new IllegalStateException("Reinforced fitting was lost from capability contract");
+                }
+                var portable = JsonParser.parseString(new String(zip.getInputStream(zip.getEntry(
+                        "data/" + swordId.replace(":sealed_blade", "") + "/blade_export/sealed_blade.json"))
+                        .readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+                if (!capabilities.equals(portable.getAsJsonArray("capabilities"))) {
+                    throw new IllegalStateException("Generated runtime profile does not match signed capability list");
+                }
             }
         }
         LOGGER.info("BLADE_EXPORT_SHARED_RUNTIME_PASS");
