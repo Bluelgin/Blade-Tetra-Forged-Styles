@@ -27,6 +27,7 @@
     "HeavyRainSwordSafetyMixin",
     "MikageSlashProvenanceMixin",
     "MikageNativeTimelineMixin",
+    "FusionComboTickMixin",
     "MikageNativeTargetsMixin",
     "MikageNativeManagedAttackMixin",
     "MikageNativeDriveMixin",

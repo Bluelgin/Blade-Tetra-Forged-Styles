@@ -39,6 +39,7 @@ public final class NamedIngotSmokeTest {
             verifyExtraction(player);
             verifyAbilitySplit();
             ManualFusionSmoke.verify(player);
+            NativeFusionSmoke.verify(player);
             String[][] modules = {
                 {"blade", "katana_blade", "katana_blade"},
                 {"blade", "nodachi_blade", "nodachi_blade"},
