@@ -50,6 +50,7 @@ public final class BladeExportPackageSmoke {
             if (BladeExportSnapshot.mayExport(player)) throw new IllegalStateException("Unauthorized export");
             verifyMixedSources(event.getServer().overworld());
             verifyAuthorization(event.getServer().overworld());
+            verifyPrecisionHabaki(event.getServer().overworld());
             var modVersion = ModList.get().getModContainerById("slashblade").orElseThrow()
                     .getModInfo().getVersion().toString();
             String expectedVersion = System.getProperty("blade_tetra.expectedSlashbladeVersion", "1.9.63");
@@ -70,7 +71,7 @@ public final class BladeExportPackageSmoke {
             Path file = BladeExportArchive.write(Path.of("."), metadata, "test", spec, recipe,
                     List.of(new BladeExportArchive.Dependency("slashblade", modVersion)),
                     List.of(), evidence, Map.of(), new ExportBattleProfile(1, List.of(), List.of(),
-                    new BladeExportSnapshot.ComponentEffects(0, 0, 0, false, 0, 0, 0, false)));
+                    new BladeExportSnapshot.ComponentEffects(0, 0, 0, false, 0, 0, 0, false, false)));
             try (ZipFile archive = new ZipFile(file.toFile())) {
                 // Every sealed blade, including one with only native combos, carries the shared runtime.
                 if (archive.getEntry("META-INF/jarjar/metadata.json") == null
@@ -294,6 +295,35 @@ public final class BladeExportPackageSmoke {
         if (BladeSealSessions.takeConfirmed(admin, approved) == null
                 || BladeSealSessions.takeConfirmed(admin, approved) != null) {
             throw new IllegalStateException("Expected a single-use export authorization");
+        }
+    }
+
+    private static void verifyPrecisionHabaki(ServerLevel level) {
+        var blade = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+        var tag = blade.getOrCreateTag();
+        tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE);
+        var player = creativeAdmin(level);
+        player.setItemInHand(InteractionHand.MAIN_HAND, blade);
+        var snapshot = BladeExportSnapshot.capture(player, InteractionHand.MAIN_HAND);
+        if (!snapshot.componentEffects().precisionHabaki() || snapshot.componentEffects().unsupported()) {
+            throw new IllegalStateException("Precision habaki must be portable without dropping other effects");
+        }
+        StandaloneBladeExport.checkCombat(snapshot);
+        if (!ExportBattleProfile.from(snapshot).capabilities(snapshot.combo())
+                .contains("bt_export_runtime:precision_habaki_v1")) {
+            throw new IllegalStateException("Precision habaki is missing from the generated capabilities");
+        }
+
+        tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.REINFORCED_HABAKI_MODULE);
+        var reinforced = BladeExportSnapshot.capture(player, InteractionHand.MAIN_HAND);
+        if (!reinforced.componentEffects().unsupported() || reinforced.componentEffects().precisionHabaki()) {
+            throw new IllegalStateException("Reinforced habaki was incorrectly marked portable");
+        }
+        try {
+            StandaloneBladeExport.checkCombat(reinforced);
+            throw new IllegalStateException("Reinforced habaki silently passed the portability gate");
+        } catch (IllegalArgumentException expected) {
+            if (!expected.getMessage().contains("Habaki")) throw expected;
         }
     }
 
