@@ -18,6 +18,20 @@ public final class PortableRuntimeSelfTest {
                 || clock.advance(109, true) || !clock.advance(110, true)) {
             throw new IllegalStateException("Precision clock leaked a partial credit across a gap");
         }
+        // Switching between two separate exported mods cannot reuse a partial Rank tick.
+        var tracking = new PortableRankRetention.Tracking();
+        if (tracking.advance(200, "item.bt_export_custom.sealed_blade")
+                || tracking.advance(201, "item.bt_export_custom_second.sealed_blade")
+                || tracking.advance(202, "item.bt_export_custom_second.sealed_blade")
+                || !tracking.advance(203, "item.bt_export_custom_second.sealed_blade")) {
+            throw new IllegalStateException("Precision clock transferred a Rank credit between sealed blades");
+        }
+        if (tracking.advance(204, null)
+                || tracking.advance(205, "item.bt_export_custom.sealed_blade")
+                || tracking.advance(206, "item.bt_export_custom.sealed_blade")
+                || !tracking.advance(207, "item.bt_export_custom.sealed_blade")) {
+            throw new IllegalStateException("Precision clock retained state after re-equipping a sealed blade");
+        }
         System.out.println("BLADE_EXPORT_PRECISION_CLOCK_PASS");
     }
 
