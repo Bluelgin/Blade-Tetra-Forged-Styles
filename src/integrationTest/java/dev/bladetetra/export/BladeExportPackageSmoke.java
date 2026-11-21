@@ -162,12 +162,20 @@ public final class BladeExportPackageSmoke {
                 if (slug.equals("custom_second")) {
                     tag.putString(ModularSlashBladeItem.TSUBA_SLOT, ModularSlashBladeItem.GUARD_TSUBA_MODULE);
                     tag.putString(ModularSlashBladeItem.GUARD_TSUBA_MODULE + "_material", "guard_tsuba/iron");
+                    tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE);
+                    tag.putString(ModularSlashBladeItem.PRECISION_HABAKI_MODULE + "_material", "precision_habaki/iron");
                 }
                 admin.setItemInHand(InteractionHand.MAIN_HAND, blade);
                 var original = BladeExportSnapshot.capture(admin, InteractionHand.MAIN_HAND);
                 var snapshot = BladeSealPackets.decodeSnapshot(BladeSealPackets.encodeSnapshot(original));
                 if (!original.equals(snapshot)) throw new IllegalStateException("Export packet changed the blade");
                 StandaloneBladeExport.checkCombat(snapshot);
+                if (slug.equals("custom_second")
+                        && (!snapshot.componentEffects().precisionHabaki()
+                            || !ExportBattleProfile.from(snapshot).capabilities(ExportBattleProfile.CUSTOM_ROOT)
+                                .contains("bt_export_runtime:precision_habaki_v1"))) {
+                    throw new IllegalStateException("Mixed guard/precision sword lost Rank retention");
+                }
                 if (!ExportBattleProfile.from(snapshot).supports(
                         "CUSTOM".equals(snapshot.style()) ? ExportBattleProfile.CUSTOM_ROOT
                                 : ExportBattleProfile.DANGAKU_ROOT)) {
