@@ -5,6 +5,7 @@ import dev.bladetetra.customstyle.CustomStyleTimingPolicy;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import java.util.TreeSet;
 
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
@@ -47,6 +48,33 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
     boolean supports(ResourceLocation combo) {
         if (moves.isEmpty()) return IAIDO_ROOT.equals(combo) || RENGEKI_ROOT.equals(combo) || DANGAKU_ROOT.equals(combo);
         return CUSTOM_ROOT.equals(combo);
+    }
+
+    /**
+     * Stable feature inventory for the exported package certificate. All listed behavior
+     * must be supplied by the native definition or this exact runtime version.
+     * This is an audit manifest, not a request to load separate copies of runtime classes.
+     */
+    List<String> capabilities(ResourceLocation combo) {
+        var ids = new TreeSet<String>();
+        ids.add("slashblade:native_blade_v1");
+        if (IAIDO_ROOT.equals(combo)) ids.add("bt_export_runtime:iaido_v1");
+        if (RENGEKI_ROOT.equals(combo)) ids.add("bt_export_runtime:rengeki_v1");
+        if (DANGAKU_ROOT.equals(combo)) ids.add("bt_export_runtime:dangaku_v1");
+        if (CUSTOM_ROOT.equals(combo)) {
+            if (moves.isEmpty()) throw new IllegalArgumentException("Empty custom blade cannot be sealed");
+            ids.add("bt_export_runtime:custom_combo_v1");
+        }
+        if (!attributes.isEmpty()) ids.add("bt_export_runtime:mainhand_attributes_v1");
+        if (effects.drawBonus() > 0) ids.add("bt_export_runtime:quickdraw_saya_v1");
+        if (effects.spiritBonus() > 0) ids.add("bt_export_runtime:spirit_saya_v1");
+        if (effects.heavyPommel()) ids.add("bt_export_runtime:heavy_kashira_v1");
+        if (effects.rankDivisor() > 0) ids.add("bt_export_runtime:stable_tsuka_v1");
+        if (effects.guardReduction() > 0) ids.add("bt_export_runtime:guard_tsuba_v1");
+        if (effects.unsupported()) {
+            throw new IllegalArgumentException("Unportable Tetra component effects cannot be certified");
+        }
+        return List.copyOf(ids);
     }
 
     private static ResourceLocation root(String name) {
