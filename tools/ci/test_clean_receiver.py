@@ -10,7 +10,7 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 import run_clean_receiver
-from run_clean_receiver import EXPECTED_SWORDS, inspect_exports
+from run_clean_receiver import EXPECTED_SWORDS, inspect_exports, verify_probe_isolation
 
 
 def make_package(directory: Path, namespace: str, *, slashblade: str = "1.9.63",
@@ -83,6 +83,18 @@ class CleanReceiverContractTests(unittest.TestCase):
         make_package(self.directory, "bt_export_custom")
         with self.assertRaisesRegex(RuntimeError, "Expected exactly 4"):
             inspect_exports(self.directory, "1.9.63")
+    def test_probe_must_not_share_runtime_module_package(self):
+        probe = self.directory / "receiver-probe.jar"
+        with ZipFile(probe, "w") as jar:
+            jar.writestr("dev/btsealed/probe/ExportRuntimeProbe.class", b"probe")
+            jar.writestr("dev/btsealed/runtime/PortableRuntimeSelfTest.class", b"bad")
+        with self.assertRaisesRegex(RuntimeError, "runtime module package"):
+            verify_probe_isolation(probe)
+        with ZipFile(probe, "w") as jar:
+            jar.writestr("dev/btsealed/probe/ExportRuntimeProbe.class", b"probe")
+            jar.writestr("dev/btsealed/probe/PortableRuntimeSelfTest.class", b"good")
+        verify_probe_isolation(probe)
+
     def test_pinned_forge_mirror_fallback_and_cache(self):
         payload = b"sample verifier installer" * 60000
         sha1 = hashlib.sha1(payload).hexdigest()
