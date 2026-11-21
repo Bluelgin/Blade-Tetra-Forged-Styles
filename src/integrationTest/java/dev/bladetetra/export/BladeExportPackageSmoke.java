@@ -71,7 +71,7 @@ public final class BladeExportPackageSmoke {
             Path file = BladeExportArchive.write(Path.of("."), metadata, "test", spec, recipe,
                     List.of(new BladeExportArchive.Dependency("slashblade", modVersion)),
                     List.of(), evidence, Map.of(), new ExportBattleProfile(1, List.of(), List.of(),
-                    new BladeExportSnapshot.ComponentEffects(0, 0, 0, false, 0, 0, 0, false, false)));
+                    new BladeExportSnapshot.ComponentEffects(0, 0, 0, false, 0, 0, 0, false, false, false)));
             try (ZipFile archive = new ZipFile(file.toFile())) {
                 // Every sealed blade, including one with only native combos, carries the shared runtime.
                 if (archive.getEntry("META-INF/jarjar/metadata.json") == null
@@ -171,7 +171,7 @@ public final class BladeExportPackageSmoke {
             var first = ComboStateRegistry.COMBO_A1.getId();
             var second = ComboStateRegistry.COMBO_C.getId();
             var admin = creativeAdmin(level);
-            for (String slug : List.of("custom", "custom_second", "dangaku")) {
+            for (String slug : List.of("custom", "custom_second", "dangaku", "reinforced")) {
                 var blade = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
                 var tag = blade.getOrCreateTag();
                 if (slug.equals("dangaku")) {
@@ -189,6 +189,10 @@ public final class BladeExportPackageSmoke {
                     tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE);
                     tag.putString(ModularSlashBladeItem.PRECISION_HABAKI_MODULE + "_material", "precision_habaki/iron");
                 }
+                if (slug.equals("reinforced")) {
+                    tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.REINFORCED_HABAKI_MODULE);
+                    tag.putString(ModularSlashBladeItem.REINFORCED_HABAKI_MODULE + "_material", "reinforced_habaki/iron");
+                }
                 admin.setItemInHand(InteractionHand.MAIN_HAND, blade);
                 var original = BladeExportSnapshot.capture(admin, InteractionHand.MAIN_HAND);
                 var snapshot = BladeSealPackets.decodeSnapshot(BladeSealPackets.encodeSnapshot(original));
@@ -199,6 +203,13 @@ public final class BladeExportPackageSmoke {
                             || !ExportBattleProfile.from(snapshot).capabilities(ExportBattleProfile.CUSTOM_ROOT)
                                 .contains("bt_export_runtime:precision_habaki_v1"))) {
                     throw new IllegalStateException("Mixed guard/precision sword lost Rank retention");
+                }
+                if (slug.equals("reinforced")
+                        && (!snapshot.componentEffects().reinforcedHabaki()
+                            || snapshot.componentEffects().unsupported()
+                            || !ExportBattleProfile.from(snapshot).capabilities(ExportBattleProfile.CUSTOM_ROOT)
+                                .contains("bt_export_runtime:reinforced_habaki_v1"))) {
+                    throw new IllegalStateException("Reinforced habaki was not preserved by the portable profile");
                 }
                 if (!ExportBattleProfile.from(snapshot).supports(
                         "CUSTOM".equals(snapshot.style()) ? ExportBattleProfile.CUSTOM_ROOT
@@ -226,7 +237,7 @@ public final class BladeExportPackageSmoke {
 
     /** Structural coexistence proof; an isolated receiving server is still required. */
     private static void verifySharedRuntime(List<Path> exported) throws Exception {
-        if (exported.size() != 3) throw new IllegalStateException("Missing generated sword fixtures");
+        if (exported.size() != 4) throw new IllegalStateException("Missing generated sword fixtures");
         String commonRuntimeHash = null;
         var identities = new java.util.HashSet<String>();
         for (Path file : exported) {
@@ -348,14 +359,15 @@ public final class BladeExportPackageSmoke {
 
         tag.putString(ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.REINFORCED_HABAKI_MODULE);
         var reinforced = BladeExportSnapshot.capture(player, InteractionHand.MAIN_HAND);
-        if (!reinforced.componentEffects().unsupported() || reinforced.componentEffects().precisionHabaki()) {
-            throw new IllegalStateException("Reinforced habaki was incorrectly marked portable");
+        if (!reinforced.componentEffects().reinforcedHabaki()
+                || reinforced.componentEffects().unsupported()
+                || reinforced.componentEffects().precisionHabaki()) {
+            throw new IllegalStateException("Reinforced habaki was not captured separately from precision");
         }
-        try {
-            StandaloneBladeExport.checkCombat(reinforced);
-            throw new IllegalStateException("Reinforced habaki silently passed the portability gate");
-        } catch (IllegalArgumentException expected) {
-            if (!expected.getMessage().contains("Habaki")) throw expected;
+        StandaloneBladeExport.checkCombat(reinforced);
+        if (!ExportBattleProfile.from(reinforced).capabilities(reinforced.combo())
+                .contains("bt_export_runtime:reinforced_habaki_v1")) {
+            throw new IllegalStateException("Reinforced habaki is missing from the portable capability manifest");
         }
     }
 
