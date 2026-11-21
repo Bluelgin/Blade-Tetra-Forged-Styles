@@ -34,6 +34,7 @@ public final class PortableBladeRuntime {
         eventBus.addListener(PortableComponentEffects::arts);
         eventBus.addListener(PortableComponentEffects::hit);
         eventBus.addListener(PortableComponentEffects::guard);
+        eventBus.addListener(PortableRankRetention::tick);
     }
 
     private static void reload(AddReloadListenerEvent event) {
