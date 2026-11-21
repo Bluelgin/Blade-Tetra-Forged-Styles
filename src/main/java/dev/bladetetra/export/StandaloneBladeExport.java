@@ -27,6 +27,9 @@ final class StandaloneBladeExport {
         if (snapshot.traditions().bansho()) missing.add("Bansho");
         if (snapshot.traditions().nbtSage()) missing.add("NBT Sage");
         if (snapshot.componentEffects().unsupported()) missing.add("Habaki or boundary forging technique");
+        if ("STANDARD".equals(snapshot.style()) && isSourceOnly(snapshot.combo())) {
+            missing.add("source-only combo root " + snapshot.combo());
+        }
         if (snapshot.slashArt() != null && isSourceOnly(snapshot.slashArt())) missing.add(snapshot.slashArt().toString());
         snapshot.specialEffects().stream().filter(StandaloneBladeExport::isSourceOnly)
                 .forEach(effect -> missing.add(effect.toString()));
