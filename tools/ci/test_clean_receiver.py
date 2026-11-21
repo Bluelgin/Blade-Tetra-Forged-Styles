@@ -54,23 +54,23 @@ class CleanReceiverContractTests(unittest.TestCase):
         self.assertEqual(len(inspect_exports(self.directory, "1.9.63")), 4)
 
     def test_65_package_versions_must_match_target(self):
-        self.make_three(slashblade="1.9.65")
+        self.make_four(slashblade="1.9.65")
         self.assertEqual(len(inspect_exports(self.directory, "1.9.65")), 4)
         with self.assertRaisesRegex(RuntimeError, "targets SlashBlade"):
             inspect_exports(self.directory, "1.9.63")
 
     def test_refuse_source_dependency(self):
-        self.make_three(source_dependency=True)
+        self.make_four(source_dependency=True)
         with self.assertRaisesRegex(RuntimeError, "source mod"):
             inspect_exports(self.directory, "1.9.63")
 
     def test_detect_tampered_package_hash(self):
-        self.make_three(corrupt=True)
+        self.make_four(corrupt=True)
         with self.assertRaisesRegex(RuntimeError, "Tampered"):
             inspect_exports(self.directory, "1.9.63")
 
     def test_reject_mixed_runtime_versions(self):
-        self.make_three()
+        self.make_four()
         make_package(self.directory, "bt_export_dangaku", runtime="1.1.0")
         with self.assertRaisesRegex(RuntimeError, "runtime inconsistent"):
             inspect_exports(self.directory, "1.9.63")
