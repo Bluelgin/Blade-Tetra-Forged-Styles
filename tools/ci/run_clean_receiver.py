@@ -9,6 +9,7 @@ Requires network access for the official Forge installer (cached per version).
 This is an explicit, expensive acceptance test; it does not run during ordinary CI.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -43,11 +44,19 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
     for file in exports:
         with ZipFile(file) as archive:
             names = set(archive.namelist())
+            if len(names) != len(archive.namelist()):
+                raise RuntimeError(f"Duplicate entries in {file}")
             required = {"blade-export.json", "META-INF/mods.toml",
                         "META-INF/jarjar/metadata.json"}
             if not required.issubset(names):
                 raise RuntimeError(f"Missing signed package entries in {file}")
             manifest = json.loads(archive.read("blade-export.json"))
+            hashes = manifest.get("sha256")
+            if not isinstance(hashes, dict) or set(hashes) != names - {"blade-export.json"}:
+                raise RuntimeError(f"Invalid sealed package certificate coverage: {file}")
+            for entry, expected in hashes.items():
+                if hashlib.sha256(archive.read(entry)).hexdigest() != expected:
+                    raise RuntimeError(f"Tampered exported JAR entry: {file}: {entry}")
             blade_id = manifest["blade"]
             namespace, separator, blade_name = blade_id.partition(":")
             if not separator or blade_name != "sealed_blade" or namespace not in EXPECTED_SWORDS:
