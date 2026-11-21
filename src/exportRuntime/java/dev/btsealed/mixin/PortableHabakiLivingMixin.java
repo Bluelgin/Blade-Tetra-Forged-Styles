@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = LivingEntity.class, remap = false)
 public abstract class PortableHabakiLivingMixin {
-    @Group(name = "btSealed$beginKnockback", min = 1, max = 1)
+    @Group(name = "btSealed$beginKnockback", min = 1)
     @Inject(method = "knockback(DDD)V", at = @At("HEAD"), require = 0)
     private void btSealed$beginNamed(double strength, double x, double z, CallbackInfo ci) {
         PortableHabakiKnockback.beforeKnockback((LivingEntity) (Object) this);
@@ -26,7 +26,7 @@ public abstract class PortableHabakiLivingMixin {
         PortableHabakiKnockback.beforeKnockback((LivingEntity) (Object) this);
     }
 
-    @Group(name = "btSealed$endKnockback", min = 1, max = 1)
+    @Group(name = "btSealed$endKnockback", min = 1)
     @Inject(method = "knockback(DDD)V", at = @At("RETURN"), require = 0)
     private void btSealed$endNamed(double strength, double x, double z, CallbackInfo ci) {
         PortableHabakiKnockback.afterKnockback((LivingEntity) (Object) this);
