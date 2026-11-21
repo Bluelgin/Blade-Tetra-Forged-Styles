@@ -4,6 +4,7 @@ import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.forging.LegacyImprintKind;
+import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.forging.NamedBackplate;
 import dev.bladetetra.forging.NamedLegacyImprintStorage;
 import dev.bladetetra.item.ModularSlashBladeItem;
@@ -64,6 +65,14 @@ public final class BladeSealClientSmoke {
         }
         blade.getOrCreateTag().putString(ModularSlashBladeItem.BACKPLATE_SLOT, NamedBackplate.MODULE);
         NamedBackplate.installSource(blade, LegacyImprintKind.WHITE_FOX.id());
+        // Also verify that the real GUI cannot export the awakened weapon until
+        // the user explicitly acknowledges removal of awakening-only behavior.
+        blade.getOrCreateTag().putString(ModularSlashBladeItem.INSCRIPTION_SLOT,
+                ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE);
+        blade.getOrCreateTag().putString(
+                ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE + "_material",
+                "awakened_soul_inscription/sakura_crystal");
+        blade.getOrCreateTag().putBoolean(SenbonzakuraAwakening.TAG_UNLOCKED, true);
         player.setItemInHand(InteractionHand.MAIN_HAND, ModItems.BLADE_SEAL.get().getDefaultInstance());
         player.setItemInHand(InteractionHand.OFF_HAND, blade);
         if (!BladeSealSessions.open(player, InteractionHand.MAIN_HAND)) {
@@ -113,9 +122,24 @@ public final class BladeSealClientSmoke {
                         .filter(box -> box.getMessage().equals(Component.translatable("blade_tetra.export.backplate_file")))
                         .findFirst().orElseThrow();
                 field.setValue(picture.toAbsolutePath().toString());
-                screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
-                        .filter(button -> button.getMessage().equals(Component.translatable("blade_tetra.export.confirm")))
-                        .findFirst().orElseThrow().onPress();
+                Button consent = screen.children().stream().filter(Button.class::isInstance)
+                        .map(Button.class::cast)
+                        .filter(button -> button.getMessage().equals(
+                                Component.translatable("blade_tetra.export.awakening.acknowledge")))
+                        .findFirst().orElseThrow(() -> new IllegalStateException(
+                                "Awakened source must display an explicit loss-acknowledgement control"));
+                Button export = screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                        .filter(button -> button.getMessage().equals(
+                                Component.translatable("blade_tetra.export.confirm")))
+                        .findFirst().orElseThrow();
+                if (export.active) {
+                    throw new IllegalStateException("Awakened export was enabled before opt-in");
+                }
+                consent.onPress();
+                if (!export.active) {
+                    throw new IllegalStateException("Acknowledging awakening omission did not enable export");
+                }
+                export.onPress();
                 return;
             }
             if (++waited % 10 != 0) return;
@@ -180,6 +204,13 @@ public final class BladeSealClientSmoke {
                     StandardCharsets.UTF_8)).getAsJsonObject();
             if (certificate.getAsJsonArray("namedFittings").size() != 4)
                 throw new IllegalStateException("Lost original named fitting provenance");
+            String contract = new String(zip.getInputStream(zip.getEntry(
+                    "data/" + id + "/blade_export/sealed_blade.json")).readAllBytes(),
+                    StandardCharsets.UTF_8);
+            if (contract.contains("SENBONZAKURA") || contract.contains("sakura_crystal")
+                    || contract.contains("awakened_soul")) {
+                throw new IllegalStateException("Awakened-specific content leaked into export contract");
+            }
             var hashes = certificate.getAsJsonObject("sha256");
             for (var output : Set.of(prefix + "sealed_blade.obj", prefix + "sealed_blade.png",
                     prefix + "sealed_backplate.png", prefix + "sealed_backplate_frame.obj")) {
