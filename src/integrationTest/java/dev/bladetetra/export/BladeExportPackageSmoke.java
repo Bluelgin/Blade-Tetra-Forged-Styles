@@ -5,6 +5,10 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.JsonOps;
 import dev.bladetetra.BladeTetra;
 import dev.bladetetra.customstyle.CustomStyleSpec;
+import dev.bladetetra.easteregg.AkatsukiAwakening;
+import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
+import dev.bladetetra.easteregg.KyoukaAwakening;
+import dev.bladetetra.easteregg.SenbonzakuraAwakening;
 import dev.bladetetra.forging.LegacyImprintKind;
 import dev.bladetetra.forging.NamedBackplate;
 import dev.bladetetra.forging.NamedLegacyImprintStorage;
@@ -22,6 +26,8 @@ import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraftforge.resource.PathPackResources;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -49,6 +55,7 @@ public final class BladeExportPackageSmoke {
             var player = FakePlayerFactory.getMinecraft(event.getServer().overworld());
             if (BladeExportSnapshot.mayExport(player)) throw new IllegalStateException("Unauthorized export");
             verifyMixedSources(event.getServer().overworld());
+            verifyAwakeningOmission(event.getServer().overworld());
             verifyAuthorization(event.getServer().overworld());
             verifyPrecisionHabaki(event.getServer().overworld());
             var modVersion = ModList.get().getModContainerById("slashblade").orElseThrow()
@@ -438,7 +445,8 @@ public final class BladeExportPackageSmoke {
         }
         // Recognized native assets are now eligible for the client-side static baker.
         // A successful server preview still does not promise client resource/license acceptance.
-        if (!preview.ready() || BladeSealSessions.takeConfirmed(admin, preview.token()) == null
+        if (!preview.ready() || preview.omitsAwakening()
+                || BladeSealSessions.takeConfirmed(admin, preview.token()) == null
                 || BladeSealSessions.takeConfirmed(admin, preview.token()) != null) {
             throw new IllegalStateException("Supported named fitting export was rejected or reused: " + preview);
         }
@@ -463,6 +471,99 @@ public final class BladeExportPackageSmoke {
                 || BladeSealSessions.takeConfirmed(admin, denied.token()) != null) {
             throw new IllegalStateException("Unlicensed model provider bypassed preflight: " + denied);
         }
+    }
+
+
+    private static void verifyAwakeningOmission(ServerLevel level) {
+        // Both single and dual soul inscriptions must preserve the ordinary
+        // completed build, while requiring explicit permission to omit abilities.
+        Map<String, String> variants = Map.of(
+                "awakened_soul_inscription/blood_crystal", AkatsukiAwakening.TAG_UNLOCKED,
+                "awakened_soul_inscription/proudsoul_sphere", KyoukaAwakening.TAG_UNLOCKED,
+                "awakened_soul_inscription/sakura_crystal", SenbonzakuraAwakening.TAG_UNLOCKED,
+                "awakened_soul_inscription/raikiri", BladeLegacyEasterEggs.TAG_RAIKIRI_UNLOCKED,
+                "awakened_soul_inscription/akatsuki_kyouka", AkatsukiAwakening.TAG_UNLOCKED);
+        for (var entry : variants.entrySet()) {
+            var blade = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+            var originalTag = blade.getOrCreateTag();
+            originalTag.putString(ModularSlashBladeItem.INSCRIPTION_SLOT,
+                    ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE);
+            originalTag.putString(ModularSlashBladeItem.AWAKENED_SOUL_INSCRIPTION_MODULE + "_material",
+                    entry.getKey());
+            originalTag.putBoolean(entry.getValue(), true);
+            originalTag.putString("seal_non_awakening_metadata", "KEEP_ME");
+            boolean akatsuki = entry.getKey().contains("akatsuki") || entry.getKey().contains("blood_crystal");
+            if (akatsuki) blade.enchant(Enchantments.POWER_ARROWS, 1);
+            blade.enchant(Enchantments.SHARPNESS, 2);
+
+            var admin = creativeAdmin(level);
+            admin.setItemInHand(InteractionHand.MAIN_HAND, blade);
+            admin.setItemInHand(InteractionHand.OFF_HAND, ModItems.BLADE_SEAL.get().getDefaultInstance());
+            var original = blade.save(new net.minecraft.nbt.CompoundTag());
+            var preview = BladeSealSessions.begin(admin, InteractionHand.OFF_HAND);
+            if (!preview.ready() || !preview.omitsAwakening()) {
+                throw new IllegalStateException("Awakened ordinary blade was rejected without a warning: "
+                        + entry.getKey() + ": " + preview);
+            }
+            if (!original.equals(blade.save(new net.minecraft.nbt.CompoundTag()))) {
+                throw new IllegalStateException("Awakening projection mutated source blade: " + entry.getKey());
+            }
+            var serialized = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+            try {
+                preview.encode(serialized);
+                if (!BladeSealPackets.Preview.decode(serialized).equals(preview))
+                    throw new IllegalStateException("Awakening-loss warning dropped from preview packet");
+            } finally {
+                serialized.release();
+            }
+            var forbidden = BladeSealSessions.takeConfirmed(admin, preview.token());
+            if (forbidden != null) {
+                throw new IllegalStateException("Awakened blade exported without explicit loss consent");
+            }
+            var approved = BladeSealSessions.takeConfirmed(admin, preview.token(), true);
+            if (approved == null || BladeSealSessions.takeConfirmed(admin, preview.token(), true) != null) {
+                throw new IllegalStateException("Acknowledged awakened export was rejected or replayable");
+            }
+            var exported = approved.blade();
+            var cleanTag = exported.getTag();
+            if (cleanTag == null || !cleanTag.getString("seal_non_awakening_metadata").equals("KEEP_ME")
+                    || cleanTag.contains(ModularSlashBladeItem.INSCRIPTION_SLOT)
+                    || cleanTag.contains(entry.getValue())) {
+                throw new IllegalStateException("Wrong awakening stripping boundary: " + entry.getKey());
+            }
+            if (!approved.data().inscriptions().isEmpty()
+                    || approved.data().enchantments().stream()
+                    .noneMatch(enchantment -> enchantment.id().equals(
+                            ResourceLocation.parse("minecraft:sharpness")))) {
+                throw new IllegalStateException("Base enchantment lost or awakening leaked: " + entry.getKey());
+            }
+            if (akatsuki && EnchantmentHelper.getItemEnchantmentLevel(Enchantments.POWER_ARROWS, exported) != 0) {
+                throw new IllegalStateException("Akatsuki-granted Power I survived stripped export");
+            }
+            StandaloneBladeExport.checkCombat(approved.data());
+            BladeExportArt.check(approved.data(), exported);
+            if (!original.equals(blade.save(new net.minecraft.nbt.CompoundTag()))) {
+                throw new IllegalStateException("Authorizing the sealed copy changed the original blade");
+            }
+
+            // Other unported features are NOT bundled into the opt-in awakening waiver.
+            originalTag.putBoolean(BladeLegacyEasterEggs.TAG_SHOSHIN_UNLOCKED, true);
+            var denied = BladeSealSessions.begin(admin, InteractionHand.OFF_HAND);
+            if (denied.ready() || !denied.omitsAwakening() || !denied.summary().contains("combat:")) {
+                throw new IllegalStateException("Awakening consent bypassed independent capability block: " + denied);
+            }
+        }
+
+        var normal = creativeAdmin(level);
+        normal.setItemInHand(InteractionHand.MAIN_HAND,
+                ModItems.MODULAR_SLASHBLADE.get().createDefaultStack());
+        normal.setItemInHand(InteractionHand.OFF_HAND, ModItems.BLADE_SEAL.get().getDefaultInstance());
+        var preview = BladeSealSessions.begin(normal, InteractionHand.OFF_HAND);
+        if (!preview.ready() || preview.omitsAwakening()
+                || BladeSealSessions.takeConfirmed(normal, preview.token()) == null) {
+            throw new IllegalStateException("Ordinary blades must not require awakening consent");
+        }
+        LOGGER.info("BLADE_EXPORT_AWAKENING_OMISSION_PASS");
     }
 
     private BladeExportPackageSmoke() {}
