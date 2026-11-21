@@ -44,11 +44,15 @@ final class BladeSealSessions {
         var bladeHand = other(toolHand);
         var blade = player.getItemInHand(bladeHand);
         var snapshot = BladeExportSnapshot.capture(player, bladeHand);
-        StandaloneBladeExport.checkCombat(snapshot);
-        BladeExportArt.check(snapshot, blade);
+        var report = BladeExportPreflight.inspect(snapshot, blade);
         UUID token = UUID.randomUUID();
-        DRAFTS.put(player, new Draft(token, bladeHand, blade, snapshot, MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
-        return new BladeSealPackets.Preview(token, blade.getHoverName().copy());
+        // No authorization token is stored when the current build is known to be non-portable.
+        if (report.ready()) {
+            DRAFTS.put(player, new Draft(token, bladeHand, blade, snapshot,
+                    MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
+        }
+        return new BladeSealPackets.Preview(token, blade.getHoverName().copy(),
+                report.ready(), report.summary());
     }
 
     static void confirm(ServerPlayer player, UUID token) {
