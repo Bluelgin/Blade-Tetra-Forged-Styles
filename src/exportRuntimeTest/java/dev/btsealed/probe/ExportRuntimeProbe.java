@@ -92,6 +92,7 @@ public final class ExportRuntimeProbe {
                 throw new IllegalStateException("Guard tsuba effect was not retained");
             }
             verifyDangaku(world, player);
+            dev.btsealed.runtime.PortableRuntimeSelfTest.verifyPrecisionClock();
             LogUtils.getLogger().info("BLADE_EXPORT_RUNTIME_PROBE_PASS");
         } catch (RuntimeException error) {
             LogUtils.getLogger().error("BLADE_EXPORT_RUNTIME_PROBE_FAIL", error);
