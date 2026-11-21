@@ -31,6 +31,8 @@ REQUIRED_MARKERS = (
     "BLADE_EXPORT_PRECISION_RANK_PASS",
 )
 CURSE_IDS = {"1.9.63": "8018222", "1.9.65": "8090912"}
+# Pinned against the official Forge 1.20.1 download index; never trust a mirror's own digest.
+FORGE_INSTALLER_SHA1 = {"1.20.1-47.4.0": "b73203963ea70aee0c38dc58de1f6d16a766605b"}
 
 
 def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
@@ -102,23 +104,47 @@ def find_slashblade(version: str) -> Path:
 
 
 def fetch_installer(version: str) -> Path:
+    expected = FORGE_INSTALLER_SHA1.get(version)
+    if not expected:
+        raise RuntimeError(f"No independently pinned Forge installer SHA-1 for {version}")
     cache = ROOT / "build/clean-receiver/installers"
     cache.mkdir(parents=True, exist_ok=True)
     destination = cache / f"forge-{version}-installer.jar"
-    if destination.is_file() and destination.stat().st_size > 1_000_000:
+
+    def valid(path: Path) -> bool:
+        return (path.is_file() and path.stat().st_size > 1_000_000
+                and hashlib.sha1(path.read_bytes()).hexdigest() == expected)
+
+    if valid(destination):
         return destination
-    url = ("https://maven.minecraftforge.net/net/minecraftforge/forge/"
-           f"{version}/forge-{version}-installer.jar")
+    # Prefer Forge's own Maven. Some CI IPs receive HTTP 403 from its CDN;
+    # verified mirrors are a fallback, NEVER a source of trust.
+    suffix = f"net/minecraftforge/forge/{version}/forge-{version}-installer.jar"
+    urls = [
+        f"https://maven.minecraftforge.net/{suffix}",
+        f"https://mirror.sjtu.edu.cn/bmclapi/{suffix}",
+        f"https://mirror.lzu.edu.cn/bmclapi/{suffix}",
+    ]
     temporary = destination.with_suffix(".tmp")
-    try:
-        with urllib.request.urlopen(url, timeout=120) as source, temporary.open("wb") as output:
-            shutil.copyfileobj(source, output)
-        if temporary.stat().st_size <= 1_000_000:
-            raise RuntimeError("Forge installer was unexpectedly small")
-        temporary.replace(destination)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return destination
+    failures = []
+    for url in urls:
+        try:
+            request = urllib.request.Request(url, headers={
+                "User-Agent": "Blade-Tetra-CI-ForgeReceiver/1.0",
+                "Accept": "application/java-archive",
+            })
+            with urllib.request.urlopen(request, timeout=90) as source, temporary.open("wb") as output:
+                shutil.copyfileobj(source, output)
+            if not valid(temporary):
+                raise RuntimeError("downloaded bytes do not match official Forge SHA-1")
+            temporary.replace(destination)
+            print(f"BLADE_EXPORT_FORGE_INSTALLER_VERIFIED: {version}", flush=True)
+            return destination
+        except (OSError, RuntimeError) as error:
+            failures.append(f"{url}: {error}")
+        finally:
+            temporary.unlink(missing_ok=True)
+    raise RuntimeError("Unable to retrieve verified Forge installer; " + "; ".join(failures))
 
 
 def run_with_log(args: list[str], directory: Path, path: Path, timeout: int) -> str:
