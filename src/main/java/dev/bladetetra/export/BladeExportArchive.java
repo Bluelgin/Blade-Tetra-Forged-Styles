@@ -157,7 +157,7 @@ final class BladeExportArchive {
         Map<String, String> digests = new TreeMap<>();
         entries.forEach((name, bytes) -> digests.put(name, hash(bytes)));
         add(entries, "blade-export.json", JSON.toJson(new Certificate(1, exportId, exporterVersion,
-                blade, dependencies, fittings, appearanceSources, digests)));
+                blade, battle.capabilities(definition.combo()), dependencies, fittings, appearanceSources, digests)));
         return writeArchive(gameDirectory, metadata, exportId, entries);
     }
 
@@ -193,7 +193,7 @@ final class BladeExportArchive {
     }
 
     private record Certificate(int schema, UUID exportId, String exporterVersion, ResourceLocation blade,
-                               List<Dependency> dependencies, List<Fitting> namedFittings,
+                               List<String> capabilities, List<Dependency> dependencies, List<Fitting> namedFittings,
                                List<ExportResourceEvidence> appearanceInputs, Map<String, String> sha256) {}
 
     private static void appendEvidence(StringBuilder notices, ExportResourceEvidence asset) {
