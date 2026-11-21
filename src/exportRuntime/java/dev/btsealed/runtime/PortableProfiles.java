@@ -114,7 +114,8 @@ final class PortableProfiles {
                 bounded(json.get("spiritTicks").getAsInt(), 200), json.get("heavyPommel").getAsBoolean(),
                 bounded(json.get("rankDivisor").getAsInt(), 1000), (float) factor(json.get("guardReduction").getAsDouble()),
                 bounded(json.get("guardDurability").getAsInt(), 32),
-                json.has("precisionHabaki") && json.get("precisionHabaki").getAsBoolean());
+                json.has("precisionHabaki") && json.get("precisionHabaki").getAsBoolean(),
+                json.has("reinforcedHabaki") && json.get("reinforcedHabaki").getAsBoolean());
     }
 
     private static double factor(double amount) {
