@@ -14,7 +14,7 @@ from run_clean_receiver import EXPECTED_SWORDS, inspect_exports, verify_probe_is
 
 
 def make_package(directory: Path, namespace: str, *, slashblade: str = "1.9.63",
-                 runtime: str = "1.2.0", source_dependency: bool = False,
+                 runtime: str = "1.3.0", source_dependency: bool = False,
                  corrupt: bool = False) -> Path:
     entries = {
         "META-INF/mods.toml": (
@@ -74,7 +74,7 @@ class CleanReceiverContractTests(unittest.TestCase):
             inspect_exports(self.directory, "1.9.63")
 
     def test_reject_mixed_runtime_versions(self):
-        self.make_four()
+        self.make_five()
         make_package(self.directory, "bt_export_dangaku", runtime="1.1.0")
         with self.assertRaisesRegex(RuntimeError, "runtime inconsistent"):
             inspect_exports(self.directory, "1.9.63")
