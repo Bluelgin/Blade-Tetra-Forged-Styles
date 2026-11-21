@@ -3,6 +3,7 @@ package dev.btsealed.probe;
 import dev.btsealed.runtime.PortableRankRetention;
 import dev.btsealed.runtime.PortableComponentEffects;
 import dev.btsealed.runtime.PortableHabakiKnockback;
+import dev.btsealed.runtime.PortableCapabilityCatalog;
 
 /** Runs only inside the isolated receiving-server probe JAR, not in production. */
 public final class PortableRuntimeSelfTest {
@@ -85,6 +86,28 @@ public final class PortableRuntimeSelfTest {
             throw new IllegalStateException("Reinforced Habaki horizontal impulse differs from source");
         }
         System.out.println("BLADE_EXPORT_REINFORCED_ARITHMETIC_PASS");
+    }
+
+    public static void verifyCapabilityContracts() {
+        var reinforced = PortableCapabilityCatalog.forShape("bt_export_runtime:custom_root",
+                false, 1, false, false, false, false, false, false, true);
+        if (!reinforced.contains("bt_export_runtime:reinforced_habaki_v1")
+                || !reinforced.contains("bt_export_runtime:custom_combo_v1")
+                || reinforced.contains("bt_export_runtime:precision_habaki_v1")) {
+            throw new IllegalStateException("Standalone contract misidentified reinforced/custom features");
+        }
+        try {
+            PortableCapabilityCatalog.forShape("bt_export_runtime:custom_root", false, 1,
+                    false, false, false, false, false, true, true);
+            throw new IllegalStateException("Two habaki variants were accepted by a sealed profile");
+        } catch (IllegalArgumentException expected) {
+            // Explicitly incompatible profiles must never enter the game.
+        }
+        try {
+            PortableCapabilityCatalog.requireKnown("bt_export_runtime:unknown_future_skill_v9");
+            throw new IllegalStateException("Unknown future portable ability was silently accepted");
+        } catch (IllegalArgumentException expected) { }
+        System.out.println("BLADE_EXPORT_CAPABILITY_CONTRACT_PASS");
     }
 
     private PortableRuntimeSelfTest() {}
