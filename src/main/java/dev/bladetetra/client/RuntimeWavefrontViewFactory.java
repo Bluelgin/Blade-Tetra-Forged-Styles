@@ -151,6 +151,10 @@ final class RuntimeWavefrontViewFactory {
         if (face.vertexNormals != null && index < face.vertexNormals.length) {
             Vertex normal = face.vertexNormals[index];
             if (finite(normal)) {
+                double lengthSquared = (double) normal.x * normal.x
+                        + (double) normal.y * normal.y + (double) normal.z * normal.z;
+                // Preserve authored unit normals exactly across repeated view construction.
+                if (Math.abs(lengthSquared - 1) <= .00001) return normal;
                 Vertex unit = unit(normal.x, normal.y, normal.z);
                 if (unit != null) return unit;
             }

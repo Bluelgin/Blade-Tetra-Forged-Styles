@@ -1,6 +1,7 @@
 package dev.bladetetra.client;
 
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.ModelFormatException;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.TextureCoordinate;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Vertex;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
@@ -36,7 +37,7 @@ final class InventoryBladeModel {
                 ? InventoryGuardGeometry.correct(remap(faces)) : faces);
         try {
             return RuntimeWavefrontViewFactory.create(groups);
-        } catch (IllegalArgumentException unavailable) {
+        } catch (ModelFormatException | IllegalArgumentException unavailable) {
             return null;
         }
     }

@@ -47,7 +47,7 @@ The resource manager picks the highest-priority resource for each path. An optio
 - `*_fit` accepts `proportional` or `preserve`. A `*_transform` may specify `scale`, `rotation` in degrees, `offset_x`, `offset_y`, `length` and `width` as a deliberate override. Components use the target frame's axes for these adjustments.
 - State-specific names start with the native group, then the component, followed by `_groups` or `_luminous_groups`. Supported state prefixes are `blade_damaged`, `blade_fragment`, `item_blade`, `item_bladens` and `item_damaged`. Declared icon meshes use native icon units and XY projection.
 
-The OBJ grammar is the one supported by the installed SlashBlade version, including triangles and quads. A fused source with no reliable boundary may need an explicit anchor or an independently authored alternate OBJ. A luminous-only blade keeps its own luminous layer. Decorations on the selected component stay with it, and unassigned groups are ignored.
+SlashBlade 1.9.63 and 1.9.65 share mutable OBJ regex matchers. The two constructor paths serialize calls to the native parser across reload workers and the render thread. Constructor-return hooks still see the complete mesh. The OBJ grammar remains the one supported by the installed SlashBlade version, including triangles and quads. A fused source with no reliable boundary may need an explicit anchor or an independently authored alternate OBJ. A luminous-only blade keeps its own luminous layer. Decorations on the selected component stay with it, and unassigned groups are ignored.
 
 ## Budgets and diagnostics
 

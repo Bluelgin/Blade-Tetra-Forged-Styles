@@ -99,7 +99,6 @@ public final class NamedIngotArtReview {
         String module = longBlade ? item.CUSTOM_LONG_BLADE_MODULE : item.WAKIZASHI_MODULE;
         var tag = stack.getOrCreateTag();
         tag.putString(item.BLADE_SLOT, module);
-        tag.putString(module + "_material", module.substring(module.indexOf('/') + 1) + "/named_blade_ingot");
         boolean addon = net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon");
         if (addon) {
             var catalog = dev.bladetetra.forging.NamedLegacyCatalog.values();
@@ -126,7 +125,12 @@ public final class NamedIngotArtReview {
 
     private static void install(net.minecraft.world.item.ItemStack stack, String slot,
             dev.bladetetra.forging.LegacyImprintKind kind, LegacySourceMesh.Component part) {
-        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(stack.getOrCreateTag(), slot, kind.id());
+        var tag = stack.getOrCreateTag();
+        String module = tag.getString("slashblade/" + slot);
+        if (module.isEmpty()) throw new IllegalStateException("Missing review module for " + slot);
+        tag.putString(module + "_material", module.substring(module.indexOf('/') + 1) + "/"
+                + dev.bladetetra.forging.NamedBladeMaterial.KEY);
+        dev.bladetetra.forging.NamedLegacyImprintStorage.putSource(tag, slot, kind.id());
         boolean stored = dev.bladetetra.forging.NamedLegacyImprintStorage.putSnapshot(stack, slot, kind);
         var source = LegacyRenderSources.resolve(kind);
         var support = source.support(part);
