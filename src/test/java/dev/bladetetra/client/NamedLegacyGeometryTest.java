@@ -154,6 +154,63 @@ class NamedLegacyGeometryTest {
     }
 
     @Test
+    void crossSourceWorldSheathCoversTheMountedBladeWithoutMovingIt() throws Exception {
+        var blade = source(model("/assets/slashblade/model/named/yamato.obj"), LegacyModelRules.AUTOMATIC);
+        var sheath = source(model("/assets/slashblade/model/named/agito.obj"), LegacyModelRules.AUTOMATIC);
+        var target = model("/assets/blade_tetra/model/modular/alpha9/orthodox_basic_simple_wrapped.obj");
+        var mountedBlade = NamedBladeRenderPlan.mounted(blade, Component.BLADE, target, "blade");
+        var mountedSheath = NamedBladeRenderPlan.mounted(sheath, Component.SAYA, target, "sheath");
+        assertNotNull(mountedBlade);
+        assertNotNull(mountedSheath);
+        var edge = NamedBladeSheathAlignment.profile(
+                LegacyRenderSources.geometry(blade, Component.BLADE, "blade").reference(),
+                mountedBlade.mount().matrix(), false);
+        var original = NamedBladeSheathAlignment.profile(
+                LegacyRenderSources.geometry(sheath, Component.SAYA, "sheath").reference(),
+                mountedSheath.mount().matrix(), true);
+        assertFalse(NamedBladeSheathAlignment.covers(edge, original, edge.length() * .005F));
+        long start = System.nanoTime();
+        var combined = NamedSheathRender.resolve(blade, sheath, target);
+        long miss = System.nanoTime() - start;
+        assertNotNull(combined);
+        assertFalse(combined.stockTexture(), "the real mixed fixture should keep the named sheath");
+        var fitted = NamedBladeSheathAlignment.profile(combined.views().base().groupObjects.get(0).faces,
+                new org.joml.Matrix4f(), true);
+        assertTrue(NamedBladeSheathAlignment.covers(edge, fitted, edge.length() * .005F));
+        start = System.nanoTime();
+        for (int attempt = 0; attempt < 10_000; attempt++) {
+            assertSame(combined, NamedSheathRender.resolve(blade, sheath, target));
+        }
+        System.out.printf(java.util.Locale.ROOT, "Mixed sheath cache miss %.3f ms, 10,000 hits %.3f ms%n",
+                miss / 1_000_000.0, (System.nanoTime() - start) / 1_000_000.0);
+        assertSame(mountedBlade, NamedBladeRenderPlan.mounted(blade, Component.BLADE, target, "blade"));
+        NamedBladeRenderPlan.clear();
+        assertNotSame(combined, NamedSheathRender.resolve(blade, sheath, target));
+    }
+
+    @Test
+    void incompatibleSheathUsesVerifiedModularGeometry() throws Exception {
+        var incompatible = source(model("/assets/slashblade/model/named/agito.obj"),
+                rules("{\"saya_transform\":{\"rotation\":75}}"));
+        var target = target("orthodox");
+        var selected = NamedBladeRenderPlan.mounted(incompatible, Component.SAYA, target, "sheath");
+        assertNotNull(selected);
+        var result = NamedSheathRender.resolve(null, incompatible, target);
+        assertNotNull(result);
+        assertTrue(result.stockTexture());
+        assertNotNull(result.views().base());
+    }
+
+    @Test
+    void missingMeshesFallBackWithoutReplacingTheStockPass() throws Exception {
+        var missing = new LegacyRenderSources.Source(null, 0, "missing",
+                LegacyRenderSources.Support.MISSING_RESOURCE);
+        var target = target("orthodox");
+        assertNull(NamedSheathRender.resolve(missing, missing, target));
+        assertNull(NamedSheathRender.resolve(missing, null, target));
+    }
+
+    @Test
     void optionalSjapModelsUseActualProviderGeometry() throws Exception {
         String fixturePath = System.getProperty("blade_tetra.sjapFixtures");
         org.junit.jupiter.api.Assumptions.assumeTrue(fixturePath != null);
