@@ -2,6 +2,7 @@ package dev.bladetetra.mixin;
 
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.forging.NamedBackplate;
+import dev.bladetetra.forging.TreatiseForging;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,6 +19,7 @@ abstract class NativeRemoveSchematicMixin {
         ItemStack[] removed = module.removeModule(stack);
         if (stack.getItem() instanceof ModularSlashBladeItem blade) {
             if (NamedBackplate.MODULE.equals(module.getKey())) NamedBackplate.clearSource(stack);
+            if (ModularSlashBladeItem.BLADE_SLOT.equals(module.getSlot())) TreatiseForging.clearCore(stack);
             // The schematic reads durability again before the workbench assembles the result.
             IModularItem.updateIdentifier(stack);
             blade.migrateLegacyModules(stack);

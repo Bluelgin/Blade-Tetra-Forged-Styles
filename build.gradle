@@ -36,7 +36,7 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -152,6 +152,10 @@ minecraft {
             if (project.hasProperty('speedEfficiencySmoke')) {
                 workingDirectory project.file("build/speed-efficiency-smoke-${tetra_file_id}")
                 property 'blade_tetra.speedEfficiencySmoke', 'true'
+            }
+            if (project.hasProperty('forgingTreatiseSmoke')) {
+                workingDirectory project.file("build/forging-treatise-smoke-${tetra_file_id}")
+                property 'blade_tetra.forgingTreatiseSmoke', 'true'
             }
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')

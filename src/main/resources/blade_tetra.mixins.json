@@ -38,10 +38,12 @@
     "NamedMaterialVariantMixin",
     "NativeRemoveSchematicMixin",
     "NamedMaterialSchematicMixin",
+    "ForgingBleedingChanceMixin",
+    "ForgingMaterialOutcomeMixin",
     "NamedMaterialRegistryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
-  "client": ["SlashBladeWavefrontParseMixin"]
+  "client": ["SlashBladeWavefrontParseMixin", "ForgingCraftButtonMixin"]
 }

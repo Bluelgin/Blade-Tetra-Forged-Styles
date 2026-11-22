@@ -26,6 +26,20 @@ For the current neutral (1.0) combat multipliers and their scope, see [Combat ba
 | `akatsukiExecutionCooldownTicks` | `500` | Per-blade cooldown after Final Moon begins or the blood threads first execute a target. |
 | `akatsukiExecutionMinimumTargetHealth` | `40.0` | Minimum target maximum health for the full execution timeline. |
 
+## Forging treatises
+
+| Setting | Default | Purpose |
+| --- | ---: | --- |
+| `forgingTreatises.damageMultiplier` | `1.0` | Scales the attack damage bonuses from the flat edge (6%), thin edge (10%), hon-sanmai (12%) and shihozume (8%). Range: `0.0` to `10.0`. A value of `0.0` disables these four bonuses. |
+
+Composite forging consumes 3, 5 or 8 pieces of secondary metal and uses 50%, 75% or 100% of its eligible effect. Recipes, hammer requirements and material data are defined in Tetra datapacks. The default inheritance priority is stun, bleeding, armor penetration, then stabilizing. A Tetra material's `features` list can override this with one of:
+
+- `blade_tetra:forging_core/level/<effect-key>` scales the effect level while retaining its efficiency. Tetra's bleeding instead scales its trigger chance.
+- `blade_tetra:forging_core/efficiency/<effect-key>` scales the effect efficiency while retaining its level. Use this for effects whose chance is encoded as efficiency.
+- `blade_tetra:forging_core/none` disables inheritance for that material.
+
+The selected effect must already be defined on the material. If a blade already has that effect, the stronger contribution is used.
+
 ## Raikiri 3.1 (awakened V2)
 
 Requires `discoveries.enableAwakenedV2=true`; false keeps the original legacy handlers.

@@ -4,12 +4,6 @@
   "materialSlotCount": 1,
   "displayType": "improvement",
   "preview": "applicable",
-  "translation": {
-    "primaryAttributes": { "generic.attack_damage": 1 },
-    "secondaryAttributes": { "generic.attack_speed": -1 },
-    "durability": 4,
-    "integrity": -4
-  },
   "requirement": {
     "type": "tetra:and",
     "requirements": [
@@ -33,7 +27,9 @@
   "outcomes": [
     {
       "materials": [ "tetra:metal/" ],
-      "countFactor": 4,
+      "countFactor": 0,
+      "countOffset": 8,
+      "toolFactor": 0,
       "requiredTools": { "hammer_dig": "minecraft:diamond" },
       "improvements": { "blade_tetra/construction/shihozume": 1 }
     }

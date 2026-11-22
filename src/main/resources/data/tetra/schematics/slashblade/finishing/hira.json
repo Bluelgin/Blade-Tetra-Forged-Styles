@@ -4,11 +4,6 @@
   "materialSlotCount": 1,
   "displayType": "improvement",
   "preview": "applicable",
-  "translation": {
-    "primaryAttributes": { "generic.attack_damage": 1 },
-    "durability": -1,
-    "integrity": -1
-  },
   "requirement": {
     "type": "tetra:and",
     "requirements": [
@@ -27,7 +22,7 @@
   },
   "outcomes": [
     {
-      "material": { "items": [ "minecraft:flint" ] },
+      "material": { "items": [ "slashblade:proudsoul_crystal" ] },
       "requiredTools": { "hammer_dig": "minecraft:iron" },
       "improvements": { "blade_tetra/edge/hira": 1 }
     }

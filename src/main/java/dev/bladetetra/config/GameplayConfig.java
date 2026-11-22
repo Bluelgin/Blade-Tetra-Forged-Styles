@@ -24,6 +24,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue SAKURA_CONCERTO_FRACTION, SAKURA_CONCERTO_CAP, SAKURA_SA_STAGE_DAMAGE, SAKURA_RECALL_DAMAGE_SCALE;
     public static final ForgeConfigSpec.DoubleValue SMITHY_CLUE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FORGING_SCROLL_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue FORGING_DAMAGE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SALTY_FISH_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue SALTY_FISH_BLADE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
@@ -504,6 +505,14 @@ public final class GameplayConfig {
         SPEED_EFFICIENCY_SUPER_REDUCTION = builder
                 .comment("Super SA preparation reduction; does not shorten the released attack animation.")
                 .defineInRange("superSaPreparationReduction", .30D, 0D, .30D);
+        builder.pop();
+
+        builder.translation("config.blade_tetra.forgingTreatises").push("forgingTreatises");
+        FORGING_DAMAGE_MULTIPLIER = builder
+                .comment("Scales the attack damage bonuses from flat edge, thin edge, hon-sanmai and shihozume. Default: 1.0. Set to 0 to disable these bonuses.",
+                        "调整平刃研磨、薄刃研磨、本三枚锻和四方诘锻的攻击力加成。默认 1.0，设为 0 可关闭这四项伤害加成。")
+                .translation("config.blade_tetra.forgingTreatises.damageMultiplier")
+                .defineInRange("damageMultiplier", 1.0D, 0.0D, 10.0D);
         builder.pop();
 
         CombatBalanceConfig.define(builder);

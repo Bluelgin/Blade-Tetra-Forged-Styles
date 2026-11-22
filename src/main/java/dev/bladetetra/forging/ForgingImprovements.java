@@ -6,11 +6,14 @@ import se.mickelus.tetra.items.modular.IModularItem;
 import se.mickelus.tetra.module.ItemModule;
 import se.mickelus.tetra.module.ItemModuleMajor;
 
+import java.util.List;
+
 /** Stable keys and Tetra 6.10-compatible accessors for ordinary forging work. */
 public final class ForgingImprovements {
     public static final String KOBUSE = "blade_tetra/construction/kobuse";
     public static final String SANMAI = "blade_tetra/construction/sanmai";
     public static final String SHIHOZUME = "blade_tetra/construction/shihozume";
+    public static final List<String> CONSTRUCTIONS = List.of(KOBUSE, SANMAI, SHIHOZUME);
     public static final String NORMALIZED_CONSTRUCTION =
             "blade_tetra/construction/normalized";
 

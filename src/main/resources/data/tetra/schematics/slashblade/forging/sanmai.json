@@ -4,11 +4,6 @@
   "materialSlotCount": 1,
   "displayType": "improvement",
   "preview": "applicable",
-  "translation": {
-    "primaryAttributes": { "generic.attack_damage": 1 },
-    "durability": 2,
-    "integrity": -3
-  },
   "requirement": {
     "type": "tetra:and",
     "requirements": [
@@ -32,7 +27,9 @@
   "outcomes": [
     {
       "materials": [ "tetra:metal/" ],
-      "countFactor": 3,
+      "countFactor": 0,
+      "countOffset": 5,
+      "toolFactor": 0,
       "requiredTools": { "hammer_dig": "minecraft:diamond" },
       "improvements": { "blade_tetra/construction/sanmai": 1 }
     }
