@@ -24,6 +24,9 @@ import java.nio.file.Files;
 /** Opt-in actual creative inventory screenshot in a disposable integrated world. */
 @Mod.EventBusSubscriber(modid = "blade_tetra", value = Dist.CLIENT)
 public final class NamedIngotArtReview {
+    private static final boolean SHEATH_REVIEW = Boolean.getBoolean("blade_tetra.sheathReview");
+    private static org.joml.Matrix4f bladePose;
+    private static boolean measuredClosedPose, capturedDraw, capturedReturn;
     private static boolean started, opened;
     private static int ticks, ready, bladeFrame, bladeView;
     private static boolean sawNamedBlade;
@@ -33,9 +36,26 @@ public final class NamedIngotArtReview {
 
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST, receiveCanceled = true)
     public static void rendered(mods.flammpfeil.slashblade.event.client.RenderOverrideEvent event) {
-        if (reviewBlade != null && event.getStack() == reviewBlade
-                && "blade".equals(event.getOriginalTarget()) && event.isCanceled()) {
+        if (reviewBlade == null || event.getStack() != reviewBlade) return;
+        if ("blade".equals(event.getOriginalTarget()) && event.isCanceled()) {
             sawNamedBlade = true;
+            if (SHEATH_REVIEW && bladeFrame >= 14) {
+                bladePose = new org.joml.Matrix4f(event.getPoseStack().last().pose());
+            }
+        }
+        if (!SHEATH_REVIEW || !"sheath".equals(event.getOriginalTarget()) || bladePose == null) return;
+        boolean closed = event.getPoseStack().last().pose().equals(bladePose, .0001F);
+        bladePose = null;
+        if (bladeFrame < 28) {
+            if (!closed) throw new IllegalStateException("Closed blade and sheath use different poses");
+            if (!measuredClosedPose) {
+                LogUtils.getLogger().info("NAMED_SHEATH_CLOSED_POSE_PASS: matching native matrices");
+                measuredClosedPose = true;
+            }
+        } else if (bladeFrame >= 34 && !closed) {
+            capturedDraw = true;
+        } else if (bladeFrame >= 55 && capturedDraw && closed) {
+            capturedReturn = true;
         }
     }
 
@@ -96,9 +116,20 @@ public final class NamedIngotArtReview {
     private static net.minecraft.world.item.ItemStack namedBlade(boolean longBlade) {
         var item = ModItems.MODULAR_SLASHBLADE.get();
         var stack = item.createDefaultStack();
-        String module = longBlade ? item.CUSTOM_LONG_BLADE_MODULE : item.WAKIZASHI_MODULE;
+        String module = longBlade ? item.CUSTOM_LONG_BLADE_MODULE
+                : SHEATH_REVIEW ? item.ORTHODOX_BLADE_MODULE : item.WAKIZASHI_MODULE;
         var tag = stack.getOrCreateTag();
         tag.putString(item.BLADE_SLOT, module);
+        if (SHEATH_REVIEW) {
+            var yamato = findNativeSource("yamato");
+            install(stack, "blade", yamato, LegacySourceMesh.Component.BLADE);
+            install(stack, "tsuba", longBlade ? yamato : dev.bladetetra.forging.LegacyImprintKind.BLACK_FOX,
+                    LegacySourceMesh.Component.HILT);
+            install(stack, "saya", longBlade ? yamato : findNativeSource("yuzukitukumo"),
+                    LegacySourceMesh.Component.SAYA);
+            item.syncDerivedBladeState(stack);
+            return stack;
+        }
         boolean addon = net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon");
         if (addon) {
             var catalog = dev.bladetetra.forging.NamedLegacyCatalog.values();
@@ -114,6 +145,12 @@ public final class NamedIngotArtReview {
         }
         item.syncDerivedBladeState(stack);
         return stack;
+    }
+
+    private static dev.bladetetra.forging.LegacyImprintKind findNativeSource(String path) {
+        return dev.bladetetra.forging.NamedLegacyCatalog.values().stream()
+                .filter(kind -> kind.name().getNamespace().equals("slashblade") && kind.name().getPath().equals(path))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Missing native review source " + path));
     }
 
     private static dev.bladetetra.forging.LegacyImprintKind findSource(
@@ -154,34 +191,65 @@ public final class NamedIngotArtReview {
             sawNamedBlade = false;
             mc.options.pauseOnLostFocus = false;
             mc.player.setXRot(12);
-            mc.options.setCameraType(net.minecraft.client.CameraType.values()[bladeView % 3]);
+            mc.options.setCameraType(net.minecraft.client.CameraType.values()[
+                    SHEATH_REVIEW ? (bladeView + 1) % 3 : bladeView % 3]);
+            measuredClosedPose = capturedDraw = capturedReturn = false;
+            bladePose = null;
         }
         if (bladeFrame == 10) {
             reviewBlade = mc.player.getMainHandItem();
             sawNamedBlade = false;
         }
-        if (bladeFrame >= 32 && bladeFrame < 40) {
+        if (SHEATH_REVIEW && !reviewSheathMotion(mc)) return;
+        if (!SHEATH_REVIEW && bladeFrame >= 32 && bladeFrame < 40) {
             mc.player.getMainHandItem().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
                     .ifPresent(state -> {
                         state.setComboSeq(mods.flammpfeil.slashblade.registry.ComboStateRegistry.COMBO_A1.getId());
                         state.setLastActionTime(mc.level.getGameTime() - 4);
                     });
         }
-        if (bladeFrame != 40) return;
+        if (!SHEATH_REVIEW && bladeFrame != 40) return;
         if (!sawNamedBlade) {
             throw new IllegalStateException("Named blade render hook missed held view " + bladeView);
         }
-        try (var image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
-            image.writeToFile(mc.gameDirectory.toPath().resolve("named-blade-held-" + bladeView + ".png"));
-        } catch (java.io.IOException failure) {
-            throw new IllegalStateException(failure);
-        }
+        screenshot(mc, "named-blade-held-" + bladeView);
         bladeFrame = 0;
         if (++bladeView == 6) {
             mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
             reviewBlade = null;
             LogUtils.getLogger().info("NAMED_BLADE_HELD_REVIEW: short and custom long assembly, SJAP mixed sources={}",
                     net.minecraftforge.fml.ModList.get().isLoaded("slashblade_addon"));
+        }
+    }
+
+    private static boolean reviewSheathMotion(Minecraft mc) {
+        mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot() + 55;
+        if (bladeFrame == 28) {
+            if (!measuredClosedPose) throw new IllegalStateException("Missing closed-pose render pair");
+            screenshot(mc, "named-sheath-closed-" + bladeView);
+        }
+        if (bladeFrame == 32) {
+            mc.player.getMainHandItem().getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                    .ifPresent(state -> {
+                        state.setComboSeq(mods.flammpfeil.slashblade.registry.ComboStateRegistry.COMBO_A3.getId());
+                        state.setLastActionTime(mc.level.getGameTime());
+                    });
+        }
+        if (bladeFrame == 40 && capturedDraw) screenshot(mc, "named-sheath-drawn-" + bladeView);
+        if (bladeFrame < 130) return false;
+        if (!capturedDraw || !capturedReturn) {
+            throw new IllegalStateException("Did not observe native draw and return: "
+                    + capturedDraw + "/" + capturedReturn);
+        }
+        LogUtils.getLogger().info("NAMED_SHEATH_DRAW_RETURN_PASS: distinct draw pose returned to matching matrices");
+        return true;
+    }
+
+    private static void screenshot(Minecraft mc, String file) {
+        try (var image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
+            image.writeToFile(mc.gameDirectory.toPath().resolve(file + ".png"));
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException(failure);
         }
     }
 

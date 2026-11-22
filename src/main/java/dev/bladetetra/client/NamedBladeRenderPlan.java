@@ -33,6 +33,18 @@ final class NamedBladeRenderPlan {
     static boolean render(RenderOverrideEvent event, NamedLegacyParts parts, LegacyImprintKind blade,
             ResourceLocation ordinary, ResourceLocation emissive, String state, boolean nativeLuminous) {
         String nativeTarget = event.getOriginalTarget();
+        if (state.equals("sheath")) {
+            var replacement = NamedSheathRender.resolve(blade, parts.saya(), event.getOriginalModel());
+            if (replacement != null) {
+                event.setCanceled(true);
+                if (!nativeLuminous) {
+                    draw(event, state, new Draw(Component.SAYA, replacement.views(), null,
+                            replacement.stockTexture() ? ordinary : parts.saya().texture(),
+                            replacement.stockTexture() ? emissive : null));
+                }
+                return true;
+            }
+        }
         List<Component> expected = switch (state) {
             case "sheath" -> List.of(Component.SAYA);
             case "blade_fragment" -> List.of(Component.BLADE);
@@ -192,6 +204,7 @@ final class NamedBladeRenderPlan {
     }
 
     static void clear() {
+        NamedSheathRender.clear();
         MOUNTS.clear();
         STOCK.clear();
         REMAINING.clear();

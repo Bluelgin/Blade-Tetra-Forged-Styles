@@ -55,6 +55,10 @@ minecraft {
             if (project.hasProperty('namedIngotArtReview')) {
                 workingDirectory project.file('build/named-ingot-art-review')
                 property 'blade_tetra.namedIngotArtReview', 'true'
+                if (project.hasProperty('sheathReview')) {
+                    workingDirectory project.file('build/sheath-review')
+                    property 'blade_tetra.sheathReview', 'true'
+                }
             }
             if (project.hasProperty('starterBladeReview')) {
                 workingDirectory project.file('build/starter-blade-review')
