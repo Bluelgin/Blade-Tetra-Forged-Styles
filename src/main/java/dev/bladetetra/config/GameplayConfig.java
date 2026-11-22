@@ -28,6 +28,7 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue SALTY_FISH_SCROLL_CHANCE;
     public static final ForgeConfigSpec.DoubleValue SALTY_FISH_BLADE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue TECHNIQUE_SCROLL_CHANCE;
+    public static final ForgeConfigSpec.BooleanValue GIVE_STARTER_MANUAL;
     public static final ForgeConfigSpec.BooleanValue ENABLE_CONTRACT_BLADE_INTEGRATION;
     public static final ForgeConfigSpec.BooleanValue ENABLE_DEVELOPER_TOOLS;
     public static final ForgeConfigSpec.DoubleValue MIRROR_SLASH_DAMAGE_RATIO;
@@ -505,6 +506,13 @@ public final class GameplayConfig {
         SPEED_EFFICIENCY_SUPER_REDUCTION = builder
                 .comment("Super SA preparation reduction; does not shorten the released attack animation.")
                 .defineInRange("superSaPreparationReduction", .30D, 0D, .30D);
+        builder.pop();
+
+        builder.translation("config.blade_tetra.manual").push("manual");
+        GIVE_STARTER_MANUAL = builder
+                .comment("Give each player one Bladecraft Manual on login when Patchouli is installed.")
+                .translation("config.blade_tetra.manual.giveStarterManual")
+                .define("giveStarterManual", true);
         builder.pop();
 
         builder.translation("config.blade_tetra.forgingTreatises").push("forgingTreatises");

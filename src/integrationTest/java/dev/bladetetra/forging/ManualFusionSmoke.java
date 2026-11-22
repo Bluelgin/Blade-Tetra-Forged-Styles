@@ -1,19 +1,27 @@
 package dev.bladetetra.forging;
 
+import com.mojang.authlib.GameProfile;
 import dev.bladetetra.combat.LegacyFusionHandler;
 import dev.bladetetra.combat.ProgrammaticFusionPlan;
+import dev.bladetetra.config.GameplayConfig;
 import dev.bladetetra.item.ModularSlashBladeItem;
+import dev.bladetetra.lore.ManualDiscovery;
 import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.fml.ModList;
 import se.mickelus.tetra.module.SchematicRegistry;
 import net.minecraft.resources.ResourceLocation;
 
 /** Focused checks run inside the existing opt-in named-ingot integration suite. */
 final class ManualFusionSmoke {
-    static void verify(Player player) throws se.mickelus.tetra.module.schematic.InvalidSchematicException {
+    static void verify(ServerPlayer player) throws se.mickelus.tetra.module.schematic.InvalidSchematicException {
         var sources = NamedLegacyCatalog.values().stream().toList();
         ItemStack input = null;
         outer: for (var saya : sources) for (var guard : sources) {
@@ -68,11 +76,55 @@ final class ManualFusionSmoke {
         check(player.level().getRecipeManager().byKey(new ResourceLocation("blade_tetra", "iron_katana")).isPresent(),
                 "Wooden Puppet entry recipe missing");
         var recipe = player.level().getRecipeManager().byKey(new ResourceLocation("blade_tetra", "blade_guide"));
-        check(recipe.isPresent() == net.minecraftforge.fml.ModList.get().isLoaded("patchouli"), "Optional book recipe condition failed");
+        boolean patchouliLoaded = ModList.get().isLoaded("patchouli");
+        check(recipe.isPresent() == patchouliLoaded, "Optional book recipe condition failed");
+        verifyStarterManual(player.serverLevel(), patchouliLoaded);
         dev.bladetetra.lore.SmithingLore.discover(player, "akatsuki");
         check(dev.bladetetra.lore.SmithingLore.knows(player, "akatsuki"), "Original clue lost");
         com.mojang.logging.LogUtils.getLogger().info("MANUAL_FUSION_SMOKE_PASS: preview, confirm, save, source replacement, old active migration, authored priority, optional recipe");
     }
+
+    private static void verifyStarterManual(ServerLevel level, boolean patchouliLoaded) {
+        var receipt = level.getServer().getAdvancements()
+                .getAdvancement(ResourceLocation.fromNamespaceAndPath("blade_tetra", "manual/starter_manual"));
+        check(receipt != null, "Starter manual advancement missing");
+        var wire = new FakePlayer(level, new GameProfile(java.util.UUID.randomUUID(), "ManualWire"));
+        var player = new ServerPlayer(level.getServer(), level,
+                new GameProfile(java.util.UUID.randomUUID(), "StarterManual"));
+        player.connection = wire.connection;
+        var login = new PlayerEvent.PlayerLoggedInEvent(player);
+        var progress = player.getAdvancements().getOrStartProgress(receipt);
+        var setting = GameplayConfig.GIVE_STARTER_MANUAL;
+        boolean original = setting.get();
+        try {
+            setting.set(false);
+            ManualDiscovery.login(login);
+            check(player.getInventory().isEmpty() && !progress.isDone(), "Disabled starter manual consumed the receipt or gave an item");
+            setting.set(true);
+            if (patchouliLoaded) {
+                for (int slot = 0; slot < player.getInventory().items.size(); slot++)
+                    player.getInventory().setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
+                ManualDiscovery.login(login);
+                check(!progress.isDone(), "Full inventory consumed the receipt");
+                player.getInventory().setItem(0, ItemStack.EMPTY);
+            }
+            ManualDiscovery.login(login);
+            if (patchouliLoaded) {
+                var manual = player.getInventory().getItem(0);
+                check(manual.hasTag() && "blade_tetra:blade_guide".equals(manual.getTag().getString("patchouli:book"))
+                        && progress.isDone(), "Login did not deliver the Bladecraft Manual and mark it received");
+                player.getInventory().clearContent();
+                ManualDiscovery.login(login);
+                check(player.getInventory().isEmpty(), "Repeat login gave another starter manual");
+            } else {
+                check(player.getInventory().isEmpty() && !progress.isDone(), "Missing Patchouli consumed the receipt or gave an item");
+            }
+        } finally {
+            setting.set(original);
+        }
+        com.mojang.logging.LogUtils.getLogger().info("STARTER_MANUAL_SMOKE_PASS: Patchouli loaded={}", patchouliLoaded);
+    }
+
     static void fit(ItemStack stack, String part, LegacyImprintKind source) {
         var tag = stack.getOrCreateTag();
         String module = tag.getString("slashblade/" + part);
