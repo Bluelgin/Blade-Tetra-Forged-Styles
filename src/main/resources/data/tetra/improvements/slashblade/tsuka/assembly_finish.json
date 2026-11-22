@@ -4,19 +4,19 @@
     "group": "blade_tetra/assembly_finish",
     "level": 1,
     "integrity": -1,
-    "durability": 8,
+    "durabilityMultiplier": 1.05,
     "attributes": {
-      "generic.attack_speed": 0.04
+      "generic.attack_speed": 0.12
     }
   },
   {
     "key": "blade_tetra/assembly/rigid",
     "group": "blade_tetra/assembly_finish",
     "level": 1,
-    "integrity": -1,
-    "durabilityMultiplier": 1.05,
+    "durabilityMultiplier": 1.12,
+    "integrity": 1,
     "attributes": {
-      "generic.attack_speed": -0.03
+      "generic.attack_speed": -0.05
     }
   },
   {

@@ -4,11 +4,6 @@
   "materialSlotCount": 1,
   "displayType": "improvement",
   "preview": "applicable",
-  "translation": {
-    "secondaryAttributes": { "generic.attack_speed": -1 },
-    "durability": 1,
-    "integrity": -1
-  },
   "requirement": {
     "type": "tetra:and",
     "requirements": [

@@ -3,6 +3,7 @@ package dev.bladetetra.mixin;
 import dev.bladetetra.forging.NamedBladeMaterial;
 import dev.bladetetra.forging.NamedBackplate;
 import dev.bladetetra.forging.NamedMaterialStats;
+import dev.bladetetra.forging.TreatiseForging;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import dev.bladetetra.item.NamedBladeIngotItem;
 import net.minecraft.world.entity.player.Player;
@@ -72,6 +73,7 @@ public abstract class NamedMaterialSchematicMixin {
     private void bladeTetra$replaceIdentity(OutcomeDefinition outcome, ItemStack upgraded,
             boolean consume, String slot, Player player, CallbackInfo ci) {
         if (outcome.moduleKey != null) NamedBladeMaterial.clearReplacedSource(upgraded, slot);
+        TreatiseForging.applyOutcome(upgraded, slot, outcome);
         if (ModularSlashBladeItem.BACKPLATE_SLOT.equals(slot)) NamedBackplate.clearSource(upgraded);
     }
 

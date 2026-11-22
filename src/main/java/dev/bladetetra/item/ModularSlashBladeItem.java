@@ -23,6 +23,7 @@ import dev.bladetetra.forging.FoxLegacyParts;
 import dev.bladetetra.forging.LegacyCalibration;
 import dev.bladetetra.forging.ImprintAffinity;
 import dev.bladetetra.forging.NamedLegacyParts;
+import dev.bladetetra.forging.TreatiseForging;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
@@ -243,6 +244,37 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
     }
 
     @Override
+    public Multimap<Attribute, AttributeModifier> getAttributeModifiersCached(ItemStack stack) {
+        var base = IModularItem.super.getAttributeModifiersCached(stack);
+        double fraction = TreatiseForging.damageFraction(stack);
+        if (fraction == 0 || AttributeHelper.getAdditionAmount(base.get(Attributes.ATTACK_DAMAGE)) <= 0) {
+            return base;
+        }
+
+        var adjusted = ArrayListMultimap.create(base);
+        for (var modifier : base.get(Attributes.ATTACK_DAMAGE)) {
+            if (modifier.getOperation() == AttributeModifier.Operation.ADDITION) {
+                adjusted.remove(Attributes.ATTACK_DAMAGE, modifier);
+                adjusted.put(Attributes.ATTACK_DAMAGE, AttributeHelper.multiplyModifier(modifier, 1 + fraction));
+            }
+        }
+        return adjusted;
+    }
+
+    @Override
+    public EffectData getEffectDataCached(ItemStack stack) {
+        return TreatiseForging.mergeEffects(stack, IModularItem.super.getEffectDataCached(stack));
+    }
+
+    public void appendForgingCoreTooltip(ItemStack stack, List<Component> tooltip) {
+        TreatiseForging.appendCoreTooltip(stack, IModularItem.super.getEffectDataCached(stack), tooltip);
+    }
+
+    public float getForgingBleedingChance(ItemStack stack, float nativeChance) {
+        return TreatiseForging.bleedingChance(stack, IModularItem.super.getEffectDataCached(stack), nativeChance);
+    }
+
+    @Override
     public Cache<String, EffectData> getEffectDataCache() {
         return effectCache;
     }
@@ -413,7 +445,8 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             return modifier.getId().equals(Item.BASE_ATTACK_SPEED_UUID);
         });
 
-        Multimap<Attribute, AttributeModifier> tetraModifiers = getAttributeModifiersCached(stack);
+        // SlashBlade's synced base damage already includes the treatise bonus.
+        Multimap<Attribute, AttributeModifier> tetraModifiers = IModularItem.super.getAttributeModifiersCached(stack);
         tetraModifiers.forEach((attribute, modifier) -> {
             boolean isBaseAttackDamage = attribute == Attributes.ATTACK_DAMAGE
                     && modifier.getId().equals(Item.BASE_ATTACK_DAMAGE_UUID);
@@ -522,6 +555,7 @@ public class ModularSlashBladeItem extends ItemSlashBlade implements IModularIte
             TooltipFlag flag) {
         migrateLegacyModules(stack);
         super.appendHoverText(stack, level, tooltip, flag);
+        appendForgingCoreTooltip(stack, tooltip);
         PotatoBladeHandler.appendTooltip(stack, level, tooltip, flag);
         if (SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null) {
             tooltip.add(Component.translatable("tooltip.blade_tetra.salty_fish")
