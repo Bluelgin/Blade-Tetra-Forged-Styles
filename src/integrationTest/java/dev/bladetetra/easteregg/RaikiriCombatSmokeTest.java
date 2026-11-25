@@ -349,12 +349,21 @@ public final class RaikiriCombatSmokeTest {
             rank(actor).setRawRankPoint(1600);armor.start(actor);
             actor.removeEffect(RaikiriThunderArmorEffect.ARMOR.get());armor.tick(actor);
             check(!armor.active() && Math.abs(actor.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed)<1e-7,"dispelling buff ends its server discharge");
-            GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(false);
-            rank(actor).setRawRankPoint(1600);rank(actor).setLastUpdte(now());
-            armor.start(actor);check(armor.active() && rank(actor).getRawRankPoint()==1600,"rank-cost configuration honored");
-            time(now()+20);rank(actor).setLastUpdte(now());armor.tick(actor);
-            check(rank(actor).getRawRankPoint()==1600,"free-cost pulse does not debit rank");armor.stop(actor);
-            GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(true);
+            // Keep the test toggle separate from Forge's watched server TOML.
+            var tracked = net.minecraftforge.fml.config.ConfigTracker.INSTANCE.fileMap().get("blade-tetra-server.toml");
+            var worldConfig = tracked.getConfigData();
+            var isolatedConfig = com.electronwill.nightconfig.core.CommentedConfig.inMemory();
+            GameplayConfig.SPEC.correct(isolatedConfig);
+            try {
+                GameplayConfig.SPEC.setConfig(isolatedConfig);
+                GameplayConfig.ENABLE_AWAKENED_RANK_COSTS.set(false);
+                rank(actor).setRawRankPoint(1600);rank(actor).setLastUpdte(now());
+                armor.start(actor);check(armor.active() && rank(actor).getRawRankPoint()==1600,"rank-cost configuration honored");
+                time(now()+20);rank(actor).setLastUpdte(now());armor.tick(actor);
+                check(rank(actor).getRawRankPoint()==1600,"free-cost pulse does not debit rank");armor.stop(actor);
+            } finally {
+                GameplayConfig.SPEC.setConfig(worldConfig);
+            }
             // Direct discharge fixtures must not lend their consumed weapon to native admission checks.
             actor.setItemSlot(EquipmentSlot.MAINHAND,blade(true));
             rank(actor).setRawRankPoint(1600);inputs(actor);reset(state(actor));
