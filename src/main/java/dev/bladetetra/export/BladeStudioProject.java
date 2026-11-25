@@ -2,7 +2,6 @@ package dev.bladetetra.export;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParseException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +20,10 @@ record BladeStudioProject(int schema, String addon, String version, String title
 
     BladeStudioProject {
         if (schema != 1 || addon == null || !addon.matches("[a-z0-9_]{1,50}")
-                || logoPath == null || logoPath.length() > 1024 || backplateMode == null || backplatePath == null || backplatePath.length() > 1024) {
+                || logoPath == null || logoPath.length() > 1024 || backplateMode == null
+                || backplatePath == null || backplatePath.length() > 1024
+                || version == null || title == null || bladeName == null || chineseName == null
+                || author == null || description == null || lore == null || chineseLore == null) {
             throw new IllegalArgumentException("Invalid Blade Studio project");
         }
         new BladeExportArchive.Metadata("bt_export_" + addon, version, title, author, description,
@@ -50,7 +52,7 @@ record BladeStudioProject(int schema, String addon, String version, String title
                 throw new IOException("Studio project ID does not match its file");
             }
             return project;
-        } catch (JsonParseException invalid) {
+        } catch (RuntimeException invalid) {
             throw new IOException("Invalid Blade Studio project", invalid);
         }
     }
