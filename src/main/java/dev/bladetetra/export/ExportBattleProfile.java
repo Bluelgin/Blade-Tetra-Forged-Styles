@@ -9,8 +9,8 @@ import java.util.List;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.5.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.5.0.jar";
+    static final String RUNTIME_VERSION = "1.6.0";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.6.0.jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");
@@ -61,7 +61,7 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
         return PortableCapabilityCatalog.forShape(combo.toString(), !attributes.isEmpty(), moves.size(),
                 effects.drawBonus() > 0, effects.spiritBonus() > 0, effects.heavyPommel(),
                 effects.rankDivisor() > 0, effects.guardReduction() > 0,
-                effects.precisionHabaki(), effects.reinforcedHabaki());
+                effects.precisionHabaki(), effects.reinforcedHabaki(), effects.saltyFish());
     }
 
     private static ResourceLocation root(String name) {

@@ -4,7 +4,9 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.math.Axis;
 import com.mojang.logging.LogUtils;
 import dev.bladetetra.registry.ModItems;
+import mods.flammpfeil.slashblade.client.renderer.model.BladeModelManager;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.client.renderer.util.BladeRenderState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -35,8 +37,11 @@ final class BladeStudioViewport {
     private boolean atlasRegistered;
     private boolean portraitRegistered;
     private Component failure;
-    private Vector3f center;
-    private float diameter;
+    private Frame frame;
+    private WavefrontObject sourceModel;
+    private ResourceLocation sourceTexture;
+    private Frame sourceFrame;
+    private int sourceRevision = -1;
     private int bakedRevision = -1;
     private float pitch = -12;
     private float yaw = -18;
@@ -64,7 +69,7 @@ final class BladeStudioViewport {
             projected.setTag(TagParser.parseTag(preview.appearanceTag()));
             var art = BladeExportArt.bake(NAMESPACE, snapshot, projected, minecraft.getResourceManager(), backplate);
             model = new WavefrontObject(art.model().toString(), new ByteArrayInputStream(art.assets().get(art.model())));
-            frameModel();
+            frame = frameModel(model);
             register(minecraft, ATLAS, art.assets().get(art.texture()));
             atlasRegistered = true;
             byte[] portrait = art.assets().get(ResourceLocation.fromNamespaceAndPath(NAMESPACE, "model/sealed_backplate.png"));
@@ -91,7 +96,34 @@ final class BladeStudioViewport {
         }
     }
 
-    private void frameModel() throws IOException {
+    void prepareSource(Minecraft minecraft, ItemStack source) {
+        if (sourceRevision == resourceRevision) return;
+        sourceRevision = resourceRevision;
+        sourceModel = null;
+        var state = source.getCapability(ItemSlashBlade.BLADESTATE).orElse(null);
+        if (state == null) return;
+        var modelId = state.getModel().orElse(null);
+        var textureId = state.getTexture().orElse(null);
+        var resources = minecraft.getResourceManager();
+        if (modelId == null || textureId == null || resources.getResource(modelId).isEmpty()
+                || resources.getResource(textureId).isEmpty()) return;
+        try {
+            var nativeModel = BladeModelManager.getInstance().getModel(modelId);
+            sourceFrame = frameModel(nativeModel);
+            sourceTexture = textureId;
+            sourceModel = nativeModel;
+        } catch (IOException | RuntimeException error) {
+            LogUtils.getLogger().warn("Could not prepare the original blade preview", error);
+        }
+    }
+
+    boolean sourceReady() {
+        return sourceModel != null;
+    }
+
+    private record Frame(Vector3f center, float diameter) {}
+
+    private static Frame frameModel(WavefrontObject model) throws IOException {
         var min = new Vector3f(Float.POSITIVE_INFINITY);
         var max = new Vector3f(Float.NEGATIVE_INFINITY);
         for (var group : model.groupObjects) {
@@ -103,9 +135,9 @@ final class BladeStudioViewport {
                 }
             }
         }
-        diameter = max.distance(min);
+        float diameter = max.distance(min);
         if (!(diameter > 0) || !Float.isFinite(diameter)) throw new IOException("Invalid preview model bounds");
-        center = min.lerp(max, .5F);
+        return new Frame(min.lerp(max, .5F), diameter);
     }
 
     boolean ready() {
@@ -148,23 +180,29 @@ final class BladeStudioViewport {
     }
 
     void render(GuiGraphics graphics, int left, int top, int right, int bottom) {
+        renderFramed(graphics, left, top, right, bottom, frame, null);
+    }
+
+    void renderSource(GuiGraphics graphics, int left, int top, int right, int bottom, ItemStack source) {
+        renderFramed(graphics, left, top, right, bottom, sourceFrame, source);
+    }
+
+    private void renderFramed(GuiGraphics graphics, int left, int top, int right, int bottom,
+                              Frame bounds, ItemStack source) {
         graphics.flush();
         graphics.enableScissor(left, top, right, bottom);
         var pose = graphics.pose();
         pose.pushPose();
         try {
             pose.translate((left + right) / 2F, (top + bottom) / 2F, 110);
-            float scale = Math.max(1, Math.min(right - left - 12, bottom - top - 8)) * zoom / diameter;
+            float scale = Math.max(1, Math.min(right - left - 12, bottom - top - 8)) * zoom / bounds.diameter();
             pose.scale(scale, -scale, scale);
             pose.mulPose(Axis.XP.rotationDegrees(pitch));
             pose.mulPose(Axis.YP.rotationDegrees(yaw));
+            var center = bounds.center();
             pose.translate(-center.x, -center.y, -center.z);
-            if (drawn || damaged) {
-                renderGroup(graphics, damaged ? "blade_damaged" : "blade");
-            } else {
-                renderGroup(graphics, "blade");
-                renderGroup(graphics, "sheath");
-            }
+            renderGroup(graphics, damaged ? "blade_damaged" : "blade", source);
+            if (!drawn && !damaged) renderGroup(graphics, "sheath", source);
             graphics.flush();
         } finally {
             pose.popPose();
@@ -172,9 +210,19 @@ final class BladeStudioViewport {
         }
     }
 
-    private void renderGroup(GuiGraphics graphics, String group) {
+    private void renderGroup(GuiGraphics graphics, String group, ItemStack source) {
         var buffer = graphics.bufferSource();
         var pose = graphics.pose();
+        if (source != null) {
+            BladeRenderState.resetCol();
+            BladeRenderState.renderOverrided(source, sourceModel, group, sourceTexture, pose, buffer,
+                    LightTexture.FULL_BRIGHT);
+            if (luminous) {
+                BladeRenderState.renderOverridedLuminous(source, sourceModel, group + "_luminous", sourceTexture,
+                        pose, buffer, LightTexture.FULL_BRIGHT);
+            }
+            return;
+        }
         var solid = BladeRenderState.getSlashBladeBlend(ATLAS);
         model.tessellateOnly(buffer.getBuffer(solid), pose, LightTexture.FULL_BRIGHT, 0xffffffff, group);
         buffer.endBatch(solid);
@@ -191,6 +239,7 @@ final class BladeStudioViewport {
         atlasRegistered = false;
         portraitRegistered = false;
         model = null;
+        frame = null;
         bakedRevision = -1;
     }
 }

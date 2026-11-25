@@ -61,29 +61,14 @@ public final class LegacyModelPartRenderer {
         try {
             if (icon) {
                 // Draw the same geometry/UVs used in hand. Fit in the native 142-unit icon quad.
-                var originalBlade = bounds(faces(event.getOriginalModel(), group));
-                var originalSaya = bounds(faces(event.getOriginalModel(), "sheath"));
-                float tip = blade != null ? ("blade_damaged".equals(group) ? -122 : blade.bladeTip)
-                        : originalBlade.valid() ? originalBlade.min : -282;
-                if (showSaya) tip = Math.min(tip,
-                        saya != null ? saya.sayaTip : originalSaya.valid() ? originalSaya.min : -294);
-                float scale = 142 / (42 - tip);
+                var framing = fishIconFrame(event.getOriginalModel(), blade, saya, group, showSaya);
                 poses.translate(0, 0, 16);
                 poses.mulPose(Axis.ZP.rotationDegrees(135));
-                poses.scale(scale, scale, scale);
-                poses.translate(-(42 + tip) * .5F, -4, 0);
+                poses.scale(framing.scale(), framing.scale(), framing.scale());
+                poses.translate(framing.offset(), -4, 0);
             }
 
-            Float coveredTo = null;
-            if (showSaya) {
-                if (saya != null) {
-                    // The narrow tail fin is decorative. Leave enough room for a long blade to show.
-                    coveredTo = (float) saya.sayaTip;
-                } else {
-                    var shell = bounds(faces(event.getOriginalModel(), "sheath"));
-                    if (shell.valid()) coveredTo = shell.min;
-                }
-            }
+            Float coveredTo = showSaya ? fishCover(event.getOriginalModel(), saya) : null;
             WavefrontObject guardView = fishGuard(event, guard, group);
             var inheritedBlade = coveredTo == null && blade == null
                     ? mounted(event, namedBlade, LegacySourceMesh.Component.BLADE, group) : null;
@@ -118,19 +103,43 @@ public final class LegacyModelPartRenderer {
             return;
         }
         var key = new FishKey(source, group, hideBlade, hideGuard, coveredTo);
-        WavefrontObject filtered = fishView(key, group, () -> {
-            List<Face> selected = new ArrayList<>();
-            for (Face face : faces(source, group)) {
-                if (hideGuard && InventoryGuardGeometry.isGuard(face)) continue;
-                if (!DispersedBladeGeometry.steel(face)) selected.add(face);
-                else if (!hideBlade) {
-                    if (coveredTo == null) selected.add(face);
-                    else selected.addAll(clipBefore(face, coveredTo));
-                }
-            }
-            return selected;
-        });
+        WavefrontObject filtered = fishView(key, group,
+                () -> stockFishFaces(source, group, hideBlade, hideGuard, coveredTo));
         drawFishPass(event, filtered, group, ordinary, emissive);
+    }
+
+    record FishIconFrame(float scale, float offset) {}
+
+    static FishIconFrame fishIconFrame(WavefrontObject original, Length blade, Length saya,
+                                      String group, boolean showSaya) {
+        var originalBlade = bounds(faces(original, group));
+        var originalSaya = bounds(faces(original, "sheath"));
+        float tip = blade != null ? ("blade_damaged".equals(group) ? -122 : blade.bladeTip)
+                : originalBlade.valid() ? originalBlade.min : -282;
+        if (showSaya) tip = Math.min(tip,
+                saya != null ? saya.sayaTip : originalSaya.valid() ? originalSaya.min : -294);
+        return new FishIconFrame(142 / (42 - tip), -(42 + tip) * .5F);
+    }
+
+    static Float fishCover(WavefrontObject original, Length saya) {
+        if (saya != null) return (float) saya.sayaTip;
+        var shell = bounds(faces(original, "sheath"));
+        return shell.valid() ? shell.min : null;
+    }
+
+    static List<Face> stockFishFaces(WavefrontObject source, String group, boolean hideBlade,
+                                     boolean hideGuard, Float coveredTo) {
+        if (!hideBlade && !hideGuard && coveredTo == null) return faces(source, group);
+        List<Face> selected = new ArrayList<>();
+        for (Face face : faces(source, group)) {
+            if (hideGuard && InventoryGuardGeometry.isGuard(face)) continue;
+            if (!DispersedBladeGeometry.steel(face)) selected.add(face);
+            else if (!hideBlade) {
+                if (coveredTo == null) selected.add(face);
+                else selected.addAll(clipBefore(face, coveredTo));
+            }
+        }
+        return selected;
     }
 
     private static NamedBladeRenderPlan.Mounted mounted(RenderOverrideEvent event,
@@ -186,24 +195,33 @@ public final class LegacyModelPartRenderer {
 
     private static void drawFish(RenderOverrideEvent event, Length length, String part, String group,
             Float coveredTo) {
-        String path = "model/modular/salty_fish/";
-        String name = length.part(part);
-        WavefrontObject model = BladeModelManager.getInstance().getModel(
-                new ResourceLocation("blade_tetra", path + name + ".obj"));
+        var model = BladeModelManager.getInstance().getModel(fishModel(length, part));
         if (coveredTo != null) {
             if (length.bladeTip >= coveredTo) return;
+            var key = new FishKey(model, group, true, false, coveredTo);
             WavefrontObject source = model;
-            var key = new FishKey(source, group, true, false, coveredTo);
-            model = fishView(key, group, () -> faces(source, group).stream()
-                    .flatMap(face -> clipBefore(face, coveredTo).stream()).toList());
+            model = fishView(key, group, () -> fishPartFaces(source, length, group, coveredTo));
         }
-        String texture = name;
-        if ("blade".equals(part)) {
-            texture = "fishbone";
-        } else if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, event.getStack()) > 0) {
-            texture = name + "_cooked";
+        drawFishPass(event, model, group, fishTexture(event.getStack(), length, part), null);
+    }
+
+    static ResourceLocation fishModel(Length length, String part) {
+        return ResourceLocation.fromNamespaceAndPath("blade_tetra",
+                "model/modular/salty_fish/" + length.part(part) + ".obj");
+    }
+
+    static ResourceLocation fishTexture(net.minecraft.world.item.ItemStack stack, Length length, String part) {
+        String texture = "blade".equals(part) ? "fishbone" : length.part(part);
+        if ("saya".equals(part) && EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, stack) > 0) {
+            texture += "_cooked";
         }
-        drawFishPass(event, model, group, new ResourceLocation("blade_tetra", path + texture + ".png"), null);
+        return ResourceLocation.fromNamespaceAndPath("blade_tetra", "model/modular/salty_fish/" + texture + ".png");
+    }
+
+    static List<Face> fishPartFaces(WavefrontObject model, Length length, String group, Float coveredTo) {
+        if (coveredTo == null) return faces(model, group);
+        if (length.bladeTip >= coveredTo) return List.of();
+        return faces(model, group).stream().flatMap(face -> clipBefore(face, coveredTo).stream()).toList();
     }
 
     private static List<Face> clipBefore(Face face, float x) {
@@ -278,7 +296,7 @@ public final class LegacyModelPartRenderer {
         return false;
     }
 
-    private static List<Face> faces(WavefrontObject source, String name) {
+    static List<Face> faces(WavefrontObject source, String name) {
         List<Face> result = new ArrayList<>();
         for (var group : source.groupObjects) {
             if (group != null && group.faces != null && name.equals(group.name)) result.addAll(group.faces);

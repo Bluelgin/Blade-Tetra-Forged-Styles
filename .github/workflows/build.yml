@@ -67,6 +67,11 @@ jobs:
       - name: Compile production and development tools; test; verify release JAR
         if: needs.plan.outputs.quick == 'true'
         run: ./gradlew -PexportRuntimeProbe build integrationTestClasses exportRuntimeTestClasses verifyProductionJar kyoukaNativeApiAudit
+      - name: Measure packaged JARs
+        if: needs.plan.outputs.quick == 'true'
+        run: |
+          python3 tools/ci/report_jar_sizes.py --commit "$(git rev-parse HEAD)" \
+            --output build/jar-sizes.json build/libs/*.jar build/export-runtime/bt-export-runtime-*.jar
       - uses: actions/upload-artifact@v4
         if: always() && needs.plan.outputs.quick == 'true'
         with:
@@ -75,6 +80,8 @@ jobs:
             build/libs/*.jar
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
+            build/jar-sizes.json
+            build/export-runtime/bt-export-runtime-*.jar
           retention-days: 14
 
   native:
@@ -107,6 +114,7 @@ jobs:
             build/*/logs/**
             build/*/*.png
             build/*/evidence/**
+            build/*/blade-exports/*.jar
           retention-days: 14
 
   gate:

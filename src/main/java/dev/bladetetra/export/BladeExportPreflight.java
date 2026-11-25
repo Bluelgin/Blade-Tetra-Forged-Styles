@@ -43,6 +43,7 @@ final class BladeExportPreflight {
         var effects = snapshot.componentEffects();
         if (effects.drawBonus() > 0) preserved.add("quickdraw saya");
         if (effects.spiritBonus() > 0) preserved.add("spirit saya");
+        if (effects.saltyFish()) preserved.add("Salty Fish hit feedback");
         if (effects.heavyPommel()) preserved.add("heavy pommel");
         if (effects.rankDivisor() > 0) preserved.add("rank grip");
         if (effects.guardReduction() > 0) preserved.add("guard tsuba");

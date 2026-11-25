@@ -128,7 +128,7 @@ final class PortableProfiles {
                 !modifiers.isEmpty(), moves.size(), loadedEffects.drawBonus() > 0,
                 loadedEffects.spiritBonus() > 0, loadedEffects.heavyPommel(),
                 loadedEffects.rankDivisor() > 0, loadedEffects.guardReduction() > 0,
-                loadedEffects.precisionHabaki(), loadedEffects.reinforcedHabaki());
+                loadedEffects.precisionHabaki(), loadedEffects.reinforcedHabaki(), loadedEffects.saltyFish());
         if (!ids.equals(expected)) {
             throw new IllegalArgumentException("Portable capability manifest disagrees with actual blade data: "
                     + id + " (declared=" + ids + ", expected=" + expected + ")");
@@ -144,7 +144,8 @@ final class PortableProfiles {
                 bounded(json.get("rankDivisor").getAsInt(), 1000), (float) factor(json.get("guardReduction").getAsDouble()),
                 bounded(json.get("guardDurability").getAsInt(), 32),
                 json.has("precisionHabaki") && json.get("precisionHabaki").getAsBoolean(),
-                json.has("reinforcedHabaki") && json.get("reinforcedHabaki").getAsBoolean());
+                json.has("reinforcedHabaki") && json.get("reinforcedHabaki").getAsBoolean(),
+                json.has("saltyFish") && json.get("saltyFish").getAsBoolean());
     }
 
     private static double factor(double amount) {

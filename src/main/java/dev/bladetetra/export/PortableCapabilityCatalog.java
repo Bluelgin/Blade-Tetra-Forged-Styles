@@ -30,7 +30,8 @@ public final class PortableCapabilityCatalog {
         STABLE("bt_export_runtime:stable_tsuka_v1", "effects.rankDivisor", Side.SERVER, "1.1.0"),
         GUARD("bt_export_runtime:guard_tsuba_v1", "effects.guardReduction", Side.SERVER, "1.1.0"),
         PRECISION("bt_export_runtime:precision_habaki_v1", "effects.precisionHabaki", Side.SERVER, "1.2.0"),
-        REINFORCED("bt_export_runtime:reinforced_habaki_v1", "effects.reinforcedHabaki", Side.SERVER, "1.3.0");
+        REINFORCED("bt_export_runtime:reinforced_habaki_v1", "effects.reinforcedHabaki", Side.SERVER, "1.3.0"),
+        SALTY_FISH("bt_export_runtime:salty_fish_feedback_v1", "effects.saltyFish", Side.SERVER, "1.6.0");
 
         private final String id;
         private final String payload;
@@ -74,6 +75,13 @@ public final class PortableCapabilityCatalog {
     public static List<String> forShape(String comboRoot, boolean attributes, int moveCount,
             boolean quickdraw, boolean spirit, boolean heavy, boolean stable, boolean guard,
             boolean precision, boolean reinforced) {
+        return forShape(comboRoot, attributes, moveCount, quickdraw, spirit, heavy, stable, guard,
+                precision, reinforced, false);
+    }
+
+    public static List<String> forShape(String comboRoot, boolean attributes, int moveCount,
+            boolean quickdraw, boolean spirit, boolean heavy, boolean stable, boolean guard,
+            boolean precision, boolean reinforced, boolean saltyFish) {
         if (comboRoot == null || comboRoot.isBlank() || moveCount < 0 || moveCount > 6) {
             throw new IllegalArgumentException("Invalid portable combo contract");
         }
@@ -107,6 +115,7 @@ public final class PortableCapabilityCatalog {
         if (guard) capabilities.add(Feature.GUARD.id());
         if (precision) capabilities.add(Feature.PRECISION.id());
         if (reinforced) capabilities.add(Feature.REINFORCED.id());
+        if (saltyFish) capabilities.add(Feature.SALTY_FISH.id());
         return List.copyOf(capabilities);
     }
 

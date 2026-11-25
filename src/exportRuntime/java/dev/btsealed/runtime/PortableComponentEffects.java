@@ -6,6 +6,9 @@ import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.util.KnockBacks;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -17,8 +20,8 @@ public final class PortableComponentEffects {
 
     record Effects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
                    int rankDivisor, float guardReduction, int guardDurability,
-                   boolean precisionHabaki, boolean reinforcedHabaki) {
-        static final Effects NONE = new Effects(0, 0, 0, false, 0, 0, 0, false, false);
+                   boolean precisionHabaki, boolean reinforcedHabaki, boolean saltyFish) {
+        static final Effects NONE = new Effects(0, 0, 0, false, 0, 0, 0, false, false, false);
     }
 
     static void slash(SlashBladeEvent.DoSlashEvent event) {
@@ -59,6 +62,14 @@ public final class PortableComponentEffects {
             user.getCapability(ConcentrationRankCapabilityProvider.RANK_POINT).ifPresent(rank ->
                     rank.addRankPoint(user, Math.max(1L, rank.getUnitCapacity() / divisor)));
         }
+    }
+
+    static void fishFeedback(LivingDamageEvent event) {
+        var target = event.getEntity();
+        if (event.getAmount() <= 0 || !(target.level() instanceof ServerLevel level)
+                || !(event.getSource().getDirectEntity() instanceof ServerPlayer player)
+                || !effects(player, player.getMainHandItem()).saltyFish()) return;
+        SaltyFishHitFeedback.play(level, player, target);
     }
 
     static void guard(LivingHurtEvent event) {

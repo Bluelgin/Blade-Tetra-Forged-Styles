@@ -17,6 +17,7 @@ COPIED = {
     "DangakuCircleSlashRules.java",
     "DangakuSpinRules.java",
     "DangakuCombatValues.java",
+    "SaltyFishHitFeedback.java",
 }
 
 def imports(source: str):

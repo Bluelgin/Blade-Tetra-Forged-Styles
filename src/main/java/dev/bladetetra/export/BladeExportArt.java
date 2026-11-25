@@ -1,6 +1,7 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.client.StaticBladeArt;
+import dev.bladetetra.client.SaltyFishExportArt;
 import dev.bladetetra.client.NamedBladeExportAssembler;
 import dev.bladetetra.forging.NamedBackplate;
 import java.util.LinkedHashMap;
@@ -42,7 +43,12 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
         }
         byte[] bakedModel, bakedTexture;
         Map<String, List<ResourceLocation>> namedInputs = Map.of();
-        if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
+        if (fishAssembly(stack)) {
+            var fish = SaltyFishExportArt.bake(stack, sourceModel, resources);
+            bakedModel = fish.model();
+            bakedTexture = fish.texture();
+            for (var input : fish.sources()) evidence.add(projectInput(resources, input));
+        } else if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
             var assembled = NamedBladeExportAssembler.bake(stack, sourceModel, resources);
             bakedModel = assembled.model();
             bakedTexture = assembled.texture();
@@ -116,10 +122,14 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
                     || !java.util.Set.of("slashblade", "blade_tetra").contains(part.declaredTexture().getNamespace())))
                 throw new IllegalArgumentException("Named source needs an audited embedding license: " + part.sourceId());
         }
-        if (SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null
-                || SaltyFishParts.salvagedGuard(stack) != null) {
-            throw new IllegalArgumentException("Salty Fish geometry is not supported by the static exporter");
+        if (SaltyFishParts.salvagedGuard(stack) != null || fishAssembly(stack)
+                && snapshot.namedParts().stream().anyMatch(part -> !"backplate".equals(part.slot()))) {
+            throw new IllegalArgumentException("Salty Fish with a salvaged or named fitting cannot be sealed yet");
         }
+    }
+
+    private static boolean fishAssembly(ItemStack stack) {
+        return SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null;
     }
 
     private static ExportResourceEvidence projectNamedInput(ResourceManager resources, ResourceLocation id) throws IOException {

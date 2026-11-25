@@ -475,7 +475,7 @@ def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
     // Forge can load the modular and sealed mods together. Keep their packages disjoint.
     from('src/main/java/dev/bladetetra/combat') {
         include 'StyleBranchRules.java', 'StyleCommonCommands.java', 'StyleTargeting.java',
-                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java'
+                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java', 'SaltyFishHitFeedback.java'
         into 'dev/btsealed/runtime'
         filter { line -> line.replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
     }
@@ -496,7 +496,7 @@ def portableCapabilitySources = tasks.register('prepareExportCapabilitySources',
 sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
 
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.5.0.jar'
+    archiveFileName = 'bt-export-runtime-1.6.0.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')
@@ -606,7 +606,8 @@ tasks.register('verifyProductionJar') {
             if (!leaked.isEmpty()) throw new GradleException("Development tools in production JAR: ${leaked}")
             def retired = names.entries().findAll { entry ->
                 def path = entry.name
-                if (path ==~ /dev\/bladetetra\/compat\/LegacyMikageCompatibility(?:\$RetiredEntity)?\.class/) return false
+                if (path == 'dev/bladetetra/compat/LegacyMikageCompatibility.class' ||
+                        path == 'dev/bladetetra/compat/LegacyMikageCompatibility$RetiredEntity.class') return false
                 path.toLowerCase(Locale.ROOT).contains('mikage') || path.contains('/challenge/') ||
                         path.startsWith('assets/blade_tetra/textures/divine/') ||
                         path.startsWith('assets/blade_tetra/models/divine/') ||

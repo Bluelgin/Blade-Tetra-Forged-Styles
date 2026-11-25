@@ -127,6 +127,7 @@ public final class BladeSealClientSmoke {
                 try (var files = Files.list(directory)) {
                     before = files.map(p -> p.getFileName().toString()).collect(Collectors.toSet());
                 }
+                verifyFishFixtures(client);
                 if (!findField(screen, "blade_tetra.export.name").visible
                         || !findField(screen, "blade_tetra.export.description").visible
                         || findButton(screen, "blade_tetra.export.page.appearance").visible) {
@@ -266,6 +267,46 @@ public final class BladeSealClientSmoke {
     private static EditBox findField(BladeSealScreen screen, String key) {
         return screen.children().stream().filter(EditBox.class::isInstance).map(EditBox.class::cast)
                 .filter(box -> box.getMessage().equals(Component.translatable(key))).findFirst().orElseThrow();
+    }
+
+    private static void verifyFishFixtures(Minecraft client) throws Exception {
+        var resources = client.getResourceManager();
+        for (var variant : java.util.List.of(dev.bladetetra.item.SaltyFishParts.Blade.RENGEKI,
+                dev.bladetetra.item.SaltyFishParts.Blade.STANDARD, dev.bladetetra.item.SaltyFishParts.Blade.DANGAKU)) {
+            var blade = dev.bladetetra.item.SaltyFishParts.create(variant, null);
+            var snapshot = BladeExportSnapshot.captureOwnedStack(blade);
+            var metadata = new BladeExportArchive.Metadata("bt_export_salty_fish", "1.0.0",
+                    "Salty Fish Ichimonji", "Blade Tetra", "Portable fishbone and saya fixture");
+            var report = BladeExportPreflight.inspect(snapshot, blade);
+            if (!report.ready()) throw new IllegalStateException(report.summary());
+            var art = BladeExportArt.bake(metadata.modId(), snapshot, blade, resources);
+            var mesh = new mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject(
+                    art.model().toString(), new java.io.ByteArrayInputStream(art.assets().get(art.model())));
+            var expected = dev.bladetetra.item.SaltyFishParts.blade(blade);
+            float bladeTip = mesh.groupObjects.stream().filter(group -> "blade".equals(group.name))
+                    .flatMap(group -> group.faces.stream()).flatMap(face -> java.util.Arrays.stream(face.vertices))
+                    .map(vertex -> vertex.x).min(Float::compare).orElseThrow();
+            if (Math.abs(expected.bladeTip - bladeTip) > 1.0F
+                    || !ExportBattleProfile.from(snapshot).capabilities(switch (variant) {
+                        case RENGEKI -> ExportBattleProfile.RENGEKI_ROOT;
+                        case DANGAKU -> ExportBattleProfile.DANGAKU_ROOT;
+                        default -> snapshot.combo();
+                    }).contains("bt_export_runtime:salty_fish_feedback_v1")) {
+                throw new IllegalStateException("Fishbone geometry or feedback missing for " + variant + ": " + bladeTip);
+            }
+            if (variant == dev.bladetetra.item.SaltyFishParts.Blade.STANDARD) {
+                Path file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources, snapshot, metadata, art);
+                try (var archive = new ZipFile(file.toFile())) {
+                    String prefix = "assets/" + metadata.modId() + "/model/sealed_blade";
+                    if (archive.getEntry(prefix + ".obj") == null || archive.getEntry(prefix + ".png") == null
+                            || archive.getEntry("META-INF/jarjar/bt-export-runtime-"
+                                + ExportBattleProfile.RUNTIME_VERSION + ".jar") == null) {
+                        throw new IllegalStateException("Sealed Salty Fish is missing its baked art or runtime");
+                    }
+                }
+            }
+        }
+        LogUtils.getLogger().info("BLADE_STUDIO_SALTY_FISH_EXPORT_PASS");
     }
 
     private static void verifyNamedPortraitArchive(Path archive, String id) throws Exception {

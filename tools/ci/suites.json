@@ -247,7 +247,8 @@
       "markers": [
         "BLADE_SEAL_NAMED_CLIENT_PASS",
         "BLADE_STUDIO_PREVIEW_PASS",
-        "BLADE_STUDIO_SIMPLE_MODE_PASS"
+        "BLADE_STUDIO_SIMPLE_MODE_PASS",
+        "BLADE_STUDIO_SALTY_FISH_EXPORT_PASS"
       ],
       "flags": []
     }

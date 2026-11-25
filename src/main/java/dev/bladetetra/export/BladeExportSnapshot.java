@@ -128,12 +128,21 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
                 spirit ? ComponentCombatValues.SPIRIT_BONUS : 0, spirit ? ComponentCombatValues.SPIRIT_TICKS : 0,
                 heavy, rank ? ComponentCombatValues.RANK_UNIT_DIVISOR : 0,
                 guard ? ComponentCombatValues.GUARD_REDUCTION : 0,
-                guard ? ComponentCombatValues.GUARD_DURABILITY_COST : 0, precisionHabaki, reinforcedHabaki, unsupported);
+                guard ? ComponentCombatValues.GUARD_DURABILITY_COST : 0, precisionHabaki, reinforcedHabaki, unsupported,
+                dev.bladetetra.item.SaltyFishParts.blade(stack) != null);
     }
 
     public record ComponentEffects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
                                    int rankDivisor, float guardReduction, int guardDurability,
-                                   boolean precisionHabaki, boolean reinforcedHabaki, boolean unsupported) {}
+                                   boolean precisionHabaki, boolean reinforcedHabaki, boolean unsupported,
+                                   boolean saltyFish) {
+        public ComponentEffects(double drawBonus, double spiritBonus, int spiritTicks, boolean heavyPommel,
+                                int rankDivisor, float guardReduction, int guardDurability,
+                                boolean precisionHabaki, boolean reinforcedHabaki, boolean unsupported) {
+            this(drawBonus, spiritBonus, spiritTicks, heavyPommel, rankDivisor, guardReduction, guardDurability,
+                    precisionHabaki, reinforcedHabaki, unsupported, false);
+        }
+    }
 
     public record CustomStyle(String name, List<ResourceLocation> actions, String length) {
         public CustomStyle {

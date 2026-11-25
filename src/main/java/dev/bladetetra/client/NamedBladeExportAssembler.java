@@ -17,7 +17,7 @@ import java.util.*;
 public final class NamedBladeExportAssembler {
     public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sourceTextures,
                        Map<String, List<ResourceLocation>> selectedInputs) {}
-    private record Tile(NativeImage image, int x) {}
+    record Tile(int width, int height, int x) {}
     private static final List<String> STATES = List.of("blade", "blade_damaged", "blade_fragment",
             "sheath", "item_blade", "item_bladens", "item_damaged");
     public static Bake bake(ItemStack stack, ResourceLocation modelId, ResourceManager resources) throws IOException {
@@ -84,12 +84,12 @@ public final class NamedBladeExportAssembler {
             var locations = new LinkedHashMap<ResourceLocation, Tile>();
             int x = stock.getWidth();
             for (var entry : textures.entrySet()) {
-                locations.put(entry.getKey(), new Tile(entry.getValue(), x));
+                locations.put(entry.getKey(), new Tile(entry.getValue().getWidth(), entry.getValue().getHeight(), x));
                 x += entry.getValue().getWidth();
             }
             try (var atlas = new NativeImage(width, height, true)) {
                 copy(atlas, stock, 0);
-                for (var tile : locations.values()) copy(atlas, tile.image(), tile.x());
+                textures.forEach((id, image) -> copy(atlas, image, locations.get(id).x()));
                 var output = new LinkedHashMap<String, List<Face>>();
                 for (String state : STATES) {
                     boolean inventory = state.startsWith("item_");
@@ -176,12 +176,17 @@ public final class NamedBladeExportAssembler {
     private static List<Face> assembled(WavefrontObject view, LegacyMeshFrame.Mount mount,
             Tile tile, int width, int height) throws IOException {
         if (view == null) return List.of();
-        var out = new ArrayList<Face>();
         var matrix = mount == null ? new org.joml.Matrix4f() : mount.matrix();
+        return remap(faces(view), matrix, tile, width, height);
+    }
+
+    static List<Face> remap(List<Face> faces, org.joml.Matrix4f matrix, Tile tile, int width, int height)
+            throws IOException {
+        var out = new ArrayList<Face>();
         // Nonuniform source fitting requires an inverse-transpose normal matrix.
         // Recomputing all OBJ normals from triangles changes authored smooth shading.
         var normalMatrix = matrix.normal(new org.joml.Matrix3f());
-        for (var group : view.groupObjects) for (var input : group.faces) {
+        for (var input : faces) {
             var face = new Face();
             face.vertices = new Vertex[input.vertices.length];
             face.vertexNormals = input.vertexNormals == null ? null : new Vertex[input.vertices.length];
@@ -211,8 +216,8 @@ public final class NamedBladeExportAssembler {
                         || uv.u < 0 || uv.u > 1 || uv.v < 0 || uv.v > 1)
                     throw new IOException("Named source UV repeat/overflow is not portable yet");
                 face.textureCoordinates[i] = new TextureCoordinate(
-                        (tile.x() + uv.u * tile.image().getWidth()) / width,
-                        uv.v * tile.image().getHeight() / height);
+                        (tile.x() + uv.u * tile.width()) / width,
+                        uv.v * tile.height() / height);
             }
             out.add(face);
         }
@@ -223,7 +228,7 @@ public final class NamedBladeExportAssembler {
         return view.groupObjects.stream().flatMap(group -> group.faces.stream()).toList();
     }
 
-    private static List<Face> stockFaces(List<Face> faces, NativeImage stock,
+    static List<Face> stockFaces(List<Face> faces, NativeImage stock,
             int width, int height, boolean inventory) {
         var out = new ArrayList<Face>();
         for (var input : faces) {
@@ -248,7 +253,7 @@ public final class NamedBladeExportAssembler {
     private static void append(Map<String, List<Face>> all, String name, List<Face> faces) {
         if (!faces.isEmpty()) all.computeIfAbsent(name, k -> new ArrayList<>()).addAll(faces);
     }
-    private static void copy(NativeImage dst, NativeImage src, int dx) {
+    static void copy(NativeImage dst, NativeImage src, int dx) {
         for (int y = 0; y < src.getHeight(); y++) for (int x = 0; x < src.getWidth(); x++)
             dst.setPixelRGBA(dx + x, y, src.getPixelRGBA(x, y));
     }

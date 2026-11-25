@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.world.item.ItemStack;
 
-/** Compares the source inventory icon with the actual sealed OBJ, atlas and portrait. */
+/** Compares the live weapon render with the actual sealed OBJ and atlas. */
 final class BladeStudioPreviewScreen extends Screen {
     private final BladeSealScreen editor;
     private final ItemStack source;
@@ -26,6 +26,9 @@ final class BladeStudioPreviewScreen extends Screen {
         this.editor = editor;
         this.viewport = new BladeStudioViewport(preview);
         this.source = source.copy();
+        damaged = this.source.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                .map(state -> state.isBroken()).orElse(false);
+        viewport.setDamaged(damaged);
         this.backplate = backplate;
     }
 
@@ -43,6 +46,8 @@ final class BladeStudioPreviewScreen extends Screen {
         addRenderableWidget(Button.builder(state(damaged ? "damaged" : "healthy"), button -> {
             damaged = !damaged;
             viewport.setDamaged(damaged);
+            source.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                    .ifPresent(state -> state.setBroken(damaged));
             button.setMessage(state(damaged ? "damaged" : "healthy"));
         }).bounds(paneLeft + buttonWidth + 4, height - 57, buttonWidth, 20).build());
         addRenderableWidget(Button.builder(state(luminous ? "glow_on" : "glow_off"), button -> {
@@ -68,29 +73,28 @@ final class BladeStudioPreviewScreen extends Screen {
             return;
         }
         viewport.prepare(minecraft, backplate);
+        viewport.prepareSource(minecraft, source);
     }
 
     boolean hasBakedModel() {
-        return viewport.ready();
+        return viewport.ready() && viewport.sourceReady();
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         renderBackground(graphics);
         graphics.drawCenteredString(font, title, width / 2, 10, 0xffe7cdab);
-        int modelLeft = paneLeft + Math.min(98, (paneRight - paneLeft) / 3);
+        int modelLeft = (paneLeft + paneRight) / 2;
         graphics.fill(paneLeft, 27, paneRight, paneBottom, 0xf12f251d);
         graphics.fill(modelLeft, 27, modelLeft + 1, paneBottom, 0xff856a4d);
         graphics.drawCenteredString(font, state("source"), (paneLeft + modelLeft) / 2, 33, 0xffe7cdab);
         graphics.drawCenteredString(font, state("result"), (modelLeft + paneRight) / 2, 33, 0xffe7cdab);
-        graphics.enableScissor(paneLeft, 46, modelLeft, paneBottom);
-        var pose = graphics.pose();
-        pose.pushPose();
-        pose.translate((paneLeft + modelLeft) / 2F, Math.min(71, (46 + paneBottom) / 2F), 0);
-        pose.scale(2, 2, 1);
-        graphics.renderItem(source, -8, -8);
-        pose.popPose();
-        graphics.disableScissor();
+        if (viewport.sourceReady() && paneBottom > 50) {
+            viewport.renderSource(graphics, paneLeft, 46, modelLeft, paneBottom, source);
+        } else if (paneBottom > 50) {
+            graphics.drawCenteredString(font, state("source_unavailable"),
+                    (paneLeft + modelLeft) / 2, 50, 0xffe7b08d);
+        }
         if (viewport.ready() && paneBottom > 50) {
             viewport.render(graphics, modelLeft + 2, 46, paneRight, paneBottom);
             if (paneBottom >= 97) {
@@ -101,13 +105,10 @@ final class BladeStudioPreviewScreen extends Screen {
                     Math.max(1, paneRight - modelLeft - 12), 0xffe7b08d);
         }
         super.render(graphics, mouseX, mouseY, delta);
-        if (mouseX >= paneLeft && mouseX < modelLeft && mouseY >= 46 && mouseY < paneBottom) {
-            graphics.renderTooltip(font, source, mouseX, mouseY);
-        }
     }
 
     private boolean inModel(double mouseX, double mouseY) {
-        return mouseX > paneLeft + Math.min(98, (paneRight - paneLeft) / 3)
+        return mouseX >= paneLeft
                 && mouseX < paneRight && mouseY >= 46 && mouseY < paneBottom;
     }
 
