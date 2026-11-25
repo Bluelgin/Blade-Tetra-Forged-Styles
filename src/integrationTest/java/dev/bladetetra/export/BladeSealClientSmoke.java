@@ -13,6 +13,7 @@ import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -133,6 +134,11 @@ public final class BladeSealClientSmoke {
                     image.setRGB(x, y, (x + y) % 5 == 0 ? 0 : 0xE0BC3255);
                 if (!ImageIO.write(image, "png", picture.toFile()))
                     throw new IllegalStateException("No PNG encoder available");
+                findButton(screen, "blade_tetra.export.page.appearance").onPress();
+                if (!findField(screen, "blade_tetra.export.logo").visible
+                        || findField(screen, "blade_tetra.export.name").visible) {
+                    throw new IllegalStateException("The appearance page exposed the wrong fields");
+                }
                 var mode = screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
                         .filter(button -> button.getMessage().equals(
                                 Component.translatable("blade_tetra.export.backplate.original")))
@@ -143,12 +149,30 @@ public final class BladeSealClientSmoke {
                         .findFirst().orElseThrow();
                 field.setValue(picture.toAbsolutePath().toString());
                 findField(screen, "blade_tetra.export.logo").setValue(picture.toAbsolutePath().toString());
-                findField(screen, "blade_tetra.export.lore").setValue("Forged for the archived-sword client test.");
+                findButton(screen, "blade_tetra.export.page.text").onPress();
+                var story = screen.children().stream().filter(MultiLineEditBox.class::isInstance)
+                        .map(MultiLineEditBox.class::cast)
+                        .filter(box -> box.getMessage().equals(Component.translatable("blade_tetra.export.lore")))
+                        .findFirst().orElseThrow();
+                if (!story.visible || findField(screen, "blade_tetra.export.logo").visible) {
+                    throw new IllegalStateException("The text page exposed the wrong fields");
+                }
+                story.setValue("Forged in winter.\nSealed at first light.");
                 findField(screen, "blade_tetra.export.chinese_name").setValue("封存实机验收刀");
                 outputVersion = findField(screen, "blade_tetra.export.version").getValue();
                 try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
                     screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-client.png"));
                 }
+                findButton(screen, "blade_tetra.export.page.project").onPress();
+                findButton(screen, "blade_tetra.export.project.save").onPress();
+                String addon = findField(screen, "blade_tetra.export.id").getValue();
+                var project = BladeStudioProject.load(BladeStudioProject.file(client.gameDirectory.toPath(), addon));
+                if (!project.chineseName().equals("封存实机验收刀")
+                        || !project.lore().equals("Forged in winter.\nSealed at first light.")
+                        || !project.logoPath().equals(picture.toAbsolutePath().toString())) {
+                    throw new IllegalStateException("Switching editor pages lost project fields");
+                }
+                findButton(screen, "blade_tetra.export.page.blade").onPress();
                 findButton(screen, "blade_tetra.export.preview").onPress();
                 return;
             }
@@ -203,6 +227,7 @@ public final class BladeSealClientSmoke {
         var client = Minecraft.getInstance();
         if (!(client.screen instanceof BladeStudioPreviewScreen preview) || !preview.hasBakedModel()) return;
         if (++previewRenders != 2) return;
+        client.getToasts().clear();
         try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
             screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-sealed-preview.png"));
         } catch (java.io.IOException failure) {

@@ -1,4 +1,12 @@
 {
+  "blade_tetra.export.page.stats": "Attack %s · Durability %s",
+  "blade_tetra.export.page.blade": "Blade",
+  "blade_tetra.export.page.addon": "Add-on",
+  "blade_tetra.export.page.appearance": "Look",
+  "blade_tetra.export.page.text": "Text",
+  "blade_tetra.export.page.project": "Project",
+  "blade_tetra.export.page.project_id": "Project: %s. Change its ID in Add-on to open a different project.",
+  "blade_tetra.export.page.appearance_help": "Open the sealed preview from Blade to inspect the chosen backplate.",
   "blade_tetra.export.preview": "Preview sealed blade",
   "blade_tetra.export.preview.source": "Source icon",
   "blade_tetra.export.preview.result": "Sealed model",

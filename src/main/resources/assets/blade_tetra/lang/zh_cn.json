@@ -1,4 +1,12 @@
 {
+  "blade_tetra.export.page.stats": "攻击 %s · 耐久上限 %s",
+  "blade_tetra.export.page.blade": "总览",
+  "blade_tetra.export.page.addon": "附属",
+  "blade_tetra.export.page.appearance": "外观",
+  "blade_tetra.export.page.text": "文本",
+  "blade_tetra.export.page.project": "工程",
+  "blade_tetra.export.page.project_id": "工程：%s。可在附属页更改 ID，再打开其他工程。",
+  "blade_tetra.export.page.appearance_help": "在总览页打开封存预览，即可查看所选耐久背板。",
   "blade_tetra.export.preview": "预览封存名刀",
   "blade_tetra.export.preview.source": "原刀图标",
   "blade_tetra.export.preview.result": "封存模型",

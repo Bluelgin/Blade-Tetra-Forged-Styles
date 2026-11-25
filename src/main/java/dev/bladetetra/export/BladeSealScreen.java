@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.util.Mth;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
@@ -18,16 +19,33 @@ import java.io.IOException;
 import java.awt.FileDialog;
 import java.awt.Frame;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
 
 final class BladeSealScreen extends Screen {
     private static final int PANEL_WIDTH = 300;
+    private enum Page {
+        BLADE("blade"), ADDON("addon"), APPEARANCE("appearance"), TEXT("text"), PROJECT("project");
+
+        final String key;
+
+        Page(String key) {
+            this.key = "blade_tetra.export.page." + key;
+        }
+    }
+
+    private final EnumMap<Page, List<AbstractWidget>> pageControls = new EnumMap<>(Page.class);
+    private final EnumMap<Page, Button> pageTabs = new EnumMap<>(Page.class);
+    private Page page = Page.BLADE;
     private final BladeSealPackets.Preview preview;
     private final BladeSealWorkbenchScreen workbench;
+    private final BladeExportSnapshot projectedStats;
     private EditBox name;
     private EditBox modTitle;
     private EditBox chineseName;
-    private EditBox lore;
-    private EditBox chineseLore;
+    private MultiLineEditBox lore;
+    private MultiLineEditBox chineseLore;
     private EditBox logo;
     private EditBox addon;
     private EditBox version;
@@ -52,12 +70,18 @@ final class BladeSealScreen extends Screen {
     private int top;
     private int scrollPixels;
     private int panelWidth;
-    private int authorColumnWidth;
+    private int bodyOffset;
+    private static final int BODY_HEIGHT = 238;
+
+    private int bodyTop() {
+        return top + bodyOffset;
+    }
 
     private BladeSealScreen(BladeSealPackets.Preview preview, BladeSealWorkbenchScreen workbench) {
         super(Component.translatable("blade_tetra.export.studio"));
         this.preview = preview;
         this.workbench = workbench;
+        projectedStats = preview.projection().isEmpty() ? null : BladeSealPackets.decodeSnapshot(preview.projection());
     }
 
     static void open(BladeSealPackets.Preview preview) {
@@ -71,76 +95,116 @@ final class BladeSealScreen extends Screen {
     @Override
     protected void init() {
         scrollPixels = 0;
-        panelWidth = Math.max(120, Math.min(PANEL_WIDTH, width - 12));
-        authorColumnWidth = Math.min(105, Math.max(60, panelWidth / 3));
+        panelWidth = Math.min(PANEL_WIDTH, width - 12);
         left = (width - panelWidth) / 2;
-        top = Math.max(0, (height - (preview.omitsAwakening() ? 587 : 507)) / 2);
-        var view = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.preview"),
-                button -> openPreview()).bounds(left, top + 40, panelWidth, 20).build());
-        view.active = preview.ready();
-        previewButton = view;
-        name = field(left, top + 78, panelWidth, 100, "blade_tetra.export.name",
-                name == null ? preview.title().getString() : name.getValue());
-        addon = field(left, top + 105, panelWidth - 78, 50, "blade_tetra.export.id",
-                addon == null ? "blade_" + preview.token().toString().substring(0, 8) : addon.getValue());
-        version = field(left + panelWidth - 72, top + 105, 72, 30, "blade_tetra.export.version",
-                version == null ? "1.0.0" : version.getValue());
-        author = field(left, top + 132, authorColumnWidth, 64, "blade_tetra.export.author",
-                author == null ? "" : author.getValue());
-        description = field(left + authorColumnWidth + 6, top + 132,
-                panelWidth - authorColumnWidth - 6, 800, "blade_tetra.export.description",
-                description == null ? "" : description.getValue());
-        modTitle = field(left, top + 159, panelWidth, 100, "blade_tetra.export.mod_name",
-                modTitle == null ? preview.title().getString() : modTitle.getValue());
-        chineseName = field(left, top + 186, panelWidth, 100, "blade_tetra.export.chinese_name",
-                chineseName == null ? "" : chineseName.getValue());
-        lore = field(left, top + 213, panelWidth, 800, "blade_tetra.export.lore",
-                lore == null ? "" : lore.getValue());
-        chineseLore = field(left, top + 240, panelWidth, 800, "blade_tetra.export.chinese_lore",
-                chineseLore == null ? "" : chineseLore.getValue());
-        logo = field(left, top + 267, panelWidth - 54, 1024, "blade_tetra.export.logo",
-                logo == null ? "" : logo.getValue());
-        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
-                button -> chooseImage(true)).bounds(left + panelWidth - 49, top + 265, 49, 20).build());
-        int modeWidth = Math.min(87, panelWidth / 3);
-        int browseWidth = Math.min(48, panelWidth / 4);
-        int pictureWidth = panelWidth - modeWidth - browseWidth - 8;
-        backplateModeButton = addRenderableWidget(Button.builder(backplateLabel(),
-                button -> cycleBackplateMode()).bounds(left, top + 296, modeWidth, 20).build());
-        backplatePath = field(left + modeWidth + 4, top + 297, pictureWidth, 1024,
-                "blade_tetra.export.backplate_file",
-                backplatePath == null ? "" : backplatePath.getValue());
-        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
-                button -> chooseImage(false)).bounds(left + modeWidth + 4 + pictureWidth + 4,
-                        top + 296, browseWidth, 20).build());
+        int columns = panelWidth >= 218 ? Page.values().length : 3;
+        bodyOffset = columns == 3 ? 70 : 47;
+        top = Math.max(4, (height - bodyOffset - BODY_HEIGHT) / 2);
+        pageControls.clear();
+        pageTabs.clear();
+        for (var tab : Page.values()) {
+            int column = tab.ordinal() % columns;
+            int row = tab.ordinal() / columns;
+            int start = left + panelWidth * column / columns;
+            int end = left + panelWidth * (column + 1) / columns;
+            pageTabs.put(tab, addRenderableWidget(Button.builder(Component.translatable(tab.key),
+                    button -> showPage(tab)).bounds(start, top + 22 + 22 * row, end - start - 2, 20).build()));
+        }
+
+        previewButton = pageButton(Page.BLADE, Component.translatable("blade_tetra.export.preview"),
+                this::openPreview, left, 0, panelWidth);
+        previewButton.active = preview.ready();
+
+        modTitle = pageField(Page.ADDON, 0, 100, "mod_name", modTitle, preview.title().getString());
+        addon = pageField(Page.ADDON, 1, 50, "id", addon, "blade_" + preview.token().toString().substring(0, 8));
+        version = pageField(Page.ADDON, 2, 30, "version", version, "1.0.0");
+        author = pageField(Page.ADDON, 3, 64, "author", author, "");
+        description = pageField(Page.ADDON, 4, 800, "description", description, "");
+
+        int browseWidth = Math.min(60, panelWidth / 3);
+        logo = pageField(Page.APPEARANCE, 0, panelWidth - browseWidth - 4, 1024, "logo", logo, "");
+        pageButton(Page.APPEARANCE, Component.translatable("blade_tetra.export.backplate.browse"),
+                () -> chooseImage(true), left + panelWidth - browseWidth, 10, browseWidth);
+        backplatePath = pageField(Page.APPEARANCE, 2, panelWidth - browseWidth - 4, 1024,
+                "backplate_file", backplatePath, "");
+        pageButton(Page.APPEARANCE, Component.translatable("blade_tetra.export.backplate.browse"),
+                () -> chooseImage(false), left + panelWidth - browseWidth, 64, browseWidth);
+        backplateModeButton = pageButton(Page.APPEARANCE, backplateLabel(),
+                this::cycleBackplateMode, left, 91, panelWidth);
+
+        name = pageField(Page.TEXT, 0, 100, "name", name, preview.title().getString());
+        chineseName = pageField(Page.TEXT, 1, 100, "chinese_name", chineseName, "");
+        lore = storyField("lore", 66, lore);
+        chineseLore = storyField("chinese_lore", 117, chineseLore);
+
+        pageButton(Page.PROJECT, Component.translatable("blade_tetra.export.project.save"),
+                this::saveProject, left, 36, panelWidth);
+        pageButton(Page.PROJECT, Component.translatable("blade_tetra.export.project.open"),
+                this::confirmOpenProject, left, 61, panelWidth);
+
         if (preview.omitsAwakening()) {
-            awakeningConsent = addRenderableWidget(Button.builder(awakeningConsentLabel(),
-                    button -> {
-                        awakeningAcknowledged = !awakeningAcknowledged;
-                        awakeningConsent.setMessage(awakeningConsentLabel());
-                        confirm.active = !confirmed && preview.ready() && awakeningAcknowledged;
-                    }).bounds(left, top + 367, panelWidth, 20).build());
+            awakeningConsent = addRenderableWidget(Button.builder(awakeningConsentLabel(), button -> {
+                awakeningAcknowledged = !awakeningAcknowledged;
+                awakeningConsent.setMessage(awakeningConsentLabel());
+                confirm.active = !confirmed && preview.ready() && awakeningAcknowledged;
+            }).bounds(left, bodyTop() + 142, panelWidth, 20).build());
         }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + (preview.omitsAwakening() ? 393 : 325),
-                        panelWidth, 20).build());
-        int projectRow = top + (preview.omitsAwakening() ? 422 : 354);
-        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.project.save"),
-                button -> saveProject()).bounds(left, projectRow, panelWidth / 2 - 2, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.project.open"),
-                button -> minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(open -> {
-                    minecraft.setScreen(this);
-                    if (open) openProject();
-                }, Component.translatable("blade_tetra.export.project.replace_form"),
-                        Component.literal(addon.getValue())))).bounds(left + panelWidth / 2 + 2, projectRow,
-                panelWidth - panelWidth / 2 - 2, 20).build());
-        confirm.active = !confirmed && preview.ready()
-                && (!preview.omitsAwakening() || awakeningAcknowledged);
+                button -> request()).bounds(left, bodyTop() + 165, panelWidth, 20).build());
+        confirm.active = !confirmed && preview.ready() && (!preview.omitsAwakening() || awakeningAcknowledged);
         if (published != null) addResultButtons();
+        showPage(page);
+    }
+
+    private void showPage(Page selected) {
+        page = selected;
+        setFocused(null);
+        pageTabs.forEach((tab, button) -> button.active = page != tab);
+        pageControls.forEach((tab, controls) -> controls.forEach(control -> control.visible = tab == page));
+    }
+
+    private void track(Page tab, AbstractWidget control) {
+        pageControls.computeIfAbsent(tab, ignored -> new ArrayList<>()).add(control);
+    }
+
+    private EditBox pageField(Page tab, int row, int limit, String key, EditBox previous, String fallback) {
+        return pageField(tab, row, panelWidth, limit, key, previous, fallback);
+    }
+
+    private EditBox pageField(Page tab, int row, int width, int limit, String key, EditBox previous, String fallback) {
+        var field = field(left, bodyTop() + 12 + row * 27, width, limit,
+                "blade_tetra.export." + key, previous == null ? fallback : previous.getValue());
+        track(tab, field);
+        return field;
+    }
+
+    private MultiLineEditBox storyField(String key, int y, MultiLineEditBox previous) {
+        var label = Component.translatable("blade_tetra.export." + key);
+        var field = addRenderableWidget(new MultiLineEditBox(font, left, bodyTop() + y, panelWidth, 33,
+                Component.empty(), label));
+        field.setCharacterLimit(800);
+        if (previous != null) field.setValue(previous.getValue());
+        track(Page.TEXT, field);
+        return field;
+    }
+
+    private Button pageButton(Page tab, Component label, Runnable action, int x, int y, int width) {
+        var button = addRenderableWidget(Button.builder(label, ignored -> action.run())
+                .bounds(x, bodyTop() + y, width, 20).build());
+        track(tab, button);
+        return button;
+    }
+
+    private void confirmOpenProject() {
+        if (confirmed && published == null) return;
+        minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(open -> {
+            minecraft.setScreen(this);
+            if (open) openProject();
+        }, Component.translatable("blade_tetra.export.project.replace_form"), Component.literal(addon.getValue())));
     }
 
     private void addResultButtons() {
-        int resultRow = top + (preview.omitsAwakening() ? 529 : 461);
+        int resultRow = bodyTop() + 213;
         String[] labels = {"directory", "path", "command"};
         Runnable[] actions = {
                 () -> net.minecraft.Util.getPlatform().openFile(published.getParent().toFile()),
@@ -213,6 +277,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void saveProject() {
+        if (confirmed && published == null) return;
         try {
             var project = new BladeStudioProject(1, addon.getValue().strip(), version.getValue().strip(),
                     modTitle.getValue().strip(), name.getValue().strip(), chineseName.getValue().strip(),
@@ -278,7 +343,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void request() {
-        if (!preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
+        if (confirmed || !preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
         try {
             var metadata = new BladeExportArchive.Metadata("bt_export_" + addon.getValue().strip(),
                     version.getValue().strip(), modTitle.getValue().strip(), author.getValue().strip(),
@@ -364,8 +429,9 @@ final class BladeSealScreen extends Screen {
     /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int maximum = Math.max(0, (preview.omitsAwakening() ? 587 : 507) - height + 20);
-        if (maximum == 0) return super.mouseScrolled(mouseX, mouseY, delta);
+        int maximum = Math.max(0, bodyOffset + BODY_HEIGHT - height + 12);
+        if (super.mouseScrolled(mouseX, mouseY, delta)) return true;
+        if (maximum == 0) return false;
         int next = Mth.clamp(scrollPixels - (int) Math.round(delta * 24), 0, maximum);
         int shift = scrollPixels - next;
         if (shift == 0) return true;
@@ -395,6 +461,10 @@ final class BladeSealScreen extends Screen {
             return;
         }
         previewButton.active = preview.ready() && (!confirmed || published != null);
+        if (page == Page.TEXT) {
+            lore.tick();
+            chineseLore.tick();
+        }
     }
 
     Component exportStatus() {
@@ -409,8 +479,7 @@ final class BladeSealScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         renderBackground(graphics);
-        graphics.fill(left - 5, top, left + panelWidth + 5,
-                top + (preview.omitsAwakening() ? 587 : 507), 0xe8251d18);
+        graphics.fill(left - 5, top, left + panelWidth + 5, bodyTop() + BODY_HEIGHT, 0xe8251d18);
         graphics.fill(left - 5, top, left + panelWidth + 5, top + 2, 0xffb68757);
         super.render(graphics, mouseX, mouseY, delta);
         if (left >= 103 && !workbench.getMenu().blade().isEmpty()) {
@@ -427,36 +496,53 @@ final class BladeSealScreen extends Screen {
                 graphics.renderTooltip(font, stack, mouseX, mouseY);
             }
         }
-        graphics.drawString(font, title, left, top + 4, 0xFFFFFF);
-        graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.acquisition"), left, top + 17, panelWidth, 0xFFD480);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, top + 67, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.id"), left, top + 94, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + panelWidth - 72, top + 94, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 121, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 121, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.mod_name"),
-                left, top + 148, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_name"),
-                left, top + 175, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.lore"),
-                left, top + 202, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_lore"),
-                left, top + 229, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.logo"),
-                left, top + 256, 0xFFFFFF);
-        if (preview.omitsAwakening()) {
-            graphics.drawWordWrap(font,
-                    Component.translatable("blade_tetra.export.awakening.notice"),
-                    left, top + 325, panelWidth, 0xFFD480);
+        graphics.drawString(font, title, left, top + 7, 0xffffff);
+        switch (page) {
+            case BLADE -> renderOverview(graphics);
+            case ADDON -> drawFieldLabels(graphics, "mod_name", "id", "version", "author", "description");
+            case APPEARANCE -> {
+                drawFieldLabels(graphics, "logo", "", "backplate_file");
+                graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.page.appearance_help"),
+                        left, bodyTop() + 115, panelWidth, 0xffd6bb9a);
+            }
+            case TEXT -> {
+                drawFieldLabels(graphics, "name", "chinese_name");
+                graphics.drawString(font, Component.translatable("blade_tetra.export.lore"),
+                        left, bodyTop() + 55, 0xffffff);
+                graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_lore"),
+                        left, bodyTop() + 106, 0xffffff);
+            }
+            case PROJECT -> graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.page.project_id",
+                    addon.getValue()), left, bodyTop() + 7, panelWidth, 0xffd6bb9a);
         }
-        int offset = preview.omitsAwakening() ? 68 : 0;
-        graphics.drawWordWrap(font,
-                Component.translatable(preview.ready()
-                        ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 383 + offset, panelWidth,
-                preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 439 + offset, panelWidth, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, bodyTop() + 189, panelWidth, 0xffffff);
+        }
+    }
+
+    private void drawFieldLabels(GuiGraphics graphics, String... labels) {
+        for (int row = 0; row < labels.length; row++) {
+            if (labels[row].isEmpty()) continue;
+            graphics.drawString(font, Component.translatable("blade_tetra.export." + labels[row]),
+                    left, bodyTop() + 1 + row * 27, 0xffffff);
+        }
+    }
+
+    private void renderOverview(GuiGraphics graphics) {
+        graphics.drawWordWrap(font, Component.translatable(preview.ready()
+                        ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked", preview.summary()),
+                left, bodyTop() + 25, panelWidth, preview.ready() ? 0xffa6e3b0 : 0xffff9c9c);
+        if (projectedStats != null) {
+            graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.page.stats",
+                            projectedStats.attack(), projectedStats.durability()),
+                    left, bodyTop() + 64, panelWidth, 0xffd6bb9a);
+        }
+        if (preview.omitsAwakening()) {
+            graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.awakening.notice"),
+                    left, bodyTop() + 79, panelWidth, 0xffffd480);
+        } else {
+            graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.acquisition"),
+                    left, bodyTop() + 103, panelWidth, 0xffd6bb9a);
         }
     }
 }
