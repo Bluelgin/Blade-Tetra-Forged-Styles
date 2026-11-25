@@ -46,6 +46,9 @@ public final class BladeSealClientSmoke {
     private static int waited, ticks;
     private static boolean openedStudio;
     private static int studioFrames;
+    private static int previewRenders;
+    private static boolean previewVerified;
+    private static boolean requestedExport;
     private static String outputVersion;
 
     @SubscribeEvent
@@ -109,6 +112,11 @@ public final class BladeSealClientSmoke {
             client.gameMode.handleInventoryButtonClick(workbench.getMenu().containerId,
                     BladeSealWorkbench.WorkbenchMenu.OPEN_STUDIO);
         }
+        if (client.screen instanceof BladeStudioPreviewScreen preview && preview.hasBakedModel() && previewRenders >= 2) {
+            previewVerified = true;
+            preview.onClose();
+            return;
+        }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
         if (++studioFrames < 5) return;
         Path directory = client.gameDirectory.toPath().resolve("blade-exports");
@@ -141,6 +149,11 @@ public final class BladeSealClientSmoke {
                 try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
                     screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-client.png"));
                 }
+                findButton(screen, "blade_tetra.export.preview").onPress();
+                return;
+            }
+            if (previewVerified && !requestedExport) {
+                requestedExport = true;
                 Button consent = screen.children().stream().filter(Button.class::isInstance)
                         .map(Button.class::cast)
                         .filter(button -> button.getMessage().equals(
@@ -182,6 +195,25 @@ public final class BladeSealClientSmoke {
             LogUtils.getLogger().error("BLADE_SEAL_NAMED_CLIENT_FAIL", error);
             throw new IllegalStateException(error);
         }
+    }
+
+    @SubscribeEvent
+    public static void renderPreview(TickEvent.RenderTickEvent event) {
+        if (!enabled() || previewVerified || event.phase != TickEvent.Phase.END) return;
+        var client = Minecraft.getInstance();
+        if (!(client.screen instanceof BladeStudioPreviewScreen preview) || !preview.hasBakedModel()) return;
+        if (++previewRenders != 2) return;
+        try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
+            screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-sealed-preview.png"));
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Could not capture sealed blade preview", failure);
+        }
+        LogUtils.getLogger().info("BLADE_STUDIO_PREVIEW_PASS");
+    }
+
+    private static Button findButton(BladeSealScreen screen, String key) {
+        return screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                .filter(button -> button.getMessage().equals(Component.translatable(key))).findFirst().orElseThrow();
     }
 
     private static EditBox findField(BladeSealScreen screen, String key) {

@@ -9,7 +9,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "将百构流派的模块化拔刀剑放入工作槽，再打开 Blade Studio。关闭封存台时会退回原刀。安装生成的附属并重启游戏后，可从拔刀剑创造栏获取名刀，也可使用 $(thing)/bladeseal give <玩家> <名刀 ID>/$。"
+      "text": "将模块化拔刀剑放入工作槽，再打开 Blade Studio。原刀会留在台中，由放入它的玩家取回。$(br2)安装附属并重启后，可通过拔刀剑创造栏或 $(thing)/bladeseal give/$ 获取名刀。"
     }
   ]
 }

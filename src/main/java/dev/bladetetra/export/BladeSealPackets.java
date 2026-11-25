@@ -29,7 +29,7 @@ public final class BladeSealPackets {
     }
 
     public record Preview(UUID token, int menuId, Component title, boolean ready, String summary,
-                          boolean omitsAwakening) {
+                          boolean omitsAwakening, String projection, String appearanceTag) {
         private static final int MAX_SUMMARY = 512;
 
         public void encode(FriendlyByteBuf buf) {
@@ -39,11 +39,14 @@ public final class BladeSealPackets {
             buf.writeBoolean(ready);
             buf.writeUtf(summary, MAX_SUMMARY);
             buf.writeBoolean(omitsAwakening);
+            buf.writeUtf(projection, MAX_SNAPSHOT);
+            buf.writeUtf(appearanceTag, MAX_APPEARANCE_TAG);
         }
 
         public static Preview decode(FriendlyByteBuf buf) {
             return new Preview(buf.readUUID(), buf.readVarInt(), buf.readComponent(), buf.readBoolean(),
-                    buf.readUtf(MAX_SUMMARY), buf.readBoolean());
+                    buf.readUtf(MAX_SUMMARY), buf.readBoolean(), buf.readUtf(MAX_SNAPSHOT),
+                    buf.readUtf(MAX_APPEARANCE_TAG));
         }
 
         public void handle(Supplier<NetworkEvent.Context> context) {

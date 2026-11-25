@@ -8,6 +8,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -23,6 +25,11 @@ public final class BladeSealWorkbenchScreen extends AbstractContainerScreen<Blad
     @SubscribeEvent
     public static void register(FMLClientSetupEvent event) {
         event.enqueueWork(() -> MenuScreens.register(BladeSealWorkbench.MENU.get(), BladeSealWorkbenchScreen::new));
+    }
+
+    @SubscribeEvent
+    public static void registerReloadListener(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener((ResourceManagerReloadListener) resources -> BladeStudioPreviewScreen.resourcesReloaded());
     }
 
     @Override

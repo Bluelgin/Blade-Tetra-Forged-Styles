@@ -59,6 +59,7 @@ public final class BladeExportPackageSmoke {
             verifyMixedSources(event.getServer().overworld());
             verifyAwakeningOmission(event.getServer().overworld());
             verifyAuthorization(event.getServer().overworld());
+            verifyPersistentWorkbench(event.getServer().overworld());
             verifyPrecisionHabaki(event.getServer().overworld());
             var modVersion = ModList.get().getModContainerById("slashblade").orElseThrow()
                     .getModInfo().getVersion().toString();
@@ -373,9 +374,55 @@ public final class BladeExportPackageSmoke {
         }
     }
 
+    private static void verifyPersistentWorkbench(ServerLevel level) {
+        var owner = creativeAdmin(level);
+        var visitor = creativeAdmin(level);
+        var spawn = level.getSharedSpawnPos();
+        var position = spawn.above(2);
+        owner.setPos(position.getX() + .5, position.getY(), position.getZ() + .5);
+        visitor.setPos(position.getX() + .5, position.getY(), position.getZ() + .5);
+        var state = BladeSealWorkbench.BLOCK.get().defaultBlockState();
+        var previous = level.getBlockState(position);
+        level.setBlockAndUpdate(position, state);
+        try {
+            var storage = (BladeSealWorkbenchStorage) level.getBlockEntity(position);
+            if (storage == null) throw new IllegalStateException("Seal workbench storage did not register");
+            var menu = new BladeSealWorkbench.WorkbenchMenu(42, owner.getInventory(), storage);
+            owner.containerMenu = menu;
+            var original = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+            original.setHoverName(net.minecraft.network.chat.Component.literal("Stored seal fixture"));
+            menu.getSlot(0).set(original);
+            var visitorMenu = new BladeSealWorkbench.WorkbenchMenu(43, visitor.getInventory(), storage);
+            if (visitorMenu.stillValid(visitor) || visitorMenu.getSlot(0).mayPickup(visitor)
+                    || visitorMenu.quickMoveStack(visitor, 0) != ItemStack.EMPTY) {
+                throw new IllegalStateException("Another player can retrieve a stored blade");
+            }
+            var token = BladeSealSessions.begin(owner, menu).token();
+            menu.removed(owner);
+            if (BladeSealSessions.takeConfirmed(owner, token) != null || menu.blade() != original) {
+                throw new IllegalStateException("Closing the menu lost the blade or kept an old authorization");
+            }
+            var reloaded = net.minecraft.world.level.block.entity.BlockEntity.loadStatic(
+                    position, state, storage.saveWithFullMetadata());
+            if (!(reloaded instanceof BladeSealWorkbenchStorage restored)
+                    || !ItemStack.matches(original, restored.inventory().getItem(0))
+                    || !restored.canUse(owner) || restored.canUse(visitor)) {
+                throw new IllegalStateException("Workbench save/reload lost blade data or its depositor");
+            }
+            var reopened = new BladeSealWorkbench.WorkbenchMenu(44, owner.getInventory(), storage);
+            if (reopened.quickMoveStack(owner, 0).isEmpty() || !storage.inventory().isEmpty()
+                    || !storage.canUse(visitor)) {
+                throw new IllegalStateException("The depositor could not reclaim the blade and free the slot");
+            }
+            LOGGER.info("BLADE_STUDIO_WORKBENCH_STORAGE_PASS");
+        } finally {
+            level.setBlockAndUpdate(position, previous);
+        }
+    }
+
     private static BladeSealWorkbench.WorkbenchMenu workbench(ServerPlayer player, ItemStack blade) {
         var menu = new BladeSealWorkbench.WorkbenchMenu(42, player.getInventory(),
-                net.minecraft.world.inventory.ContainerLevelAccess.NULL);
+                null);
         menu.getSlot(0).set(blade);
         player.containerMenu = menu;
         return menu;

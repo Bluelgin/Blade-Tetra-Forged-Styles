@@ -48,14 +48,17 @@ final class BladeSealSessions {
         var projection = BladeAwakeningExportPolicy.project(snapshot, blade);
         var report = BladeExportPreflight.inspect(projection.snapshot(), projection.blade());
         UUID token = UUID.randomUUID();
-        // No authorization token is stored when the current build is known to be non-portable.
-        if (report.ready()) {
-            DRAFTS.put(player, new Draft(token, menu, blade, blade.copy(), snapshot,
+        if (!report.ready()) {
+            return new BladeSealPackets.Preview(token, menu.containerId, blade.getHoverName().copy(),
+                    false, report.summary(), projection.omitsAwakening(), "", "");
+        }
+        String encoded = BladeSealPackets.encodeSnapshot(projection.snapshot());
+        String artTag = appearanceTag(projection.blade());
+        DRAFTS.put(player, new Draft(token, menu, blade, blade.copy(), snapshot,
                     projection.snapshot(), projection.blade(), projection.omitsAwakening(),
                     MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
-        }
         return new BladeSealPackets.Preview(token, menu.containerId, blade.getHoverName().copy(),
-                report.ready(), report.summary(), projection.omitsAwakening());
+                true, report.summary(), projection.omitsAwakening(), encoded, artTag);
     }
 
     static void confirm(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
@@ -64,11 +67,7 @@ final class BladeSealSessions {
         try {
             var snapshot = takeConfirmed(player, token, acknowledgeAwakeningLoss);
             if (snapshot != null) {
-                var tag = snapshot.blade().getTag();
-                artTag = tag == null ? "{}" : tag.toString();
-                if (artTag.length() > BladeSealPackets.MAX_APPEARANCE_TAG) {
-                    throw new IllegalArgumentException("Blade appearance data exceeds the export limit");
-                }
+                artTag = appearanceTag(snapshot.blade());
                 encoded = BladeSealPackets.encodeSnapshot(snapshot.data());
             }
         } catch (IllegalArgumentException | IllegalStateException failure) {
@@ -76,6 +75,15 @@ final class BladeSealSessions {
             artTag = "";
         }
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new BladeSealPackets.Result(token, encoded, artTag));
+    }
+
+    private static String appearanceTag(ItemStack blade) {
+        var tag = blade.getTag();
+        String encoded = tag == null ? "{}" : tag.toString();
+        if (encoded.length() > BladeSealPackets.MAX_APPEARANCE_TAG) {
+            throw new IllegalArgumentException("Blade appearance data exceeds the export limit");
+        }
+        return encoded;
     }
 
     record Approved(BladeExportSnapshot data, ItemStack blade) {}

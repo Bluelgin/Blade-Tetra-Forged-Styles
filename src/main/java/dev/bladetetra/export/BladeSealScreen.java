@@ -34,6 +34,7 @@ final class BladeSealScreen extends Screen {
     private EditBox author;
     private EditBox description;
     private Button confirm;
+    private Button previewButton;
     private Button awakeningConsent;
     private boolean awakeningAcknowledged;
     private Button backplateModeButton;
@@ -73,53 +74,57 @@ final class BladeSealScreen extends Screen {
         panelWidth = Math.max(120, Math.min(PANEL_WIDTH, width - 12));
         authorColumnWidth = Math.min(105, Math.max(60, panelWidth / 3));
         left = (width - panelWidth) / 2;
-        top = Math.max(0, (height - (preview.omitsAwakening() ? 560 : 480)) / 2);
-        name = field(left, top + 51, panelWidth, 100, "blade_tetra.export.name",
+        top = Math.max(0, (height - (preview.omitsAwakening() ? 587 : 507)) / 2);
+        var view = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.preview"),
+                button -> openPreview()).bounds(left, top + 40, panelWidth, 20).build());
+        view.active = preview.ready();
+        previewButton = view;
+        name = field(left, top + 78, panelWidth, 100, "blade_tetra.export.name",
                 name == null ? preview.title().getString() : name.getValue());
-        addon = field(left, top + 78, panelWidth - 78, 50, "blade_tetra.export.id",
+        addon = field(left, top + 105, panelWidth - 78, 50, "blade_tetra.export.id",
                 addon == null ? "blade_" + preview.token().toString().substring(0, 8) : addon.getValue());
-        version = field(left + panelWidth - 72, top + 78, 72, 30, "blade_tetra.export.version",
+        version = field(left + panelWidth - 72, top + 105, 72, 30, "blade_tetra.export.version",
                 version == null ? "1.0.0" : version.getValue());
-        author = field(left, top + 105, authorColumnWidth, 64, "blade_tetra.export.author",
+        author = field(left, top + 132, authorColumnWidth, 64, "blade_tetra.export.author",
                 author == null ? "" : author.getValue());
-        description = field(left + authorColumnWidth + 6, top + 105,
+        description = field(left + authorColumnWidth + 6, top + 132,
                 panelWidth - authorColumnWidth - 6, 800, "blade_tetra.export.description",
                 description == null ? "" : description.getValue());
-        modTitle = field(left, top + 132, panelWidth, 100, "blade_tetra.export.mod_name",
+        modTitle = field(left, top + 159, panelWidth, 100, "blade_tetra.export.mod_name",
                 modTitle == null ? preview.title().getString() : modTitle.getValue());
-        chineseName = field(left, top + 159, panelWidth, 100, "blade_tetra.export.chinese_name",
+        chineseName = field(left, top + 186, panelWidth, 100, "blade_tetra.export.chinese_name",
                 chineseName == null ? "" : chineseName.getValue());
-        lore = field(left, top + 186, panelWidth, 800, "blade_tetra.export.lore",
+        lore = field(left, top + 213, panelWidth, 800, "blade_tetra.export.lore",
                 lore == null ? "" : lore.getValue());
-        chineseLore = field(left, top + 213, panelWidth, 800, "blade_tetra.export.chinese_lore",
+        chineseLore = field(left, top + 240, panelWidth, 800, "blade_tetra.export.chinese_lore",
                 chineseLore == null ? "" : chineseLore.getValue());
-        logo = field(left, top + 240, panelWidth - 54, 1024, "blade_tetra.export.logo",
+        logo = field(left, top + 267, panelWidth - 54, 1024, "blade_tetra.export.logo",
                 logo == null ? "" : logo.getValue());
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
-                button -> chooseImage(true)).bounds(left + panelWidth - 49, top + 238, 49, 20).build());
+                button -> chooseImage(true)).bounds(left + panelWidth - 49, top + 265, 49, 20).build());
         int modeWidth = Math.min(87, panelWidth / 3);
         int browseWidth = Math.min(48, panelWidth / 4);
         int pictureWidth = panelWidth - modeWidth - browseWidth - 8;
         backplateModeButton = addRenderableWidget(Button.builder(backplateLabel(),
-                button -> cycleBackplateMode()).bounds(left, top + 269, modeWidth, 20).build());
-        backplatePath = field(left + modeWidth + 4, top + 270, pictureWidth, 1024,
+                button -> cycleBackplateMode()).bounds(left, top + 296, modeWidth, 20).build());
+        backplatePath = field(left + modeWidth + 4, top + 297, pictureWidth, 1024,
                 "blade_tetra.export.backplate_file",
                 backplatePath == null ? "" : backplatePath.getValue());
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.backplate.browse"),
                 button -> chooseImage(false)).bounds(left + modeWidth + 4 + pictureWidth + 4,
-                        top + 269, browseWidth, 20).build());
+                        top + 296, browseWidth, 20).build());
         if (preview.omitsAwakening()) {
             awakeningConsent = addRenderableWidget(Button.builder(awakeningConsentLabel(),
                     button -> {
                         awakeningAcknowledged = !awakeningAcknowledged;
                         awakeningConsent.setMessage(awakeningConsentLabel());
                         confirm.active = !confirmed && preview.ready() && awakeningAcknowledged;
-                    }).bounds(left, top + 340, panelWidth, 20).build());
+                    }).bounds(left, top + 367, panelWidth, 20).build());
         }
         confirm = addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.confirm"),
-                button -> request()).bounds(left, top + (preview.omitsAwakening() ? 366 : 298),
+                button -> request()).bounds(left, top + (preview.omitsAwakening() ? 393 : 325),
                         panelWidth, 20).build());
-        int projectRow = top + (preview.omitsAwakening() ? 395 : 327);
+        int projectRow = top + (preview.omitsAwakening() ? 422 : 354);
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.project.save"),
                 button -> saveProject()).bounds(left, projectRow, panelWidth / 2 - 2, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("blade_tetra.export.project.open"),
@@ -135,7 +140,7 @@ final class BladeSealScreen extends Screen {
     }
 
     private void addResultButtons() {
-        int resultRow = top + (preview.omitsAwakening() ? 502 : 434);
+        int resultRow = top + (preview.omitsAwakening() ? 529 : 461);
         String[] labels = {"directory", "path", "command"};
         Runnable[] actions = {
                 () -> net.minecraft.Util.getPlatform().openFile(published.getParent().toFile()),
@@ -259,6 +264,19 @@ final class BladeSealScreen extends Screen {
         }
     }
 
+    private void openPreview() {
+        try {
+            var selection = new CustomBackplateImage.Selection(backplateMode, backplatePath.getValue().strip());
+            minecraft.setScreen(new BladeStudioPreviewScreen(this, preview, workbench.getMenu().blade(), selection));
+        } catch (IllegalArgumentException failure) {
+            status = Component.translatable("blade_tetra.export.blocked", failure.getMessage());
+        }
+    }
+
+    boolean workbenchOpen() {
+        return minecraft != null && minecraft.player != null && minecraft.player.containerMenu == workbench.getMenu();
+    }
+
     private void request() {
         if (!preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
         try {
@@ -346,7 +364,7 @@ final class BladeSealScreen extends Screen {
     /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int maximum = Math.max(0, (preview.omitsAwakening() ? 560 : 480) - height + 20);
+        int maximum = Math.max(0, (preview.omitsAwakening() ? 587 : 507) - height + 20);
         if (maximum == 0) return super.mouseScrolled(mouseX, mouseY, delta);
         int next = Mth.clamp(scrollPixels - (int) Math.round(delta * 24), 0, maximum);
         int shift = scrollPixels - next;
@@ -372,9 +390,11 @@ final class BladeSealScreen extends Screen {
 
     @Override
     public void tick() {
-        if (minecraft != null && minecraft.player != null && minecraft.player.containerMenu != workbench.getMenu()) {
+        if (!workbenchOpen()) {
             minecraft.setScreen(null);
+            return;
         }
+        previewButton.active = preview.ready() && (!confirmed || published != null);
     }
 
     Component exportStatus() {
@@ -390,7 +410,7 @@ final class BladeSealScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         renderBackground(graphics);
         graphics.fill(left - 5, top, left + panelWidth + 5,
-                top + (preview.omitsAwakening() ? 560 : 480), 0xe8251d18);
+                top + (preview.omitsAwakening() ? 587 : 507), 0xe8251d18);
         graphics.fill(left - 5, top, left + panelWidth + 5, top + 2, 0xffb68757);
         super.render(graphics, mouseX, mouseY, delta);
         if (left >= 103 && !workbench.getMenu().blade().isEmpty()) {
@@ -409,34 +429,34 @@ final class BladeSealScreen extends Screen {
         }
         graphics.drawString(font, title, left, top + 4, 0xFFFFFF);
         graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.acquisition"), left, top + 17, panelWidth, 0xFFD480);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, top + 40, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.id"), left, top + 67, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + panelWidth - 72, top + 67, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 94, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 94, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, top + 67, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.id"), left, top + 94, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.version"), left + panelWidth - 72, top + 94, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.author"), left, top + 121, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left + authorColumnWidth + 6, top + 121, 0xFFFFFF);
         graphics.drawString(font, Component.translatable("blade_tetra.export.mod_name"),
-                left, top + 121, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_name"),
                 left, top + 148, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.lore"),
+        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_name"),
                 left, top + 175, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_lore"),
+        graphics.drawString(font, Component.translatable("blade_tetra.export.lore"),
                 left, top + 202, 0xFFFFFF);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.logo"),
+        graphics.drawString(font, Component.translatable("blade_tetra.export.chinese_lore"),
                 left, top + 229, 0xFFFFFF);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.logo"),
+                left, top + 256, 0xFFFFFF);
         if (preview.omitsAwakening()) {
             graphics.drawWordWrap(font,
                     Component.translatable("blade_tetra.export.awakening.notice"),
-                    left, top + 298, panelWidth, 0xFFD480);
+                    left, top + 325, panelWidth, 0xFFD480);
         }
         int offset = preview.omitsAwakening() ? 68 : 0;
         graphics.drawWordWrap(font,
                 Component.translatable(preview.ready()
                         ? "blade_tetra.export.preflight.ready" : "blade_tetra.export.preflight.blocked",
-                        preview.summary()), left, top + 356 + offset, panelWidth,
+                        preview.summary()), left, top + 383 + offset, panelWidth,
                 preview.ready() ? 0xA6E3B0 : 0xFF9C9C);
         if (status != null) {
-            graphics.drawWordWrap(font, status, left, top + 412 + offset, panelWidth, 0xFFFFFF);
+            graphics.drawWordWrap(font, status, left, top + 439 + offset, panelWidth, 0xFFFFFF);
         }
     }
 }

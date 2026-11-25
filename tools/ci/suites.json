@@ -220,7 +220,8 @@
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
         "BLADE_EXPORT_RUNTIME_FIXTURE:",
         "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63",
-        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS",
+        "BLADE_STUDIO_WORKBENCH_STORAGE_PASS"
       ],
       "flags": []
     },
@@ -232,7 +233,8 @@
         "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
         "BLADE_EXPORT_RUNTIME_FIXTURE:",
         "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65",
-        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS",
+        "BLADE_STUDIO_WORKBENCH_STORAGE_PASS"
       ],
       "flags": [
         "slashblade1965"
@@ -243,7 +245,8 @@
       "property": "exportSealClientSmoke",
       "directory": "blade-export-client-smoke",
       "markers": [
-        "BLADE_SEAL_NAMED_CLIENT_PASS"
+        "BLADE_SEAL_NAMED_CLIENT_PASS",
+        "BLADE_STUDIO_PREVIEW_PASS"
       ],
       "flags": []
     }
