@@ -89,4 +89,18 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 
 The historical client smoke at `98ac2af2` timed out after the server rejected the confirmation. Running that revision with diagnostics reproduced the rejection before packaging. The player still had operator permission and the original stack in hand. The weapon tick had updated derived tags including `bladeState`, enchantments and legacy caches, so comparing the full stack with the preview copy failed. The workbench removes the weapon from hand ticking while the block owns it, and binds confirmation to that menu, stack identity, frozen contents and current permission.
 
-Current export blockers include programmatic/forged Slash Arts, Salty Fish geometry, banner pattern geometry, and third-party model inputs without an approved embedding policy. Resource-pack overrides are checked against provider evidence. The editor groups blade inspection, add-on metadata, appearance, multilingual text and project settings in tabs. The Studio preview compares the source inventory icon and the baked export mesh, with separate sheath, damage and luminous controls. It uses the same OBJ, atlas and portrait builder as packaging. Existing 1.3.0 and 1.4.0 add-ons pin their runtime versions, so keep those exports in separate instances until a mixed-version migration is verified.
+The Studio opens on the blade preview, name and description. Advanced mode exposes the metadata, art, multilingual text and project panels. Draft identity follows the current workbench deposit and survives world reload while its blade remains in the slot. The comparison screen renders the original through SlashBlade's render events and the result through the baked OBJ and atlas.
+
+| Source feature | Standalone export |
+| --- | --- |
+| Portable styles and authored moves | Existing runtime dispatch handles Iaido, Rengeki, Dangaku and Custom. |
+| Stock fittings with Salty Fish bone or sheath | Static geometry and textures are baked into the package. A fishbone blade carries the original sound and particles in runtime 1.6.0. |
+| Salty Fish with a salvaged or named fitting | Preflight rejects mixed fitting combinations that need the original model assembler. |
+| One registered provider Slash Art | Preserves its ID and declares the required provider and version. |
+| Programmatic fusion, including YakumoBlade sources | Source dispatch can run A→B. Standalone preflight rejects the pair until it has an independent scheduler. |
+| Recasting Time Beyond | Requires pre-release charge events. The source compatibility layer skips it. |
+| Treasure Barrage | Delayed replay needs source context beyond synchronous dispatch. |
+| SJAP, YakumoBlade, The Last Smith: Resharpened and Recasting model resources | Embedding requires licensing and provider evidence for the actual model, texture and adapter. |
+| Banner-pattern saya, forged source-only Slash Arts and Boundary Forging | Preflight reports these capabilities as source-dependent. |
+
+Exports pin their embedded runtime version. Use a separate instance for older runtime JARs or re-seal the source blades and replace the old JARs when upgrading to runtime 1.6.0.

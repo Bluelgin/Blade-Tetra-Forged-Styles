@@ -4,6 +4,14 @@ on:
   pull_request:
     paths:
       - 'src/main/java/dev/bladetetra/export/**'
+      - 'src/main/java/dev/bladetetra/client/*ExportArt.java'
+      - 'src/main/java/dev/bladetetra/client/NamedBladeExportAssembler.java'
+      - 'src/main/java/dev/bladetetra/client/LegacyModelPartRenderer.java'
+      - 'src/main/java/dev/bladetetra/combat/SaltyFishHitFeedback.java'
+      - 'src/main/resources/assets/blade_tetra/model/modular/salty_fish/**'
+      - 'src/integrationTest/java/dev/bladetetra/export/**'
+      - 'build.gradle'
+      - 'gradle.properties'
       - 'src/exportRuntime/**'
       - 'src/exportRuntimeTest/**'
       - 'tools/ci/run_clean_receiver.py'
@@ -41,6 +49,8 @@ jobs:
       SLASHBLADE_VERSION: ${{ matrix.slashblade }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

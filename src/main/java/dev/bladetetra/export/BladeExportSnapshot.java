@@ -12,6 +12,7 @@ import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.SoulLegacyState;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -90,7 +91,8 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
                 .map(soul -> new Soul(soul.name(), SoulLegacyState.isUnlocked(stack, soul))).toList();
         return stack.getCapability(ItemSlashBlade.BLADESTATE).map(state -> new BladeExportSnapshot(
                 stack.getHoverName().getString(), state.getBaseAttackModifier(), state.getMaxDamage(),
-                state.getComboRoot(), state.getSlashArtsKey(),
+                state.getComboRoot(), Objects.requireNonNullElseGet(state.getSlashArtsKey(),
+                        SlashArtsRegistry.JUDGEMENT_CUT::getId),
                 state.getSpecialEffects().stream().sorted().toList(), enchantments, attributes,
                 state.getColorCode(), state.isEffectColorInverse(), state.getCarryType().name(),
                 state.getAdjust(), state.isDefaultBewitched(), state.isSealed(), state.isBroken(),

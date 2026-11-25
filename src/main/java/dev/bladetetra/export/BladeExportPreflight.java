@@ -50,6 +50,12 @@ final class BladeExportPreflight {
         if (effects.precisionHabaki()) preserved.add("precision habaki (half rank decay)");
         if (effects.reinforcedHabaki()) preserved.add("reinforced habaki (+50% ordinary horizontal knockback)");
 
+        var fusion = dev.bladetetra.combat.ProgrammaticFusionPlan.from(blade);
+        if (fusion != null && dev.bladetetra.registry.ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId()
+                .equals(snapshot.slashArt())) {
+            blockers.add("Independent fusion dispatch unavailable for " + fusion.releaseAbility()
+                    + " → " + fusion.responseAbility() + ". Keep the source mods for this pair.");
+        }
         try {
             StandaloneBladeExport.checkCombat(snapshot);
         } catch (IllegalArgumentException | IllegalStateException unsupported) {
