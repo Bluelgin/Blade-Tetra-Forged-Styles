@@ -2,20 +2,6 @@ name: Standalone Blade Receiver
 
 on:
   pull_request:
-    paths:
-      - 'src/main/java/dev/bladetetra/export/**'
-      - 'src/main/java/dev/bladetetra/client/*ExportArt.java'
-      - 'src/main/java/dev/bladetetra/client/NamedBladeExportAssembler.java'
-      - 'src/main/java/dev/bladetetra/client/LegacyModelPartRenderer.java'
-      - 'src/main/java/dev/bladetetra/combat/SaltyFishHitFeedback.java'
-      - 'src/main/resources/assets/blade_tetra/model/modular/salty_fish/**'
-      - 'src/integrationTest/java/dev/bladetetra/export/**'
-      - 'build.gradle'
-      - 'gradle.properties'
-      - 'src/exportRuntime/**'
-      - 'src/exportRuntimeTest/**'
-      - 'tools/ci/run_clean_receiver.py'
-      - '.github/workflows/clean-receiver.yml'
   workflow_dispatch:
     inputs:
       slashblade:
