@@ -15,11 +15,15 @@ import java.util.UUID;
 final class BladeSealWorkbenchStorage extends BlockEntity {
     private final SimpleContainer inventory = new SimpleContainer(1);
     private UUID depositor;
+    private UUID studioProject;
 
     BladeSealWorkbenchStorage(BlockPos position, BlockState state) {
         super(BladeSealWorkbench.STORAGE.get(), position, state);
         inventory.addListener(container -> {
-            if (container.isEmpty()) depositor = null;
+            if (container.isEmpty()) {
+                depositor = null;
+                studioProject = null;
+            }
             setChanged();
         });
     }
@@ -35,8 +39,17 @@ final class BladeSealWorkbenchStorage extends BlockEntity {
     void recordDepositor(Player player, ItemStack stack) {
         if (!stack.isEmpty()) {
             depositor = player.getUUID();
+            if (stack != inventory.getItem(0)) studioProject = null;
             setChanged();
         }
+    }
+
+    UUID studioProject() {
+        if (studioProject == null) {
+            studioProject = UUID.randomUUID();
+            setChanged();
+        }
+        return studioProject;
     }
 
     @Override
@@ -46,6 +59,7 @@ final class BladeSealWorkbenchStorage extends BlockEntity {
         if (!blade.isEmpty()) {
             tag.put("Blade", blade.save(new CompoundTag()));
             if (depositor != null) tag.putUUID("Depositor", depositor);
+            if (studioProject != null) tag.putUUID("StudioProject", studioProject);
         }
     }
 
@@ -54,6 +68,7 @@ final class BladeSealWorkbenchStorage extends BlockEntity {
         super.load(tag);
         inventory.setItem(0, tag.contains("Blade", Tag.TAG_COMPOUND)
                 ? ItemStack.of(tag.getCompound("Blade")) : ItemStack.EMPTY);
+        studioProject = !inventory.isEmpty() && tag.hasUUID("StudioProject") ? tag.getUUID("StudioProject") : null;
         depositor = !inventory.isEmpty() && tag.hasUUID("Depositor") ? tag.getUUID("Depositor") : null;
     }
 }

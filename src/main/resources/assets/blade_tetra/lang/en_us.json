@@ -1,4 +1,9 @@
 {
+  "blade_tetra.export.mode.advanced": "Advanced",
+  "blade_tetra.export.mode.simple": "Simple",
+  "blade_tetra.export.mode.ready": "Ready to seal",
+  "blade_tetra.export.mode.blocked": "Sealing unavailable. Open Advanced for details.",
+  "blade_tetra.export.mode.draft_error": "Could not save or open the local draft.",
   "blade_tetra.export.page.stats": "Attack %s · Durability %s",
   "blade_tetra.export.page.blade": "Blade",
   "blade_tetra.export.page.addon": "Add-on",

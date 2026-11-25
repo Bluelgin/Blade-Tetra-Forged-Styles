@@ -397,22 +397,27 @@ public final class BladeExportPackageSmoke {
                     || visitorMenu.quickMoveStack(visitor, 0) != ItemStack.EMPTY) {
                 throw new IllegalStateException("Another player can retrieve a stored blade");
             }
-            var token = BladeSealSessions.begin(owner, menu).token();
+            var preview = BladeSealSessions.begin(owner, menu);
             menu.removed(owner);
-            if (BladeSealSessions.takeConfirmed(owner, token) != null || menu.blade() != original) {
+            if (BladeSealSessions.takeConfirmed(owner, preview.token()) != null || menu.blade() != original) {
                 throw new IllegalStateException("Closing the menu lost the blade or kept an old authorization");
             }
             var reloaded = net.minecraft.world.level.block.entity.BlockEntity.loadStatic(
                     position, state, storage.saveWithFullMetadata());
             if (!(reloaded instanceof BladeSealWorkbenchStorage restored)
                     || !ItemStack.matches(original, restored.inventory().getItem(0))
-                    || !restored.canUse(owner) || restored.canUse(visitor)) {
+                    || !restored.canUse(owner) || restored.canUse(visitor)
+                    || !preview.projectId().equals(restored.studioProject())) {
                 throw new IllegalStateException("Workbench save/reload lost blade data or its depositor");
             }
             var reopened = new BladeSealWorkbench.WorkbenchMenu(44, owner.getInventory(), storage);
             if (reopened.quickMoveStack(owner, 0).isEmpty() || !storage.inventory().isEmpty()
                     || !storage.canUse(visitor)) {
                 throw new IllegalStateException("The depositor could not reclaim the blade and free the slot");
+            }
+            reopened.getSlot(0).set(original.copy());
+            if (preview.projectId().equals(reopened.studioProject())) {
+                throw new IllegalStateException("A new deposit inherited another project's identity");
             }
             LOGGER.info("BLADE_STUDIO_WORKBENCH_STORAGE_PASS");
         } finally {

@@ -18,6 +18,8 @@ import net.minecraft.world.item.ItemStack;
 import java.io.IOException;
 import java.awt.FileDialog;
 import java.awt.Frame;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -38,6 +40,14 @@ final class BladeSealScreen extends Screen {
     private final EnumMap<Page, List<AbstractWidget>> pageControls = new EnumMap<>(Page.class);
     private final EnumMap<Page, Button> pageTabs = new EnumMap<>(Page.class);
     private Page page = Page.BLADE;
+    private boolean advanced;
+    private Button modeSwitch;
+    private Path draftFile;
+    private BladeStudioProject lastDraft;
+    private boolean draftInitialized;
+    private int draftTicks;
+    private BladeStudioViewport viewport;
+    private boolean previewDragging;
     private final BladeSealPackets.Preview preview;
     private final BladeSealWorkbenchScreen workbench;
     private final BladeExportSnapshot projectedStats;
@@ -100,6 +110,14 @@ final class BladeSealScreen extends Screen {
         int columns = panelWidth >= 218 ? Page.values().length : 3;
         bodyOffset = columns == 3 ? 70 : 47;
         top = Math.max(4, (height - bodyOffset - BODY_HEIGHT) / 2);
+        modeSwitch = addRenderableWidget(Button.builder(modeLabel(), button -> {
+            advanced = !advanced;
+            button.setMessage(modeLabel());
+            if (advanced && viewport != null) viewport.release(minecraft);
+            previewDragging = false;
+            updateVisibleControls();
+        }).bounds(left + panelWidth - 72, top + 3, 72, 16).build());
+
         pageControls.clear();
         pageTabs.clear();
         for (var tab : Page.values()) {
@@ -115,10 +133,11 @@ final class BladeSealScreen extends Screen {
                 this::openPreview, left, 0, panelWidth);
         previewButton.active = preview.ready();
 
-        modTitle = pageField(Page.ADDON, 0, 100, "mod_name", modTitle, preview.title().getString());
-        addon = pageField(Page.ADDON, 1, 50, "id", addon, "blade_" + preview.token().toString().substring(0, 8));
+        modTitle = pageField(Page.ADDON, 0, 100, "mod_name", modTitle, "");
+        addon = pageField(Page.ADDON, 1, 50, "id", addon, "blade_" + preview.projectId().toString().replace("-", ""));
         version = pageField(Page.ADDON, 2, 30, "version", version, "1.0.0");
-        author = pageField(Page.ADDON, 3, 64, "author", author, "");
+        author = pageField(Page.ADDON, 3, 64, "author", author,
+                minecraft.player == null ? "" : minecraft.player.getGameProfile().getName());
         description = pageField(Page.ADDON, 4, 800, "description", description, "");
 
         int browseWidth = Math.min(60, panelWidth / 3);
@@ -133,6 +152,8 @@ final class BladeSealScreen extends Screen {
                 this::cycleBackplateMode, left, 91, panelWidth);
 
         name = pageField(Page.TEXT, 0, 100, "name", name, preview.title().getString());
+        modTitle.setHint(Component.literal(name.getValue()));
+        name.setResponder(value -> modTitle.setHint(Component.literal(value)));
         chineseName = pageField(Page.TEXT, 1, 100, "chinese_name", chineseName, "");
         lore = storyField("lore", 66, lore);
         chineseLore = storyField("chinese_lore", 117, chineseLore);
@@ -153,14 +174,37 @@ final class BladeSealScreen extends Screen {
                 button -> request()).bounds(left, bodyTop() + 165, panelWidth, 20).build());
         confirm.active = !confirmed && preview.ready() && (!preview.omitsAwakening() || awakeningAcknowledged);
         if (published != null) addResultButtons();
+        if (!draftInitialized) loadDraft();
         showPage(page);
     }
 
     private void showPage(Page selected) {
         page = selected;
         setFocused(null);
-        pageTabs.forEach((tab, button) -> button.active = page != tab);
-        pageControls.forEach((tab, controls) -> controls.forEach(control -> control.visible = tab == page));
+        updateVisibleControls();
+    }
+
+    private Component modeLabel() {
+        return Component.translatable(advanced ? "blade_tetra.export.mode.simple" : "blade_tetra.export.mode.advanced");
+    }
+
+    private void updateVisibleControls() {
+        setFocused(null);
+        pageTabs.forEach((tab, button) -> {
+            button.visible = advanced;
+            button.active = page != tab;
+        });
+        pageControls.forEach((tab, controls) ->
+                controls.forEach(control -> control.visible = advanced && tab == page));
+        if (!advanced) {
+            name.setY(bodyTop() + 98);
+            description.setY(bodyTop() + 124);
+            name.visible = true;
+            description.visible = true;
+        } else {
+            name.setY(bodyTop() + 12);
+            description.setY(bodyTop() + 120);
+        }
     }
 
     private void track(Page tab, AbstractWidget control) {
@@ -276,14 +320,52 @@ final class BladeSealScreen extends Screen {
         return addRenderableWidget(field);
     }
 
+    private BladeStudioProject project() {
+        return new BladeStudioProject(1, addon.getValue().strip(), version.getValue().strip(),
+                modTitle.getValue().strip(), name.getValue().strip(), chineseName.getValue().strip(),
+                author.getValue().strip(), description.getValue().strip(), lore.getValue().strip(),
+                chineseLore.getValue().strip(), logo.getValue().strip(), backplateMode,
+                backplatePath.getValue().strip());
+    }
+
+    private void loadDraft() {
+        draftInitialized = true;
+        try {
+            draftFile = BladeStudioProject.draftFile(minecraft.gameDirectory.toPath(), preview.projectId());
+            if (Files.exists(draftFile, LinkOption.NOFOLLOW_LINKS)) {
+                applyProject(BladeStudioProject.loadDraft(draftFile));
+                lastDraft = project();
+            }
+        } catch (IOException | IllegalArgumentException failure) {
+            draftFile = null;
+            status = Component.translatable("blade_tetra.export.mode.draft_error");
+            LogUtils.getLogger().warn("Could not open Blade Studio draft", failure);
+        }
+    }
+
+    private void saveDraft() {
+        if (draftFile == null) return;
+        BladeStudioProject current;
+        try {
+            current = project();
+        } catch (IllegalArgumentException incompleteForm) {
+            return;
+        }
+        if (current.equals(lastDraft)) return;
+        try {
+            current.save(draftFile, true);
+            lastDraft = current;
+        } catch (IOException failure) {
+            draftFile = null;
+            status = Component.translatable("blade_tetra.export.mode.draft_error");
+            LogUtils.getLogger().warn("Could not save Blade Studio draft", failure);
+        }
+    }
+
     private void saveProject() {
         if (confirmed && published == null) return;
         try {
-            var project = new BladeStudioProject(1, addon.getValue().strip(), version.getValue().strip(),
-                    modTitle.getValue().strip(), name.getValue().strip(), chineseName.getValue().strip(),
-                    author.getValue().strip(), description.getValue().strip(), lore.getValue().strip(),
-                    chineseLore.getValue().strip(), logo.getValue().strip(), backplateMode,
-                    backplatePath.getValue().strip());
+            var project = project();
             var output = BladeStudioProject.file(minecraft.gameDirectory.toPath(), project.addon());
             if (java.nio.file.Files.exists(output, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
                 minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(replace -> {
@@ -311,22 +393,27 @@ final class BladeSealScreen extends Screen {
         try {
             var input = BladeStudioProject.file(minecraft.gameDirectory.toPath(), addon.getValue().strip());
             var project = BladeStudioProject.load(input);
-            version.setValue(project.version());
-            modTitle.setValue(project.title());
-            name.setValue(project.bladeName());
-            chineseName.setValue(project.chineseName());
-            lore.setValue(project.lore());
-            chineseLore.setValue(project.chineseLore());
-            logo.setValue(project.logoPath());
-            author.setValue(project.author());
-            description.setValue(project.description());
-            backplateMode = project.backplateMode();
-            backplateModeButton.setMessage(backplateLabel());
-            backplatePath.setValue(project.backplatePath());
+            applyProject(project);
             status = Component.translatable("blade_tetra.export.project.opened", project.addon());
         } catch (IOException | IllegalArgumentException failure) {
             status = Component.translatable("blade_tetra.export.blocked", failure.getMessage());
         }
+    }
+
+    private void applyProject(BladeStudioProject project) {
+        addon.setValue(project.addon());
+        version.setValue(project.version());
+        modTitle.setValue(project.title());
+        name.setValue(project.bladeName());
+        chineseName.setValue(project.chineseName());
+        lore.setValue(project.lore());
+        chineseLore.setValue(project.chineseLore());
+        logo.setValue(project.logoPath());
+        author.setValue(project.author());
+        description.setValue(project.description());
+        backplateMode = project.backplateMode();
+        backplateModeButton.setMessage(backplateLabel());
+        backplatePath.setValue(project.backplatePath());
     }
 
     private void openPreview() {
@@ -346,7 +433,8 @@ final class BladeSealScreen extends Screen {
         if (confirmed || !preview.ready() || preview.omitsAwakening() && !awakeningAcknowledged) return;
         try {
             var metadata = new BladeExportArchive.Metadata("bt_export_" + addon.getValue().strip(),
-                    version.getValue().strip(), modTitle.getValue().strip(), author.getValue().strip(),
+                    version.getValue().strip(), modTitle.getValue().isBlank() ? name.getValue().strip()
+                            : modTitle.getValue().strip(), author.getValue().strip(),
                     description.getValue().strip(), name.getValue().strip(), chineseName.getValue().strip(),
                     lore.getValue().strip(), chineseLore.getValue().strip(),
                     CustomBackplateImage.readLogo(logo.getValue().strip()));
@@ -429,6 +517,10 @@ final class BladeSealScreen extends Screen {
     /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (inSimplePreview(mouseX, mouseY)) {
+            viewport.zoom(delta);
+            return true;
+        }
         int maximum = Math.max(0, bodyOffset + BODY_HEIGHT - height + 12);
         if (super.mouseScrolled(mouseX, mouseY, delta)) return true;
         if (maximum == 0) return false;
@@ -460,11 +552,25 @@ final class BladeSealScreen extends Screen {
             minecraft.setScreen(null);
             return;
         }
+        if (++draftTicks == 20) {
+            draftTicks = 0;
+            saveDraft();
+        }
         previewButton.active = preview.ready() && (!confirmed || published != null);
-        if (page == Page.TEXT) {
+        modeSwitch.active = !confirmed || published != null;
+        if (!advanced && preview.ready()) {
+            if (viewport == null) viewport = new BladeStudioViewport(preview);
+            viewport.prepare(minecraft, new CustomBackplateImage.Selection(backplateMode,
+                    backplatePath.getValue().strip()));
+        }
+        if (advanced && page == Page.TEXT) {
             lore.tick();
             chineseLore.tick();
         }
+    }
+
+    boolean hasInlinePreview() {
+        return !advanced && viewport != null && viewport.ready();
     }
 
     Component exportStatus() {
@@ -482,7 +588,7 @@ final class BladeSealScreen extends Screen {
         graphics.fill(left - 5, top, left + panelWidth + 5, bodyTop() + BODY_HEIGHT, 0xe8251d18);
         graphics.fill(left - 5, top, left + panelWidth + 5, top + 2, 0xffb68757);
         super.render(graphics, mouseX, mouseY, delta);
-        if (left >= 103 && !workbench.getMenu().blade().isEmpty()) {
+        if (advanced && left >= 103 && !workbench.getMenu().blade().isEmpty()) {
             var stack = workbench.getMenu().blade();
             int x = left - 54;
             int y = Math.max(50, height / 2);
@@ -497,7 +603,9 @@ final class BladeSealScreen extends Screen {
             }
         }
         graphics.drawString(font, title, left, top + 7, 0xffffff);
-        switch (page) {
+        if (!advanced) {
+            renderSimple(graphics);
+        } else switch (page) {
             case BLADE -> renderOverview(graphics);
             case ADDON -> drawFieldLabels(graphics, "mod_name", "id", "version", "author", "description");
             case APPEARANCE -> {
@@ -518,6 +626,81 @@ final class BladeSealScreen extends Screen {
         if (status != null) {
             graphics.drawWordWrap(font, status, left, bodyTop() + 189, panelWidth, 0xffffff);
         }
+    }
+
+    private void renderSimple(GuiGraphics graphics) {
+        int y = bodyTop();
+        int previewWidth = panelWidth / 2;
+        graphics.fill(left, y - 15, left + previewWidth, y + 87, 0xff181513);
+        if (viewport != null && viewport.ready()) {
+            viewport.render(graphics, left, y - 15, left + previewWidth, y + 87);
+        } else {
+            var pose = graphics.pose();
+            pose.pushPose();
+            try {
+                pose.translate(left + previewWidth / 2F, y + 36, 0);
+                pose.scale(3, 3, 1);
+                graphics.renderItem(workbench.getMenu().blade(), -8, -8);
+            } finally {
+                pose.popPose();
+            }
+        }
+        int textX = left + previewWidth + 7;
+        int textWidth = panelWidth - previewWidth - 7;
+        if (projectedStats != null) {
+            graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.page.stats",
+                    projectedStats.attack(), projectedStats.durability()), textX, y - 12, textWidth, 0xffd6bb9a);
+        }
+        Component message = preview.omitsAwakening()
+                ? Component.translatable("blade_tetra.export.awakening.notice")
+                : Component.translatable(preview.ready() ? "blade_tetra.export.mode.ready"
+                        : "blade_tetra.export.mode.blocked");
+        graphics.drawWordWrap(font, message, textX, y + 17, textWidth,
+                preview.omitsAwakening() || !preview.ready() ? 0xffffd480 : 0xffa6e3b0);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, y + 88, 0xffffff);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left, y + 114, 0xffffff);
+    }
+
+    private boolean inSimplePreview(double x, double y) {
+        return !advanced && viewport != null && viewport.ready() && x >= left && x < left + panelWidth / 2
+                && y >= bodyTop() - 15 && y < bodyTop() + 87;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!inSimplePreview(mouseX, mouseY)) return super.mouseClicked(mouseX, mouseY, button);
+        if (button == 0) {
+            setFocused(null);
+            previewDragging = true;
+        } else if (button == 1) {
+            viewport.toggleDrawn();
+        } else if (button == 2) {
+            viewport.resetCamera();
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+        if (button != 0 || !previewDragging) return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        viewport.rotate(dx, dy);
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button != 0 || !previewDragging) return super.mouseReleased(mouseX, mouseY, button);
+        previewDragging = false;
+        return true;
+    }
+
+    @Override
+    public void removed() {
+        saveDraft();
+        previewDragging = false;
+        if (viewport != null) viewport.release(minecraft);
     }
 
     private void drawFieldLabels(GuiGraphics graphics, String... labels) {

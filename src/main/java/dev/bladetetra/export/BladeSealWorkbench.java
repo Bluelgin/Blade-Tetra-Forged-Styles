@@ -98,6 +98,7 @@ public final class BladeSealWorkbench extends Block implements EntityBlock {
         private static final int INVENTORY_END = 37;
         private final BladeSealWorkbenchStorage storage;
         private final SimpleContainer work;
+        private final java.util.UUID transientProject = java.util.UUID.randomUUID();
 
         WorkbenchMenu(int id, Inventory inventory, BladeSealWorkbenchStorage storage) {
             super(MENU.get(), id);
@@ -138,6 +139,10 @@ public final class BladeSealWorkbench extends Block implements EntityBlock {
 
         ItemStack blade() {
             return work.getItem(0);
+        }
+
+        java.util.UUID studioProject() {
+            return storage == null ? transientProject : storage.studioProject();
         }
 
         @Override

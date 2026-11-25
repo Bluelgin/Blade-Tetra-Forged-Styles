@@ -28,12 +28,13 @@ public final class BladeSealPackets {
         return JSON.fromJson(data, BladeExportSnapshot.class);
     }
 
-    public record Preview(UUID token, int menuId, Component title, boolean ready, String summary,
+    public record Preview(UUID token, UUID projectId, int menuId, Component title, boolean ready, String summary,
                           boolean omitsAwakening, String projection, String appearanceTag) {
         private static final int MAX_SUMMARY = 512;
 
         public void encode(FriendlyByteBuf buf) {
             buf.writeUUID(token);
+            buf.writeUUID(projectId);
             buf.writeVarInt(menuId);
             buf.writeComponent(title);
             buf.writeBoolean(ready);
@@ -44,7 +45,7 @@ public final class BladeSealPackets {
         }
 
         public static Preview decode(FriendlyByteBuf buf) {
-            return new Preview(buf.readUUID(), buf.readVarInt(), buf.readComponent(), buf.readBoolean(),
+            return new Preview(buf.readUUID(), buf.readUUID(), buf.readVarInt(), buf.readComponent(), buf.readBoolean(),
                     buf.readUtf(MAX_SUMMARY), buf.readBoolean(), buf.readUtf(MAX_SNAPSHOT),
                     buf.readUtf(MAX_APPEARANCE_TAG));
         }

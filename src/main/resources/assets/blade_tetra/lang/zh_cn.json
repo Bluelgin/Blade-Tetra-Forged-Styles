@@ -1,4 +1,9 @@
 {
+  "blade_tetra.export.mode.advanced": "高级模式",
+  "blade_tetra.export.mode.simple": "普通模式",
+  "blade_tetra.export.mode.ready": "可以封存",
+  "blade_tetra.export.mode.blocked": "当前无法封存，请在高级模式中查看原因。",
+  "blade_tetra.export.mode.draft_error": "无法保存或读取本地草稿。",
   "blade_tetra.export.page.stats": "攻击 %s · 耐久上限 %s",
   "blade_tetra.export.page.blade": "总览",
   "blade_tetra.export.page.addon": "附属",

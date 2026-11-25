@@ -119,7 +119,7 @@ public final class BladeSealClientSmoke {
             return;
         }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
-        if (++studioFrames < 5) return;
+        if (++studioFrames < 5 || before == null && !screen.hasInlinePreview()) return;
         Path directory = client.gameDirectory.toPath().resolve("blade-exports");
         try {
             Files.createDirectories(directory);
@@ -127,6 +127,21 @@ public final class BladeSealClientSmoke {
                 try (var files = Files.list(directory)) {
                     before = files.map(p -> p.getFileName().toString()).collect(Collectors.toSet());
                 }
+                if (!findField(screen, "blade_tetra.export.name").visible
+                        || !findField(screen, "blade_tetra.export.description").visible
+                        || findButton(screen, "blade_tetra.export.page.appearance").visible) {
+                    throw new IllegalStateException("Studio did not open on its simple page");
+                }
+                String defaultId = findField(screen, "blade_tetra.export.id").getValue();
+                if (!defaultId.matches("blade_[a-f0-9]{32}")) {
+                    throw new IllegalStateException("Invalid default Studio project ID: " + defaultId);
+                }
+                try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
+                    screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-simple.png"));
+                }
+                findField(screen, "blade_tetra.export.name").setValue("Sealed at dawn");
+                findField(screen, "blade_tetra.export.description").setValue("A simple-mode draft");
+                findButton(screen, "blade_tetra.export.mode.advanced").onPress();
                 // Test an actually user-provided transparent image, not an image bundled in either mod.
                 Path picture = client.gameDirectory.toPath().resolve("custom-sealed-portrait.png");
                 var image = new BufferedImage(64, 48, BufferedImage.TYPE_INT_ARGB);
@@ -178,6 +193,13 @@ public final class BladeSealClientSmoke {
             }
             if (previewVerified && !requestedExport) {
                 requestedExport = true;
+                findButton(screen, "blade_tetra.export.mode.simple").onPress();
+                if (!findField(screen, "blade_tetra.export.name").getValue().equals("Sealed at dawn")
+                        || !findField(screen, "blade_tetra.export.description").getValue().equals("A simple-mode draft")
+                        || findField(screen, "blade_tetra.export.logo").visible) {
+                    throw new IllegalStateException("Switching Studio modes lost the shared draft");
+                }
+                LogUtils.getLogger().info("BLADE_STUDIO_SIMPLE_MODE_PASS");
                 Button consent = screen.children().stream().filter(Button.class::isInstance)
                         .map(Button.class::cast)
                         .filter(button -> button.getMessage().equals(

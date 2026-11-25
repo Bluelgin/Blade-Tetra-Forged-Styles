@@ -49,7 +49,7 @@ final class BladeSealSessions {
         var report = BladeExportPreflight.inspect(projection.snapshot(), projection.blade());
         UUID token = UUID.randomUUID();
         if (!report.ready()) {
-            return new BladeSealPackets.Preview(token, menu.containerId, blade.getHoverName().copy(),
+            return new BladeSealPackets.Preview(token, menu.studioProject(), menu.containerId, blade.getHoverName().copy(),
                     false, report.summary(), projection.omitsAwakening(), "", "");
         }
         String encoded = BladeSealPackets.encodeSnapshot(projection.snapshot());
@@ -57,7 +57,7 @@ final class BladeSealSessions {
         DRAFTS.put(player, new Draft(token, menu, blade, blade.copy(), snapshot,
                     projection.snapshot(), projection.blade(), projection.omitsAwakening(),
                     MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
-        return new BladeSealPackets.Preview(token, menu.containerId, blade.getHoverName().copy(),
+        return new BladeSealPackets.Preview(token, menu.studioProject(), menu.containerId, blade.getHoverName().copy(),
                 true, report.summary(), projection.omitsAwakening(), encoded, artTag);
     }
 

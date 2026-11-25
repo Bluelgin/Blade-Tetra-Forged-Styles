@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 /** Versioned local editor settings. Server-side snapshots and approvals are session data. */
 record BladeStudioProject(int schema, String addon, String version, String title, String bladeName,
@@ -26,21 +27,41 @@ record BladeStudioProject(int schema, String addon, String version, String title
                 || author == null || description == null || lore == null || chineseLore == null) {
             throw new IllegalArgumentException("Invalid Blade Studio project");
         }
-        new BladeExportArchive.Metadata("bt_export_" + addon, version, title, author, description,
+        new BladeExportArchive.Metadata("bt_export_" + addon, version, title.isBlank() ? bladeName : title, author, description,
                 bladeName, chineseName, lore, chineseLore, new byte[0]);
     }
 
     static Path file(Path gameDirectory, String addon) throws IOException {
         if (!addon.matches("[a-z0-9_]{1,50}")) throw new IllegalArgumentException("Invalid add-on ID");
+        return projectDirectory(gameDirectory).resolve(addon + ".json");
+    }
+
+    static Path draftFile(Path gameDirectory, UUID id) throws IOException {
+        return projectDirectory(gameDirectory).resolve(id + ".draft.json");
+    }
+
+    private static Path projectDirectory(Path gameDirectory) throws IOException {
         Path directory = gameDirectory.resolve("blade-studio-projects");
         Files.createDirectories(directory);
         if (!directory.toRealPath().getParent().equals(gameDirectory.toRealPath())) {
             throw new IOException("Studio project directory points outside the game directory");
         }
-        return directory.resolve(addon + ".json");
+        return directory;
     }
 
     static BladeStudioProject load(Path path) throws IOException {
+        var project = read(path);
+        if (!path.getFileName().toString().equals(project.addon() + ".json")) {
+            throw new IOException("Studio project ID does not match its file");
+        }
+        return project;
+    }
+
+    static BladeStudioProject loadDraft(Path path) throws IOException {
+        return read(path);
+    }
+
+    private static BladeStudioProject read(Path path) throws IOException {
         if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("No Blade Studio project with that ID");
         }
@@ -48,9 +69,7 @@ record BladeStudioProject(int schema, String addon, String version, String title
             byte[] bytes = input.readNBytes(MAX_BYTES + 1);
             if (bytes.length > MAX_BYTES) throw new IOException("Studio project exceeds the size limit");
             var project = JSON.fromJson(new String(bytes, StandardCharsets.UTF_8), BladeStudioProject.class);
-            if (project == null || !path.getFileName().toString().equals(project.addon() + ".json")) {
-                throw new IOException("Studio project ID does not match its file");
-            }
+            if (project == null) throw new IOException("Empty Blade Studio project");
             return project;
         } catch (RuntimeException invalid) {
             throw new IOException("Invalid Blade Studio project", invalid);
