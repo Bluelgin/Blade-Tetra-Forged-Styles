@@ -100,6 +100,9 @@ public final class SaltyFishReview {
                 LogUtils.getLogger().info("SALTY_FISH_REVIEW_GUARD: {}", guard.id());
             }
         }
+        // Multiple game ticks may fall in one render frame on a slow client.
+        // Hold this review step until the pending framebuffer capture is written.
+        if (screenshot != null) return;
         switch (++tick) {
             case 1 -> camera(mc, 0.5, -59.2, 6.2, 47, 180, 0);
             case 32 -> screenshot = "01-three-lengths";
