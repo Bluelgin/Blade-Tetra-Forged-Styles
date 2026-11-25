@@ -123,7 +123,7 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
                 ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.PRECISION_HABAKI_MODULE);
         boolean reinforcedHabaki = ComponentEffectResolver.hasModule(stack,
                 ModularSlashBladeItem.HABAKI_SLOT, ModularSlashBladeItem.REINFORCED_HABAKI_MODULE);
-        boolean unsupported = dev.bladetetra.challenge.BoundaryForging.isForged(stack);
+        boolean unsupported = dev.bladetetra.forging.BoundaryForging.isForged(stack);
         return new ComponentEffects(draw ? ComponentCombatValues.DRAW_BONUS : 0,
                 spirit ? ComponentCombatValues.SPIRIT_BONUS : 0, spirit ? ComponentCombatValues.SPIRIT_TICKS : 0,
                 heavy, rank ? ComponentCombatValues.RANK_UNIT_DIVISOR : 0,

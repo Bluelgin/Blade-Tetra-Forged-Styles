@@ -37,7 +37,7 @@ def developmentProfiles = [
     'soulGuideReview', 'sakuraCombatSmoke', 'raikiriCombatSmoke', 'swordAuraHitSmoke',
     'lifengSmoke', 'customStyleInputReview', 'mirrorRitualReview', 'bloodBladeReview',
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
-    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
+    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'legacyWorldMigrationSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
     'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'exportPackageSmoke',
     'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
@@ -133,9 +133,9 @@ minecraft {
                 workingDirectory project.file('build/kyouka-native-smoke')
                 property 'blade_tetra.kyoukaNativeSmoke', 'true'
             }
-            if (project.hasProperty('mikageNativeSmoke')) {
-                workingDirectory project.file('build/mikage-native-smoke')
-                property 'blade_tetra.mikageNativeSmoke', 'true'
+            if (project.hasProperty('legacyWorldMigrationSmoke')) {
+                workingDirectory project.file('build/legacy-world-migration-smoke')
+                property 'blade_tetra.legacyWorldMigrationSmoke', 'true'
             }
             if (project.hasProperty('customStyleSmoke')) {
                 workingDirectory project.file('build/custom-style-smoke')
@@ -246,9 +246,6 @@ minecraft {
 
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
-    // Keep archived dialogue artwork locally, but let a future story mod own
-    // the optional portraits. Core only ships the descriptor-reading interface.
-    exclude 'assets/blade_tetra/textures/gui/mikage_dialogue/**'
 }
 
 repositories {
@@ -454,11 +451,6 @@ tasks.named('test', Test).configure {
 }
 
 tasks.named('processResources', ProcessResources).configure {
-    // Keep the original artwork recoverable in source control, but ship only the player skin.
-    exclude 'assets/blade_tetra/models/entity/mikage_tailored.json'
-    exclude 'assets/blade_tetra/textures/entity/mikage_tailored.png'
-    exclude 'META-INF/notices/mikage-winefox.txt'
-    exclude 'META-INF/licenses/winefox-CC-BY-NC-SA-4.0.txt'
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
@@ -612,6 +604,24 @@ tasks.register('verifyProductionJar') {
                 }
             }
             if (!leaked.isEmpty()) throw new GradleException("Development tools in production JAR: ${leaked}")
+            def retired = names.entries().findAll { entry ->
+                def path = entry.name
+                if (path ==~ /dev\/bladetetra\/compat\/LegacyMikageCompatibility(?:\$RetiredEntity)?\.class/) return false
+                path.toLowerCase(Locale.ROOT).contains('mikage') || path.contains('/challenge/') ||
+                        path.startsWith('assets/blade_tetra/textures/divine/') ||
+                        path.startsWith('assets/blade_tetra/models/divine/') ||
+                        path.startsWith('assets/blade_tetra/textures/item/karmic_mirror_') ||
+                        path.contains('winefox') || path.endsWith('.bta.gz')
+            }
+            if (!retired.isEmpty()) throw new GradleException("Retired challenge assets or classes in production JAR: ${retired}")
+            def mixinEntry = names.getEntry('blade_tetra.mixins.json')
+            if (mixinEntry == null) throw new GradleException('Missing production mixin config')
+            def mixins = names.getInputStream(mixinEntry).withCloseable { it.getText('UTF-8') }
+            if (mixins.contains('Mikage') || mixins.contains('MirrorIceMixin')) {
+                throw new GradleException('Retired challenge Mixin in production config')
+            }
+            logger.lifecycle("Retired Content Audit passed: ${archive.name} (${archive.length()} compressed bytes)")
+
         } finally { names.close() }
     }
 }

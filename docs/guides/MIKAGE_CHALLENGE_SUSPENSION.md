@@ -1,13 +1,18 @@
-# 御影挑战暂时封印
+# 御影挑战退役与旧存档迁移
 
-御影战斗尚未完善，后续发布版本暂不开放普通挑战、回忆战与访客界门。`MikageChallengeAccess` 是唯一的开放策略入口；不提供面向玩家的开启开关。完成技能验收后，再由开发者恢复开放。
+御影战斗、回忆战、界门、访客与神域演出已经退役。旧存档的三个维度继续注册以保留区块。存放在区块里的庭院建筑会留在原地。
 
-- 界门符仍然注册，旧物品不会丢失；普通使用显示封印提示，不消耗物品、不生成入口。服务端开门、已有入口与会话加入均复查策略，不能只绕过物品检查开战。
-- 已有访客资格与鬼面共鸣 NBT 保留，但不能新开访客界门。已打开但尚未进入的访客界门会由原有入口检查移除；此轮不新增强制中止现存访客会话的逻辑。已胜利会话仍不按未完成战斗中止，不重复发放奖励。
-- 创造栏隐藏界门御守、破损鬼面、剑鬼残魂、无铭业镜、无生残印；五个物品 ID 和已有物品保持注册与可读取。此轮只移除创造栏展示，不删除合成配方，不另外隐藏 JEI，不改已有剑鬼残魂的界限锻造用途或无生残印的死念刻印功能。
-- 保留实体、物品、维度与数据注册，不删除旧场景区块、奖励、刀铭、面具状态或永久通关记录。
-- 更新后登录时，如果玩家停留在已失效/封印的镜界战斗中，按旧 NBT 保存的返回点送回，并清理战斗 HUD、音乐、边界和临时参与标记。缺失、无效或指向挑战维度的返回位置回退到主世界出生点。
-- 运行中的未完成会话会正常退场并回收自身战斗实体，离线成员的返回点保留到其下次登录时处理。不通过击败/胜利流程退场，避免误发奖励。
-- 封印策略不阻止显式开发诊断直接创建隔离战斗对象，也不移除管理员命令依赖的实体注册；正常生存流程无法发起挑战。
+| 兼容数据 | 处理方式 |
+| --- | --- |
+| `mikage`、`mikage_echo`、`mikage_phantom_sword`、`mikage_divine_companion`、`mikage_gate_core`、`mikage_gate_sword` | 六个 `blade_tetra` 实体 ID 使用同一个占位类型，服务端在加入世界前清除 |
+| 寄存在区块里的旧原生攻击和试炼怪物 | 只清理带御影攻击标记的旧实体，或神域维度内带试炼标记的旧实体 |
+| 镜界、神域、彩蛋房 | 保留 `mirror_realm`、`divine_domain`、`easter_realm` 的维度和维度类型 |
+| 玩家仍在挑战区 | 优先返回旧入口坐标，否则返回主世界出生点。成功返回后清理已退役的活动会话字段 |
+| `boundary_gate_charm`、`broken_oni_mask`、`sword_ghost_remnant`、`karmic_puppet`、`dead_thought_soul_seal` | 保留原物品 ID 和物品 NBT。门符、面具、神域镜面失去挑战交互 |
+| 已有界断锻造和死念印记 | 保留刀上已有能力及印记。在旧存档里已解锁界断锻造的玩家仍可使用持有的剑鬼残魂完成锻造 |
 
-此改动不自动发布或修改旧版本安装文件。存档更新前仍建议正常备份；兼容性措施不能替代整合包升级时的备份。
+## Verification
+
+`Native / legacy_world_migration` exercises legacy-format entity, item and player NBT against the live Forge registries in all three retirement dimensions on a dedicated server. It checks the saved return position, an existing courtyard block, unrelated player data, registered item round trips and repeat migration. It uses equivalent SNBT fixtures. A historical world directory upgraded and reopened on an integrated server remains a separate acceptance case.
+
+The production JAR audit rejects old challenge classes, art, models, templates and Mixins. Akatsuki's execution tint, the native slash source tracking used by Habaki, and the shared weapon backplate render type live outside the retired challenge.

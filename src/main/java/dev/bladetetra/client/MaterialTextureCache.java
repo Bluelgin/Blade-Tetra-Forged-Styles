@@ -152,7 +152,7 @@ final class MaterialTextureCache {
         closeAll(EMISSIVE, minecraft);
         closeAll(DURABILITY, minecraft);
         NO_EMISSIVE.clear();
-        MikageBackplateRenderType.clear();
+        BladeBackplateRenderType.clear();
         NamedBackplateArtwork.clear();
         if (rodaiAtlas != null) {
             rodaiAtlas.close();

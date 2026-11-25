@@ -44,10 +44,11 @@ public final class KyoukaMotionSmokeClient {
             Map<?, ?> registeredRenderers = rendererMap();
             require(registeredRenderers.containsKey(ModEntities.KYOUKA_AFTERIMAGE.get()),
                     "Kyouka afterimage renderer is present in the client dispatcher");
-            require(registeredRenderers.containsKey(ModEntities.MIKAGE_DIVINE_COMPANION.get()),
-                    "Mikage divine companion renderer is present in the client dispatcher");
-            require(registeredRenderers.containsKey(ModEntities.MIKAGE.get()),
-                    "Mikage renderer remains registered after consolidation");
+            for (var legacyType : ModEntities.RETIRED_MIKAGE) {
+                require(registeredRenderers.get(legacyType.get()) instanceof
+                                net.minecraft.client.renderer.entity.NoopRenderer<?>,
+                        "Retired entity uses a texture-free renderer: " + legacyType.getId());
+            }
 
             // This off-world test has no synced SERVER config; use defaults in memory only.
             var config = com.electronwill.nightconfig.core.CommentedConfig.inMemory();

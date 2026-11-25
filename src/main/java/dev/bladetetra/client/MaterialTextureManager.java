@@ -108,7 +108,7 @@ public final class MaterialTextureManager {
         }
         if (DefaultResources.resourceDurabilityTexture.equals(
                 event.getOriginalTexture())) {
-            event.setGetRenderType(MikageBackplateRenderType::get);
+            event.setGetRenderType(BladeBackplateRenderType::get);
             event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
             if ("base".equals(event.getOriginalTarget())) {
                 ResourceLocation baseTexture = NamedBackplateArtwork.texture(
@@ -133,7 +133,7 @@ public final class MaterialTextureManager {
                                 BladeModelManager.getInstance().getModel(BACKPLATE_PORTRAIT_MODEL),
                                 "portrait", baseTexture, event.getPoseStack(), event.getBuffer(),
                                 net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
-                                MikageBackplateRenderType::get, false);
+                                BladeBackplateRenderType::get, false);
                     } finally {
                         RENDERING_INTERNAL_PASS.set(false);
                         BladeRenderState.resetCol();
@@ -1074,11 +1074,6 @@ public final class MaterialTextureManager {
             boolean broken = stack.getCapability(ModularSlashBladeItem.BLADESTATE)
                     .map(state -> state.isBroken())
                     .orElse(false);
-            // Reuse Akatsuki's exact palette/pattern only inside the dedicated boss blade pass.
-            // No item mutation, ritual unlock or awakened combat ability is involved.
-            if (MikageBladeVisuals.isRendering()) {
-                return new GlowState(SoulGlow.AKATSUKI, broken);
-            }
             SoulGlow soul = SoulGlow.NONE;
             if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.AKATSUKI)) {
                 soul = SoulGlow.AKATSUKI;

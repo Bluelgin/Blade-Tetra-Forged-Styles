@@ -40,7 +40,6 @@ public final class AkatsukiThreadReviewClient {
             prepared=true;mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(5);mc.options.hideGui=true;
             mc.options.fov().set(75);mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
             mc.options.tutorialStep=net.minecraft.client.tutorial.TutorialSteps.NONE;
-            dev.bladetetra.config.ClientVisualConfig.ENABLE_AUDIO_PACK_REMINDER.set(false);
             var blade=BladeArtPreviewSamples.createAwakened().get(0).stack().copy();var id=mc.player.getUUID();
             mc.getSingleplayerServer().execute(()->{
                 var p=mc.getSingleplayerServer().getPlayerList().getPlayer(id);p.teleportTo(0,-60,0);p.setYRot(0);p.setXRot(0);p.setHealth(20);

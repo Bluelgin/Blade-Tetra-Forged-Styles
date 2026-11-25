@@ -1,7 +1,6 @@
 package dev.bladetetra.client;
 
 import dev.bladetetra.BladeTetra;
-import dev.bladetetra.config.ClientVisualConfig;
 import dev.bladetetra.easteregg.AkatsukiBloodBlade;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
@@ -48,7 +47,7 @@ public final class AkatsukiBloodReviewClient {
             prepared=true;mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(5);mc.options.hideGui=true;
             mc.options.fov().set(70);
             mc.options.showSubtitles().set(false);
-            ClientVisualConfig.ENABLE_AUDIO_PACK_REMINDER.set(false);mc.options.tutorialStep=net.minecraft.client.tutorial.TutorialSteps.NONE;
+            mc.options.tutorialStep=net.minecraft.client.tutorial.TutorialSteps.NONE;
             var blade=BladeArtPreviewSamples.createAwakened().get(0).stack().copy();
             var id=mc.player.getUUID();mc.getSingleplayerServer().execute(()->{
                 var p=mc.getSingleplayerServer().getPlayerList().getPlayer(id);

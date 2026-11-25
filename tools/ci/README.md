@@ -40,8 +40,8 @@ required gate if that is impossible; it must never produce a false green skip.
 README/developer docs and source artwork have a small explicit cheap allowlist.
 Game translations, Patchouli pages, models and recipes are runtime resources.
 Shared damage, storage, registration, networking and core Mixins expand coverage.
-Mikage is selected for its own changes or complete validation, not every ordinary
-PR. Build/dependency changes include the configured third-party profiles.
+Legacy world migration is selected for changes to compatibility code or dimensions and for complete validation.
+Build and dependency changes include the configured third-party profiles.
 
 To add a feature: add/reuse a suite, add narrow path rules AND its shared
 upstream dependencies, and add a boundary case to `test_plan.py`. Include native

@@ -8,7 +8,7 @@
       "kyouka",
       "sakura",
       "raikiri",
-      "mikage",
+      "legacy_world_migration",
       "custom_style",
       "lifeng",
       "storage",
@@ -157,12 +157,12 @@
       ],
       "flags": []
     },
-    "mikage": {
+    "legacy_world_migration": {
       "kind": "server",
-      "property": "mikageNativeSmoke",
-      "directory": "mikage-native-smoke",
+      "property": "legacyWorldMigrationSmoke",
+      "directory": "legacy-world-migration-smoke",
       "markers": [
-        "MIKAGE_NATIVE_SMOKE_PASS"
+        "LEGACY_WORLD_MIGRATION_PASS"
       ],
       "flags": []
     },
@@ -412,12 +412,15 @@
     },
     {
       "paths": [
-        "src/main/java/dev/bladetetra/challenge/**"
+        "src/main/java/dev/bladetetra/compat/LegacyMikageCompatibility.java",
+        "src/integrationTest/java/dev/bladetetra/compat/LegacyWorldMigrationSmoke.java",
+        "src/main/resources/data/blade_tetra/dimension/**",
+        "src/main/resources/data/blade_tetra/dimension_type/**"
       ],
       "suites": [
-        "mikage"
+        "legacy_world_migration"
       ],
-      "reason": "Archived Mikage behavior touched explicitly"
+      "reason": "Legacy dimension and entity migration"
     },
     {
       "paths": [

@@ -14,11 +14,7 @@ import dev.bladetetra.item.SayaPatternItem;
 import dev.bladetetra.item.SmithingClueItem;
 import dev.bladetetra.item.SmithingJournalItem;
 import dev.bladetetra.item.AwakenedSoulFragmentItem;
-import dev.bladetetra.challenge.BrokenOniMaskItem;
-import dev.bladetetra.challenge.BoundaryGateCharmItem;
-import dev.bladetetra.challenge.DeadThoughtSoulSealItem;
-import dev.bladetetra.challenge.KarmicPuppetItem;
-import dev.bladetetra.challenge.SwordGhostRemnantItem;
+import dev.bladetetra.item.DeadThoughtSoulSealItem;
 import dev.bladetetra.forging.ForgingScrolls;
 import dev.bladetetra.lore.SmithingLore;
 import dev.bladetetra.visual.SayaPresetSkin;
@@ -53,14 +49,14 @@ public final class ModItems {
     public static final RegistryObject<Item> SAKURA_SOUL_CRYSTAL =
             ITEMS.register("sakura_soul_crystal", () -> new Item(
                     new Item.Properties().rarity(Rarity.RARE)));
-    public static final RegistryObject<BoundaryGateCharmItem> BOUNDARY_GATE_CHARM =
-            ITEMS.register("boundary_gate_charm", BoundaryGateCharmItem::new);
-    public static final RegistryObject<SwordGhostRemnantItem> SWORD_GHOST_REMNANT =
-            ITEMS.register("sword_ghost_remnant", SwordGhostRemnantItem::new);
-    public static final RegistryObject<BrokenOniMaskItem> BROKEN_ONI_MASK =
-            ITEMS.register("broken_oni_mask", BrokenOniMaskItem::new);
-    public static final RegistryObject<KarmicPuppetItem> KARMIC_PUPPET =
-            ITEMS.register("karmic_puppet", KarmicPuppetItem::new);
+    public static final RegistryObject<Item> BOUNDARY_GATE_CHARM =
+            ITEMS.register("boundary_gate_charm", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> SWORD_GHOST_REMNANT =
+            ITEMS.register("sword_ghost_remnant", () -> new Item(new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> BROKEN_ONI_MASK =
+            ITEMS.register("broken_oni_mask", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> KARMIC_PUPPET =
+            ITEMS.register("karmic_puppet", () -> new Item(new Item.Properties().stacksTo(1).fireResistant()));
     public static final RegistryObject<DeadThoughtSoulSealItem> DEAD_THOUGHT_SOUL_SEAL =
             ITEMS.register("dead_thought_soul_seal", DeadThoughtSoulSealItem::new);
     public static final RegistryObject<LegacyDebugTalismanItem>
