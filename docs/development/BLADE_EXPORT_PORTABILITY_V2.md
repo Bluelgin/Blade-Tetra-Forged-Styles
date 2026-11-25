@@ -95,7 +95,8 @@ The Studio opens on the blade preview, name and description. Advanced mode expos
 | --- | --- |
 | Portable styles and authored moves | Existing runtime dispatch handles Iaido, Rengeki, Dangaku and Custom. |
 | Stock fittings with Salty Fish bone or sheath | Static geometry and textures are baked into the package. A fishbone blade carries the original sound and particles in runtime 1.6.0. |
-| Salty Fish with a salvaged or named fitting | Preflight rejects mixed fitting combinations that need the original model assembler. |
+| Salty Fish with an audited salvaged or named guard | Uses the live fish-mouth guard fit and records the model, texture and adapter provenance. |
+| Salty Fish with a named blade or saya | Preflight rejects combinations that still need portable seating and coverage. |
 | One registered provider Slash Art | Preserves its ID and declares the required provider and version. |
 | Programmatic fusion, including YakumoBlade sources | Source dispatch can run A→B. Standalone preflight rejects the pair until it has an independent scheduler. |
 | Recasting Time Beyond | Requires pre-release charge events. The source compatibility layer skips it. |

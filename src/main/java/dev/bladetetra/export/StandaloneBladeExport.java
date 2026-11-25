@@ -111,7 +111,9 @@ final class StandaloneBladeExport {
                 snapshot.slashArt(), snapshot.specialEffects(), snapshot.enchantments(), artwork.model(), artwork.texture(),
                 snapshot.color(), snapshot.colorInverse(), CarryType.valueOf(snapshot.carryType()),
                 snapshot.bewitched(), snapshot.sealed(), snapshot.unbreakable());
-        return BladeExportArchive.write(gameDirectory, metadata, version("blade_tetra"), definition,
+        var publishedMetadata = metadata.logo().length == 0 && !artwork.assets().isEmpty()
+                ? metadata.withLogo(BladeExportLogo.from(artwork)) : metadata;
+        return BladeExportArchive.write(gameDirectory, publishedMetadata, version("blade_tetra"), definition,
                 dependencies, fittings, artwork.inputs(), artwork.assets(),
                 ExportBattleProfile.from(snapshot));
     }

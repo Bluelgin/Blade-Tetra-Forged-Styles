@@ -49,6 +49,9 @@ public final class BladeSealClientSmoke {
     private static int studioFrames;
     private static int previewRenders;
     private static boolean previewVerified;
+    private static boolean advancedConfigured;
+    private static boolean advancedCaptured;
+    private static boolean comparisonOpened;
     private static boolean requestedExport;
     private static String outputVersion;
 
@@ -176,9 +179,12 @@ public final class BladeSealClientSmoke {
                 story.setValue("Forged in winter.\nSealed at first light.");
                 findField(screen, "blade_tetra.export.chinese_name").setValue("封存实机验收刀");
                 outputVersion = findField(screen, "blade_tetra.export.version").getValue();
-                try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
-                    screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-client.png"));
-                }
+                advancedConfigured = true;
+                return;
+            }
+            if (advancedCaptured && !comparisonOpened) {
+                comparisonOpened = true;
+                Path picture = client.gameDirectory.toPath().resolve("custom-sealed-portrait.png");
                 findButton(screen, "blade_tetra.export.page.project").onPress();
                 findButton(screen, "blade_tetra.export.project.save").onPress();
                 String addon = findField(screen, "blade_tetra.export.id").getValue();
@@ -248,15 +254,23 @@ public final class BladeSealClientSmoke {
     public static void renderPreview(TickEvent.RenderTickEvent event) {
         if (!enabled() || previewVerified || event.phase != TickEvent.Phase.END) return;
         var client = Minecraft.getInstance();
+        if (advancedConfigured && !advancedCaptured && client.screen instanceof BladeSealScreen) {
+            saveScreenshot(client, "blade-studio-client.png");
+            advancedCaptured = true;
+        }
         if (!(client.screen instanceof BladeStudioPreviewScreen preview) || !preview.hasBakedModel()) return;
         if (++previewRenders != 2) return;
         client.getToasts().clear();
-        try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
-            screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-sealed-preview.png"));
-        } catch (java.io.IOException failure) {
-            throw new IllegalStateException("Could not capture sealed blade preview", failure);
-        }
+        saveScreenshot(client, "blade-studio-sealed-preview.png");
         LogUtils.getLogger().info("BLADE_STUDIO_PREVIEW_PASS");
+    }
+
+    private static void saveScreenshot(Minecraft client, String filename) {
+        try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
+            screenshot.writeToFile(client.gameDirectory.toPath().resolve(filename));
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Could not capture " + filename, failure);
+        }
     }
 
     private static Button findButton(BladeSealScreen screen, String key) {
@@ -273,7 +287,8 @@ public final class BladeSealClientSmoke {
         var resources = client.getResourceManager();
         for (var variant : java.util.List.of(dev.bladetetra.item.SaltyFishParts.Blade.RENGEKI,
                 dev.bladetetra.item.SaltyFishParts.Blade.STANDARD, dev.bladetetra.item.SaltyFishParts.Blade.DANGAKU)) {
-            var blade = dev.bladetetra.item.SaltyFishParts.create(variant, null);
+            boolean salvageGuard = variant == dev.bladetetra.item.SaltyFishParts.Blade.STANDARD;
+            var blade = dev.bladetetra.item.SaltyFishParts.create(variant, salvageGuard ? LegacyImprintKind.BLACK_FOX : null);
             var snapshot = BladeExportSnapshot.captureOwnedStack(blade);
             var metadata = new BladeExportArchive.Metadata("bt_export_salty_fish", "1.0.0",
                     "Salty Fish Ichimonji", "Blade Tetra", "Portable fishbone and saya fixture");
@@ -294,10 +309,21 @@ public final class BladeSealClientSmoke {
                     }).contains("bt_export_runtime:salty_fish_feedback_v1")) {
                 throw new IllegalStateException("Fishbone geometry or feedback missing for " + variant + ": " + bladeTip);
             }
-            if (variant == dev.bladetetra.item.SaltyFishParts.Blade.STANDARD) {
+            if (salvageGuard) {
+                if (art.inputs().stream().noneMatch(input -> input.id().equals(LegacyImprintKind.BLACK_FOX.texture()))) {
+                    throw new IllegalStateException("Sealed Salty Fish omitted guard provenance");
+                }
                 Path file = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources, snapshot, metadata, art);
                 try (var archive = new ZipFile(file.toFile())) {
                     String prefix = "assets/" + metadata.modId() + "/model/sealed_blade";
+                    var generatedLogo = archive.getEntry("blade-studio-logo.png");
+                    if (generatedLogo == null) throw new IllegalStateException("Fish archive omitted its automatic icon");
+                    try (var input = archive.getInputStream(generatedLogo)) {
+                        var png = ImageIO.read(input);
+                        if (png == null || png.getWidth() != 64 || png.getHeight() != 64) {
+                            throw new IllegalStateException("Fish archive includes an invalid automatic icon");
+                        }
+                    }
                     if (archive.getEntry(prefix + ".obj") == null || archive.getEntry(prefix + ".png") == null
                             || archive.getEntry("META-INF/jarjar/bt-export-runtime-"
                                 + ExportBattleProfile.RUNTIME_VERSION + ".jar") == null) {

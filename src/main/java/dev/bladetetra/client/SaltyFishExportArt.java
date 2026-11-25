@@ -1,6 +1,8 @@
 package dev.bladetetra.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import dev.bladetetra.forging.LegacyImprintKind;
+import dev.bladetetra.forging.NamedLegacyParts;
 import dev.bladetetra.item.SaltyFishParts;
 import dev.bladetetra.visual.MaterialAppearance;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
@@ -24,7 +26,8 @@ public final class SaltyFishExportArt {
     private static final List<String> TARGETS = List.of("blade", "blade_damaged", "blade_fragment", "sheath",
             "item_blade", "item_bladens", "item_damaged");
 
-    public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sources) {}
+    public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sources,
+                       List<ResourceLocation> guardSources) {}
     private record Fitting(SaltyFishParts.Length length, ResourceLocation modelId, ResourceLocation textureId,
                            WavefrontObject mesh) {}
 
@@ -33,15 +36,22 @@ public final class SaltyFishExportArt {
         var stockMesh = ForgedGuardModel.forProfile(raw, MaterialAppearance.fromStack(stack).tsubaProfile());
         var blade = fitting(resources, stack, SaltyFishParts.blade(stack), "blade");
         var saya = fitting(resources, stack, SaltyFishParts.saya(stack), "saya");
+        LegacyImprintKind namedGuard = NamedLegacyParts.fromStack(stack).tsuba();
+        LegacyImprintKind guard = namedGuard == null ? SaltyFishParts.salvagedGuard(stack) : namedGuard;
+        var guardSources = guard == null ? List.<ResourceLocation>of()
+                : NamedBladeExportAssembler.sourceInputs(resources, guard);
         var sources = new ArrayList<ResourceLocation>();
         try (var stock = NativeImage.read(new ByteArrayInputStream(MaterialTextureManager.bakeCombinedAtlas(stack, resources)));
              var bladeImage = texture(resources, blade, sources);
-             var sayaImage = texture(resources, saya, sources)) {
+             var sayaImage = texture(resources, saya, sources);
+             var guardImage = guard == null ? null : texture(resources, guard.texture())) {
             int bladeX = stock.getWidth();
             int sayaX = bladeX + (bladeImage == null ? 0 : bladeImage.getWidth());
-            int width = sayaX + (sayaImage == null ? 0 : sayaImage.getWidth());
+            int guardX = sayaX + (sayaImage == null ? 0 : sayaImage.getWidth());
+            int width = guardX + (guardImage == null ? 0 : guardImage.getWidth());
             int height = Math.max(stock.getHeight(), Math.max(
                     bladeImage == null ? 0 : bladeImage.getHeight(), sayaImage == null ? 0 : sayaImage.getHeight()));
+            if (guardImage != null) height = Math.max(height, guardImage.getHeight());
             if (width > 4096 || height > 4096 || (long) width * height > 8_388_608L) {
                 throw new IOException("Salty Fish atlas exceeds budget");
             }
@@ -50,6 +60,8 @@ public final class SaltyFishExportArt {
                 NamedBladeExportAssembler.copy(atlas, stock, 0);
                 if (bladeImage != null) NamedBladeExportAssembler.copy(atlas, bladeImage, bladeX);
                 if (sayaImage != null) NamedBladeExportAssembler.copy(atlas, sayaImage, sayaX);
+                if (guardImage != null) NamedBladeExportAssembler.copy(atlas, guardImage, guardX);
+                var guardTile = tile(guardImage, guardX);
                 var stockTile = new NamedBladeExportAssembler.Tile(stock.getWidth(), stock.getHeight() / 2, 0);
                 var bladeTile = tile(bladeImage, bladeX);
                 var sayaTile = tile(sayaImage, sayaX);
@@ -68,14 +80,20 @@ public final class SaltyFishExportArt {
                                     .scale(frame.scale()).translate(frame.offset(), -4, 0);
                         }
                         Float coveredTo = cover ? fishCover(raw, saya == null ? null : saya.length()) : null;
+                        var fittedGuard = fishGuard(guard, group);
+                        var guardFaces = fittedGuard == null ? List.<Face>of() : faces(fittedGuard, group);
+                        if (guard != null && guardFaces.isEmpty() && !"blade_fragment".equals(group)) {
+                            throw new IOException("Missing Salty Fish guard geometry for " + guard.id());
+                        }
                         faces.addAll(NamedBladeExportAssembler.remap(
-                                stockFishFaces(stockMesh, group, blade != null, false, coveredTo), pose,
+                                stockFishFaces(stockMesh, group, blade != null, !guardFaces.isEmpty(), coveredTo), pose,
                                 stockTile, width, height));
                         if (blade != null) {
                             faces.addAll(NamedBladeExportAssembler.remap(
                                     fishPartFaces(blade.mesh(), blade.length(), group, coveredTo), pose,
                                     bladeTile, width, height));
                         }
+                        faces.addAll(NamedBladeExportAssembler.remap(guardFaces, pose, guardTile, width, height));
                     }
                     if ("sheath".equals(target) || "item_blade".equals(target)) {
                         faces.addAll(NamedBladeExportAssembler.remap(
@@ -95,7 +113,7 @@ public final class SaltyFishExportArt {
                     throw new IOException("Incomplete Salty Fish model groups");
                 }
                 return new Bake(RuntimeWavefrontViewFactory.serialize(output).getBytes(StandardCharsets.UTF_8),
-                        atlas.asByteArray(), List.copyOf(sources));
+                        atlas.asByteArray(), List.copyOf(sources), guardSources);
             }
         }
     }
@@ -118,7 +136,11 @@ public final class SaltyFishExportArt {
         if (fitting == null) return null;
         sources.add(fitting.modelId());
         sources.add(fitting.textureId());
-        try (var input = resources.getResourceOrThrow(fitting.textureId()).open()) {
+        return texture(resources, fitting.textureId());
+    }
+
+    private static NativeImage texture(ResourceManager resources, ResourceLocation id) throws IOException {
+        try (var input = resources.getResourceOrThrow(id).open()) {
             return NativeImage.read(input);
         }
     }

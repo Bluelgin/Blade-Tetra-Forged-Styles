@@ -69,7 +69,7 @@ public final class LegacyModelPartRenderer {
             }
 
             Float coveredTo = showSaya ? fishCover(event.getOriginalModel(), saya) : null;
-            WavefrontObject guardView = fishGuard(event, guard, group);
+            WavefrontObject guardView = fishGuard(guard, group);
             var inheritedBlade = coveredTo == null && blade == null
                     ? mounted(event, namedBlade, LegacySourceMesh.Component.BLADE, group) : null;
             boolean hideBlade = blade != null || inheritedBlade != null;
@@ -156,7 +156,7 @@ public final class LegacyModelPartRenderer {
         else NamedBladeRenderPlan.drawMounted(event, "sheath", part, kind, mounted);
     }
 
-    private static WavefrontObject fishGuard(RenderOverrideEvent event, LegacyImprintKind guard, String group) {
+    static WavefrontObject fishGuard(LegacyImprintKind guard, String group) {
         if (guard == null || "blade_fragment".equals(group)) return null;
         var source = LegacyRenderSources.resolve(guard);
         if (source.mesh() == null) return null;

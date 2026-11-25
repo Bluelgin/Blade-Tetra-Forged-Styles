@@ -46,6 +46,11 @@ final class BladeExportArchive {
             this(modId, version, title, author, description, title, "", "", "", new byte[0]);
         }
 
+        Metadata withLogo(byte[] bytes) {
+            return new Metadata(modId, version, title, author, description, bladeName, chineseBladeName,
+                    lore, chineseLore, bytes);
+        }
+
         Metadata {
             if (modId.equals(ExportBattleProfile.RUNTIME_ID) || !modId.matches("bt_export_[a-z0-9_]{1,50}") || !version.matches("[0-9]+\\.[0-9]+\\.[0-9]+")
                     || version.length() > 30 || title.isBlank() || title.length() > 100

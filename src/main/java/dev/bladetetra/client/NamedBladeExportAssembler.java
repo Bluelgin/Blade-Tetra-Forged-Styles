@@ -33,27 +33,12 @@ public final class NamedBladeExportAssembler {
         var selectedInputs = new LinkedHashMap<String, List<ResourceLocation>>();
         for (var entry : named.entrySet()) {
             var kind = entry.getValue();
-            var rules = LegacyModelRules.load(resources, kind);
-            ResourceLocation actualGeometry = rules.geometryModel(kind.model());
-            if (!permitted(actualGeometry) || !permitted(kind.texture()))
-                throw new IOException("Named OBJ/texture needs audited embedding rights: " + kind.id());
-
-            var paths = new ArrayList<ResourceLocation>();
-            paths.add(actualGeometry);
-            paths.add(kind.texture());
-            String prefix = "bladetetra/legacy_models/" + kind.model().getPath();
-            var defaultRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
-                    prefix + ".json");
-            var namedRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
-                    prefix + "/" + kind.name().getNamespace() + "/" + kind.name().getPath() + ".json");
-            for (var adapter : List.of(defaultRules, namedRules))
-                if (resources.getResource(adapter).isPresent()) paths.add(adapter);
             String slot = switch (entry.getKey()) {
                 case BLADE -> "blade";
                 case HILT -> "tsuba";
                 case SAYA -> "saya";
             };
-            selectedInputs.put(slot, List.copyOf(paths));
+            selectedInputs.put(slot, sourceInputs(resources, kind));
         }
 
         WavefrontObject raw;
@@ -154,6 +139,25 @@ public final class NamedBladeExportAssembler {
             textures.values().forEach(NativeImage::close);
         }
     }
+    static List<ResourceLocation> sourceInputs(ResourceManager resources, LegacyImprintKind kind) throws IOException {
+        var rules = LegacyModelRules.load(resources, kind);
+        ResourceLocation actualGeometry = rules.geometryModel(kind.model());
+        if (!permitted(actualGeometry) || !permitted(kind.texture()))
+            throw new IOException("Named OBJ/texture needs audited embedding rights: " + kind.id());
+
+        var paths = new ArrayList<ResourceLocation>();
+        paths.add(actualGeometry);
+        paths.add(kind.texture());
+        String prefix = "bladetetra/legacy_models/" + kind.model().getPath();
+        var defaultRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
+                prefix + ".json");
+        var namedRules = ResourceLocation.fromNamespaceAndPath(kind.model().getNamespace(),
+                prefix + "/" + kind.name().getNamespace() + "/" + kind.name().getPath() + ".json");
+        for (var adapter : List.of(defaultRules, namedRules))
+            if (resources.getResource(adapter).isPresent()) paths.add(adapter);
+        return List.copyOf(paths);
+    }
+
     private static boolean permitted(ResourceLocation id) {
         return Set.of("slashblade", "blade_tetra").contains(id.getNamespace());
     }

@@ -48,6 +48,10 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
             bakedModel = fish.model();
             bakedTexture = fish.texture();
             for (var input : fish.sources()) evidence.add(projectInput(resources, input));
+            for (var input : fish.guardSources()) evidence.add(projectNamedInput(resources, input));
+            if (snapshot.namedParts().stream().anyMatch(part -> "tsuba".equals(part.slot()))) {
+                namedInputs = Map.of("tsuba", fish.guardSources());
+            }
         } else if (snapshot.namedParts().stream().anyMatch(part -> !part.slot().equals("backplate"))) {
             var assembled = NamedBladeExportAssembler.bake(stack, sourceModel, resources);
             bakedModel = assembled.model();
@@ -122,14 +126,20 @@ record BladeExportArt(ResourceLocation model, ResourceLocation texture,
                     || !java.util.Set.of("slashblade", "blade_tetra").contains(part.declaredTexture().getNamespace())))
                 throw new IllegalArgumentException("Named source needs an audited embedding license: " + part.sourceId());
         }
-        if (SaltyFishParts.salvagedGuard(stack) != null || fishAssembly(stack)
-                && snapshot.namedParts().stream().anyMatch(part -> !"backplate".equals(part.slot()))) {
-            throw new IllegalArgumentException("Salty Fish with a salvaged or named fitting cannot be sealed yet");
+        if (fishAssembly(stack) && snapshot.namedParts().stream()
+                .anyMatch(part -> "blade".equals(part.slot()) || "saya".equals(part.slot()))) {
+            throw new IllegalArgumentException("Salty Fish with a named blade or saya needs a compatible seating bake");
+        }
+        var salvaged = SaltyFishParts.salvagedGuard(stack);
+        if (salvaged != null && (!java.util.Set.of("slashblade", "blade_tetra").contains(salvaged.model().getNamespace())
+                || !java.util.Set.of("slashblade", "blade_tetra").contains(salvaged.texture().getNamespace()))) {
+            throw new IllegalArgumentException("Salvaged guard needs an audited embedding license: " + salvaged.id());
         }
     }
 
     private static boolean fishAssembly(ItemStack stack) {
-        return SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null;
+        return SaltyFishParts.blade(stack) != null || SaltyFishParts.saya(stack) != null
+                || SaltyFishParts.salvagedGuard(stack) != null;
     }
 
     private static ExportResourceEvidence projectNamedInput(ResourceManager resources, ResourceLocation id) throws IOException {
