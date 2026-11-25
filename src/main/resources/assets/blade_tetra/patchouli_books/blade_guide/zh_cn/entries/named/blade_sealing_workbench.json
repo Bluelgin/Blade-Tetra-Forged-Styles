@@ -1,0 +1,15 @@
+{
+  "name": "名刀封存台",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:blade_sealing_workbench",
+  "pages": [
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:blade_sealing_workbench"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "将百构流派的模块化拔刀剑放入工作槽，再打开 Blade Studio。关闭封存台时会退回原刀。安装生成的附属并重启游戏后，可从拔刀剑创造栏获取名刀，也可使用 $(thing)/bladeseal give <玩家> <名刀 ID>/$。"
+    }
+  ]
+}

@@ -134,13 +134,16 @@ final class MaterialTextureCache {
 
     static synchronized NativeImage copyAtlas(ResourceManager resources) throws IOException {
         if (atlasTemplate == null) {
-            Resource resource = resources.getResourceOrThrow(TEMPLATE);
-            atlasTemplate = loadAtlas(resource);
+            atlasTemplate = readAtlas(resources);
         }
         NativeImage copy = new NativeImage(
                 GENERATED_ATLAS_SIZE, GENERATED_ATLAS_SIZE, true);
         copy.copyFrom(atlasTemplate);
         return copy;
+    }
+
+    static NativeImage readAtlas(ResourceManager resources) throws IOException {
+        return loadAtlas(resources.getResourceOrThrow(TEMPLATE));
     }
 
     static synchronized void clear() {

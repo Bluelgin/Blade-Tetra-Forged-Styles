@@ -1,0 +1,203 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "wood": "minecraft:block/dark_oak_planks",
+    "iron": "minecraft:block/smithing_table_side",
+    "stamp": "blade_tetra:block/blade_sealing_stamp",
+    "particle": "minecraft:block/dark_oak_planks"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        11,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron"
+        },
+        "south": {
+          "texture": "#iron"
+        },
+        "west": {
+          "texture": "#iron"
+        },
+        "east": {
+          "texture": "#iron"
+        },
+        "up": {
+          "texture": "#iron"
+        },
+        "down": {
+          "texture": "#iron"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        11,
+        0
+      ],
+      "to": [
+        16,
+        13,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#stamp"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        13,
+        6
+      ],
+      "to": [
+        5,
+        15,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#wood"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "from": [
+        11,
+        13,
+        6
+      ],
+      "to": [
+        14,
+        15,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#wood"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        15,
+        6
+      ],
+      "to": [
+        5,
+        16,
+        7
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron"
+        },
+        "south": {
+          "texture": "#iron"
+        },
+        "west": {
+          "texture": "#iron"
+        },
+        "east": {
+          "texture": "#iron"
+        },
+        "up": {
+          "texture": "#iron"
+        },
+        "down": {
+          "texture": "#iron"
+        }
+      }
+    },
+    {
+      "from": [
+        11,
+        15,
+        6
+      ],
+      "to": [
+        14,
+        16,
+        7
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron"
+        },
+        "south": {
+          "texture": "#iron"
+        },
+        "west": {
+          "texture": "#iron"
+        },
+        "east": {
+          "texture": "#iron"
+        },
+        "up": {
+          "texture": "#iron"
+        },
+        "down": {
+          "texture": "#iron"
+        }
+      }
+    }
+  ]
+}

@@ -16,6 +16,9 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 // Forge-only smoke tests and visual reviews are a separate, non-published source set.
 sourceSets {
+    exportRuntime {
+        compileClasspath += sourceSets.main.compileClasspath
+    }
     integrationTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -36,7 +39,8 @@ def developmentProfiles = [
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
     'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'exportPackageSmoke',
+    'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -164,6 +168,17 @@ minecraft {
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')
                 property 'blade_tetra.namedIngotSmoke', 'true'
+            }
+            if (project.hasProperty('exportSealClientSmoke')) {
+                workingDirectory project.file('build/blade-export-client-smoke')
+                property 'blade_tetra.exportSealClientSmoke', 'true'
+            }
+            if (project.hasProperty('exportPackageSmoke')) {
+                workingDirectory project.file(project.hasProperty('slashblade1965')
+                        ? 'build/blade-export-package-smoke-1965' : 'build/blade-export-package-smoke')
+                property 'blade_tetra.exportPackageSmoke', 'true'
+                property 'blade_tetra.expectedSlashbladeVersion',
+                        project.hasProperty('slashblade1965') ? '1.9.65' : '1.9.63'
             }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
@@ -299,8 +314,11 @@ dependencies {
             ? "local:tetra:1.20.1-6.9.0"
             : "curse.maven:tetra-289712:${tetra_file_id}")
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
+    // Explicit compatibility fixture: SlashBlade: Resharped 1.9.65 (CurseForge file 8090912).
+    // The default stays on 1.9.63 until the independent matrix has passed.
+    def slashbladeFixtureFile = project.hasProperty('slashblade1965') ? '8090912' : slashblade_resharped_file_id
     implementation fg.deobf(
-            "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+            "curse.maven:slashblade-resharped-1022428:${slashbladeFixtureFile}")
     // Compile the optional public animation-map alias; no new runtime requirement.
     compileOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
@@ -458,6 +476,73 @@ tasks.named('processResources', ProcessResources).configure {
     inputs.properties replaceProperties
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
+    }
+}
+
+def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
+    // Forge can load the modular and sealed mods together. Keep their packages disjoint.
+    from('src/main/java/dev/bladetetra/combat') {
+        include 'StyleBranchRules.java', 'StyleCommonCommands.java', 'StyleTargeting.java',
+                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-combat')
+}
+sourceSets.exportRuntime.java.srcDir(portableCombatSources)
+
+// One pure Java capability contract is compiled once for the exporter and
+// rewritten into a disjoint namespace for the source-free runtime.
+def portableCapabilitySources = tasks.register('prepareExportCapabilitySources', Sync) {
+    from('src/main/java/dev/bladetetra/export') {
+        include 'PortableCapabilityCatalog.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.export', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-capabilities')
+}
+sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
+
+tasks.register('exportRuntimeJar', Jar) {
+    archiveFileName = 'bt-export-runtime-1.5.0.jar'
+    destinationDirectory = layout.buildDirectory.dir('export-runtime')
+    from sourceSets.exportRuntime.output
+    from('LICENSE')
+    manifest { attributes 'MixinConfigs': 'bt_export_runtime.mixins.json' }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+reobf {
+    exportRuntimeJar {
+        libraries.from(sourceSets.exportRuntime.compileClasspath)
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn 'reobfExportRuntimeJar'
+    from(tasks.named('exportRuntimeJar').flatMap { it.archiveFile }) {
+        into 'META-INF/blade-export'
+    }
+    from('LICENSE') {
+        into 'META-INF/blade-export'
+        rename { 'project-license.txt' }
+    }
+}
+
+if (project.hasProperty('exportRuntimeProbe')) {
+    sourceSets.create('exportRuntimeTest') {
+        compileClasspath += sourceSets.exportRuntime.output + sourceSets.main.compileClasspath
+    }
+    tasks.register('exportRuntimeProbeJar', Jar) {
+        archiveFileName = 'bt-export-runtime-probe.jar'
+        destinationDirectory = layout.buildDirectory.dir('export-runtime')
+        from sourceSets.exportRuntimeTest.output
+    }
+    reobf {
+        exportRuntimeProbeJar {
+            libraries.from(sourceSets.exportRuntimeTest.compileClasspath)
+        }
     }
 }
 

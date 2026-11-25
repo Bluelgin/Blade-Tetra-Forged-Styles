@@ -19,7 +19,10 @@
     ],
     "compat": [
       "addon_ingots",
-      "addon_art"
+      "addon_art",
+      "export_package",
+      "export_package_1965",
+      "export_client"
     ],
     "combat": [
       "aura",
@@ -45,8 +48,12 @@
       "kind": "client",
       "property": "starterBladeReview",
       "directory": "starter-blade-review",
-      "markers": ["BLADE_STARTER_REVIEW_PASS"],
-      "flags": ["jeiTest"]
+      "markers": [
+        "BLADE_STARTER_REVIEW_PASS"
+      ],
+      "flags": [
+        "jeiTest"
+      ]
     },
     "storage": {
       "kind": "server",
@@ -62,7 +69,9 @@
       "kind": "client",
       "property": "saltyFishReview",
       "directory": "salty-fish-review",
-      "markers": ["SALTY_FISH_REVIEW_PASS"],
+      "markers": [
+        "SALTY_FISH_REVIEW_PASS"
+      ],
       "flags": []
     },
     "tooltip": {
@@ -202,6 +211,41 @@
         "sjapTest",
         "yakumoTest"
       ]
+    },
+    "export_package": {
+      "kind": "server",
+      "property": "exportPackageSmoke",
+      "directory": "blade-export-package-smoke",
+      "markers": [
+        "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
+      ],
+      "flags": []
+    },
+    "export_package_1965": {
+      "kind": "server",
+      "property": "exportPackageSmoke",
+      "directory": "blade-export-package-smoke-1965",
+      "markers": [
+        "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS"
+      ],
+      "flags": [
+        "slashblade1965"
+      ]
+    },
+    "export_client": {
+      "kind": "client",
+      "property": "exportSealClientSmoke",
+      "directory": "blade-export-client-smoke",
+      "markers": [
+        "BLADE_SEAL_NAMED_CLIENT_PASS"
+      ],
+      "flags": []
     }
   },
   "docs": [
@@ -236,6 +280,19 @@
         "@full"
       ],
       "reason": "CI or development-test infrastructure"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/export/**",
+        "src/integrationTest/java/dev/bladetetra/export/**",
+        "src/exportRuntime/**",
+        "src/exportRuntimeTest/**"
+      ],
+      "suites": [
+        "export_package",
+        "export_package_1965"
+      ],
+      "reason": "Sealed blade packaging, bundled runtime and native portability"
     },
     {
       "paths": [

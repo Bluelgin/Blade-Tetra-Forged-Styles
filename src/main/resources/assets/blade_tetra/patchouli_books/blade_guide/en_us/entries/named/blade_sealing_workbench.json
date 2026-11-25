@@ -1,0 +1,15 @@
+{
+  "name": "Blade Sealing Workbench",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:blade_sealing_workbench",
+  "pages": [
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:blade_sealing_workbench"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Place a Blade Tetra sword in the working slot, then open Blade Studio. Closing the workbench returns the original sword. After installing the generated add-on and restarting, find the blade in SlashBlade’s creative tab or use $(thing)/bladeseal give <player> <id>/$."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.export.BladeSealPackets;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.NetworkDirection;
@@ -9,7 +10,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "awakened2-blood-threads-7";
+    private static final String PROTOCOL = "awakened2-blood-threads-12";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
@@ -18,6 +19,12 @@ public final class ModNetwork {
 
     // Retired wire IDs 22 (V2 HUD) and 23 (old pose replay) stay reserved.
     public static void register() {
+        CHANNEL.registerMessage(31, BladeSealPackets.Preview.class, BladeSealPackets.Preview::encode,
+                BladeSealPackets.Preview::decode, BladeSealPackets.Preview::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(32, BladeSealPackets.Confirm.class, BladeSealPackets.Confirm::encode,
+                BladeSealPackets.Confirm::decode, BladeSealPackets.Confirm::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(33, BladeSealPackets.Result.class, BladeSealPackets.Result::encode,
+                BladeSealPackets.Result::decode, BladeSealPackets.Result::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(30, AkatsukiThreadPacket.class, AkatsukiThreadPacket::encode,
                 AkatsukiThreadPacket::decode, AkatsukiThreadPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(29, SakuraRecallPacket.class, SakuraRecallPacket::encode,

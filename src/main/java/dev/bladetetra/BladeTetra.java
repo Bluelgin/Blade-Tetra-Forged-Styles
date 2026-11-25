@@ -46,6 +46,7 @@ public final class BladeTetra {
                 ModConfig.Type.CLIENT,
                 ClientVisualConfig.SPEC,
                 "blade-tetra-client.toml");
+        dev.bladetetra.export.BladeSealWorkbench.register(modBus);
         ModItems.ITEMS.register(modBus);
         dev.bladetetra.kyouka.WaterMirrorEffect.EFFECTS.register(modBus);
         dev.bladetetra.easteregg.RaikiriThunderArmorEffect.EFFECTS.register(modBus);

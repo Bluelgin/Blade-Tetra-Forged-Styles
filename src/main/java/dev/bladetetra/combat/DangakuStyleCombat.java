@@ -15,6 +15,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 
+import static dev.bladetetra.combat.DangakuCombatValues.*;
+
 /**
  * Dangaku-only combat rules.
  *
@@ -22,12 +24,6 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
  * Dangaku damage tuning, target geometry, armor timing and slash presentation.</p>
  */
 final class DangakuStyleCombat {
-    private static final double CLEAVE_RANGE = 6.25D;
-    private static final double CLEAVE_MIN_DOT = Math.cos(Math.toRadians(45.0D));
-    private static final double SWEEP_RANGE = 5.25D;
-    private static final double SWEEP_MIN_DOT = Math.cos(Math.toRadians(110.0D));
-    private static final int ARMOR_END_TICK = 11;
-
     static void onSlash(SlashBladeEvent.DoSlashEvent event, ResourceLocation combo) {
         if (DangakuSpinCombos.SPIN.getId().equals(combo)) {
             event.setDamage(event.getDamage() * DangakuSpinRules.damageScale(event.isCritical()));
@@ -36,10 +32,10 @@ final class DangakuStyleCombat {
             event.setDamage(event.getDamage() * DangakuCircleSlashRules.damageScale(event.isCritical()));
             event.setKnockback(KnockBacks.cancel);
         } else if (isSlash(combo)) {
-            event.setDamage(event.getDamage() * 0.55D);
+            event.setDamage(event.getDamage() * HEAVY_DAMAGE);
             event.setKnockback(KnockBacks.smash);
         } else if (isSweep(combo)) {
-            event.setDamage(event.getDamage() * 0.85D);
+            event.setDamage(event.getDamage() * SWEEP_DAMAGE);
         }
     }
 
@@ -82,7 +78,7 @@ final class DangakuStyleCombat {
         if (event.getSource().getEntity() != null
                 && !event.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_ARMOR)
                 && isArmorWindow(event.getEntity())) {
-            event.setAmount(event.getAmount() * 0.65F);
+            event.setAmount(event.getAmount() * ARMOR_DAMAGE);
         }
     }
 
@@ -102,11 +98,11 @@ final class DangakuStyleCombat {
     static int applySlashPresentation(EntitySlashEffect slashEffect,
             ResourceLocation combo, int color) {
         if (DangakuSpinCombos.SPIN.getId().equals(combo)) {
-            slashEffect.setBaseSize(1.18F);
+            slashEffect.setBaseSize(SWEEP_SLASH_SIZE);
             return color;
         }
         if (BranchingStyleCombos.phase(combo) == null) return color;
-        slashEffect.setBaseSize(isSlash(combo) ? 1.55F : 1.18F);
+        slashEffect.setBaseSize(isSlash(combo) ? HEAVY_SLASH_SIZE : SWEEP_SLASH_SIZE);
         return isSlash(combo)
                 ? MaterialSlashEffectResolver.blendTowardBlack(color, 0.10F)
                 : color;

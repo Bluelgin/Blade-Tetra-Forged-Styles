@@ -1,0 +1,75 @@
+name: Standalone Blade Receiver
+
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/dev/bladetetra/export/**'
+      - 'src/exportRuntime/**'
+      - 'src/exportRuntimeTest/**'
+      - 'tools/ci/run_clean_receiver.py'
+      - '.github/workflows/clean-receiver.yml'
+  workflow_dispatch:
+    inputs:
+      slashblade:
+        description: SlashBlade version for the isolated Forge receiving server
+        required: true
+        type: choice
+        options:
+          - '1.9.63'
+          - '1.9.65'
+        default: '1.9.63'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clean-blade-receiver-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  receiver:
+    name: Clean Forge receiver / ${{ matrix.slashblade }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        # On exporter PRs verify both supported SlashBlade builds independently.
+        # Manual dispatch keeps a one-version targeted option.
+        slashblade: ${{ github.event_name == 'pull_request' && fromJSON('["1.9.63","1.9.65"]') || fromJSON(format('["{0}"]', inputs.slashblade || '1.9.63')) }}
+    env:
+      SLASHBLADE_VERSION: ${{ matrix.slashblade }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generate five independent sealed swords with server-side source mod
+        run: |
+          if [ "$SLASHBLADE_VERSION" = '1.9.65' ]; then
+            python3 tools/ci/run_suite.py export_package_1965
+          else
+            python3 tools/ci/run_suite.py export_package
+          fi
+      - name: Compile and reobfuscate source-free receiving probe
+        run: |
+          if [ "$SLASHBLADE_VERSION" = '1.9.65' ]; then
+            ./gradlew --no-daemon -Pslashblade1965 -PexportRuntimeProbe reobfExportRuntimeProbeJar
+          else
+            ./gradlew --no-daemon -PexportRuntimeProbe reobfExportRuntimeProbeJar
+          fi
+      - name: Install isolated Forge server and exercise generated standalone addons
+        run: python3 tools/ci/run_clean_receiver.py --slashblade "$SLASHBLADE_VERSION"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clean-blade-receiver-${{ matrix.slashblade }}
+          path: |
+            build/blade-export-package-smoke*/blade-exports/*.jar
+            build/clean-receiver/**/receiver.log
+            build/clean-receiver/**/installer.log
+            build/clean-receiver/**/logs/*.log
+            build/export-runtime/bt-export-runtime-probe.jar
+          retention-days: 14

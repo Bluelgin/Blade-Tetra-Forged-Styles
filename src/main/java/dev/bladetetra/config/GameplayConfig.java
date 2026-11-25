@@ -125,8 +125,18 @@ public final class GameplayConfig {
     public static final ForgeConfigSpec.DoubleValue OFFENSIVE_DAMAGE_CAP;
     public static final ForgeConfigSpec.IntValue OFFENSIVE_COOLDOWN_TICKS;
 
+    public static final ForgeConfigSpec.BooleanValue ENABLE_BLADE_SEALING;
+    public static final ForgeConfigSpec.BooleanValue BLADE_SEALING_OPERATORS_ONLY;
+
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+
+        builder.push("bladeSealing");
+        ENABLE_BLADE_SEALING = builder.comment("Allow Blade Studio to seal weapons on this world.")
+                .define("enabled", true);
+        BLADE_SEALING_OPERATORS_ONLY = builder.comment("Require operator level 2 to seal weapons on dedicated servers.")
+                .define("operatorsOnly", true);
+        builder.pop();
 
         builder.push("discoveries");
         ENABLE_EASTER_EGG_UNLOCKS = builder
