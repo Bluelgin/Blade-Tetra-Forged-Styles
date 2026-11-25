@@ -53,6 +53,8 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
             names = set(archive.namelist())
             if len(names) != len(archive.namelist()):
                 raise RuntimeError(f"Duplicate entries in {file}")
+            if any(re.match(r"data/[^/]+/(recipes|loot_tables)/", name) for name in names):
+                raise RuntimeError(f"Generated add-on contains a survival acquisition path: {file}")
             required = {"blade-export.json", "META-INF/mods.toml",
                         "META-INF/jarjar/metadata.json"}
             if not required.issubset(names):

@@ -25,6 +25,7 @@ def make_package(directory: Path, namespace: str, *, slashblade: str = "1.9.63",
                       "path": f"META-INF/jarjar/bt-export-runtime-{runtime}.jar"}]
         }).encode(),
         f"META-INF/jarjar/bt-export-runtime-{runtime}.jar": b"sample shared runtime contents",
+        f"data/{namespace}/slashblade/named_blades/sealed_blade.json": b'{"sample":true}',
     }
     dependencies = [{"modId": "slashblade", "version": slashblade}]
     if source_dependency:
