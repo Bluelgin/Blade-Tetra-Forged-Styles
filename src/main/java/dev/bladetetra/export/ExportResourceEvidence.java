@@ -49,7 +49,7 @@ public record ExportResourceEvidence(ResourceLocation id, String packId, String 
                         permission = id.getPath().equals("model/modular/wood.obj")
                                 || id.getPath().equals("model/modular/wood.png") ? UPSTREAM_MIT : PROJECT_MIT;
                     } else if (id.toString().equals("slashblade:model/rodai_netherite.png")
-                            && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118351331ca4aafed64164")) {
+                            && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118358551331ca4aafed64164")) {
                         permission = UPSTREAM_MIT;
                     }
                 }
