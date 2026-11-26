@@ -40,21 +40,22 @@ public record ExportResourceEvidence(ResourceLocation id, String packId, String 
         // Forge 1.20.1 can report its aggregate pack for installed mod assets.
         // In that pack, compare against the installed bytes before attributing the asset.
         boolean aggregate = "mod_resources".equals(pack);
-        if ((aggregate || "mod:blade_tetra".equals(pack)) && "blade_tetra".equals(id.getNamespace())) {
+        String namespace = id.getNamespace();
+        if (aggregate || pack.equals("mod:" + namespace)) {
             try {
-                if (installedModAsset(id, "blade_tetra").sha256().equals(digest)) {
-                    owner = "blade_tetra";
-                    permission = id.getPath().equals("model/modular/wood.obj")
-                            || id.getPath().equals("model/modular/wood.png") ? UPSTREAM_MIT : PROJECT_MIT;
+                if (installedModAsset(id, namespace).sha256().equals(digest)) {
+                    owner = namespace;
+                    if ("blade_tetra".equals(namespace)) {
+                        permission = id.getPath().equals("model/modular/wood.obj")
+                                || id.getPath().equals("model/modular/wood.png") ? UPSTREAM_MIT : PROJECT_MIT;
+                    } else if (id.toString().equals("slashblade:model/rodai_netherite.png")
+                            && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118351331ca4aafed64164")) {
+                        permission = UPSTREAM_MIT;
+                    }
                 }
             } catch (IOException ignored) {
                 // An unidentified pack source remains external.
             }
-        }
-        if ((aggregate || "mod:slashblade".equals(pack)) && id.toString().equals("slashblade:model/rodai_netherite.png")
-                && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118358551331ca4aafed64164")) {
-            owner = "slashblade";
-            permission = UPSTREAM_MIT;
         }
         var container = ModList.get().getModContainerById(owner);
         String version = container.map(mod -> mod.getModInfo().getVersion().toString()).orElse("unknown");

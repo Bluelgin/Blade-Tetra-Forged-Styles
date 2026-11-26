@@ -52,6 +52,7 @@ public final class BladeSealClientSmoke {
     private static boolean advancedConfigured;
     private static boolean advancedCaptured;
     private static boolean comparisonOpened;
+    private static net.minecraft.client.gui.screens.ConfirmScreen renderedResourceNotice;
     private static boolean noticeCancelled;
     private static boolean retriedNotice;
     private static boolean requestedExport;
@@ -125,7 +126,7 @@ public final class BladeSealClientSmoke {
         }
         if (client.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen notice
                 && notice.getTitle().equals(Component.translatable("blade_tetra.export.resource_notice.title"))) {
-            saveScreenshot(client, "blade-studio-material-notice.png");
+            if (notice != renderedResourceNotice) return;
             var label = noticeCancelled ? Component.translatable("blade_tetra.export.resource_notice.confirm")
                     : net.minecraft.network.chat.CommonComponents.GUI_CANCEL;
             noticeCancelled = true;
@@ -282,8 +283,15 @@ public final class BladeSealClientSmoke {
 
     @SubscribeEvent
     public static void renderPreview(TickEvent.RenderTickEvent event) {
-        if (!enabled() || previewVerified || event.phase != TickEvent.Phase.END) return;
+        if (!enabled() || event.phase != TickEvent.Phase.END) return;
         var client = Minecraft.getInstance();
+        if (client.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen notice
+                && notice != renderedResourceNotice
+                && notice.getTitle().equals(Component.translatable("blade_tetra.export.resource_notice.title"))) {
+            if (!noticeCancelled) saveScreenshot(client, "blade-studio-material-notice.png");
+            renderedResourceNotice = notice;
+        }
+        if (previewVerified) return;
         if (advancedConfigured && !advancedCaptured && client.screen instanceof BladeSealScreen) {
             saveScreenshot(client, "blade-studio-client.png");
             advancedCaptured = true;
