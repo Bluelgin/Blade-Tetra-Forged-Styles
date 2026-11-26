@@ -33,6 +33,8 @@ jobs:
         slashblade: ${{ github.event_name == 'pull_request' && fromJSON('["1.9.63","1.9.65"]') || fromJSON(format('["{0}"]', inputs.slashblade || '1.9.63')) }}
     env:
       SLASHBLADE_VERSION: ${{ matrix.slashblade }}
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      MESA_GL_VERSION_OVERRIDE: '4.5'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,9 +60,11 @@ jobs:
           else
             ./gradlew --no-daemon -PexportRuntimeProbe reobfExportRuntimeProbeJar
           fi
-      - name: Install isolated Forge server and exercise generated standalone addons
+      - name: Install receiving client launcher
+        run: python3 -m pip install --disable-pip-version-check minecraft-launcher-lib==8.0
+      - name: Exercise generated standalone addons in isolated Forge server and client
         run: |
-          python3 tools/ci/run_clean_receiver.py --slashblade "$SLASHBLADE_VERSION" \
+          python3 tools/ci/run_clean_receiver.py --client --slashblade "$SLASHBLADE_VERSION" \
             --salty-fish-jar build/blade-export-client-smoke/blade-exports/bt_export_salty_fish-*.jar \
             --fusion-jars build/blade-export-client-smoke/blade-exports/bt_export_fusion-*.jar \
               build/blade-export-client-smoke/blade-exports/bt_export_fusion_super-*.jar
@@ -75,6 +79,9 @@ jobs:
             build/blade-export-client-smoke.log
             build/clean-receiver/**/receiver.log
             build/clean-receiver/**/installer.log
+            build/clean-receiver/**/receiver-client.log
+            build/clean-receiver/**/client/*.png
+            build/clean-receiver/**/crash-reports/*.txt
             build/clean-receiver/**/logs/*.log
             build/export-runtime/bt-export-runtime-probe.jar
           retention-days: 14

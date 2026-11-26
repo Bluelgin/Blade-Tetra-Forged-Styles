@@ -4,8 +4,11 @@ import dev.bladetetra.BladeTetra;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.BackupConfirmScreen;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
@@ -30,9 +33,10 @@ public final class LegacyWorldMigrationClientSmoke {
         if (LegacyWorldMigrationSmoke.done() && client.player != null) {
             client.stop();
         } else if (started && client.screen instanceof BackupConfirmScreen backup) {
-            var confirm = Component.translatable("selectWorld.backupJoinConfirmButton");
-            backup.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
-                    .filter(button -> button.getMessage().equals(confirm)).findFirst().orElseThrow().onPress();
+            accept(backup, Component.translatable("selectWorld.backupJoinConfirmButton"));
+        } else if (started && client.screen instanceof ConfirmScreen confirmation
+                && confirmation.getTitle().equals(Component.translatable("selectWorld.backupQuestion.experimental"))) {
+            accept(confirmation, CommonComponents.GUI_PROCEED);
         } else if (!started && client.screen instanceof TitleScreen && client.getOverlay() == null) {
             started = true;
             var flows = client.createWorldOpenFlows();
@@ -48,6 +52,11 @@ public final class LegacyWorldMigrationClientSmoke {
                                 .getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions());
             }
         }
+    }
+
+    private static void accept(Screen screen, Component label) {
+        screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                .filter(button -> button.getMessage().equals(label)).findFirst().orElseThrow().onPress();
     }
 
     private LegacyWorldMigrationClientSmoke() {}

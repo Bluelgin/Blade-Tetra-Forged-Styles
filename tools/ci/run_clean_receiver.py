@@ -207,6 +207,34 @@ def run_with_log(args: list[str], directory: Path, path: Path, timeout: int) -> 
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def launch_clean_client(receiver: Path, forge_version: str, timeout: int) -> None:
+    import minecraft_launcher_lib as launcher
+
+    install = receiver / "client-launcher"
+    client = receiver / "client"
+    client.mkdir()
+    shutil.copytree(receiver / "mods", client / "mods")
+    (client / "options.txt").write_text("renderDistance:5\nsimulationDistance:5\nmaxFps:60\n", encoding="utf-8")
+    launcher.install.install_minecraft_version("1.20.1", str(install))
+    launcher.forge.install_forge_version(forge_version, str(install), java="java")
+    options = launcher.utils.generate_test_options()
+    options.update({
+        "gameDirectory": str(client),
+        "executablePath": "java",
+        "jvmArguments": ["-Xms512m", "-Xmx3G", "-Dblade_tetra.cleanReceiverClient=true"],
+        "customResolution": True,
+        "resolutionWidth": "1280",
+        "resolutionHeight": "720",
+    })
+    version = launcher.forge.forge_to_installed_version(forge_version)
+    command = launcher.command.get_minecraft_command(version, str(install), options)
+    log = run_with_log(["xvfb-run", "-a", *command], client, client / "receiver-client.log", timeout)
+    screenshots = ("fish-first-person", "fish-third-person", "fusion-first-person", "fusion-third-person")
+    if "CLEAN_RECEIVER_CLIENT_RENDER_PASS" not in log or any(
+            not (client / (shot + ".png")).is_file() for shot in screenshots):
+        raise RuntimeError("Clean receiver client did not render all baked model views")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--slashblade", choices=tuple(CURSE_IDS), required=True)
@@ -216,7 +244,10 @@ def main():
     parser.add_argument("--probe-jar", type=Path, default=ROOT / "build/export-runtime/bt-export-runtime-probe.jar")
     parser.add_argument("--forge", default="1.20.1-47.4.0")
     parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--client", action="store_true", help="Also render fish and fusion in a source-free client")
     opts = parser.parse_args()
+    if opts.client and not (opts.salty_fish_jar and opts.fusion_jars):
+        parser.error("--client requires actual Salty Fish and fusion fixtures")
 
     profile = "blade-export-package-smoke" + ("-1965" if opts.slashblade == "1.9.65" else "")
     fixture_dir = opts.fixture_dir or ROOT / "build" / profile / "blade-exports"
@@ -264,6 +295,8 @@ def main():
         raise RuntimeError(f"Receiver exited but did not prove expected behavior: {missing}")
     print(f"BLADE_EXPORT_CLEAN_RECEIVER_PASS: SlashBlade {opts.slashblade}, "
           f"source-free Forge {opts.forge}, {len(exports)} generated blades", flush=True)
+    if opts.client:
+        launch_clean_client(receiver, opts.forge, opts.timeout)
 
 
 if __name__ == "__main__":
