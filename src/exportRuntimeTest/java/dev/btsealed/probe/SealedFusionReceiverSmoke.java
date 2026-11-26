@@ -64,6 +64,13 @@ public final class SealedFusionReceiverSmoke {
 
             probe.reset();
             equip(world, normal, "bt_export_fusion");
+            probe.cancel = H;
+            state(normal).doChargeAction(normal, 40);
+            advance(world, 145, normal);
+            probe.check(normal, List.of(new Cast(H, SlashArts.ArtsType.Success)), List.of());
+
+            probe.reset();
+            equip(world, normal, "bt_export_fusion");
             state(normal).doChargeAction(normal, 40);
             advance(world, 4, normal);
             normal.setItemInHand(InteractionHand.MAIN_HAND, normal.getMainHandItem().copy());
@@ -77,8 +84,9 @@ public final class SealedFusionReceiverSmoke {
             SuperSlashArts.releaseSSA(normal);
             require(state(normal).getComboSeq().equals(ComboStateRegistry.JUDGEMENT_CUT_END.getId()),
                     "Native Super did not commit Judgement Cut End");
-            require(probe.releases.get(normal).get(0).equals(new Cast(JC, SlashArts.ArtsType.Super)),
-                    "The native Super event lost its source");
+            advance(world, 145, normal);
+            probe.check(normal, List.of(new Cast(JC, SlashArts.ArtsType.Super),
+                    new Cast(V, SlashArts.ArtsType.Success)), List.of(V));
             LogUtils.getLogger().info("BLADE_EXPORT_NATIVE_FUSION_RECEIVER_PASS");
         } finally {
             MinecraftForge.EVENT_BUS.unregister(probe);

@@ -1,0 +1,39 @@
+# Blade Studio 2.0 · Release Candidate 验收
+
+## 能力及依赖
+
+| 输入 | 封存行为 | 独立接收端依赖 |
+| --- | --- | --- |
+| SlashBlade 横驱、纵驱、次元斩双源融合 | 保留刀鞘 A → 刀镡 B 的原生 ID、事件和动作接续。如果原生 Super 选择器指向该来源不拥有的次元斩终式，沿用已有融合规则，调用该来源自己的 Normal 选择器。 | Forge 47 + SlashBlade 1.9.63 或 1.9.65 |
+| 常规 SlashBlade SE、SA | 保留通过预检的原生注册 ID。能力由原提供者执行。 | Forge 47、SlashBlade 和证书列出的提供者 |
+| 咸鱼一文字 | 烘焙鱼骨、鱼身、鱼嘴和可审计刀镡。共享运行时沿用原有鱼拍、水花及气泡逻辑。 | Forge 47 + SlashBlade |
+| 觉醒刀 | 玩家确认剥离后可封存普通版本。 | 取决于剩余能力 |
+| Time Beyond、Treasure Barrage、YakumoBlade 及其他外部双源 SA | 预检按 A/B 位置列出未审核的来源 ID。 | 暂无独立双源支持 |
+| SJAP、YakumoBlade、The Last Smith: Resharpened、Recasting 等外部模型 | 根据实际模型和资源来源检查。外部资源引用随导出声明依赖，嵌入资源需要再分发许可。 | 取决于实际资源与能力来源 |
+| 锻造剑谱与源 Mod 专属组合 | 预检拦截尚无独立实现的剑谱条目、专属效果和组合。 | 待移植 |
+| 新旧封存 JAR | 新导出精确声明共享运行时 1.7.0。历史 JAR 若锁定旧版，混装前需用源武器重新封存。 | 同一接收端安装同代导出物 |
+
+## 中文更新日志
+
+- 御影战斗、挑战和专属美术退役。兼容层保留旧注册、庭院区块及恢复玩家位置所需的数据。
+- 工作室默认进入单页普通模式，支持共享草稿、原刀预览和高级编辑。
+- 封存支持已审查的双源融合和咸鱼模型。独立样本由 Forge 实际生成。
+- CI 分别使用 SlashBlade 1.9.63 与 1.9.65 生成并测试附属。旧存档夹具覆盖两种服务器的保存与重启。
+
+## English changelog
+
+- Retired the Mikage encounter and its art. Legacy IDs and player recovery preserve existing worlds and courtyards.
+- Studio opens in a single-page Simple mode with live source preview and a draft shared with Advanced mode.
+- Sealing supports audited native two-source combinations and baked Salty Fish meshes. Forge generates the receiver fixtures.
+- CI generates and loads independent add-ons on SlashBlade 1.9.63 and 1.9.65. Legacy fixtures verify save and reopen on both server types.
+
+## 作者实机验收
+
+1. 备份并复制一份真实旧世界。检查庭院、遗留物品、原处于挑战中的角色、保存后重进。
+2. 打开封存台，放入普通毕业刀。改名后封存。打开高级模式编辑双语名称、Lore、Logo 与背板，返回普通模式确认草稿仍在。
+3. 对比原刀与烘焙结果。拖动、缩放，检查出鞘、收刀、损坏、发光和库存图标。
+4. 在干净实例中装入实际封存 JAR，检查创造栏和 `/bladeseal give`。对照横驱 → 纵驱的事件、效果和单次耗费，再检查咸鱼的模型与命中反馈。
+5. 尝试封存觉醒刀。确认剥离提示可以取消，封存失败或成功后原武器仍在。
+6. 安装多个同代封存附属，分别保存和重进。将截图、日志和所用完整提交 SHA 一起提交。
+
+`python3 tools/ci/run_suite.py legacy_world_migration` 和 `legacy_world_migration_client` 各启动 Forge 两次。夹具使用可审计的历史 NBT 记录，并在第二次进服前保留实际保存的区块和玩家文件。测试包、样本与截图以 PR 当前 HEAD 的 Actions artifacts 为准。真实历史整世界和生产环境下的性能数据仍需另行采样。

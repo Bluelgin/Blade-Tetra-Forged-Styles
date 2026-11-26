@@ -37,7 +37,7 @@ def developmentProfiles = [
     'soulGuideReview', 'sakuraCombatSmoke', 'raikiriCombatSmoke', 'swordAuraHitSmoke',
     'lifengSmoke', 'customStyleInputReview', 'mirrorRitualReview', 'bloodBladeReview',
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
-    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'legacyWorldMigrationSmoke', 'customStyleSmoke',
+    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'legacyWorldMigrationSmoke', 'legacyWorldMigrationClientSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
     'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'exportPackageSmoke',
     'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
@@ -133,9 +133,13 @@ minecraft {
                 workingDirectory project.file('build/kyouka-native-smoke')
                 property 'blade_tetra.kyoukaNativeSmoke', 'true'
             }
-            if (project.hasProperty('legacyWorldMigrationSmoke')) {
-                workingDirectory project.file('build/legacy-world-migration-smoke')
+            if (project.hasProperty('legacyWorldMigrationSmoke') || project.hasProperty('legacyWorldMigrationClientSmoke')) {
+                boolean clientFixture = project.hasProperty('legacyWorldMigrationClientSmoke')
+                workingDirectory project.file(clientFixture ? 'build/legacy-world-migration-client-smoke'
+                        : 'build/legacy-world-migration-smoke')
                 property 'blade_tetra.legacyWorldMigrationSmoke', 'true'
+                property 'blade_tetra.legacyWorldMigrationClientSmoke', clientFixture.toString()
+                property 'blade_tetra.legacyWorldMigrationReopen', project.hasProperty('legacyWorldMigrationReopen').toString()
             }
             if (project.hasProperty('customStyleSmoke')) {
                 workingDirectory project.file('build/custom-style-smoke')

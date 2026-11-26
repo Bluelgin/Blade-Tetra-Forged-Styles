@@ -9,6 +9,7 @@
       "sakura",
       "raikiri",
       "legacy_world_migration",
+      "legacy_world_migration_client",
       "custom_style",
       "lifeng",
       "storage",
@@ -161,6 +162,15 @@
       "kind": "server",
       "property": "legacyWorldMigrationSmoke",
       "directory": "legacy-world-migration-smoke",
+      "markers": [
+        "LEGACY_WORLD_MIGRATION_PASS"
+      ],
+      "flags": []
+    },
+    "legacy_world_migration_client": {
+      "kind": "client",
+      "property": "legacyWorldMigrationClientSmoke",
+      "directory": "legacy-world-migration-client-smoke",
       "markers": [
         "LEGACY_WORLD_MIGRATION_PASS"
       ],
@@ -415,14 +425,15 @@
     {
       "paths": [
         "src/main/java/dev/bladetetra/compat/LegacyMikageCompatibility.java",
-        "src/integrationTest/java/dev/bladetetra/compat/LegacyWorldMigrationSmoke.java",
+        "src/integrationTest/java/dev/bladetetra/compat/LegacyWorldMigration*Smoke.java",
         "src/main/resources/data/blade_tetra/dimension/**",
         "src/main/resources/data/blade_tetra/dimension_type/**"
       ],
       "suites": [
-        "legacy_world_migration"
+        "legacy_world_migration",
+        "legacy_world_migration_client"
       ],
-      "reason": "Legacy dimension and entity migration"
+      "reason": "Legacy dimension and entity migration in integrated and dedicated servers"
     },
     {
       "paths": [
