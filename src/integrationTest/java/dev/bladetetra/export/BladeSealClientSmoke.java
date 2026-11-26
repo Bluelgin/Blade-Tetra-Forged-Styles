@@ -130,8 +130,12 @@ public final class BladeSealClientSmoke {
             var label = noticeCancelled ? Component.translatable("blade_tetra.export.resource_notice.confirm")
                     : net.minecraft.network.chat.CommonComponents.GUI_CANCEL;
             noticeCancelled = true;
-            notice.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
-                    .filter(button -> button.getMessage().equals(label)).findFirst().orElseThrow().onPress();
+            var button = notice.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                    .filter(control -> control.getMessage().equals(label)).findFirst().orElseThrow();
+            if (client.font.width(label) > button.getWidth() - 8) {
+                throw new IllegalStateException("Resource notice button label does not fit: " + label.getString());
+            }
+            button.onPress();
             return;
         }
         if (!(client.screen instanceof BladeSealScreen screen)) return;

@@ -1696,7 +1696,7 @@
   "tooltip.blade_tetra.forging_core.none": "The selected metal has no inheritable effect",
   "blade_tetra.export.resource_notice.title": "Third-party asset notice",
   "blade_tetra.export.resource_notice.body": "This blade contains or may contain artwork from other mods or resource packs. Use the export privately unless the original terms permit distribution. Obtain any required permission before publishing protected assets on CurseForge, Modrinth or other public platforms. Confirming does not grant you any rights. Your original weapon stays in the workbench.",
-  "blade_tetra.export.resource_notice.confirm": "I understand and wish to seal",
+  "blade_tetra.export.resource_notice.confirm": "I understand. Seal",
   "blade_tetra.export.resource_notice.cancelled": "Sealing cancelled. Your draft and original weapon are still available.",
   "blade_tetra.export.rejection.request": "The workbench request is no longer active. Reopen Blade Studio.",
   "blade_tetra.export.rejection.awakening": "Confirm the removal of awakening abilities first.",
