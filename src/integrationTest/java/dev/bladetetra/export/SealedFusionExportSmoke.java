@@ -22,6 +22,7 @@ final class SealedFusionExportSmoke {
         var judgement = SlashArtsRegistry.JUDGEMENT_CUT.getId();
         write(directory, resources, "bt_export_fusion", horizontal, vertical);
         write(directory, resources, "bt_export_fusion_super", judgement, vertical);
+        write(directory, resources, "bt_export_fusion_sakura", SlashArtsRegistry.SAKURA_END.getId(), vertical);
 
         var blocked = blade(horizontal, ResourceLocation.parse("recasting:time_beyond"));
         var snapshot = BladeExportSnapshot.captureOwnedStack(blocked);

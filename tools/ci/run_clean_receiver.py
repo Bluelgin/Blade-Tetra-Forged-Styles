@@ -237,7 +237,8 @@ def launch_clean_client(receiver: Path, forge_version: str, timeout: int) -> Non
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--slashblade", choices=tuple(CURSE_IDS), required=True)
+    parser.add_argument("--slashblade", choices=tuple(CURSE_IDS), required=True, help="Receiving SlashBlade version")
+    parser.add_argument("--source-slashblade", choices=tuple(CURSE_IDS), help="Version recorded by the exporter")
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--salty-fish-jar", type=Path)
     parser.add_argument("--fusion-jars", type=Path, nargs=2)
@@ -249,9 +250,10 @@ def main():
     if opts.client and not (opts.salty_fish_jar and opts.fusion_jars):
         parser.error("--client requires actual Salty Fish and fusion fixtures")
 
-    profile = "blade-export-package-smoke" + ("-1965" if opts.slashblade == "1.9.65" else "")
+    source = opts.source_slashblade or opts.slashblade
+    profile = "blade-export-package-smoke" + ("-1965" if source == "1.9.65" else "")
     fixture_dir = opts.fixture_dir or ROOT / "build" / profile / "blade-exports"
-    exports = inspect_exports(fixture_dir, opts.slashblade, opts.salty_fish_jar, tuple(opts.fusion_jars or ()))
+    exports = inspect_exports(fixture_dir, source, opts.salty_fish_jar, tuple(opts.fusion_jars or ()))
     if not opts.probe_jar.is_file():
         raise RuntimeError("Missing receiver probe: run ./gradlew -PexportRuntimeProbe "
                            "reobfExportRuntimeProbeJar first")

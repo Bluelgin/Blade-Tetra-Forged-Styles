@@ -62,7 +62,11 @@ final class BladeExportArchive {
         }
     }
 
-    record Dependency(String modId, String version) {
+    record Dependency(String modId, String version, String versionRange) {
+        Dependency(String modId, String version) {
+            this(modId, version, ExportDependencyVersions.range(modId, version));
+        }
+
         Dependency {
             if (!modId.matches("[a-z][a-z0-9_]{1,63}") || !version.matches("[a-zA-Z0-9_.+\\-]{1,64}")
                     || modId.equals("blade_tetra") || modId.equals("tetra")) {
@@ -97,6 +101,10 @@ final class BladeExportArchive {
         }
         if (!mods.contains("slashblade")) {
             throw new IllegalArgumentException("Missing target dependencies");
+        }
+        if (battle.fusion() != null && (!mods.contains(battle.fusion().releaseAbility().getNamespace())
+                || !mods.contains(battle.fusion().responseAbility().getNamespace()))) {
+            throw new IllegalArgumentException("Missing fusion provider dependency");
         }
         if (bakedAssets.size() > 128) {
             throw new IllegalArgumentException("Too many exported assets");
@@ -189,7 +197,7 @@ final class BladeExportArchive {
         identifier.addProperty("group", "dev.btsealed");
         identifier.addProperty("artifact", "bt-export-runtime");
         var version = new JsonObject();
-        version.addProperty("range", "[" + ExportBattleProfile.RUNTIME_VERSION + "]");
+        version.addProperty("range", ExportBattleProfile.RUNTIME_RANGE);
         version.addProperty("artifactVersion", ExportBattleProfile.RUNTIME_VERSION);
         var artifact = new JsonObject();
         artifact.add("identifier", identifier);
@@ -233,9 +241,9 @@ final class BladeExportArchive {
                 + dependency(metadata.modId(), "forge", "[47,48)")
                 + dependency(metadata.modId(), "minecraft", "[1.20.1]")
                 + dependency(metadata.modId(), ExportBattleProfile.RUNTIME_ID,
-                    "[" + ExportBattleProfile.RUNTIME_VERSION + "]")
+                    ExportBattleProfile.RUNTIME_RANGE)
                 + dependencies.stream().sorted(java.util.Comparator.comparing(Dependency::modId))
-                        .map(dep -> dependency(metadata.modId(), dep.modId(), "[" + dep.version() + "]"))
+                        .map(dep -> dependency(metadata.modId(), dep.modId(), dep.versionRange()))
                         .collect(java.util.stream.Collectors.joining());
     }
 

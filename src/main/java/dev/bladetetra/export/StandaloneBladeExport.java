@@ -63,12 +63,13 @@ final class StandaloneBladeExport {
 
     private static void checkFusionSource(String slot, ResourceLocation id, List<String> missing) {
         String label = "fusion " + slot + " " + id;
-        if ("recasting".equals(id.getNamespace()) && "time_beyond".equals(id.getPath())) {
-            missing.add(label + " needs Recasting's pre-release charge lifecycle");
-        } else if (!SealedFusionSources.supports(id)) {
-            missing.add(label + " has no verified standalone dispatch via " + id.getNamespace());
+        String problem = SealedFusionSources.incompatibility(id);
+        if (problem != null) {
+            missing.add(label + " " + problem);
+        } else if (!ModList.get().isLoaded(id.getNamespace())) {
+            missing.add(label + " has no installed provider matching namespace " + id.getNamespace());
         } else if (!NativeFusionEngine.available(id)) {
-            missing.add(label + " is not registered by the installed SlashBlade");
+            missing.add(label + " is missing from the SlashBlade registry");
         }
     }
 
@@ -121,18 +122,19 @@ final class StandaloneBladeExport {
 
         Set<String> required = new TreeSet<>();
         required.add("slashblade");
-        if (!usesFusion(snapshot)) required.add(snapshot.slashArt().getNamespace());
+        if (usesFusion(snapshot)) {
+            required.add(snapshot.fusion().releaseAbility().getNamespace());
+            required.add(snapshot.fusion().responseAbility().getNamespace());
+        } else {
+            required.add(snapshot.slashArt().getNamespace());
+        }
+        artwork.inputs().stream().filter(input -> !input.embedded())
+                .map(ExportResourceEvidence::ownerModId).forEach(required::add);
         snapshot.specialEffects().forEach(id -> required.add(id.getNamespace()));
         snapshot.enchantments().forEach(value -> required.add(value.id().getNamespace()));
         snapshot.attributes().forEach(value -> required.add(value.id().getNamespace()));
         required.removeAll(Set.of("minecraft", "forge"));
         var dependencies = required.stream().map(id -> new BladeExportArchive.Dependency(id, version(id))).toList();
-        String slashbladeVersion = version("slashblade");
-        if (!Set.of("1.9.63", "1.9.65").contains(slashbladeVersion)) {
-            throw new IllegalArgumentException(
-                    "Standalone export has not been validated against SlashBlade " + slashbladeVersion
-                            + "; supported targets: 1.9.63, 1.9.65");
-        }
 
         var definition = new NativeBladeExport(snapshot.attack(), snapshot.durability(), combo(snapshot),
                 usesFusion(snapshot) ? SealedFusionSources.DISPATCHER : snapshot.slashArt(), snapshot.specialEffects(), snapshot.enchantments(), artwork.model(), artwork.texture(),

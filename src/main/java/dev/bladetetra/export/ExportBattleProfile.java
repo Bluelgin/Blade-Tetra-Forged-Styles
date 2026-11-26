@@ -11,8 +11,9 @@ import java.util.List;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects, NativeFusionEngine.Pair fusion) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.7.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.7.0.jar";
+    static final String RUNTIME_VERSION = "1.8.0";
+    static final String RUNTIME_RANGE = "[" + RUNTIME_VERSION + ",2)";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-" + RUNTIME_VERSION + ".jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");
@@ -31,7 +32,7 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
         }
         if (fusion != null && (!SealedFusionSources.supports(fusion.releaseAbility())
                 || !SealedFusionSources.supports(fusion.responseAbility()))) {
-            throw new IllegalArgumentException("Invalid or unaudited sealed fusion sources");
+            throw new IllegalArgumentException("Invalid sealed fusion sources");
         }
         attributes = List.copyOf(attributes);
         moves = List.copyOf(moves);

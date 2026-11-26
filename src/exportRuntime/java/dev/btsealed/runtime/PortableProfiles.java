@@ -77,6 +77,17 @@ final class PortableProfiles {
         };
     }
 
+    private static void checkFusionSource(ResourceLocation blade, ResourceLocation source) {
+        String problem = SealedFusionSources.incompatibility(source);
+        if (problem != null) {
+            throw new IllegalArgumentException("Fusion source " + source + " for " + blade + " " + problem);
+        }
+        if (!NativeFusionEngine.available(source)) {
+            throw new IllegalArgumentException("Fusion source " + source + " for " + blade
+                    + " is missing from the SlashBlade registry. Check provider " + source.getNamespace());
+        }
+    }
+
     private static Profile read(ResourceLocation id, JsonObject json) {
         if (json.get("schema").getAsInt() != 1) {
             throw new IllegalArgumentException("Unsupported blade profile schema: " + id);
@@ -120,10 +131,8 @@ final class PortableProfiles {
             var sources = json.getAsJsonObject("fusion");
             var release = ResourceLocation.parse(sources.get("releaseAbility").getAsString());
             var response = ResourceLocation.parse(sources.get("responseAbility").getAsString());
-            if (!SealedFusionSources.supports(release) || !SealedFusionSources.supports(response)
-                    || !NativeFusionEngine.available(release) || !NativeFusionEngine.available(response)) {
-                throw new IllegalArgumentException("Unaudited or missing fusion source for " + id);
-            }
+            checkFusionSource(id, release);
+            checkFusionSource(id, response);
             fusion = new NativeFusionEngine.Pair(release, response);
         }
         var declared = json.getAsJsonArray("capabilities");

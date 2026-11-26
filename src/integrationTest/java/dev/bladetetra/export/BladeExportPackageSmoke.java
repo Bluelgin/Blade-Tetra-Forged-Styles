@@ -174,7 +174,7 @@ public final class BladeExportPackageSmoke {
         if (descriptor == null
                 || !descriptor.contains("modId=\"bt_export_runtime\"")
                 || !descriptor.contains("version=\"" + ExportBattleProfile.RUNTIME_VERSION + "\"")
-                || !descriptor.contains("versionRange=\"[1.9.63,1.9.66)\"")) {
+                || !descriptor.contains("versionRange=\"[1.9.63,2)\"")) {
             throw new IllegalStateException("Inner Forge runtime metadata disagrees with Jar-in-Jar identity");
         }
     }
@@ -278,7 +278,9 @@ public final class BladeExportPackageSmoke {
                 var info = jarJar.getAsJsonArray("jars").get(0).getAsJsonObject();
                 if (!"bt-export-runtime".equals(info.getAsJsonObject("identifier").get("artifact").getAsString())
                         || !ExportBattleProfile.RUNTIME_VERSION.equals(
-                                info.getAsJsonObject("version").get("artifactVersion").getAsString())) {
+                                info.getAsJsonObject("version").get("artifactVersion").getAsString())
+                        || !ExportBattleProfile.RUNTIME_RANGE.equals(
+                                info.getAsJsonObject("version").get("range").getAsString())) {
                     throw new IllegalStateException("Inconsistent Jar-in-Jar runtime coordinates");
                 }
                 var manifest = JsonParser.parseString(new String(zip.getInputStream(certificate).readAllBytes(),

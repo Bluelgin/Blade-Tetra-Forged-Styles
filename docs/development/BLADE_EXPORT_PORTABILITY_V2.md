@@ -100,10 +100,10 @@ The Studio opens on the blade preview, name and description. Advanced mode expos
 | Salty Fish with an audited salvaged or named guard | Uses the live fish-mouth guard fit and records the model, texture and adapter provenance. |
 | Salty Fish with a named blade or saya | Preflight rejects combinations that still need portable seating and coverage. |
 | One registered provider Slash Art | Preserves its ID and declares the required provider and version. |
-| Programmatic fusion | The independent scheduler supports the audited stock horizontal drive, vertical drive and Judgement Cut. Preflight rejects unaudited sources, including YakumoBlade fusion. |
+| Programmatic fusion | The independent scheduler uses each registered native art, and the package declares the installed providers for both sources. Known separate charge and replay lifecycles remain preflight blockers. |
 | Recasting Time Beyond | Requires pre-release charge events. The source compatibility layer skips it. |
 | Treasure Barrage | Delayed replay needs source context beyond synchronous dispatch. |
 | SJAP, YakumoBlade, The Last Smith: Resharpened and Recasting model resources | Embedding requires licensing and provider evidence for the actual model, texture and adapter. |
 | Banner-pattern saya, forged source-only Slash Arts and Boundary Forging | Preflight reports these capabilities as source-dependent. |
 
-Exports pin their embedded runtime version. Use a separate instance for older runtime JARs or re-seal the source blades and replace the old JARs when upgrading to runtime 1.7.0.
+New exports accept compatible shared runtime updates from 1.8.0. To upgrade a pack with older exports that pin their runtime, re-seal the original swords using their existing add-on Mod IDs and replace those archives.
