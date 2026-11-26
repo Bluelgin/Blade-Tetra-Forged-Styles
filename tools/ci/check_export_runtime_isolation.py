@@ -2,7 +2,7 @@
 """Prevent standalone Jar-in-Jar sources from acquiring Blade Tetra/Tetra imports.
 
 This static gate complements, but does not replace, clean receiving-client/server tests.
-The Gradle copy task rewrites only 'dev.bladetetra.combat' package references.
+Gradle relocates explicitly shared Java sources into the standalone runtime.
 """
 from pathlib import Path
 import re
@@ -18,6 +18,10 @@ COPIED = {
     "DangakuSpinRules.java",
     "DangakuCombatValues.java",
     "SaltyFishHitFeedback.java",
+    "NativeFusionEngine.java",
+    "NativeFusionLifecycle.java",
+    "FusionSourceExecution.java",
+    "SealedFusionSources.java",
 }
 
 def imports(source: str):
@@ -27,6 +31,7 @@ def imports(source: str):
 def main():
     files = sorted(RUNTIME.rglob("*.java"))
     files.extend(COMBAT / name for name in sorted(COPIED))
+    files.append(ROOT / "src/main/java/dev/bladetetra/compat/fusion/RecastingFusionCompatibility.java")
     # The generated runtime rewrites this pure-Java exporter contract's package.
     # Audit it alongside the independent runtime sources.
     files.append(ROOT / "src/main/java/dev/bladetetra/export/PortableCapabilityCatalog.java")
@@ -41,6 +46,9 @@ def main():
             if not re.search(r"(?m)^\s*package\s+" + re.escape(expected) + r"\s*;", source):
                 raise SystemExit(f"Runtime source has unexpected package: {file} (expected {expected})")
         for imported in imports(source):
+            if (file.parent == COMBAT and file.name in {"FusionSourceExecution.java", "NativeFusionEngine.java"}
+                    and imported == "dev.bladetetra.compat.fusion.RecastingFusionCompatibility"):
+                continue
             if imported.startswith("dev.bladetetra.") and (
                 file.is_relative_to(RUNTIME) or not imported.startswith("dev.bladetetra.combat.")
             ):

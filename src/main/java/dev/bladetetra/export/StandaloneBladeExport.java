@@ -1,5 +1,7 @@
 package dev.bladetetra.export;
 
+import dev.bladetetra.combat.NativeFusionEngine;
+import dev.bladetetra.combat.SealedFusionSources;
 import mods.flammpfeil.slashblade.client.renderer.CarryType;
 import mods.flammpfeil.slashblade.init.DefaultResources;
 import net.minecraft.resources.ResourceLocation;
@@ -30,7 +32,17 @@ final class StandaloneBladeExport {
         if ("STANDARD".equals(snapshot.style()) && isSourceOnly(snapshot.combo())) {
             missing.add("source-only combo root " + snapshot.combo());
         }
-        if (snapshot.slashArt() != null && isSourceOnly(snapshot.slashArt())) missing.add(snapshot.slashArt().toString());
+        if (usesFusion(snapshot)) {
+            var pair = snapshot.fusion();
+            if (pair == null) {
+                missing.add("programmatic fusion needs a confirmed source pair");
+            } else {
+                checkFusionSource("A", pair.releaseAbility(), missing);
+                checkFusionSource("B", pair.responseAbility(), missing);
+            }
+        } else if (snapshot.slashArt() != null && isSourceOnly(snapshot.slashArt())) {
+            missing.add(snapshot.slashArt().toString());
+        }
         snapshot.specialEffects().stream().filter(StandaloneBladeExport::isSourceOnly)
                 .forEach(effect -> missing.add(effect.toString()));
         snapshot.enchantments().stream().map(BladeExportSnapshot.EnchantmentValue::id)
@@ -43,6 +55,16 @@ final class StandaloneBladeExport {
         }
         if (snapshot.slashArt() == null) throw new IllegalArgumentException("Missing Slash Art identifier");
         ExportBattleProfile.from(snapshot).capabilities(combo(snapshot));
+    }
+
+    static boolean usesFusion(BladeExportSnapshot snapshot) {
+        return SealedFusionSources.SOURCE_DISPATCHER.equals(snapshot.slashArt());
+    }
+
+    private static void checkFusionSource(String slot, ResourceLocation id, List<String> missing) {
+        if (!SealedFusionSources.supports(id) || !NativeFusionEngine.available(id)) {
+            missing.add("fusion " + slot + " " + id + " lacks an audited standalone release lifecycle");
+        }
     }
 
     private static boolean isSourceOnly(ResourceLocation id) {
@@ -94,7 +116,7 @@ final class StandaloneBladeExport {
 
         Set<String> required = new TreeSet<>();
         required.add("slashblade");
-        required.add(snapshot.slashArt().getNamespace());
+        if (!usesFusion(snapshot)) required.add(snapshot.slashArt().getNamespace());
         snapshot.specialEffects().forEach(id -> required.add(id.getNamespace()));
         snapshot.enchantments().forEach(value -> required.add(value.id().getNamespace()));
         snapshot.attributes().forEach(value -> required.add(value.id().getNamespace()));
@@ -108,7 +130,7 @@ final class StandaloneBladeExport {
         }
 
         var definition = new NativeBladeExport(snapshot.attack(), snapshot.durability(), combo(snapshot),
-                snapshot.slashArt(), snapshot.specialEffects(), snapshot.enchantments(), artwork.model(), artwork.texture(),
+                usesFusion(snapshot) ? SealedFusionSources.DISPATCHER : snapshot.slashArt(), snapshot.specialEffects(), snapshot.enchantments(), artwork.model(), artwork.texture(),
                 snapshot.color(), snapshot.colorInverse(), CarryType.valueOf(snapshot.carryType()),
                 snapshot.bewitched(), snapshot.sealed(), snapshot.unbreakable());
         var publishedMetadata = metadata.logo().length == 0 && !artwork.assets().isEmpty()

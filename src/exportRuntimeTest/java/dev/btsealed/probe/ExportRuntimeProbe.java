@@ -95,6 +95,7 @@ public final class ExportRuntimeProbe {
             verifyReinforcedKnockback(world, player);
             verifyDangaku(world, player);
             if (modList.isLoaded("bt_export_salty_fish")) verifyFish(world, player, first);
+            if (modList.isLoaded("bt_export_fusion")) SealedFusionReceiverSmoke.verify(world);
             PortableRuntimeSelfTest.verifyPrecisionClock();
             PortableRuntimeSelfTest.verifySpiritSwordIsolation();
             PortableRuntimeSelfTest.verifyReinforcedArithmetic();

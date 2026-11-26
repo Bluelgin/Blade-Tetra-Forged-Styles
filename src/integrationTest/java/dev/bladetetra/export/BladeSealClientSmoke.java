@@ -131,6 +131,7 @@ public final class BladeSealClientSmoke {
                     before = files.map(p -> p.getFileName().toString()).collect(Collectors.toSet());
                 }
                 verifyFishFixtures(client);
+                SealedFusionExportSmoke.verify(client.gameDirectory.toPath(), client.getResourceManager());
                 if (!findField(screen, "blade_tetra.export.name").visible
                         || !findField(screen, "blade_tetra.export.description").visible
                         || findButton(screen, "blade_tetra.export.page.appearance").visible) {

@@ -37,6 +37,7 @@ public final class BladeTetra {
 
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(BladeTetra::commonSetup);
+        modBus.addListener(dev.bladetetra.combat.ProgrammaticFusionHandler::processInterop);
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.SERVER,
                 GameplayConfig.SPEC,

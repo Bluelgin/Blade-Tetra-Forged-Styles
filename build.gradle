@@ -475,9 +475,16 @@ def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
     // Forge can load the modular and sealed mods together. Keep their packages disjoint.
     from('src/main/java/dev/bladetetra/combat') {
         include 'StyleBranchRules.java', 'StyleCommonCommands.java', 'StyleTargeting.java',
-                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java', 'SaltyFishHitFeedback.java'
+                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java', 'SaltyFishHitFeedback.java',
+                'NativeFusionEngine.java', 'FusionSourceExecution.java', 'NativeFusionLifecycle.java',
+                'SealedFusionSources.java'
         into 'dev/btsealed/runtime'
-        filter { line -> line.replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
+        filter { line -> line.replace('import dev.bladetetra.compat.fusion.RecastingFusionCompatibility;', '')
+                .replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
+    }
+    from('src/main/java/dev/bladetetra/compat/fusion/RecastingFusionCompatibility.java') {
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.compat.fusion', 'dev.btsealed.runtime') }
     }
     into layout.buildDirectory.dir('generated/export-combat')
 }
@@ -496,7 +503,7 @@ def portableCapabilitySources = tasks.register('prepareExportCapabilitySources',
 sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
 
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.6.0.jar'
+    archiveFileName = 'bt-export-runtime-1.7.0.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')

@@ -1,16 +1,18 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.customstyle.CustomBladeLength;
+import dev.bladetetra.combat.NativeFusionEngine;
+import dev.bladetetra.combat.SealedFusionSources;
 import dev.bladetetra.customstyle.CustomStyleTimingPolicy;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
 /** Versioned data consumed by the embedded runtime. */
-record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects) {
+record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects, NativeFusionEngine.Pair fusion) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.6.0";
-    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.6.0.jar";
+    static final String RUNTIME_VERSION = "1.7.0";
+    static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-1.7.0.jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");
     static final ResourceLocation CUSTOM_ROOT = root("custom_root");
     static final ResourceLocation IAIDO_ROOT = root("iaido_root");
@@ -18,9 +20,18 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
 
     record Move(ResourceLocation action, int minimumTicks) {}
 
+    ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves,
+                        BladeExportSnapshot.ComponentEffects effects) {
+        this(schema, attributes, moves, effects, null);
+    }
+
     ExportBattleProfile {
         if (schema != 1 || attributes.size() > 64 || moves.size() > 6) {
             throw new IllegalArgumentException("Unsupported battle profile size or schema");
+        }
+        if (fusion != null && (!SealedFusionSources.supports(fusion.releaseAbility())
+                || !SealedFusionSources.supports(fusion.responseAbility()))) {
+            throw new IllegalArgumentException("Invalid or unaudited sealed fusion sources");
         }
         attributes = List.copyOf(attributes);
         moves = List.copyOf(moves);
@@ -34,14 +45,17 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
 
     static ExportBattleProfile from(BladeExportSnapshot snapshot) {
         var swordStyle = snapshot.customStyle();
-        if (swordStyle == null) return new ExportBattleProfile(1, snapshot.attributes(), List.of(), snapshot.componentEffects());
+        var fusion = StandaloneBladeExport.usesFusion(snapshot) ? snapshot.fusion() : null;
+        if (swordStyle == null) {
+            return new ExportBattleProfile(1, snapshot.attributes(), List.of(), snapshot.componentEffects(), fusion);
+        }
 
         var length = CustomBladeLength.valueOf(swordStyle.length());
         return new ExportBattleProfile(1, snapshot.attributes(), swordStyle.actions().stream().map(action -> {
             var timing = CustomStyleTimingPolicy.timing(action, length);
             if (timing == null) throw new IllegalArgumentException("Missing portable timeline for: " + action);
             return new Move(action, timing.effectiveTicks());
-        }).toList(), snapshot.componentEffects());
+        }).toList(), snapshot.componentEffects(), fusion);
     }
 
     boolean supports(ResourceLocation combo) {
@@ -61,7 +75,7 @@ record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> 
         return PortableCapabilityCatalog.forShape(combo.toString(), !attributes.isEmpty(), moves.size(),
                 effects.drawBonus() > 0, effects.spiritBonus() > 0, effects.heavyPommel(),
                 effects.rankDivisor() > 0, effects.guardReduction() > 0,
-                effects.precisionHabaki(), effects.reinforcedHabaki(), effects.saltyFish());
+                effects.precisionHabaki(), effects.reinforcedHabaki(), effects.saltyFish(), fusion != null);
     }
 
     private static ResourceLocation root(String name) {

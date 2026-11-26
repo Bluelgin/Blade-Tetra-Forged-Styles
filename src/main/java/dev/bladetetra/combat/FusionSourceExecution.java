@@ -1,7 +1,6 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.compat.fusion.RecastingFusionCompatibility;
-import dev.bladetetra.registry.ModSlashBladeAbilities;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.SlashArtsRegistry;
@@ -14,12 +13,14 @@ import java.util.function.Supplier;
 
 /** Exposes the source object during synchronous callbacks without changing the serialized key. */
 final class FusionSourceExecution {
+    private static final ResourceLocation FORGED_ART = ResourceLocation.parse("blade_tetra:forged_slash_art");
     private static final ThreadLocal<Source> SOURCE = new ThreadLocal<>();
 
     static SlashArts registeredArt(ResourceLocation id) {
         if (id == null || id.equals(SlashArtsRegistry.NONE.getId())
-                || id.equals(ModSlashBladeAbilities.PROGRAMMATIC_FUSION.getId())
-                || id.equals(ModSlashBladeAbilities.FORGED_SLASH_ART.getId())
+                || id.equals(SealedFusionSources.DISPATCHER)
+                || id.equals(SealedFusionSources.SOURCE_DISPATCHER)
+                || id.equals(FORGED_ART)
                 || !SlashArtsRegistry.REGISTRY.get().containsKey(id)) return null;
         return SlashArtsRegistry.REGISTRY.get().getValue(id);
     }

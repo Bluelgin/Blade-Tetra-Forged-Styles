@@ -40,7 +40,7 @@ CURSE_IDS = {"1.9.63": "8018222", "1.9.65": "8090912"}
 FORGE_INSTALLER_SHA1 = {"1.20.1-47.4.0": "b73203963ea70aee0c38dc58de1f6d16a766605b"}
 
 
-def inspect_exports(directory: Path, slashblade_version: str, salty_fish: Path | None = None) -> list[Path]:
+def inspect_exports(directory: Path, slashblade_version: str, salty_fish: Path | None = None, fusion: tuple[Path, ...] = ()) -> list[Path]:
     if not directory.is_dir():
         raise RuntimeError(f"Missing generated add-on directory: {directory}")
     exports = sorted(directory.glob("*.jar"))
@@ -48,6 +48,9 @@ def inspect_exports(directory: Path, slashblade_version: str, salty_fish: Path |
     if salty_fish is not None:
         expected_swords = expected_swords | {"bt_export_salty_fish"}
         exports.append(salty_fish)
+    if fusion:
+        expected_swords = expected_swords | {"bt_export_fusion", "bt_export_fusion_super"}
+        exports.extend(fusion)
     if len(exports) != len(expected_swords):
         raise RuntimeError(f"Expected exactly {len(expected_swords)} generated JARs; found {len(exports)}")
     seen = set()
@@ -209,6 +212,7 @@ def main():
     parser.add_argument("--slashblade", choices=tuple(CURSE_IDS), required=True)
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--salty-fish-jar", type=Path)
+    parser.add_argument("--fusion-jars", type=Path, nargs=2)
     parser.add_argument("--probe-jar", type=Path, default=ROOT / "build/export-runtime/bt-export-runtime-probe.jar")
     parser.add_argument("--forge", default="1.20.1-47.4.0")
     parser.add_argument("--timeout", type=int, default=600)
@@ -216,7 +220,7 @@ def main():
 
     profile = "blade-export-package-smoke" + ("-1965" if opts.slashblade == "1.9.65" else "")
     fixture_dir = opts.fixture_dir or ROOT / "build" / profile / "blade-exports"
-    exports = inspect_exports(fixture_dir, opts.slashblade, opts.salty_fish_jar)
+    exports = inspect_exports(fixture_dir, opts.slashblade, opts.salty_fish_jar, tuple(opts.fusion_jars or ()))
     if not opts.probe_jar.is_file():
         raise RuntimeError("Missing receiver probe: run ./gradlew -PexportRuntimeProbe "
                            "reobfExportRuntimeProbeJar first")
@@ -253,6 +257,8 @@ def main():
     markers = REQUIRED_MARKERS
     if opts.salty_fish_jar is not None:
         markers += ("BLADE_EXPORT_SALTY_FISH_RECEIVER_PASS",)
+    if opts.fusion_jars:
+        markers += ("BLADE_EXPORT_NATIVE_FUSION_RECEIVER_PASS",)
     missing = [marker for marker in markers if marker not in text]
     if missing:
         raise RuntimeError(f"Receiver exited but did not prove expected behavior: {missing}")

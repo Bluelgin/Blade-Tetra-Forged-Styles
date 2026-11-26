@@ -1,6 +1,7 @@
 package dev.bladetetra.export;
 
 import com.google.gson.JsonObject;
+import dev.bladetetra.combat.SealedFusionSources;
 import com.mojang.serialization.JsonOps;
 import mods.flammpfeil.slashblade.client.renderer.CarryType;
 import mods.flammpfeil.slashblade.item.SwordType;
@@ -37,9 +38,13 @@ record NativeBladeExport(float attack, int durability, ResourceLocation combo, R
         validateAppearance(blade, dependencies, bakedAssets, texture);
         boolean portableCombo = battle != null && battle.supports(combo);
         if (!portableCombo) requireProvider(combo, dependencies);
-        requireProvider(slashArt, dependencies);
+        boolean portableFusion = battle != null && battle.fusion() != null;
+        if (portableFusion != SealedFusionSources.DISPATCHER.equals(slashArt)) {
+            throw new IllegalArgumentException("Sealed fusion dispatcher and profile disagree");
+        }
+        if (!portableFusion) requireProvider(slashArt, dependencies);
         if ((!portableCombo && !ComboStateRegistry.REGISTRY.get().containsKey(combo))
-                || !SlashArtsRegistry.REGISTRY.get().containsKey(slashArt)) {
+                || (!portableFusion && !SlashArtsRegistry.REGISTRY.get().containsKey(slashArt))) {
             throw new IllegalArgumentException("Unregistered combo or slash art: " + combo + ", " + slashArt);
         }
         for (ResourceLocation effect : effects) {

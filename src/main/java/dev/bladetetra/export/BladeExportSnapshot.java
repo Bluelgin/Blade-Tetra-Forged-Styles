@@ -4,6 +4,8 @@ import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.ComponentCombatValues;
 import dev.bladetetra.combat.ComponentEffectResolver;
 import dev.bladetetra.combat.ForgedSlashArtSpec;
+import dev.bladetetra.combat.ProgrammaticFusionPlan;
+import dev.bladetetra.combat.NativeFusionEngine;
 import dev.bladetetra.combat.StyleResolver;
 import dev.bladetetra.customstyle.CustomBladeLength;
 import dev.bladetetra.customstyle.CustomStyleSpec;
@@ -34,7 +36,8 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
         boolean bewitched, boolean sealed, boolean broken, boolean unbreakable,
         ResourceLocation model, ResourceLocation texture, String style,
         CustomStyle customStyle, ForgedArt forgedArt, Traditions traditions,
-        ComponentEffects componentEffects, List<Soul> inscriptions, List<NamedPartProvenance> namedParts) {
+        ComponentEffects componentEffects, List<Soul> inscriptions, List<NamedPartProvenance> namedParts,
+        NativeFusionEngine.Pair fusion) {
 
     public BladeExportSnapshot {
         specialEffects = List.copyOf(specialEffects);
@@ -87,6 +90,7 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
         var traditions = new Traditions(BladeLegacyEasterEggs.isShoshinUnlocked(stack),
                 BladeLegacyEasterEggs.isBairenUnlocked(stack), BladeLegacyEasterEggs.isBanshoUnlocked(stack),
                 NbtSageEasterEgg.isUnlocked(stack));
+        var fusion = ProgrammaticFusionPlan.from(stack);
         var inscriptions = SoulLegacyState.inscribed(stack).stream()
                 .map(soul -> new Soul(soul.name(), SoulLegacyState.isUnlocked(stack, soul))).toList();
         return stack.getCapability(ItemSlashBlade.BLADESTATE).map(state -> new BladeExportSnapshot(
@@ -98,7 +102,8 @@ public record BladeExportSnapshot(String displayName, float attack, int durabili
                 state.getAdjust(), state.isDefaultBewitched(), state.isSealed(), state.isBroken(),
                 stack.getTag() != null && stack.getTag().getBoolean("Unbreakable"),
                 state.getModel().orElseThrow(), state.getTexture().orElseThrow(),
-                style.name(), customStyle, forgedArt, traditions, componentEffects(stack), inscriptions, NamedPartProvenance.capture(stack)
+                style.name(), customStyle, forgedArt, traditions, componentEffects(stack), inscriptions, NamedPartProvenance.capture(stack),
+                fusion == null ? null : new NativeFusionEngine.Pair(fusion.releaseAbility(), fusion.responseAbility())
         )).orElseThrow(() -> new IllegalStateException("Missing SlashBlade state"));
     }
 

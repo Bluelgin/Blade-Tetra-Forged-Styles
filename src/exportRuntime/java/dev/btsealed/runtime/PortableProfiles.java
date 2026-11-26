@@ -33,7 +33,8 @@ final class PortableProfiles {
 
     record Modifier(Attribute attribute, AttributeModifier modifier) {}
     record Move(ResourceLocation action, int minimumTicks) {}
-    record Profile(List<Modifier> modifiers, List<Move> moves, PortableComponentEffects.Effects effects) {}
+    record Profile(List<Modifier> modifiers, List<Move> moves, PortableComponentEffects.Effects effects,
+                   NativeFusionEngine.Pair fusion) {}
 
     static Profile forAttributes(ItemStack stack) {
         if (stack.getCapability(ItemSlashBlade.BLADESTATE).map(state -> state.isBroken()).orElse(false)) return null;
@@ -114,6 +115,17 @@ final class PortableProfiles {
             throw new IllegalArgumentException("Exported sword contains an explicitly unsupported effect: " + id);
         }
         var loadedEffects = effects(effectData);
+        NativeFusionEngine.Pair fusion = null;
+        if (json.has("fusion")) {
+            var sources = json.getAsJsonObject("fusion");
+            var release = ResourceLocation.parse(sources.get("releaseAbility").getAsString());
+            var response = ResourceLocation.parse(sources.get("responseAbility").getAsString());
+            if (!SealedFusionSources.supports(release) || !SealedFusionSources.supports(response)
+                    || !NativeFusionEngine.available(release) || !NativeFusionEngine.available(response)) {
+                throw new IllegalArgumentException("Unaudited or missing fusion source for " + id);
+            }
+            fusion = new NativeFusionEngine.Pair(release, response);
+        }
         var declared = json.getAsJsonArray("capabilities");
         if (declared == null || !json.has("comboRoot")) {
             throw new IllegalArgumentException("Missing versioned portable capability manifest: " + id);
@@ -128,12 +140,12 @@ final class PortableProfiles {
                 !modifiers.isEmpty(), moves.size(), loadedEffects.drawBonus() > 0,
                 loadedEffects.spiritBonus() > 0, loadedEffects.heavyPommel(),
                 loadedEffects.rankDivisor() > 0, loadedEffects.guardReduction() > 0,
-                loadedEffects.precisionHabaki(), loadedEffects.reinforcedHabaki(), loadedEffects.saltyFish());
+                loadedEffects.precisionHabaki(), loadedEffects.reinforcedHabaki(), loadedEffects.saltyFish(), fusion != null);
         if (!ids.equals(expected)) {
             throw new IllegalArgumentException("Portable capability manifest disagrees with actual blade data: "
                     + id + " (declared=" + ids + ", expected=" + expected + ")");
         }
-        return new Profile(List.copyOf(modifiers), List.copyOf(moves), loadedEffects);
+        return new Profile(List.copyOf(modifiers), List.copyOf(moves), loadedEffects, fusion);
     }
 
     private static PortableComponentEffects.Effects effects(JsonObject json) {

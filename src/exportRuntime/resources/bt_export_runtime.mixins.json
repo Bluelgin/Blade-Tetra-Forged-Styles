@@ -2,11 +2,15 @@
   "required": true,
   "minVersion": "0.8",
   "package": "dev.btsealed.mixin",
+  "plugin": "dev.btsealed.mixin.PortableFusionMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "PortableHabakiMeleeMixin",
     "PortableHabakiSlashMixin",
-    "PortableHabakiLivingMixin"
+    "PortableHabakiLivingMixin",
+    "PortableFusionBladeStateMixin",
+    "PortableFusionComboTickMixin",
+    "PortableFusionSuperMixin"
   ],
   "injectors": {
     "defaultRequire": 1

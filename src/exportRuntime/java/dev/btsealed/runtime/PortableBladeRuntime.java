@@ -16,6 +16,7 @@ public final class PortableBladeRuntime {
 
     public PortableBladeRuntime(FMLJavaModLoadingContext context) {
         PortableCombos.COMBOS.register(context.getModEventBus());
+        PortableFusion.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> PortableBackplateClient::register);
         var eventBus = MinecraftForge.EVENT_BUS;
         eventBus.addListener(PortableBladeRuntime::reload);
