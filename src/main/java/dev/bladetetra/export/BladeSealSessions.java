@@ -54,7 +54,7 @@ final class BladeSealSessions {
         }
         String encoded = BladeSealPackets.encodeSnapshot(projection.snapshot());
         String artTag = appearanceTag(projection.blade());
-        DRAFTS.put(player, new Draft(token, menu, blade, blade.copy(), snapshot,
+        DRAFTS.put(player, new Draft(token, menu, blade, authorizationCopy(blade), snapshot,
                     projection.snapshot(), projection.blade(), projection.omitsAwakening(),
                     MaterialAppearance.fromStack(blade), player.server.getTickCount() + LIFETIME_TICKS));
         return new BladeSealPackets.Preview(token, menu.studioProject(), menu.containerId, blade.getHoverName().copy(),
@@ -86,6 +86,14 @@ final class BladeSealSessions {
         return encoded;
     }
 
+    private static ItemStack authorizationCopy(ItemStack blade) {
+        ItemStack copy = blade.copy();
+        // SlashBlade's slot packet mirrors the capability into a top-level bladeState tag.
+        // Compare the same serialized form before and after transmission, on private copies.
+        copy.getShareTag();
+        return copy;
+    }
+
     record Approved(BladeExportSnapshot data, ItemStack blade) {}
 
     static Approved takeConfirmed(ServerPlayer player, UUID token) {
@@ -101,7 +109,8 @@ final class BladeSealSessions {
         DRAFTS.remove(player);
         if (!BladeExportSnapshot.mayExport(player) || draft.expiresAt() < player.server.getTickCount()
                 || player.containerMenu != draft.menu() || !draft.menu().stillValid(player)
-                || draft.menu().blade() != draft.blade() || !ItemStack.matches(draft.frozen(), draft.blade())) {
+                || draft.menu().blade() != draft.blade()
+                || !ItemStack.matches(draft.frozen(), authorizationCopy(draft.blade()))) {
             return null;
         }
         var current = BladeExportSnapshot.captureOwnedStack(draft.blade().copy());

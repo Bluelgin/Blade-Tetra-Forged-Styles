@@ -367,7 +367,13 @@ public final class BladeExportPackageSmoke {
         }
         menu.blade().getOrCreateTag().remove("sealSmokeOnly");
 
+        menu.blade().getOrCreateTag().remove("bladeState");
         var approved = BladeSealSessions.begin(admin, menu).token();
+        // SlashBlade writes its share-tag shadow when Forge serializes the menu slot.
+        var shared = menu.blade().getShareTag();
+        if (shared == null || !shared.contains("bladeState")) {
+            throw new IllegalStateException("Expected the native SlashBlade slot share tag");
+        }
         if (BladeSealSessions.takeConfirmed(admin, approved) == null
                 || BladeSealSessions.takeConfirmed(admin, approved) != null) {
             throw new IllegalStateException("Expected a single-use export authorization");
