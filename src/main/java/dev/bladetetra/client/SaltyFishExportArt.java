@@ -27,7 +27,7 @@ public final class SaltyFishExportArt {
             "item_blade", "item_bladens", "item_damaged");
 
     public record Bake(byte[] model, byte[] texture, List<ResourceLocation> sources,
-                       List<ResourceLocation> guardSources) {}
+                       Map<String, List<ResourceLocation>> namedInputs) {}
     private record Fitting(SaltyFishParts.Length length, ResourceLocation modelId, ResourceLocation textureId,
                            WavefrontObject mesh) {}
 
@@ -38,20 +38,36 @@ public final class SaltyFishExportArt {
         var saya = fitting(resources, stack, SaltyFishParts.saya(stack), "saya");
         LegacyImprintKind namedGuard = NamedLegacyParts.fromStack(stack).tsuba();
         LegacyImprintKind guard = namedGuard == null ? SaltyFishParts.salvagedGuard(stack) : namedGuard;
-        var guardSources = guard == null ? List.<ResourceLocation>of()
-                : NamedBladeExportAssembler.sourceInputs(resources, guard);
+        var inheritedBlade = blade == null ? NamedLegacyParts.bladeFromStack(stack) : null;
+        var inheritedSaya = saya == null ? NamedLegacyParts.fromStack(stack).saya() : null;
+        var named = new LinkedHashMap<String, LegacyImprintKind>();
+        if (guard != null) named.put("tsuba", guard);
+        if (inheritedBlade != null) named.put("blade", inheritedBlade);
+        if (inheritedSaya != null) named.put("saya", inheritedSaya);
+        var inputs = new LinkedHashMap<String, List<ResourceLocation>>();
+        for (var entry : named.entrySet()) {
+            inputs.put(entry.getKey(), NamedBladeExportAssembler.sourceInputs(resources, entry.getValue()));
+        }
         var sources = new ArrayList<ResourceLocation>();
+        var textures = new LinkedHashMap<ResourceLocation, NativeImage>();
         try (var stock = NativeImage.read(new ByteArrayInputStream(MaterialTextureManager.bakeCombinedAtlas(stack, resources)));
              var bladeImage = texture(resources, blade, sources);
-             var sayaImage = texture(resources, saya, sources);
-             var guardImage = guard == null ? null : texture(resources, guard.texture())) {
+             var sayaImage = texture(resources, saya, sources)) {
             int bladeX = stock.getWidth();
             int sayaX = bladeX + (bladeImage == null ? 0 : bladeImage.getWidth());
-            int guardX = sayaX + (sayaImage == null ? 0 : sayaImage.getWidth());
-            int width = guardX + (guardImage == null ? 0 : guardImage.getWidth());
+            int width = sayaX + (sayaImage == null ? 0 : sayaImage.getWidth());
             int height = Math.max(stock.getHeight(), Math.max(
                     bladeImage == null ? 0 : bladeImage.getHeight(), sayaImage == null ? 0 : sayaImage.getHeight()));
-            if (guardImage != null) height = Math.max(height, guardImage.getHeight());
+            var tiles = new LinkedHashMap<ResourceLocation, NamedBladeExportAssembler.Tile>();
+            for (var kind : named.values()) {
+                var id = kind.texture();
+                if (textures.containsKey(id)) continue;
+                var image = texture(resources, id);
+                textures.put(id, image);
+                tiles.put(id, tile(image, width));
+                width += image.getWidth();
+                height = Math.max(height, image.getHeight());
+            }
             if (width > 4096 || height > 4096 || (long) width * height > 8_388_608L) {
                 throw new IOException("Salty Fish atlas exceeds budget");
             }
@@ -60,8 +76,8 @@ public final class SaltyFishExportArt {
                 NamedBladeExportAssembler.copy(atlas, stock, 0);
                 if (bladeImage != null) NamedBladeExportAssembler.copy(atlas, bladeImage, bladeX);
                 if (sayaImage != null) NamedBladeExportAssembler.copy(atlas, sayaImage, sayaX);
-                if (guardImage != null) NamedBladeExportAssembler.copy(atlas, guardImage, guardX);
-                var guardTile = tile(guardImage, guardX);
+                textures.forEach((id, image) -> NamedBladeExportAssembler.copy(atlas, image, tiles.get(id).x()));
+                var guardTile = guard == null ? null : tiles.get(guard.texture());
                 var stockTile = new NamedBladeExportAssembler.Tile(stock.getWidth(), stock.getHeight() / 2, 0);
                 var bladeTile = tile(bladeImage, bladeX);
                 var sayaTile = tile(sayaImage, sayaX);
@@ -69,6 +85,7 @@ public final class SaltyFishExportArt {
                 for (String target : TARGETS) {
                     var pose = new Matrix4f();
                     var faces = new ArrayList<Face>();
+                    var luminous = new ArrayList<Face>();
                     if (!"sheath".equals(target)) {
                         boolean icon = InventoryBladeModel.isIcon(target);
                         String group = "item_damaged".equals(target) ? "blade_damaged" : icon ? "blade" : target;
@@ -85,22 +102,33 @@ public final class SaltyFishExportArt {
                         if (guard != null && guardFaces.isEmpty() && !"blade_fragment".equals(group)) {
                             throw new IOException("Missing Salty Fish guard geometry for " + guard.id());
                         }
+                        var mountedBlade = coveredTo == null
+                                ? mount(inheritedBlade, LegacySourceMesh.Component.BLADE, raw, group) : null;
                         faces.addAll(NamedBladeExportAssembler.remap(
-                                stockFishFaces(stockMesh, group, blade != null, !guardFaces.isEmpty(), coveredTo), pose,
+                                stockFishFaces(stockMesh, group, blade != null || mountedBlade != null,
+                                        !guardFaces.isEmpty(), coveredTo), pose,
                                 stockTile, width, height));
                         if (blade != null) {
                             faces.addAll(NamedBladeExportAssembler.remap(
                                     fishPartFaces(blade.mesh(), blade.length(), group, coveredTo), pose,
                                     bladeTile, width, height));
                         }
+                        if (mountedBlade != null) appendNamed(faces, luminous, pose, mountedBlade,
+                                tiles.get(inheritedBlade.texture()), width, height);
                         faces.addAll(NamedBladeExportAssembler.remap(guardFaces, pose, guardTile, width, height));
                     }
                     if ("sheath".equals(target) || "item_blade".equals(target)) {
-                        faces.addAll(NamedBladeExportAssembler.remap(
-                                faces(saya == null ? stockMesh : saya.mesh(), "sheath"), pose,
-                                saya == null ? stockTile : sayaTile, width, height));
+                        var mountedSaya = mount(inheritedSaya, LegacySourceMesh.Component.SAYA, raw, "sheath");
+                        if (mountedSaya != null) {
+                            appendNamed(faces, luminous, pose, mountedSaya, tiles.get(inheritedSaya.texture()), width, height);
+                        } else {
+                            faces.addAll(NamedBladeExportAssembler.remap(
+                                    faces(saya == null ? stockMesh : saya.mesh(), "sheath"), pose,
+                                    saya == null ? stockTile : sayaTile, width, height));
+                        }
                     }
                     if (!faces.isEmpty()) output.put(target, faces);
+                    if (!luminous.isEmpty()) output.put(target + "_luminous", luminous);
                 }
                 for (var group : stockMesh.groupObjects) {
                     if (!TARGETS.contains(group.name) && !InventoryBladeModel.isIcon(group.name)
@@ -113,8 +141,34 @@ public final class SaltyFishExportArt {
                     throw new IOException("Incomplete Salty Fish model groups");
                 }
                 return new Bake(RuntimeWavefrontViewFactory.serialize(output).getBytes(StandardCharsets.UTF_8),
-                        atlas.asByteArray(), List.copyOf(sources), guardSources);
+                        atlas.asByteArray(), List.copyOf(sources), Map.copyOf(inputs));
             }
+        } finally {
+            textures.values().forEach(NativeImage::close);
+        }
+    }
+
+    private static NamedBladeRenderPlan.Mounted mount(LegacyImprintKind kind, LegacySourceMesh.Component part,
+            WavefrontObject raw, String group) throws IOException {
+        if (kind == null) return null;
+        var mounted = NamedBladeRenderPlan.mounted(LegacyRenderSources.resolve(kind), part, raw, group);
+        if (mounted == null && ("blade".equals(group) || "sheath".equals(group))) {
+            throw new IOException("Cannot mount " + kind.id() + " on the Salty Fish " + group + " fitting");
+        }
+        return mounted;
+    }
+
+    private static void appendNamed(List<Face> base, List<Face> luminous, Matrix4f pose,
+            NamedBladeRenderPlan.Mounted mounted, NamedBladeExportAssembler.Tile tile, int width, int height)
+            throws IOException {
+        var matrix = new Matrix4f(pose).mul(mounted.mount().matrix());
+        for (var view : List.of(false, true)) {
+            var mesh = view ? mounted.views().luminous() : mounted.views().base();
+            if (mesh == null) continue;
+            var output = view ? luminous : base;
+            output.addAll(NamedBladeExportAssembler.remap(
+                    mesh.groupObjects.stream().flatMap(group -> group.faces.stream()).toList(),
+                    matrix, tile, width, height));
         }
     }
 

@@ -1,6 +1,7 @@
 package dev.bladetetra.export;
 
 import dev.bladetetra.network.ModNetwork;
+import dev.bladetetra.export.BladeSealPackets.Rejection;
 import dev.bladetetra.visual.MaterialAppearance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -64,17 +65,20 @@ final class BladeSealSessions {
     static void confirm(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
         String encoded = "";
         String artTag = "";
+        Rejection rejection;
         try {
-            var snapshot = takeConfirmed(player, token, acknowledgeAwakeningLoss);
-            if (snapshot != null) {
-                artTag = appearanceTag(snapshot.blade());
-                encoded = BladeSealPackets.encodeSnapshot(snapshot.data());
+            var decision = authorize(player, token, acknowledgeAwakeningLoss);
+            rejection = decision.rejection();
+            if (decision.approval() != null) {
+                artTag = appearanceTag(decision.approval().blade());
+                encoded = BladeSealPackets.encodeSnapshot(decision.approval().data());
             }
         } catch (IllegalArgumentException | IllegalStateException failure) {
             LogUtils.getLogger().warn("Could not encode approved Blade Seal snapshot", failure);
-            artTag = "";
+            rejection = Rejection.ENCODING;
         }
-        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new BladeSealPackets.Result(token, encoded, artTag));
+        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+                new BladeSealPackets.Result(token, encoded, artTag, rejection));
     }
 
     private static String appearanceTag(ItemStack blade) {
@@ -101,22 +105,30 @@ final class BladeSealSessions {
     }
 
     static Approved takeConfirmed(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
+        return authorize(player, token, acknowledgeAwakeningLoss).approval();
+    }
+
+    private record Decision(Approved approval, Rejection rejection) {
+        Decision(Rejection rejection) { this(null, rejection); }
+    }
+
+    private static Decision authorize(ServerPlayer player, UUID token, boolean acknowledgeAwakeningLoss) {
         var draft = DRAFTS.get(player);
-        if (draft == null || !draft.token().equals(token)) return null;
-        // Declining awakening loss is not a valid confirmation; retain the draft
-        // so the player can choose consent without having to re-open the tool.
-        if (draft.omitsAwakening() && !acknowledgeAwakeningLoss) return null;
+        if (draft == null || !draft.token().equals(token)) return new Decision(Rejection.REQUEST);
+        if (draft.omitsAwakening() && !acknowledgeAwakeningLoss) return new Decision(Rejection.AWAKENING);
         DRAFTS.remove(player);
-        if (!BladeExportSnapshot.mayExport(player) || draft.expiresAt() < player.server.getTickCount()
-                || player.containerMenu != draft.menu() || !draft.menu().stillValid(player)
-                || draft.menu().blade() != draft.blade()
-                || !ItemStack.matches(draft.frozen(), authorizationCopy(draft.blade()))) {
-            return null;
+        if (!BladeExportSnapshot.mayExport(player)) return new Decision(Rejection.PERMISSION);
+        if (draft.expiresAt() < player.server.getTickCount()) return new Decision(Rejection.EXPIRED);
+        if (player.containerMenu != draft.menu() || !draft.menu().stillValid(player)) {
+            return new Decision(Rejection.WORKBENCH);
         }
+        if (draft.menu().blade() != draft.blade()) return new Decision(Rejection.ITEM);
+        if (!ItemStack.matches(draft.frozen(), authorizationCopy(draft.blade()))) return new Decision(Rejection.DATA);
         var current = BladeExportSnapshot.captureOwnedStack(draft.blade().copy());
-        return draft.original().equals(current)
-                && draft.appearance().equals(MaterialAppearance.fromStack(draft.blade()))
-                ? new Approved(draft.exported(), draft.exportedBlade().copy()) : null;
+        if (!draft.original().equals(current) || !draft.appearance().equals(MaterialAppearance.fromStack(draft.blade()))) {
+            return new Decision(Rejection.SNAPSHOT);
+        }
+        return new Decision(new Approved(draft.exported(), draft.exportedBlade().copy()), Rejection.NONE);
     }
 
     static void close(ServerPlayer player, BladeSealWorkbench.WorkbenchMenu menu) {

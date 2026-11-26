@@ -2,7 +2,7 @@
 
 > Draft development contract for `OoO/blade-exporter` / PR #72. This is an **incremental implementation**, not a release or a claim that arbitrary graduation swords are portable.
 
-For the current capability matrix and author checklist, see [Blade Studio 2.0 RC](BLADE_STUDIO_RC.md). The earlier sections track the original exporter milestones.
+For the current capability matrix, asset-notice policy and author checklist, see [Blade Studio 2.0 RC](BLADE_STUDIO_RC.md). The earlier sections track the original exporter milestones.
 
 ## One player-facing operation
 
@@ -47,7 +47,7 @@ Exports never alter or remove the original item. Once exported, the add-on must 
 | Shoshin/Bairen/Bansho/NBT Sage and non-awakening unsupported abilities | **Blocked** | Not part of the awakening omission; must be implemented before export or explicitly handled in a future scoped consent policy |
 | Arbitrary external resource pack overrides | **Blocked unless verified** | Source bytes and rights must be attributable; copying an unknown pack would not establish licensing |
 
-**Safety gate:** never treat an external model's availability as permission to redistribute it. The pack's visible rights and any allowed dependencies have to be evaluated before embedding derived OBJ/PNG. Public redistribution is not supported by the current private-modpack export policy.
+**Current asset policy:** Studio uses the active resource pack and records the inputs. External or unknown artwork triggers an explicit confirmation. Consult the applicable source terms before public distribution. Known MIT artwork carries its original notice.
 
 ## Architecture for further implementation
 
@@ -98,7 +98,7 @@ The Studio opens on the blade preview, name and description. Advanced mode expos
 | Portable styles and authored moves | Existing runtime dispatch handles Iaido, Rengeki, Dangaku and Custom. |
 | Stock fittings with Salty Fish bone or sheath | Static geometry and textures are baked into the package. A fishbone blade carries the original sound and particles in runtime 1.6.0. |
 | Salty Fish with an audited salvaged or named guard | Uses the live fish-mouth guard fit and records the model, texture and adapter provenance. |
-| Salty Fish with a named blade or saya | Preflight rejects combinations that still need portable seating and coverage. |
+| Salty Fish with a named blade or saya | Uses the live fish render plan’s named fittings and emits a technical diagnostic if a required fit cannot be mounted. |
 | One registered provider Slash Art | Preserves its ID and declares the required provider and version. |
 | Programmatic fusion | The independent scheduler uses each registered native art, and the package declares the installed providers for both sources. Known separate charge and replay lifecycles remain preflight blockers. |
 | Recasting Time Beyond | Requires pre-release charge events. The source compatibility layer skips it. |

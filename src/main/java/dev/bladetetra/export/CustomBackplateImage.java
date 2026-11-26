@@ -47,8 +47,8 @@ final class CustomBackplateImage {
             ResourceLocation id = ResourceLocation.fromNamespaceAndPath(modId, "model/sealed_backplate.png");
             var evidence = new ExportResourceEvidence(id, "sealed-backplate",
                     "bt_export_artwork", "1", BladeExportArchive.hash(png),
-                    selection.mode() == Mode.ORIGINAL ? "Original portrait or modular material tint"
-                            : "User-selected local picture for private modpack only; user must own rights",
+                    selection.mode() == Mode.ORIGINAL ? ExportResourceEvidence.GENERATED
+                            : "Local artwork; rights must be verified by its user",
                     true);
             return new Artwork(png, evidence);
         }

@@ -32,11 +32,12 @@ final class BladeExportArchive {
             .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
             .setPrettyPrinting().create();
     private static final LocalDateTime ZIP_EPOCH = LocalDateTime.of(1980, 1, 1, 0, 0, 0);
-    private static final String LICENSE_TITLE = "Private modpack use only";
-    private static final String NOTICE =
-            "This Blade Tetra export is for use in private modpacks. Do not publish the generated "
-                    + "add-on or repackage it for distribution on public mod platforms. "
-                    + "The original terms of any third-party material and components still apply.";
+    private static final String NOTICE = """
+            This export is intended for personal use unless the applicable licenses permit distribution.
+            Models, textures and other inputs retain their original terms. Unknown terms are not MIT.
+            Obtain any required rights before distributing protected assets publicly.
+            Neither Blade Studio's MIT license nor the confirmation dialog grants third-party rights.
+            """;
     static final int MAX_ENTRY_BYTES = 8 * 1024 * 1024;
     private static final long MAX_ARCHIVE_BYTES = 48L * 1024 * 1024;
 
@@ -130,7 +131,10 @@ final class BladeExportArchive {
         }
 
         Map<String, byte[]> entries = new TreeMap<>();
-        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies));
+        var allInputs = new java.util.LinkedHashSet<>(appearanceSources);
+        fittings.forEach(fitting -> allInputs.addAll(fitting.assets()));
+        boolean external = allInputs.stream().anyMatch(ExportResourceEvidence::externalEmbedding);
+        add(entries, "META-INF/mods.toml", modDescriptor(metadata, dependencies, external));
         if (metadata.logo().length > 0) entries.put("blade-studio-logo.png", metadata.logo().clone());
         add(entries, "pack.mcmeta", "{\"pack\":{\"pack_format\":15,\"description\":\"Blade Tetra sealed blade\"}}");
         add(entries, "data/" + metadata.modId() + "/slashblade/named_blades/sealed_blade.json",
@@ -143,22 +147,18 @@ final class BladeExportArchive {
         if (!metadata.chineseBladeName().isBlank()) lang.addProperty(bladeKey, metadata.chineseBladeName());
         if (!metadata.chineseLore().isBlank()) lang.addProperty(bladeKey + ".lore", metadata.chineseLore());
         add(entries, "assets/" + metadata.modId() + "/lang/zh_cn.json", JSON.toJson(lang));
-        add(entries, "PRIVATE-MODPACK-USE.txt", NOTICE + "\n\n仅限私人整合包使用。请勿将生成的附属或其二次打包版本发布到公开 Mod 平台。第三方素材与依赖仍各自适用原许可。\n");
-
-        StringBuilder thirdParty = new StringBuilder("Third-party references and inputs\n\n");
-        for (Fitting fitting : fittings) {
-            var source = fitting.source();
-            thirdParty.append(source.slot()).append(" — ").append(source.sourceId()).append('\n');
-            fitting.assets().forEach(asset -> appendEvidence(thirdParty, asset));
+        if (external) {
+            add(entries, "RESOURCE-USAGE-NOTICE.txt", NOTICE);
+            var notes = new StringBuilder("Recorded third-party inputs and references\n\n");
+            allInputs.stream().filter(asset -> asset.externalEmbedding() || !asset.embedded())
+                    .forEach(asset -> appendEvidence(notes, asset));
+            add(entries, "THIRD-PARTY-NOTICES.txt", notes.toString());
         }
-        thirdParty.append("\nOther appearance inputs\n");
-        appearanceSources.forEach(asset -> appendEvidence(thirdParty, asset));
-        add(entries, "THIRD-PARTY-NOTICES.txt", thirdParty.toString());
 
         if (!bakedAssets.isEmpty()) {
-            try (var license = BladeExportArchive.class.getResourceAsStream("/META-INF/blade-export/project-license.txt")) {
-                if (license == null) throw new IOException("Blade Tetra asset license is missing from this build");
-                entries.put("BLADE-TETRA-ASSET-LICENSE.txt", license.readAllBytes());
+            addBundledNotice(entries, "BLADE-TETRA-ASSET-LICENSE.txt", "project-license.txt");
+            if (allInputs.stream().anyMatch(asset -> ExportResourceEvidence.UPSTREAM_MIT.equals(asset.permission()))) {
+                addBundledNotice(entries, "SLASHBLADE-ASSET-NOTICES.md", "project-asset-notices.md");
             }
         }
 
@@ -232,11 +232,18 @@ final class BladeExportArchive {
                 .append(asset.permission()).append('\n');
     }
 
-    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies) {
-        return "modLoader=\"lowcodefml\"\nloaderVersion=\"[47,48)\"\nlicense=" + toml(LICENSE_TITLE)
+    private static void addBundledNotice(Map<String, byte[]> entries, String output, String resource) throws IOException {
+        try (var input = BladeExportArchive.class.getResourceAsStream("/META-INF/blade-export/" + resource)) {
+            if (input == null) throw new IOException("Missing bundled resource notice: " + resource);
+            entries.put(output, input.readAllBytes());
+        }
+    }
+
+    private static String modDescriptor(Metadata metadata, List<Dependency> dependencies, boolean external) {
+        return "modLoader=\"lowcodefml\"\nloaderVersion=\"[47,48)\"\nlicense=" + toml(external ? "MIT components; other material under original terms" : "MIT (bundled Blade Tetra components)")
                 + "\n[[mods]]\nmodId=" + toml(metadata.modId()) + "\nversion=" + toml(metadata.version())
                 + "\ndisplayName=" + toml(metadata.title()) + "\nauthors=" + toml(metadata.author())
-                + "\ndescription=" + toml(metadata.description().strip() + "\n\n" + NOTICE) + "\n"
+                + "\ndescription=" + toml(metadata.description().strip()) + "\n"
                 + (metadata.logo().length == 0 ? "" : "logoFile=\"blade-studio-logo.png\"\n")
                 + dependency(metadata.modId(), "forge", "[47,48)")
                 + dependency(metadata.modId(), "minecraft", "[1.20.1]")

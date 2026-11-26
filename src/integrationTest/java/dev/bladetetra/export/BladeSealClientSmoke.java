@@ -52,6 +52,8 @@ public final class BladeSealClientSmoke {
     private static boolean advancedConfigured;
     private static boolean advancedCaptured;
     private static boolean comparisonOpened;
+    private static boolean noticeCancelled;
+    private static boolean retriedNotice;
     private static boolean requestedExport;
     private static String outputVersion;
 
@@ -121,6 +123,16 @@ public final class BladeSealClientSmoke {
             preview.onClose();
             return;
         }
+        if (client.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen notice
+                && notice.getTitle().equals(Component.translatable("blade_tetra.export.resource_notice.title"))) {
+            saveScreenshot(client, "blade-studio-material-notice.png");
+            var label = noticeCancelled ? Component.translatable("blade_tetra.export.resource_notice.confirm")
+                    : net.minecraft.network.chat.CommonComponents.GUI_CANCEL;
+            noticeCancelled = true;
+            notice.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                    .filter(button -> button.getMessage().equals(label)).findFirst().orElseThrow().onPress();
+            return;
+        }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
         if (++studioFrames < 5 || before == null && !screen.hasInlinePreview()) return;
         Path directory = client.gameDirectory.toPath().resolve("blade-exports");
@@ -131,6 +143,7 @@ public final class BladeSealClientSmoke {
                     before = files.map(p -> p.getFileName().toString()).collect(Collectors.toSet());
                 }
                 verifyFishFixtures(client);
+                verifyProviderExports(client);
                 SealedFusionExportSmoke.verify(client.gameDirectory.toPath(), client.getResourceManager());
                 if (!findField(screen, "blade_tetra.export.name").visible
                         || !findField(screen, "blade_tetra.export.description").visible
@@ -226,6 +239,21 @@ public final class BladeSealClientSmoke {
                     throw new IllegalStateException("Acknowledging awakening omission did not enable export");
                 }
                 export.onPress();
+                return;
+            }
+            if (noticeCancelled && !retriedNotice) {
+                try (var files = Files.list(directory)) {
+                    if (files.anyMatch(path -> path.getFileName().toString().startsWith("bt_export_blade_")
+                            && !before.contains(path.getFileName().toString()))) {
+                        throw new IllegalStateException("Cancelling the resource notice published an add-on");
+                    }
+                }
+                if (!findField(screen, "blade_tetra.export.name").getValue().equals("Sealed at dawn")
+                        || !screen.workbenchOpen()) {
+                    throw new IllegalStateException("Cancelling the resource notice lost the draft or workbench");
+                }
+                retriedNotice = true;
+                findButton(screen, "blade_tetra.export.confirm").onPress();
                 return;
             }
             if (++waited % 10 != 0) return;
@@ -336,6 +364,49 @@ public final class BladeSealClientSmoke {
         verifyMixedFishFits(resources, false);
         verifyMixedFishFits(resources, true);
         LogUtils.getLogger().info("BLADE_STUDIO_SALTY_FISH_EXPORT_PASS");
+    }
+
+    private static void verifyProviderExports(Minecraft client) throws Exception {
+        var mods = net.minecraftforge.fml.ModList.get();
+        if (!mods.isLoaded("slashblade_addon") || !mods.isLoaded("yakumoblade")) return;
+        var resources = client.getResourceManager();
+        var sjap = java.util.Objects.requireNonNull(dev.bladetetra.forging.NamedLegacyCatalog.get("slashblade_addon/murakumo"));
+        var yakumo = java.util.Objects.requireNonNull(dev.bladetetra.forging.NamedLegacyCatalog.get("yakumoblade/hisonotsurugi"));
+        for (boolean fishBlade : new boolean[]{true, false}) {
+            var blade = dev.bladetetra.item.SaltyFishParts.create(dev.bladetetra.item.SaltyFishParts.Blade.STANDARD, null);
+            if (fishBlade) installNamed(blade, "saya", sjap, ModularSlashBladeItem.SAYA_MODULE);
+            else installNamed(blade, "blade", yakumo, ModularSlashBladeItem.BLADE_MODULE);
+            installNamed(blade, "tsuba", LegacyImprintKind.BLACK_FOX, ModularSlashBladeItem.TSUBA_MODULE);
+            blade.getOrCreateTag().putString(ModularSlashBladeItem.BACKPLATE_SLOT, NamedBackplate.MODULE);
+            blade.getOrCreateTag().putString("blade_tetra_backplate_source", fishBlade ? yakumo.id() : sjap.id());
+            se.mickelus.tetra.items.modular.IModularItem.updateIdentifier(blade);
+            ModItems.MODULAR_SLASHBLADE.get().syncDerivedBladeState(blade);
+            var snapshot = BladeExportSnapshot.captureOwnedStack(blade);
+            var modId = "bt_export_mixed_fish_" + (fishBlade ? "bone" : "saya");
+            var meta = new BladeExportArchive.Metadata(modId, "1.0.0", "Mixed Fish", "Blade Tetra", "Provider fixture");
+            var art = BladeExportArt.bake(modId, snapshot, blade, resources);
+            if (!art.requiresResourceNotice(meta) || art.inputs().stream().noneMatch(e -> e.id().equals(sjap.texture()))
+                    || art.inputs().stream().noneMatch(e -> e.id().equals(yakumo.texture()))) {
+                throw new IllegalStateException("Mixed provider export lost active model or portrait provenance");
+            }
+            var path = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources, snapshot, meta, art);
+            try (var archive = new ZipFile(path.toFile())) {
+                if (archive.getEntry("RESOURCE-USAGE-NOTICE.txt") == null
+                        || archive.getEntry("THIRD-PARTY-NOTICES.txt") == null
+                        || archive.getEntry("PRIVATE-MODPACK-USE.txt") != null) {
+                    throw new IllegalStateException("External export generated the wrong notice files");
+                }
+            }
+        }
+        LogUtils.getLogger().info("BLADE_STUDIO_EXTERNAL_MODELS_PASS");
+    }
+
+    private static void installNamed(ItemStack blade, String slot, LegacyImprintKind input, String module) {
+        se.mickelus.tetra.items.modular.IModularItem.putModuleInSlot(blade, "slashblade/" + slot, module,
+                module + "_material", NamedLegacyImprintStorage.genericVariant(slot));
+        var tag = blade.getOrCreateTag();
+        NamedLegacyImprintStorage.putSource(tag, slot, input.id());
+        NamedLegacyImprintStorage.putSnapshot(blade, slot, input);
     }
 
     private static void verifyMixedFishFits(net.minecraft.server.packs.resources.ResourceManager resources,

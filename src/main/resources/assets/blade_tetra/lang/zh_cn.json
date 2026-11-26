@@ -1704,5 +1704,18 @@
   "tooltip.blade_tetra.forging_core.chance": "副材效果 · %s（%s%% 概率）",
   "tooltip.blade_tetra.forging_core.overlap": "副材效果 · %s（沿用更强的原有效果）",
   "tooltip.blade_tetra.forging_core.efficiency": "副材效果 · %s（效率 %s）",
-  "tooltip.blade_tetra.forging_core.none": "所选金属没有可继承的副材效果"
+  "tooltip.blade_tetra.forging_core.none": "所选金属没有可继承的副材效果",
+  "blade_tetra.export.resource_notice.title": "第三方素材使用须知",
+  "blade_tetra.export.resource_notice.body": "此武器包含或可能包含其他模组、资源包的模型、贴图或美术。生成附属默认供个人使用。公开上传至 CurseForge、Modrinth 等平台之前，请遵守原始许可并取得所需授权。本次确认不授予任何第三方素材权利。原刀将保留在工作台。",
+  "blade_tetra.export.resource_notice.confirm": "我已阅读并确认封存",
+  "blade_tetra.export.resource_notice.cancelled": "已取消封存，草稿和原刀均已保留。",
+  "blade_tetra.export.rejection.request": "工作台请求已失效，请重新打开封存界面。",
+  "blade_tetra.export.rejection.awakening": "请先确认剥离觉醒能力。",
+  "blade_tetra.export.rejection.permission": "你当前没有封存权限。",
+  "blade_tetra.export.rejection.expired": "确认已超时，请重新打开封存界面。",
+  "blade_tetra.export.rejection.workbench": "工作台会话已结束，请回到工作台重新打开封存界面。",
+  "blade_tetra.export.rejection.item": "工作台中的武器已被替换，请重新打开封存界面。",
+  "blade_tetra.export.rejection.data": "武器存放数据发生变化，请重新打开界面核对。",
+  "blade_tetra.export.rejection.snapshot": "武器的派生能力或外观发生变化，请重新打开界面核对。",
+  "blade_tetra.export.rejection.encoding": "无法编码已授权的武器。详情请查看游戏日志。"
 }

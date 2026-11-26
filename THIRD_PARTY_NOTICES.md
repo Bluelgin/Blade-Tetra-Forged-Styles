@@ -5,7 +5,9 @@
 `src/main/resources/assets/blade_tetra/model/modular/wood.obj` and
 `src/main/resources/assets/blade_tetra/model/modular/wood.png` are redistributed
 from SlashBlade: Resharped and renamed for Blade Tetra's modular blade resource
-namespace.
+namespace. The sealed durability portrait can also sample the MIT-licensed
+upstream `assets/slashblade/model/rodai_netherite.png` atlas when the original
+provider supplies the documented bytes.
 
 Source: https://github.com/0999312/SlashBlade_Resharped
 

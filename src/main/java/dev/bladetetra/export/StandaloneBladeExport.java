@@ -147,8 +147,15 @@ final class StandaloneBladeExport {
                 snapshot.bewitched(), snapshot.sealed(), snapshot.unbreakable());
         var publishedMetadata = metadata.logo().length == 0 && !artwork.assets().isEmpty()
                 ? metadata.withLogo(BladeExportLogo.from(artwork)) : metadata;
+        var appearance = new ArrayList<>(artwork.inputs());
+        if (metadata.logo().length > 0) {
+            appearance.add(new ExportResourceEvidence(
+                    ResourceLocation.fromNamespaceAndPath(metadata.modId(), "blade-studio-logo.png"),
+                    "local-file", "bt_export_artwork", "1", BladeExportArchive.hash(metadata.logo()),
+                    "Local artwork; rights must be verified by its user", true));
+        }
         return BladeExportArchive.write(gameDirectory, publishedMetadata, version("blade_tetra"), definition,
-                dependencies, fittings, artwork.inputs(), artwork.assets(),
+                dependencies, fittings, appearance, artwork.assets(),
                 ExportBattleProfile.from(snapshot));
     }
 

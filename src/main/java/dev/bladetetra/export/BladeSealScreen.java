@@ -467,7 +467,8 @@ final class BladeSealScreen extends Screen {
                 || !screen.preview.token().equals(result.token()) || screen.requestedMetadata == null) return;
         if (result.snapshot().isEmpty()) {
             screen.confirmed = false;
-            screen.status = Component.translatable("blade_tetra.export.expired");
+            screen.status = Component.translatable("blade_tetra.export.rejection."
+                    + result.rejection().name().toLowerCase(java.util.Locale.ROOT));
             // A rejected/expired server authorization cannot be reused. Open a new seal.
             screen.confirm.active = false;
             return;
@@ -493,6 +494,33 @@ final class BladeSealScreen extends Screen {
             var resources = Minecraft.getInstance().getResourceManager();
             var art = BladeExportArt.bake(requestedMetadata.modId(), approvedSnapshot,
                     approvedBlade, resources, requestedBackplate);
+            if (art.requiresResourceNotice(requestedMetadata)) {
+                minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(accept -> {
+                    if (!workbenchOpen()) {
+                        minecraft.setScreen(null);
+                        return;
+                    }
+                    minecraft.setScreen(this);
+                    if (accept) publishApproved(resources, art);
+                    else {
+                        confirmed = false;
+                        confirm.active = preview.ready() && (!preview.omitsAwakening() || awakeningAcknowledged);
+                        status = Component.translatable("blade_tetra.export.resource_notice.cancelled");
+                    }
+                }, Component.translatable("blade_tetra.export.resource_notice.title"),
+                        Component.translatable("blade_tetra.export.resource_notice.body"),
+                        Component.translatable("blade_tetra.export.resource_notice.confirm"),
+                        net.minecraft.network.chat.CommonComponents.GUI_CANCEL));
+            } else {
+                publishApproved(resources, art);
+            }
+        } catch (IOException | RuntimeException error) {
+            packagingFailed(error);
+        }
+    }
+
+    private void publishApproved(net.minecraft.server.packs.resources.ResourceManager resources, BladeExportArt art) {
+        try {
             var file = StandaloneBladeExport.write(Minecraft.getInstance().gameDirectory.toPath(),
                     resources, approvedSnapshot, requestedMetadata, art);
             published = file.toAbsolutePath().normalize();
@@ -505,13 +533,18 @@ final class BladeSealScreen extends Screen {
                 Minecraft.getInstance().player.sendSystemMessage(
                         Component.translatable("blade_tetra.export.path", file.toAbsolutePath().normalize()));
             }
+            approvedSnapshot = null;
+            approvedBlade = null;
         } catch (IOException | RuntimeException error) {
-            LogUtils.getLogger().warn("Failed to seal blade", error);
-            status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
-            confirmed = false;
-            confirm.active = preview.ready()
-                    && (!preview.omitsAwakening() || awakeningAcknowledged);
+            packagingFailed(error);
         }
+    }
+
+    private void packagingFailed(Exception error) {
+        LogUtils.getLogger().warn("Failed to seal blade", error);
+        status = Component.translatable("blade_tetra.export.blocked", error.getMessage());
+        confirmed = false;
+        confirm.active = preview.ready() && (!preview.omitsAwakening() || awakeningAcknowledged);
     }
 
     /** Keep every field reachable at GUI scale 4 and smaller, without shrinking fonts. */

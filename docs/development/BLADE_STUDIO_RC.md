@@ -43,3 +43,17 @@
 6. 安装多个同代封存附属，分别保存和重进。将截图、日志和所用完整提交 SHA 一起提交。
 
 `python3 tools/ci/run_suite.py legacy_world_migration` 和 `legacy_world_migration_client` 各启动 Forge 两次。夹具使用可审计的历史 NBT 记录，并在第二次进服前保留实际保存的区块和玩家文件。测试包、样本与截图以 PR 当前 HEAD 的 Actions artifacts 为准。真实历史整世界和生产环境下的性能数据仍需另行采样。
+
+## 资源许可与通用模型封存
+
+工作台会装配当前生效的模型与贴图，并记录资源 ID、资源包、安装版本与字节哈希。封存流程按技术可用性判断外观，不因未知命名空间拒绝。使用外部或无法判断权利的素材时，客户端先烘焙，再确认，确认后才写 JAR。取消保留原刀和草稿。用户确认只表示已阅读须知。作品仍适用素材原许可。
+
+仅使用已验证的 MIT 输入时，产物携带原始 MIT 声明。混合素材产物额外携带来源记录和使用说明。同名资源包覆盖仍会触发保守提示。用户选取的图像目前也采用保守提示。
+
+实机验收时请覆盖第三方与普通部件混装、咸鱼刀身和鱼鞘组合、原刀及接收端画面、许可提示取消和确认、觉醒剥离确认，以及一次性授权拒绝原因。自定义刀模偏移和现有运行时不能忠实重放的能力继续由预检保护。旗帜图案可使用普通模块刀鞘的共享贴图合成，其他刀鞘外观需要独立验证。
+
+## Asset licensing and export review
+
+Studio bakes the active model, atlas and supported fittings. The certificate records the resource ID, resource pack, installed version where available, and hash. Unknown namespaces are eligible when their geometry can be assembled. External artwork triggers one confirmation after baking and before writing. Cancelling keeps the draft and the deposited blade.
+
+The generated archive includes applicable MIT notices and separately identifies external artwork. Active pack overrides and unverified local images are handled conservatively. The dialog does not grant rights to any bundled source assets. Check the original terms before public distribution.

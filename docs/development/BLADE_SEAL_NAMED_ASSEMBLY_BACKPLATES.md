@@ -14,7 +14,7 @@ The Blade Seal screen has three modes: `original` (current named portrait if ava
 - The client normalizes to a transparent 256×256 portrait, letterboxing to preserve aspect ratio. The selected picture is baked into the generated JAR, and the raw local path is not serialized.
 - The generated archive contains `assets/<export-id>/model/sealed_backplate.png` and `sealed_backplate_frame.obj` only when an actual portrait exists.
 - The source-free `bt_export_runtime` client hook identifies the exact export namespace from the BladeState translation key. It draws the native durability frame using SlashBlade's texture, then draws the per-export portrait using its own texture.
-- User-selected images remain subject to the user's own copyright/redistribution permissions. The generated add-on is still for private modpack use only.
+- User-selected images remain subject to the user's own copyright/redistribution permissions. External or unverified artwork uses the resource notice described in the [RC guide](BLADE_STUDIO_RC.md).
 - Cosmetic controls for portrait scale/opacity/glow or 3D wearable attachment are **not part of this first implementation**; do not claim they work from the UI mock-up.
 
 ## Named geometry export

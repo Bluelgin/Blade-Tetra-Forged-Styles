@@ -1693,5 +1693,18 @@
   "tooltip.blade_tetra.forging_core.chance": "Secondary metal · %s (%s%% chance)",
   "tooltip.blade_tetra.forging_core.overlap": "Secondary metal · %s (existing effect takes precedence)",
   "tooltip.blade_tetra.forging_core.efficiency": "Secondary metal · %s (efficiency %s)",
-  "tooltip.blade_tetra.forging_core.none": "The selected metal has no inheritable effect"
+  "tooltip.blade_tetra.forging_core.none": "The selected metal has no inheritable effect",
+  "blade_tetra.export.resource_notice.title": "Third-party asset notice",
+  "blade_tetra.export.resource_notice.body": "This blade contains or may contain artwork from other mods or resource packs. Use the export privately unless the original terms permit distribution. Obtain any required permission before publishing protected assets on CurseForge, Modrinth or other public platforms. Confirming does not grant you any rights. Your original weapon stays in the workbench.",
+  "blade_tetra.export.resource_notice.confirm": "I understand and wish to seal",
+  "blade_tetra.export.resource_notice.cancelled": "Sealing cancelled. Your draft and original weapon are still available.",
+  "blade_tetra.export.rejection.request": "The workbench request is no longer active. Reopen Blade Studio.",
+  "blade_tetra.export.rejection.awakening": "Confirm the removal of awakening abilities first.",
+  "blade_tetra.export.rejection.permission": "You no longer have permission to seal this blade.",
+  "blade_tetra.export.rejection.expired": "The confirmation timed out. Reopen Blade Studio.",
+  "blade_tetra.export.rejection.workbench": "The workbench session ended. Return to the workbench and reopen Blade Studio.",
+  "blade_tetra.export.rejection.item": "The deposited weapon was replaced. Reopen Blade Studio to inspect it.",
+  "blade_tetra.export.rejection.data": "The deposited weapon data changed. Reopen Blade Studio to review it.",
+  "blade_tetra.export.rejection.snapshot": "The weapon’s derived capabilities or appearance changed. Reopen Blade Studio to review them.",
+  "blade_tetra.export.rejection.encoding": "The approved weapon could not be encoded. Check the game log."
 }

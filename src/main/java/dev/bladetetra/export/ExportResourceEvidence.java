@@ -22,6 +22,40 @@ public record ExportResourceEvidence(ResourceLocation id, String packId, String 
         }
     }
 
+    static final String PROJECT_MIT = "Blade Tetra MIT";
+    static final String UPSTREAM_MIT = "Documented SlashBlade MIT";
+    static final String EXTERNAL = "External input; original terms apply";
+    static final String GENERATED = "Generated from recorded inputs";
+
+    boolean externalEmbedding() {
+        return embedded && !PROJECT_MIT.equals(permission) && !UPSTREAM_MIT.equals(permission)
+                && !GENERATED.equals(permission);
+    }
+
+    static ExportResourceEvidence embedded(ResourceLocation id, Resource resource, byte[] bytes) {
+        String pack = resource.sourcePackId();
+        String digest = BladeExportArchive.hash(bytes);
+        String owner = pack.startsWith("mod:") ? pack.substring(4) : "resource_pack";
+        var container = ModList.get().getModContainerById(owner);
+        String version = container.map(mod -> mod.getModInfo().getVersion().toString()).orElse("unknown");
+        String permission = EXTERNAL;
+        if ("mod:blade_tetra".equals(pack) && "blade_tetra".equals(id.getNamespace())) {
+            try {
+                if (installedModAsset(id, owner).sha256().equals(digest)) {
+                    permission = id.getPath().equals("model/modular/wood.obj")
+                            || id.getPath().equals("model/modular/wood.png") ? UPSTREAM_MIT : PROJECT_MIT;
+                }
+            } catch (IOException ignored) {
+                // An unidentified pack source remains external.
+            }
+        }
+        if ("mod:slashblade".equals(pack) && id.toString().equals("slashblade:model/rodai_netherite.png")
+                && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118358551331ca4aafed64164")) {
+            permission = UPSTREAM_MIT;
+        }
+        return new ExportResourceEvidence(id, pack, owner, version, digest, permission, true);
+    }
+
     /** A reference is portable only when the installed dependency supplies the selected bytes. */
     public static ExportResourceEvidence reference(ResourceManager resources, ResourceLocation id, String modId)
             throws IOException {

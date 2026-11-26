@@ -142,9 +142,6 @@ public final class NamedBladeExportAssembler {
     static List<ResourceLocation> sourceInputs(ResourceManager resources, LegacyImprintKind kind) throws IOException {
         var rules = LegacyModelRules.load(resources, kind);
         ResourceLocation actualGeometry = rules.geometryModel(kind.model());
-        if (!permitted(actualGeometry) || !permitted(kind.texture()))
-            throw new IOException("Named OBJ/texture needs audited embedding rights: " + kind.id());
-
         var paths = new ArrayList<ResourceLocation>();
         paths.add(actualGeometry);
         paths.add(kind.texture());
@@ -158,9 +155,6 @@ public final class NamedBladeExportAssembler {
         return List.copyOf(paths);
     }
 
-    private static boolean permitted(ResourceLocation id) {
-        return Set.of("slashblade", "blade_tetra").contains(id.getNamespace());
-    }
     private static List<LegacySourceMesh.Component> components(String state) {
         return switch (state) {
             case "sheath" -> List.of(LegacySourceMesh.Component.SAYA);
@@ -177,7 +171,7 @@ public final class NamedBladeExportAssembler {
             case SAYA -> LegacyModelPartRenderer.Part.SAYA;
         };
     }
-    private static List<Face> assembled(WavefrontObject view, LegacyMeshFrame.Mount mount,
+    static List<Face> assembled(WavefrontObject view, LegacyMeshFrame.Mount mount,
             Tile tile, int width, int height) throws IOException {
         if (view == null) return List.of();
         var matrix = mount == null ? new org.joml.Matrix4f() : mount.matrix();

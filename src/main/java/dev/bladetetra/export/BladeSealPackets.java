@@ -78,15 +78,22 @@ public final class BladeSealPackets {
         }
     }
 
-    public record Result(UUID token, String snapshot, String appearanceTag) {
+    enum Rejection {
+        NONE, REQUEST, AWAKENING, PERMISSION, EXPIRED, WORKBENCH, ITEM, DATA, SNAPSHOT, ENCODING
+    }
+
+    public record Result(UUID token, String snapshot, String appearanceTag, Rejection rejection) {
         public void encode(FriendlyByteBuf buf) {
             buf.writeUUID(token);
+            buf.writeEnum(rejection);
             buf.writeUtf(snapshot, MAX_SNAPSHOT);
             buf.writeUtf(appearanceTag, MAX_APPEARANCE_TAG);
         }
 
         public static Result decode(FriendlyByteBuf buf) {
-            return new Result(buf.readUUID(), buf.readUtf(MAX_SNAPSHOT), buf.readUtf(MAX_APPEARANCE_TAG));
+            var token = buf.readUUID();
+            var rejection = buf.readEnum(Rejection.class);
+            return new Result(token, buf.readUtf(MAX_SNAPSHOT), buf.readUtf(MAX_APPEARANCE_TAG), rejection);
         }
 
         public void handle(Supplier<NetworkEvent.Context> context) {

@@ -528,7 +528,7 @@ public final class BladeExportPackageSmoke {
             }
         }
 
-        // An unknown provider is never acceptable merely because its semantic snapshot exists.
+        // Namespaces describe provenance. Missing geometry is checked by the client baker.
         var forgedSource = new LegacyImprintKind("untrusted_export_smoke",
                 ResourceLocation.parse("untrusted_provider:blade"),
                 ResourceLocation.parse("untrusted_provider:model/blade.obj"),
@@ -538,9 +538,8 @@ public final class BladeExportPackageSmoke {
         NamedLegacyImprintStorage.putSource(tag, "blade", forgedSource.id());
         NamedLegacyImprintStorage.putSnapshot(blade, "blade", forgedSource);
         var denied = BladeSealSessions.begin(admin, menu);
-        if (denied.ready() || !denied.summary().contains("appearance:")
-                || BladeSealSessions.takeConfirmed(admin, denied.token()) != null) {
-            throw new IllegalStateException("Unlicensed model provider bypassed preflight: " + denied);
+        if (!denied.ready() || BladeSealSessions.takeConfirmed(admin, denied.token()) == null) {
+            throw new IllegalStateException("External namespace was incorrectly rejected by preview: " + denied);
         }
     }
 
