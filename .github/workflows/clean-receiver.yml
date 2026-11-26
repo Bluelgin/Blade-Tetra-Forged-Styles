@@ -49,6 +49,8 @@ jobs:
           else
             python3 tools/ci/run_suite.py export_package
           fi
+      - name: Bake an actual Salty Fish export in the Forge client
+        run: python3 tools/ci/run_suite.py export_client --slashblade "$SLASHBLADE_VERSION"
       - name: Compile and reobfuscate source-free receiving probe
         run: |
           if [ "$SLASHBLADE_VERSION" = '1.9.65' ]; then
@@ -57,13 +59,18 @@ jobs:
             ./gradlew --no-daemon -PexportRuntimeProbe reobfExportRuntimeProbeJar
           fi
       - name: Install isolated Forge server and exercise generated standalone addons
-        run: python3 tools/ci/run_clean_receiver.py --slashblade "$SLASHBLADE_VERSION"
+        run: |
+          python3 tools/ci/run_clean_receiver.py --slashblade "$SLASHBLADE_VERSION" \
+            --salty-fish-jar build/blade-export-client-smoke/blade-exports/bt_export_salty_fish-*.jar
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: clean-blade-receiver-${{ matrix.slashblade }}
           path: |
             build/blade-export-package-smoke*/blade-exports/*.jar
+            build/blade-export-client-smoke/blade-exports/*.jar
+            build/blade-export-client-smoke/*.png
+            build/blade-export-client-smoke.log
             build/clean-receiver/**/receiver.log
             build/clean-receiver/**/installer.log
             build/clean-receiver/**/logs/*.log

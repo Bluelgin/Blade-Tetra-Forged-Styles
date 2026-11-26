@@ -94,6 +94,7 @@ public final class ExportRuntimeProbe {
             verifyPrecisionRank(world, player, second);
             verifyReinforcedKnockback(world, player);
             verifyDangaku(world, player);
+            if (modList.isLoaded("bt_export_salty_fish")) verifyFish(world, player, first);
             PortableRuntimeSelfTest.verifyPrecisionClock();
             PortableRuntimeSelfTest.verifySpiritSwordIsolation();
             PortableRuntimeSelfTest.verifyReinforcedArithmetic();
@@ -105,6 +106,34 @@ public final class ExportRuntimeProbe {
         } finally {
             event.getServer().halt(false);
         }
+    }
+
+    private static void verifyFish(ServerLevel world, ServerPlayer player, ItemStack ordinary) {
+        var sealedFish = createNamedBlade(world, "bt_export_salty_fish");
+        ItemStack reloaded = ItemStack.of(sealedFish.save(new net.minecraft.nbt.CompoundTag()));
+        var state = reloaded.getCapability(ItemSlashBlade.BLADESTATE).orElseThrow(IllegalStateException::new);
+        if (!state.getModel().orElseThrow().getNamespace().equals("bt_export_salty_fish")) {
+            throw new IllegalStateException("Salty Fish lost its independent artwork on load");
+        }
+        var target = net.minecraft.world.entity.EntityType.ZOMBIE.create(world);
+        if (target == null) throw new IllegalStateException("Could not create a fish-feedback target");
+        String cooldown = "blade_tetra_next_fish_splash";
+        player.getPersistentData().remove(cooldown);
+        var source = world.damageSources().playerAttack(player);
+        for (var blade : java.util.List.of(ordinary, reloaded)) {
+            player.setItemInHand(InteractionHand.MAIN_HAND, blade);
+            for (int strike = 0; strike < 128; strike++) {
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDamageEvent(
+                        target, source, 4));
+            }
+            boolean splashed = player.getPersistentData().contains(cooldown);
+            if (splashed != (blade == reloaded)) throw new IllegalStateException(
+                    "Portable fish feedback did not stay scoped to the sealed fishbone");
+        }
+        if (player.getPersistentData().getLong(cooldown) != world.getGameTime() + 12) {
+            throw new IllegalStateException("Fish feedback cooldown changed in the receiving runtime");
+        }
+        LogUtils.getLogger().info("BLADE_EXPORT_SALTY_FISH_RECEIVER_PASS");
     }
 
     /** Compare actual native Rank balances with the original Blade Tetra precision-habaki acceptance fixture. */

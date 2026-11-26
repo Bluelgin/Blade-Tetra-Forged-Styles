@@ -40,12 +40,16 @@ CURSE_IDS = {"1.9.63": "8018222", "1.9.65": "8090912"}
 FORGE_INSTALLER_SHA1 = {"1.20.1-47.4.0": "b73203963ea70aee0c38dc58de1f6d16a766605b"}
 
 
-def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
+def inspect_exports(directory: Path, slashblade_version: str, salty_fish: Path | None = None) -> list[Path]:
     if not directory.is_dir():
         raise RuntimeError(f"Missing generated add-on directory: {directory}")
     exports = sorted(directory.glob("*.jar"))
-    if len(exports) != len(EXPECTED_SWORDS):
-        raise RuntimeError(f"Expected exactly 5 generated JARs; found {len(exports)}")
+    expected_swords = EXPECTED_SWORDS
+    if salty_fish is not None:
+        expected_swords = expected_swords | {"bt_export_salty_fish"}
+        exports.append(salty_fish)
+    if len(exports) != len(expected_swords):
+        raise RuntimeError(f"Expected exactly {len(expected_swords)} generated JARs; found {len(exports)}")
     seen = set()
     runtimes = set()
     for file in exports:
@@ -68,11 +72,15 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
                     raise RuntimeError(f"Tampered exported JAR entry: {file}: {entry}")
             blade_id = manifest["blade"]
             namespace, separator, blade_name = blade_id.partition(":")
-            if not separator or blade_name != "sealed_blade" or namespace not in EXPECTED_SWORDS:
+            if not separator or blade_name != "sealed_blade" or namespace not in expected_swords:
                 raise RuntimeError(f"Unexpected exported blade ID: {blade_id}")
             if namespace in seen:
                 raise RuntimeError(f"Duplicate generated blade: {namespace}")
             seen.add(namespace)
+            if namespace == "bt_export_salty_fish":
+                prefix = f"assets/{namespace}/model/sealed_blade"
+                if not {prefix + ".obj", prefix + ".png"}.issubset(names):
+                    raise RuntimeError("Salty Fish fixture must contain its baked model and atlas")
             dependencies = {entry["modId"]: entry["version"] for entry in manifest["dependencies"]}
             if dependencies.get("slashblade") != slashblade_version:
                 raise RuntimeError(f"{file} targets SlashBlade {dependencies.get('slashblade')}, "
@@ -92,7 +100,7 @@ def inspect_exports(directory: Path, slashblade_version: str) -> list[Path]:
             runtimes.add(version)
             if info["path"] not in names:
                 raise RuntimeError(f"Missing runtime binary in {file}")
-    if seen != EXPECTED_SWORDS or len(runtimes) != 1:
+    if seen != expected_swords or len(runtimes) != 1:
         raise RuntimeError(f"Export identity or shared runtime inconsistent: {seen}, {runtimes}")
     print(f"BLADE_EXPORT_CLEAN_INPUTS_PASS: {len(exports)} independent JARs "
           f"(shared runtime {next(iter(runtimes))}, SlashBlade {slashblade_version})", flush=True)
@@ -200,6 +208,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--slashblade", choices=tuple(CURSE_IDS), required=True)
     parser.add_argument("--fixture-dir", type=Path)
+    parser.add_argument("--salty-fish-jar", type=Path)
     parser.add_argument("--probe-jar", type=Path, default=ROOT / "build/export-runtime/bt-export-runtime-probe.jar")
     parser.add_argument("--forge", default="1.20.1-47.4.0")
     parser.add_argument("--timeout", type=int, default=600)
@@ -207,7 +216,7 @@ def main():
 
     profile = "blade-export-package-smoke" + ("-1965" if opts.slashblade == "1.9.65" else "")
     fixture_dir = opts.fixture_dir or ROOT / "build" / profile / "blade-exports"
-    exports = inspect_exports(fixture_dir, opts.slashblade)
+    exports = inspect_exports(fixture_dir, opts.slashblade, opts.salty_fish_jar)
     if not opts.probe_jar.is_file():
         raise RuntimeError("Missing receiver probe: run ./gradlew -PexportRuntimeProbe "
                            "reobfExportRuntimeProbeJar first")
@@ -241,7 +250,10 @@ def main():
         "-Xms512M\n-Xmx3G\n", encoding="utf-8")
     text = run_with_log(["java", "@user_jvm_args.txt", "@" + str(args_file.relative_to(receiver)), "nogui"],
                         receiver, receiver / "receiver.log", opts.timeout)
-    missing = [marker for marker in REQUIRED_MARKERS if marker not in text]
+    markers = REQUIRED_MARKERS
+    if opts.salty_fish_jar is not None:
+        markers += ("BLADE_EXPORT_SALTY_FISH_RECEIVER_PASS",)
+    missing = [marker for marker in markers if marker not in text]
     if missing:
         raise RuntimeError(f"Receiver exited but did not prove expected behavior: {missing}")
     print(f"BLADE_EXPORT_CLEAN_RECEIVER_PASS: SlashBlade {opts.slashblade}, "
