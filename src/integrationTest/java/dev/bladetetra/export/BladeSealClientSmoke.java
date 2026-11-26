@@ -333,7 +333,38 @@ public final class BladeSealClientSmoke {
                 }
             }
         }
+        verifyMixedFishFits(resources, false);
+        verifyMixedFishFits(resources, true);
         LogUtils.getLogger().info("BLADE_STUDIO_SALTY_FISH_EXPORT_PASS");
+    }
+
+    private static void verifyMixedFishFits(net.minecraft.server.packs.resources.ResourceManager resources,
+                                            boolean stockBlade) throws Exception {
+        var item = ModItems.MODULAR_SLASHBLADE.get();
+        var stock = item.createDefaultStack();
+        var mixed = dev.bladetetra.item.SaltyFishParts.create(dev.bladetetra.item.SaltyFishParts.Blade.STANDARD, null);
+        String slot = stockBlade ? ModularSlashBladeItem.BLADE_SLOT : ModularSlashBladeItem.SAYA_SLOT;
+        var stockTag = stock.getOrCreateTag();
+        String module = stockTag.getString(slot);
+        se.mickelus.tetra.items.modular.IModularItem.putModuleInSlot(mixed, slot, module, module + "_material",
+                stockTag.getString(module + "_material"));
+        se.mickelus.tetra.items.modular.IModularItem.updateIdentifier(mixed);
+        item.syncDerivedBladeState(mixed);
+        var snapshot = BladeExportSnapshot.captureOwnedStack(mixed);
+        var report = BladeExportPreflight.inspect(snapshot, mixed);
+        if (!report.ready()) throw new IllegalStateException("Fish and stock parts should mix: " + report.summary());
+        var art = BladeExportArt.bake("bt_export_fish_mixed", snapshot, mixed, resources);
+        var groups = new WavefrontObject(art.model().toString(),
+                new java.io.ByteArrayInputStream(art.assets().get(art.model()))).groupObjects;
+        String group = stockBlade ? "sheath" : "blade";
+        float tip = groups.stream().filter(mesh -> group.equals(mesh.name))
+                .flatMap(mesh -> mesh.faces.stream()).flatMap(face -> java.util.Arrays.stream(face.vertices))
+                .map(vertex -> vertex.x).min(Float::compare).orElseThrow();
+        var length = dev.bladetetra.item.SaltyFishParts.Length.STANDARD;
+        if (Math.abs(tip - (stockBlade ? length.sayaTip : length.bladeTip)) > 1.0F
+                || snapshot.componentEffects().saltyFish() == stockBlade) {
+            throw new IllegalStateException("Mixed fish model or hit feedback disagrees with the fitted part: " + group);
+        }
     }
 
     private static void verifyNamedPortraitArchive(Path archive, String id) throws Exception {

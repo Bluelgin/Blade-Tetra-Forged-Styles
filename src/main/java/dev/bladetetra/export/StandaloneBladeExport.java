@@ -62,8 +62,13 @@ final class StandaloneBladeExport {
     }
 
     private static void checkFusionSource(String slot, ResourceLocation id, List<String> missing) {
-        if (!SealedFusionSources.supports(id) || !NativeFusionEngine.available(id)) {
-            missing.add("fusion " + slot + " " + id + " lacks an audited standalone release lifecycle");
+        String label = "fusion " + slot + " " + id;
+        if ("recasting".equals(id.getNamespace()) && "time_beyond".equals(id.getPath())) {
+            missing.add(label + " needs Recasting's pre-release charge lifecycle");
+        } else if (!SealedFusionSources.supports(id)) {
+            missing.add(label + " has no verified standalone dispatch via " + id.getNamespace());
+        } else if (!NativeFusionEngine.available(id)) {
+            missing.add(label + " is not registered by the installed SlashBlade");
         }
     }
 

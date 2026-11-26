@@ -2,8 +2,11 @@ package dev.bladetetra.compat;
 
 import dev.bladetetra.BladeTetra;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.BackupConfirmScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
@@ -26,6 +29,10 @@ public final class LegacyWorldMigrationClientSmoke {
         var client = Minecraft.getInstance();
         if (LegacyWorldMigrationSmoke.done() && client.player != null) {
             client.stop();
+        } else if (started && client.screen instanceof BackupConfirmScreen backup) {
+            var confirm = Component.translatable("selectWorld.backupJoinConfirmButton");
+            backup.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                    .filter(button -> button.getMessage().equals(confirm)).findFirst().orElseThrow().onPress();
         } else if (!started && client.screen instanceof TitleScreen && client.getOverlay() == null) {
             started = true;
             var flows = client.createWorldOpenFlows();
