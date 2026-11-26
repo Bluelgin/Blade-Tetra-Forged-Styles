@@ -507,7 +507,7 @@ def portableCapabilitySources = tasks.register('prepareExportCapabilitySources',
 sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
 
 tasks.register('exportRuntimeJar', Jar) {
-    archiveFileName = 'bt-export-runtime-1.8.0.jar'
+    archiveFileName = 'bt-export-runtime-1.8.1.jar'
     destinationDirectory = layout.buildDirectory.dir('export-runtime')
     from sourceSets.exportRuntime.output
     from('LICENSE')

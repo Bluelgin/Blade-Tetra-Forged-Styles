@@ -21,9 +21,6 @@ public final class SealedFusionSources {
         if (source.getNamespace().equals("recasting") && source.getPath().equals("time_beyond")) {
             return "needs Recasting's pre-release charge lifecycle";
         }
-        if (source.getPath().equals("treasure_barrage")) {
-            return "needs its provider's delayed replay context";
-        }
         return null;
     }
 

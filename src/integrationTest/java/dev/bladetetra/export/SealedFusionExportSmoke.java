@@ -29,6 +29,13 @@ final class SealedFusionExportSmoke {
         var report = BladeExportPreflight.inspect(snapshot, blocked);
         require(!report.ready() && report.summary().contains("recasting:time_beyond"),
                 "Preflight skipped the unsupported charge-dependent source: " + report.summary());
+        var delayedReplay = blade(horizontal, vertical);
+        var barrage = ResourceLocation.parse("recasting:treasure_barrage");
+        delayedReplay.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
+                .orElseThrow(IllegalStateException::new).addSpecialEffect(barrage);
+        var replayReport = BladeExportPreflight.inspect(BladeExportSnapshot.captureOwnedStack(delayedReplay), delayedReplay);
+        require(!replayReport.ready() && replayReport.summary().contains("delayed replay context"),
+                "Fusion preflight did not identify the incompatible replay effect: " + replayReport.summary());
         LogUtils.getLogger().info("BLADE_STUDIO_FUSION_EXPORT_PASS");
     }
 

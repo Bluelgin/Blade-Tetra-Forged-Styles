@@ -4,7 +4,7 @@ license="MIT"
 
 [[mods]]
 modId="bt_export_runtime"
-version="1.8.0"
+version="1.8.1"
 displayName="Blade Tetra Sealed Blade Runtime"
 description="Combat and attributes for sealed blades."
 

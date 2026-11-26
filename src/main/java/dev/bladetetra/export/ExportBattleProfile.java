@@ -11,7 +11,7 @@ import java.util.List;
 /** Versioned data consumed by the embedded runtime. */
 record ExportBattleProfile(int schema, List<BladeExportSnapshot.AttributeValue> attributes, List<Move> moves, BladeExportSnapshot.ComponentEffects effects, NativeFusionEngine.Pair fusion) {
     static final String RUNTIME_ID = "bt_export_runtime";
-    static final String RUNTIME_VERSION = "1.8.0";
+    static final String RUNTIME_VERSION = "1.8.1";
     static final String RUNTIME_RANGE = "[" + RUNTIME_VERSION + ",2)";
     static final String RESOURCE = "/META-INF/blade-export/bt-export-runtime-" + RUNTIME_VERSION + ".jar";
     static final ResourceLocation DANGAKU_ROOT = root("dangaku_root");

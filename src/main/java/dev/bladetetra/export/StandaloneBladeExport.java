@@ -19,6 +19,8 @@ import java.util.TreeSet;
 
 /** Projects supported combat into the standalone format and validates the appearance inputs. */
 final class StandaloneBladeExport {
+    private static final ResourceLocation TREASURE_BARRAGE = ResourceLocation.parse("recasting:treasure_barrage");
+
     static void checkCombat(BladeExportSnapshot snapshot) {
         if (snapshot.broken()) throw new IllegalArgumentException("Repair the blade before exporting");
         var missing = new ArrayList<String>();
@@ -33,6 +35,9 @@ final class StandaloneBladeExport {
             missing.add("source-only combo root " + snapshot.combo());
         }
         if (usesFusion(snapshot)) {
+            if (snapshot.specialEffects().contains(TREASURE_BARRAGE)) {
+                missing.add(TREASURE_BARRAGE + " needs Recasting's delayed replay context for a fused slash art");
+            }
             var pair = snapshot.fusion();
             if (pair == null) {
                 missing.add("programmatic fusion needs a confirmed source pair");
