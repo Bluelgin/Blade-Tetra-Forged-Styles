@@ -30,10 +30,12 @@ final class SealedFusionExportSmoke {
         require(!report.ready() && report.summary().contains("recasting:time_beyond"),
                 "Preflight skipped the unsupported charge-dependent source: " + report.summary());
         var delayedReplay = blade(horizontal, vertical);
-        var barrage = ResourceLocation.parse("recasting:treasure_barrage");
-        delayedReplay.getCapability(mods.flammpfeil.slashblade.item.ItemSlashBlade.BLADESTATE)
-                .orElseThrow(IllegalStateException::new).addSpecialEffect(barrage);
-        var replayReport = BladeExportPreflight.inspect(BladeExportSnapshot.captureOwnedStack(delayedReplay), delayedReplay);
+        // The base CI client has no Recasting registry. Model the authorized export
+        // snapshot an installed provider would generate without registering a fake effect.
+        var captured = BladeSealPackets.encodeSnapshot(BladeExportSnapshot.captureOwnedStack(delayedReplay));
+        var withEffect = com.google.gson.JsonParser.parseString(captured).getAsJsonObject();
+        withEffect.getAsJsonArray("specialEffects").add("recasting:treasure_barrage");
+        var replayReport = BladeExportPreflight.inspect(BladeSealPackets.decodeSnapshot(withEffect.toString()), delayedReplay);
         require(!replayReport.ready() && replayReport.summary().contains("delayed replay context"),
                 "Fusion preflight did not identify the incompatible replay effect: " + replayReport.summary());
         LogUtils.getLogger().info("BLADE_STUDIO_FUSION_EXPORT_PASS");
