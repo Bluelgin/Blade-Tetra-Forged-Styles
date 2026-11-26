@@ -142,6 +142,7 @@ public final class BladeSealClientSmoke {
                 try (var files = Files.list(directory)) {
                     before = files.map(p -> p.getFileName().toString()).collect(Collectors.toSet());
                 }
+                verifyStockResourceTerms(client);
                 verifyFishFixtures(client);
                 verifyProviderExports(client);
                 SealedFusionExportSmoke.verify(client.gameDirectory.toPath(), client.getResourceManager());
@@ -366,16 +367,51 @@ public final class BladeSealClientSmoke {
         LogUtils.getLogger().info("BLADE_STUDIO_SALTY_FISH_EXPORT_PASS");
     }
 
+    private static void verifyStockResourceTerms(Minecraft client) throws Exception {
+        var resources = client.getResourceManager();
+        var blade = ModItems.MODULAR_SLASHBLADE.get().createDefaultStack();
+        var snapshot = BladeExportSnapshot.captureOwnedStack(blade);
+        var modId = "bt_export_mit_fixture";
+        var meta = new BladeExportArchive.Metadata(modId, "1.0.0", "MIT stock blade", "Blade Tetra", "License fixture");
+        var art = BladeExportArt.bake(modId, snapshot, blade, resources);
+        if (art.requiresResourceNotice(meta)) {
+            throw new IllegalStateException("Stock blade unexpectedly uses external resources: "
+                    + art.inputs().stream().filter(ExportResourceEvidence::externalEmbedding).toList());
+        }
+        var path = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources, snapshot, meta, art);
+        try (var archive = new ZipFile(path.toFile())) {
+            if (archive.getEntry("BLADE-TETRA-ASSET-LICENSE.txt") == null
+                    || archive.getEntry("THIRD-PARTY-NOTICES.txt") != null
+                    || archive.getEntry("PRIVATE-MODPACK-USE.txt") != null) {
+                throw new IllegalStateException("Stock export generated the wrong notice files");
+            }
+        }
+        var asset = new net.minecraft.resources.ResourceLocation("blade_tetra", "model/modular/standard_256.png");
+        var source = resources.getResourceOrThrow(asset);
+        try (var input = source.open()) {
+            byte[] bytes = input.readAllBytes();
+            var override = new net.minecraft.server.packs.PathPackResources("blade_studio_override",
+                    client.gameDirectory.toPath(), false);
+            var selected = new net.minecraft.server.packs.resources.Resource(override,
+                    () -> new java.io.ByteArrayInputStream(bytes));
+            if (!ExportResourceEvidence.embedded(asset, selected, bytes).externalEmbedding()) {
+                throw new IllegalStateException("Resource-pack override inherited the project's MIT classification");
+            }
+        }
+        LogUtils.getLogger().info("BLADE_STUDIO_RESOURCE_TERMS_PASS");
+    }
+
     private static void verifyProviderExports(Minecraft client) throws Exception {
         var mods = net.minecraftforge.fml.ModList.get();
         if (!mods.isLoaded("slashblade_addon") || !mods.isLoaded("yakumoblade")) return;
         var resources = client.getResourceManager();
         var sjap = java.util.Objects.requireNonNull(dev.bladetetra.forging.NamedLegacyCatalog.get("slashblade_addon/murakumo"));
         var yakumo = java.util.Objects.requireNonNull(dev.bladetetra.forging.NamedLegacyCatalog.get("yakumoblade/hisonotsurugi"));
+        var green = java.util.Objects.requireNonNull(dev.bladetetra.forging.NamedLegacyCatalog.get("yakumoblade/green_inflammation"));
         for (boolean fishBlade : new boolean[]{true, false}) {
             var blade = dev.bladetetra.item.SaltyFishParts.create(dev.bladetetra.item.SaltyFishParts.Blade.STANDARD, null);
             if (fishBlade) installNamed(blade, "saya", sjap, ModularSlashBladeItem.SAYA_MODULE);
-            else installNamed(blade, "blade", yakumo, ModularSlashBladeItem.BLADE_MODULE);
+            else installNamed(blade, "blade", green, ModularSlashBladeItem.BLADE_MODULE);
             installNamed(blade, "tsuba", LegacyImprintKind.BLACK_FOX, ModularSlashBladeItem.TSUBA_MODULE);
             blade.getOrCreateTag().putString(ModularSlashBladeItem.BACKPLATE_SLOT, NamedBackplate.MODULE);
             blade.getOrCreateTag().putString("blade_tetra_backplate_source", fishBlade ? yakumo.id() : sjap.id());
@@ -386,10 +422,11 @@ public final class BladeSealClientSmoke {
             var meta = new BladeExportArchive.Metadata(modId, "1.0.0", "Mixed Fish", "Blade Tetra", "Provider fixture");
             var art = BladeExportArt.bake(modId, snapshot, blade, resources);
             if (!art.requiresResourceNotice(meta) || art.inputs().stream().noneMatch(e -> e.id().equals(sjap.texture()))
-                    || art.inputs().stream().noneMatch(e -> e.id().equals(yakumo.texture()))) {
+                    || art.inputs().stream().noneMatch(e -> e.id().equals((fishBlade ? yakumo : green).texture()))) {
                 throw new IllegalStateException("Mixed provider export lost active model or portrait provenance");
             }
-            var path = StandaloneBladeExport.write(client.gameDirectory.toPath(), resources, snapshot, meta, art);
+            var path = StandaloneBladeExport.write(client.gameDirectory.toPath().resolve("private-provider-fixtures"),
+                    resources, snapshot, meta, art);
             try (var archive = new ZipFile(path.toFile())) {
                 if (archive.getEntry("RESOURCE-USAGE-NOTICE.txt") == null
                         || archive.getEntry("THIRD-PARTY-NOTICES.txt") == null

@@ -85,6 +85,9 @@ final class BladeAwakeningExportPolicy {
         // Runs normal Tetra -> SlashBlade state synchronization on a COPY,
         // including removal of soul-contract-derived enchantment/bewitching,
         // refresh of durability, base attack, combo and inherited abilities.
+        // Tetra caches derived attributes and modules under its stack identifier.
+        // The altered copy must never share cache entries with the stored weapon.
+        se.mickelus.tetra.items.modular.IModularItem.updateIdentifier(exported);
         BladeExportSnapshot normalized = BladeExportSnapshot.captureOwnedStack(exported);
         if (!normalized.inscriptions().isEmpty()) {
             throw new IllegalArgumentException("Awakening state remained after projection");

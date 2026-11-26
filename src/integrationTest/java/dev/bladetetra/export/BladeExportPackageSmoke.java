@@ -595,6 +595,10 @@ public final class BladeExportPackageSmoke {
                 throw new IllegalStateException("Acknowledged awakened export was rejected or replayable");
             }
             var exported = approved.blade();
+            var item = (ModularSlashBladeItem) blade.getItem();
+            if (item.getDataCacheKey(blade).equals(item.getDataCacheKey(exported))) {
+                throw new IllegalStateException("Awakening projection shares the stored blade’s Tetra cache key");
+            }
             var cleanTag = exported.getTag();
             if (cleanTag == null || !cleanTag.getString("seal_non_awakening_metadata").equals("KEEP_ME")
                     || cleanTag.contains(ModularSlashBladeItem.INSCRIPTION_SLOT)

@@ -36,12 +36,14 @@ public record ExportResourceEvidence(ResourceLocation id, String packId, String 
         String pack = resource.sourcePackId();
         String digest = BladeExportArchive.hash(bytes);
         String owner = pack.startsWith("mod:") ? pack.substring(4) : "resource_pack";
-        var container = ModList.get().getModContainerById(owner);
-        String version = container.map(mod -> mod.getModInfo().getVersion().toString()).orElse("unknown");
         String permission = EXTERNAL;
-        if ("mod:blade_tetra".equals(pack) && "blade_tetra".equals(id.getNamespace())) {
+        // Forge 1.20.1 can report its aggregate pack for installed mod assets.
+        // In that pack, compare against the installed bytes before attributing the asset.
+        boolean aggregate = "mod_resources".equals(pack);
+        if ((aggregate || "mod:blade_tetra".equals(pack)) && "blade_tetra".equals(id.getNamespace())) {
             try {
-                if (installedModAsset(id, owner).sha256().equals(digest)) {
+                if (installedModAsset(id, "blade_tetra").sha256().equals(digest)) {
+                    owner = "blade_tetra";
                     permission = id.getPath().equals("model/modular/wood.obj")
                             || id.getPath().equals("model/modular/wood.png") ? UPSTREAM_MIT : PROJECT_MIT;
                 }
@@ -49,10 +51,13 @@ public record ExportResourceEvidence(ResourceLocation id, String packId, String 
                 // An unidentified pack source remains external.
             }
         }
-        if ("mod:slashblade".equals(pack) && id.toString().equals("slashblade:model/rodai_netherite.png")
+        if ((aggregate || "mod:slashblade".equals(pack)) && id.toString().equals("slashblade:model/rodai_netherite.png")
                 && digest.equals("1b134b691b82a701a74d77c710d3413e42932b9118358551331ca4aafed64164")) {
+            owner = "slashblade";
             permission = UPSTREAM_MIT;
         }
+        var container = ModList.get().getModContainerById(owner);
+        String version = container.map(mod -> mod.getModInfo().getVersion().toString()).orElse("unknown");
         return new ExportResourceEvidence(id, pack, owner, version, digest, permission, true);
     }
 

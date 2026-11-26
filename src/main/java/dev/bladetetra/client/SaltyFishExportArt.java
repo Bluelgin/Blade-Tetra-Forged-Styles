@@ -151,9 +151,11 @@ public final class SaltyFishExportArt {
     private static NamedBladeRenderPlan.Mounted mount(LegacyImprintKind kind, LegacySourceMesh.Component part,
             WavefrontObject raw, String group) throws IOException {
         if (kind == null) return null;
-        var mounted = NamedBladeRenderPlan.mounted(LegacyRenderSources.resolve(kind), part, raw, group);
+        var source = LegacyRenderSources.resolve(kind);
+        var mounted = NamedBladeRenderPlan.mounted(source, part, raw, group);
         if (mounted == null && ("blade".equals(group) || "sheath".equals(group))) {
-            throw new IOException("Cannot mount " + kind.id() + " on the Salty Fish " + group + " fitting");
+            throw new IOException("Cannot mount " + kind.id() + " on the Salty Fish " + group + " fitting (" + source.support(part)
+                    + (source.reason().isEmpty() ? "" : ": " + source.reason()) + ")");
         }
         return mounted;
     }
