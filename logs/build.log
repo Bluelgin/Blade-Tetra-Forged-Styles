@@ -1,0 +1,23 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/8.1.1/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :compileJava UP-TO-DATE
+> Task :prepareExportCapabilitySources UP-TO-DATE
+> Task :prepareExportCombatSources UP-TO-DATE
+> Task :compileExportRuntimeJava UP-TO-DATE
+> Task :processExportRuntimeResources UP-TO-DATE
+> Task :exportRuntimeClasses UP-TO-DATE
+> Task :exportRuntimeJar
+> Task :downloadMcpConfig
+> Task :extractSrg UP-TO-DATE
+> Task :createMcpToSrg UP-TO-DATE
+> Task :reobfExportRuntimeJar
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :jar
+> Task :reobfJar
+
+> Task :verifyProductionJar
+Retired Content Audit passed: blade_tetra-1.6.8.jar (10564100 compressed bytes)
+
+BUILD SUCCESSFUL in 42s
+14 actionable tasks: 6 executed, 8 up-to-date

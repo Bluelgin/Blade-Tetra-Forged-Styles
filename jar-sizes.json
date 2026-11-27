@@ -1,0 +1,33 @@
+{
+  "artifacts": [
+    {
+      "bytes": 10564100,
+      "entries_by_category": {
+        "embedded_jars": {
+          "compressed": 116030,
+          "entries": 1,
+          "uncompressed": 124816
+        },
+        "java": {
+          "compressed": 1984117,
+          "entries": 901,
+          "uncompressed": 4673780
+        },
+        "models_and_textures": {
+          "compressed": 7872782,
+          "entries": 300,
+          "uncompressed": 27799108
+        },
+        "other": {
+          "compressed": 214159,
+          "entries": 461,
+          "uncompressed": 661929
+        }
+      },
+      "file": "blade_tetra-1.6.8.jar",
+      "sha256": "cff5a47836035df440b3965c94322d41040448fa1036c5af54e51072efc40820",
+      "uncompressed_bytes": 33259633
+    }
+  ],
+  "commit": "d163989914bcefde401833906afa814bd856d203"
+}
