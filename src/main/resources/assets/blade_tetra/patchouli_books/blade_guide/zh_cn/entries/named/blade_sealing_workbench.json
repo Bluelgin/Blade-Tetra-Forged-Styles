@@ -1,11 +1,15 @@
 {
-  "name": "名刀封存台",
+  "name": "铭刃台",
   "category": "blade_tetra:named",
   "icon": "blade_tetra:blade_sealing_workbench",
   "pages": [
     {
       "type": "patchouli:crafting",
       "recipe": "blade_tetra:blade_sealing_workbench"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "刀可折，锋可朽，唯其名不灭。$(br2)将一生所铸之刃，铭刻于诸世之间。$(br2)铭刃会将此刀的模型、属性与传承写入独立名刀附属 JAR。"
     },
     {
       "type": "patchouli:text",

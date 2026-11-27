@@ -25,6 +25,7 @@ final class BladeSealWorkbenchStorage extends BlockEntity {
                 studioProject = null;
             }
             setChanged();
+            if (level != null && !level.isClientSide) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         });
     }
 
@@ -61,6 +62,19 @@ final class BladeSealWorkbenchStorage extends BlockEntity {
             if (depositor != null) tag.putUUID("Depositor", depositor);
             if (studioProject != null) tag.putUUID("StudioProject", studioProject);
         }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag() {
+        CompoundTag tag = new CompoundTag();
+        ItemStack blade = inventory.getItem(0);
+        if (!blade.isEmpty()) tag.put("Blade", blade.save(new CompoundTag()));
+        return tag;
+    }
+
+    @Override
+    public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override

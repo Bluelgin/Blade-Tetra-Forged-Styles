@@ -26,7 +26,7 @@ import java.util.EnumMap;
 import java.util.List;
 
 final class BladeSealScreen extends Screen {
-    private static final int PANEL_WIDTH = 300;
+    private static final int PANEL_WIDTH = 440;
     private enum Page {
         BLADE("blade"), ADDON("addon"), APPEARANCE("appearance"), TEXT("text"), PROJECT("project");
 
@@ -197,11 +197,19 @@ final class BladeSealScreen extends Screen {
         pageControls.forEach((tab, controls) ->
                 controls.forEach(control -> control.visible = advanced && tab == page));
         if (!advanced) {
-            name.setY(bodyTop() + 98);
-            description.setY(bodyTop() + 124);
+            name.setX(simpleTextX());
+            description.setX(simpleTextX());
+            name.setWidth(simpleTextWidth());
+            description.setWidth(simpleTextWidth());
+            name.setY(bodyTop() + 12);
+            description.setY(bodyTop() + 51);
             name.visible = true;
             description.visible = true;
         } else {
+            name.setX(left);
+            description.setX(left);
+            name.setWidth(panelWidth);
+            description.setWidth(panelWidth);
             name.setY(bodyTop() + 12);
             description.setY(bodyTop() + 120);
         }
@@ -527,6 +535,8 @@ final class BladeSealScreen extends Screen {
             acquireCommand = "/bladeseal give @s " + requestedMetadata.modId() + ":sealed_blade";
             status = Component.translatable("blade_tetra.export.path", published.getFileName());
             addResultButtons();
+            minecraft.setScreen(new BladeInscriptionScreen(this, preview, requestedBackplate,
+                    Component.literal(name.getValue()), description.getValue(), published, acquireCommand));
             requestedMetadata = null;
             requestedBackplate = null;
             if (Minecraft.getInstance().player != null) {
@@ -618,8 +628,7 @@ final class BladeSealScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         renderBackground(graphics);
-        graphics.fill(left - 5, top, left + panelWidth + 5, bodyTop() + BODY_HEIGHT, 0xe8251d18);
-        graphics.fill(left - 5, top, left + panelWidth + 5, top + 2, 0xffb68757);
+        BladeStudioStyle.panel(graphics, left - 5, top, left + panelWidth + 5, bodyTop() + BODY_HEIGHT);
         super.render(graphics, mouseX, mouseY, delta);
         if (advanced && left >= 103 && !workbench.getMenu().blade().isEmpty()) {
             var stack = workbench.getMenu().blade();
@@ -661,12 +670,16 @@ final class BladeSealScreen extends Screen {
         }
     }
 
+    private int simplePreviewWidth() { return panelWidth * 3 / 5; }
+    private int simpleTextX() { return left + simplePreviewWidth() + 9; }
+    private int simpleTextWidth() { return panelWidth - simplePreviewWidth() - 9; }
+
     private void renderSimple(GuiGraphics graphics) {
         int y = bodyTop();
-        int previewWidth = panelWidth / 2;
-        graphics.fill(left, y - 15, left + previewWidth, y + 87, 0xff181513);
+        int previewWidth = simplePreviewWidth();
+        graphics.fill(left, y - 15, left + previewWidth, y + 138, 0xff181513);
         if (viewport != null && viewport.ready()) {
-            viewport.render(graphics, left, y - 15, left + previewWidth, y + 87);
+            viewport.render(graphics, left, y - 15, left + previewWidth, y + 138);
         } else {
             var pose = graphics.pose();
             pose.pushPose();
@@ -678,25 +691,25 @@ final class BladeSealScreen extends Screen {
                 pose.popPose();
             }
         }
-        int textX = left + previewWidth + 7;
-        int textWidth = panelWidth - previewWidth - 7;
+        int textX = simpleTextX();
+        int textWidth = simpleTextWidth();
         if (projectedStats != null) {
             graphics.drawWordWrap(font, Component.translatable("blade_tetra.export.page.stats",
-                    projectedStats.attack(), projectedStats.durability()), textX, y - 12, textWidth, 0xffd6bb9a);
+                    projectedStats.attack(), projectedStats.durability()), textX, y + 81, textWidth, 0xffd6bb9a);
         }
         Component message = preview.omitsAwakening()
                 ? Component.translatable("blade_tetra.export.awakening.notice")
                 : Component.translatable(preview.ready() ? "blade_tetra.export.mode.ready"
                         : "blade_tetra.export.mode.blocked");
-        graphics.drawWordWrap(font, message, textX, y + 17, textWidth,
+        graphics.drawWordWrap(font, message, textX, y + 111, textWidth,
                 preview.omitsAwakening() || !preview.ready() ? 0xffffd480 : 0xffa6e3b0);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), left, y + 88, 0xffffff);
-        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), left, y + 114, 0xffffff);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.name"), textX, y, 0xffeee3ce);
+        graphics.drawString(font, Component.translatable("blade_tetra.export.description"), textX, y + 39, 0xffeee3ce);
     }
 
     private boolean inSimplePreview(double x, double y) {
-        return !advanced && viewport != null && viewport.ready() && x >= left && x < left + panelWidth / 2
-                && y >= bodyTop() - 15 && y < bodyTop() + 87;
+        return !advanced && viewport != null && viewport.ready() && x >= left && x < left + simplePreviewWidth()
+                && y >= bodyTop() - 15 && y < bodyTop() + 138;
     }
 
     @Override

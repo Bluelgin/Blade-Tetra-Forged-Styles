@@ -57,6 +57,8 @@ public final class BladeSealClientSmoke {
     private static boolean retriedNotice;
     private static boolean requestedExport;
     private static String outputVersion;
+    private static long inscriptionStart;
+    private static final boolean[] inscriptionFrames = new boolean[5];
 
     @SubscribeEvent
     public static void serverTick(TickEvent.ServerTickEvent event) {
@@ -136,6 +138,11 @@ public final class BladeSealClientSmoke {
                 throw new IllegalStateException("Resource notice button label does not fit: " + label.getString());
             }
             button.onPress();
+            return;
+        }
+        if (client.screen instanceof BladeInscriptionScreen ceremony) {
+            if (inscriptionStart == 0) inscriptionStart = net.minecraft.Util.getMillis();
+            if (net.minecraft.Util.getMillis() - inscriptionStart > 3400) ceremony.onClose();
             return;
         }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
@@ -294,6 +301,14 @@ public final class BladeSealClientSmoke {
                 && notice.getTitle().equals(Component.translatable("blade_tetra.export.resource_notice.title"))) {
             if (!noticeCancelled) saveScreenshot(client, "blade-studio-material-notice.png");
             renderedResourceNotice = notice;
+        }
+        if (client.screen instanceof BladeInscriptionScreen && inscriptionStart != 0) {
+            long elapsed = net.minecraft.Util.getMillis() - inscriptionStart;
+            int phase = elapsed < 600 ? 0 : elapsed < 1400 ? 1 : elapsed < 2200 ? 2 : elapsed < 3000 ? 3 : 4;
+            if (!inscriptionFrames[phase]) {
+                saveScreenshot(client, "blade-inscription-" + phase + ".png");
+                inscriptionFrames[phase] = true;
+            }
         }
         if (previewVerified) return;
         if (advancedConfigured && !advancedCaptured && client.screen instanceof BladeSealScreen) {
