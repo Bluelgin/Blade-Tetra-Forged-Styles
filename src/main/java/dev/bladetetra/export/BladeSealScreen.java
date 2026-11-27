@@ -190,6 +190,8 @@ final class BladeSealScreen extends Screen {
 
     private void updateVisibleControls() {
         setFocused(null);
+        if (awakeningConsent != null) awakeningConsent.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.translatable("blade_tetra.export.awakening.notice")));
         pageTabs.forEach((tab, button) -> {
             button.visible = advanced;
             button.active = page != tab;
@@ -232,7 +234,7 @@ final class BladeSealScreen extends Screen {
 
     private MultiLineEditBox storyField(String key, int y, MultiLineEditBox previous) {
         var label = Component.translatable("blade_tetra.export." + key);
-        var field = addRenderableWidget(new MultiLineEditBox(font, left, bodyTop() + y, panelWidth, 33,
+        var field = addRenderableWidget(new MultiLineEditBox(font, left, bodyTop() + y, panelWidth, 25,
                 Component.empty(), label));
         field.setCharacterLimit(800);
         if (previous != null) field.setValue(previous.getValue());
@@ -701,8 +703,13 @@ final class BladeSealScreen extends Screen {
                 ? Component.translatable("blade_tetra.export.awakening.notice")
                 : Component.translatable(preview.ready() ? "blade_tetra.export.mode.ready"
                         : "blade_tetra.export.mode.blocked");
-        graphics.drawWordWrap(font, message, textX, y + 111, textWidth,
-                preview.omitsAwakening() || !preview.ready() ? 0xffffd480 : 0xffa6e3b0);
+        var statusLines = font.split(message, textWidth);
+        int statusColor = preview.omitsAwakening() || !preview.ready() ? 0xffd6b87e : 0xffa6c39a;
+        for (int line = 0; line < Math.min(3, statusLines.size()); line++) {
+            graphics.drawString(font, statusLines.get(line), textX, y + 111 + line * 9, statusColor);
+        }
+        if (statusLines.size() > 3) graphics.drawString(font, "…", textX + textWidth - 8, y + 129, statusColor);
+
         graphics.drawString(font, Component.translatable("blade_tetra.export.name"), textX, y, 0xffeee3ce);
         graphics.drawString(font, Component.translatable("blade_tetra.export.description"), textX, y + 39, 0xffeee3ce);
     }

@@ -57,6 +57,7 @@ public final class BladeSealClientSmoke {
     private static boolean retriedNotice;
     private static boolean requestedExport;
     private static String outputVersion;
+    private static boolean simpleCaptured;
     private static long inscriptionStart;
     private static final boolean[] inscriptionFrames = new boolean[5];
 
@@ -147,6 +148,7 @@ public final class BladeSealClientSmoke {
         }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
         if (++studioFrames < 5 || before == null && !screen.hasInlinePreview()) return;
+        if (before == null && !simpleCaptured) return;
         Path directory = client.gameDirectory.toPath().resolve("blade-exports");
         try {
             Files.createDirectories(directory);
@@ -166,9 +168,6 @@ public final class BladeSealClientSmoke {
                 String defaultId = findField(screen, "blade_tetra.export.id").getValue();
                 if (!defaultId.matches("blade_[a-f0-9]{32}")) {
                     throw new IllegalStateException("Invalid default Studio project ID: " + defaultId);
-                }
-                try (var screenshot = net.minecraft.client.Screenshot.takeScreenshot(client.getMainRenderTarget())) {
-                    screenshot.writeToFile(client.gameDirectory.toPath().resolve("blade-studio-simple.png"));
                 }
                 findField(screen, "blade_tetra.export.name").setValue("Sealed at dawn");
                 findField(screen, "blade_tetra.export.description").setValue("A simple-mode draft");
@@ -309,6 +308,11 @@ public final class BladeSealClientSmoke {
                 saveScreenshot(client, "blade-inscription-" + phase + ".png");
                 inscriptionFrames[phase] = true;
             }
+        }
+        if (!simpleCaptured && client.screen instanceof BladeSealScreen editor && editor.hasInlinePreview()) {
+            client.getToasts().clear();
+            saveScreenshot(client, "blade-studio-simple.png");
+            simpleCaptured = true;
         }
         if (previewVerified) return;
         if (advancedConfigured && !advancedCaptured && client.screen instanceof BladeSealScreen) {

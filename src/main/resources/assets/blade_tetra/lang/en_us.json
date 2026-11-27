@@ -51,7 +51,7 @@
   "blade_tetra.export.id": "Add-on ID suffix (a-z, 0-9, _)",
   "blade_tetra.export.version": "Version",
   "blade_tetra.export.author": "Author",
-  "blade_tetra.export.description": "Add-on description",
+  "blade_tetra.export.description": "Inscription",
   "blade_tetra.export.backplate.original": "Backplate: original",
   "blade_tetra.export.backplate.replace": "Backplate: picture",
   "blade_tetra.export.backplate.overlay": "Backplate: overlay",

@@ -29,7 +29,7 @@ public final class BladeSealWorkbenchScreen extends AbstractContainerScreen<Blad
 
     @SubscribeEvent
     public static void registerReloadListener(RegisterClientReloadListenersEvent event) {
-        event.registerReloadListener((ResourceManagerReloadListener) resources -> BladeStudioViewport.resourcesReloaded());
+        event.registerReloadListener((ResourceManagerReloadListener) resources -> { BladeStudioViewport.resourcesReloaded(); BladeWorkbenchRenderer.resourcesReloaded(); });
     }
 
     @Override

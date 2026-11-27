@@ -73,7 +73,7 @@ final class BladeInscriptionScreen extends Screen {
 
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
         renderBackground(g);
-        g.fill(0, 0, width, height, 0xe0181513);
+        g.fill(0, 0, width, height, 0xff181513);
         float ticks = complete ? 60 : Math.min(60, (Util.getMillis() - started) / 50f);
         long now = Util.getMillis();
         if (!complete) viewport.rotate(Math.min(100, now - lastFrame) * .015, 0);

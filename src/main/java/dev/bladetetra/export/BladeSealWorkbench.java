@@ -51,7 +51,7 @@ public final class BladeSealWorkbench extends Block implements EntityBlock {
             () -> IForgeMenuType.create((id, inventory, data) -> new WorkbenchMenu(id, inventory, null)));
 
     private BladeSealWorkbench() {
-        super(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.5F, 4.0F).sound(SoundType.WOOD));
+        super(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.5F, 4.0F).sound(SoundType.WOOD).noOcclusion());
     }
 
     @Override
