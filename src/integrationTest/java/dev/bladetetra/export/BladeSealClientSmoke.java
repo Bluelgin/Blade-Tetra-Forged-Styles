@@ -60,6 +60,12 @@ public final class BladeSealClientSmoke {
     private static boolean simpleCaptured;
     private static long inscriptionStart;
     private static final boolean[] inscriptionFrames = new boolean[5];
+    private static boolean ceremonyReplayed, ceremonySkipped;
+    private static Map<Path, String> ceremonyArchives;
+    private static boolean ceremonyResultCaptured;
+    private static int receiptReview, receiptReviewStage;
+    private static boolean receiptImpactCaptured;
+    private static BladeSealScreen reviewEditor;
 
     @SubscribeEvent
     public static void serverTick(TickEvent.ServerTickEvent event) {
@@ -142,8 +148,45 @@ public final class BladeSealClientSmoke {
             return;
         }
         if (client.screen instanceof BladeInscriptionScreen ceremony) {
+            client.getToasts().clear();
+            if (receiptReview > 0) {
+                if (ceremony.completed() && receiptReviewStage == 1) {
+                    ceremony.mouseClicked(100, 70, 0);
+                    ceremony.mouseDragged(100, 70, 0, 25, 9);
+                    ceremony.mouseReleased(100, 70, 0);
+                    for (int i = 0; i < 40; i++) ceremony.mouseScrolled(100, ceremony.height - 88, -1);
+                    receiptReviewStage = 2;
+                } else if (receiptReviewStage == 3) {
+                    LogUtils.getLogger().info("BLADE_INSCRIPTION_MODEL_REVIEW_{}: {}", receiptReview, ceremony.renderStats());
+                    if (!ceremonyArchives.equals(archiveHashes(client))) throw new IllegalStateException("Review altered the exported archive");
+                    if (receiptReview == 1) beginReceiptReview(client, 2);
+                    else { LogUtils.getLogger().info("BLADE_INSCRIPTION_MODEL_TEXT_REVIEW_PASS"); client.stop(); }
+                }
+                return;
+            }
             if (inscriptionStart == 0) inscriptionStart = net.minecraft.Util.getMillis();
-            if (net.minecraft.Util.getMillis() - inscriptionStart > 3400) ceremony.onClose();
+            if (ceremony.completed() && !ceremonyReplayed && ceremonyResultCaptured) {
+                if (ceremony.elapsed() < 8000) throw new IllegalStateException("Ceremony ended before eight seconds");
+                LogUtils.getLogger().info("BLADE_INSCRIPTION_RENDER: {}", ceremony.renderStats());
+                ceremonyArchives = archiveHashes(client);
+                ceremony.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                        .filter(button -> button.getMessage().equals(Component.translatable("blade_tetra.export.inscription.replay")))
+                        .findFirst().orElseThrow().onPress();
+                ceremonyReplayed = true;
+            } else if (ceremonyReplayed && !ceremonySkipped && ceremony.elapsed() > 1500) {
+                ceremony.children().stream().filter(Button.class::isInstance).map(Button.class::cast)
+                        .filter(button -> button.getMessage().equals(Component.translatable("blade_tetra.export.inscription.skip")))
+                        .findFirst().orElseThrow().onPress();
+                if (!ceremony.completed()) throw new IllegalStateException("Skip did not show the result");
+                ceremony.mouseClicked(100, 70, 0);
+                ceremony.mouseDragged(110, 80, 0, 10, 10);
+                ceremony.mouseReleased(110, 80, 0);
+                ceremony.mouseScrolled(100, 70, 1);
+                ceremonySkipped = true;
+                if (!ceremonyArchives.equals(archiveHashes(client))) throw new IllegalStateException("Replay/skip changed exported archives");
+                LogUtils.getLogger().info("BLADE_INSCRIPTION_REPLAY_SKIP_ARCHIVE_PASS");
+                ceremony.onClose();
+            }
             return;
         }
         if (!(client.screen instanceof BladeSealScreen screen)) return;
@@ -279,7 +322,8 @@ public final class BladeSealClientSmoke {
                     String modId = file.getFileName().toString().split("-", 2)[0];
                     verifyNamedPortraitArchive(file, modId);
                     LogUtils.getLogger().info("BLADE_SEAL_NAMED_CLIENT_PASS: {}", file.toAbsolutePath());
-                    client.stop();
+                    reviewEditor = screen;
+                    beginReceiptReview(client, 1);
                 } else if (waited >= 500) {
                     throw new IllegalStateException("Named seal did not publish a standalone add-on. Studio status: "
                             + (screen.exportStatus() == null ? "(none)" : screen.exportStatus().getString()));
@@ -301,10 +345,28 @@ public final class BladeSealClientSmoke {
             if (!noticeCancelled) saveScreenshot(client, "blade-studio-material-notice.png");
             renderedResourceNotice = notice;
         }
-        if (client.screen instanceof BladeInscriptionScreen && inscriptionStart != 0) {
-            long elapsed = net.minecraft.Util.getMillis() - inscriptionStart;
-            int phase = elapsed < 600 ? 0 : elapsed < 1400 ? 1 : elapsed < 2200 ? 2 : elapsed < 3000 ? 3 : 4;
-            if (!inscriptionFrames[phase]) {
+        if (client.screen instanceof BladeInscriptionScreen ceremony && receiptReview > 0) {
+            if (!receiptImpactCaptured && ceremony.elapsed() >= 4700 && !ceremony.completed()) {
+                saveScreenshot(client, "blade-inscription-review-" + receiptReview + "-impact.png");
+                receiptImpactCaptured = true;
+            }
+            if (ceremony.completed() && receiptReviewStage == 0) {
+                saveScreenshot(client, "blade-inscription-review-" + receiptReview + "-result.png");
+                receiptReviewStage = 1;
+            } else if (receiptReviewStage == 2) {
+                saveScreenshot(client, "blade-inscription-review-" + receiptReview + "-rotated.png");
+                receiptReviewStage = 3;
+            }
+        }
+        if (client.screen instanceof BladeInscriptionScreen ceremony && inscriptionStart != 0 && !ceremonyReplayed && receiptReview == 0) {
+            if (ceremony.completed() && !ceremonyResultCaptured) {
+                saveScreenshot(client, "blade-inscription-result.png");
+                ceremonyResultCaptured = true;
+            }
+            long elapsed = ceremony.elapsed();
+            int phase = elapsed < 1200 ? 0 : elapsed < 3000 ? 1 : elapsed < 4500 ? 2 : elapsed < 6000 ? 3 : 4;
+            long[] capture = {800, 2400, 4100, 4700, 6900};
+            if (!inscriptionFrames[phase] && elapsed >= capture[phase]) {
                 saveScreenshot(client, "blade-inscription-" + phase + ".png");
                 inscriptionFrames[phase] = true;
             }
@@ -332,6 +394,37 @@ public final class BladeSealClientSmoke {
         } catch (java.io.IOException failure) {
             throw new IllegalStateException("Could not capture " + filename, failure);
         }
+    }
+
+    private static Map<Path, String> archiveHashes(Minecraft client) {
+        try (var files = Files.list(client.gameDirectory.toPath().resolve("blade-exports"))) {
+            var hashes = new java.util.LinkedHashMap<Path, String>();
+            for (var file : files.filter(path -> path.toString().endsWith(".jar")).toList()) {
+                hashes.put(file, java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(Files.readAllBytes(file))));
+            }
+            return Map.copyOf(hashes);
+        } catch (Exception failure) { throw new IllegalStateException("Could not verify exported archives", failure); }
+    }
+
+    private static void beginReceiptReview(Minecraft client, int sample) {
+        try {
+            receiptReview = sample; receiptReviewStage = 0; receiptImpactCaptured = false;
+            var blade = sample == 1 ? ModItems.MODULAR_SLASHBLADE.get().createDefaultStack()
+                    : dev.bladetetra.item.SaltyFishParts.create(dev.bladetetra.item.SaltyFishParts.Blade.DANGAKU,
+                            LegacyImprintKind.WHITE_FOX);
+            var snapshot = BladeExportSnapshot.captureOwnedStack(blade);
+            var meta = new BladeExportArchive.Metadata("bt_export_receipt_review_" + sample, "1.0.0", "Receipt review", "Blade Tetra", "Visual acceptance fixture");
+            var art = BladeExportArt.bake(meta.modId(), snapshot, blade, client.getResourceManager());
+            var archive = StandaloneBladeExport.write(client.gameDirectory.toPath(), client.getResourceManager(), snapshot, meta, art);
+            var preview = new BladeSealPackets.Preview(java.util.UUID.randomUUID(), java.util.UUID.randomUUID(), 0,
+                    Component.literal("Review"), true, "", false, BladeSealPackets.encodeSnapshot(snapshot), blade.getOrCreateTag().toString());
+            String text = sample == 1 ? "万千锻造，终成此刃。\nForged in winter; sealed at dawn.\n".repeat(8) + "Rare glyph fallback: 𠮷 🗡"
+                    : "潮退留骨，锋芒未朽。\nA long blade with a salvaged named guard.";
+            client.setScreen(new BladeInscriptionScreen(reviewEditor, preview, CustomBackplateImage.Selection.original(),
+                    Component.literal(sample == 1 ? "万锻归名 · At First Light" : "咸鱼一文字 · 长刃"), text, archive, "/bladeseal give @s " + meta.modId() + ":sealed_blade"));
+            ceremonyArchives = archiveHashes(client);
+        } catch (Exception failure) { throw new IllegalStateException("Receipt model/text review failed", failure); }
     }
 
     private static Button findButton(BladeSealScreen screen, String key) {

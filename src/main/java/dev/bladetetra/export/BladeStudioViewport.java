@@ -18,6 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Vector3f;
+import org.joml.Matrix4f;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -49,6 +50,13 @@ final class BladeStudioViewport {
     private boolean drawn;
     private boolean damaged;
     private boolean luminous = true;
+    private float roll;
+    private float sheathSeparation;
+    private int accent = 0xcba66d;
+    private int secondary = 0x869bb2;
+    private Vector3f bladeTip, bladeRoot;
+    private Vector3f screenTip = new Vector3f(), screenRoot = new Vector3f();
+    private Vector3f[] bladeSpine, screenSpine;
 
     BladeStudioViewport(BladeSealPackets.Preview preview) {
         this.preview = preview;
@@ -70,6 +78,22 @@ final class BladeStudioViewport {
             var art = BladeExportArt.bake(NAMESPACE, snapshot, projected, minecraft.getResourceManager(), backplate);
             model = new WavefrontObject(art.model().toString(), new ByteArrayInputStream(art.assets().get(art.model())));
             frame = frameModel(model);
+            var bladeFrame = frameGroup(model, Set.of("blade"));
+            float mouth = bladeFrame.max.x - (bladeFrame.max.x - bladeFrame.min.x) * .25f;
+            if (model.groupObjects.stream().anyMatch(group -> "sheath".equals(group.name) && !group.faces.isEmpty())) {
+                mouth = frameGroup(model, Set.of("sheath")).max.x;
+            }
+            mouth = Math.max(bladeFrame.min.x + (bladeFrame.max.x - bladeFrame.min.x) * .15f,
+                    Math.min(mouth, bladeFrame.max.x - (bladeFrame.max.x - bladeFrame.min.x) * .1f));
+            prepareSpine(mouth, bladeFrame);
+            // Existing effect colour is authoritative; neutral/black colours use a quiet fallback.
+            int effect = snapshot.color() & 0xffffff;
+            accent = usableColor(effect) ? soften(effect) : 0xd6b37b;
+            secondary = 0x869bb2;
+            try (var image = NativeImage.read(new ByteArrayInputStream(art.assets().get(art.texture())))) {
+                int sampled = sampleColor(image);
+                if (usableColor(sampled)) secondary = soften(sampled);
+            }
             register(minecraft, ATLAS, art.assets().get(art.texture()));
             atlasRegistered = true;
             byte[] portrait = art.assets().get(ResourceLocation.fromNamespaceAndPath(NAMESPACE, "model/sealed_backplate.png"));
@@ -121,13 +145,17 @@ final class BladeStudioViewport {
         return sourceModel != null;
     }
 
-    private record Frame(Vector3f center, float diameter) {}
+    private record Frame(Vector3f center, float diameter, Vector3f min, Vector3f max) {}
 
     private static Frame frameModel(WavefrontObject model) throws IOException {
+        return frameGroup(model, WORLD_GROUPS);
+    }
+
+    private static Frame frameGroup(WavefrontObject model, Set<String> groups) throws IOException {
         var min = new Vector3f(Float.POSITIVE_INFINITY);
         var max = new Vector3f(Float.NEGATIVE_INFINITY);
         for (var group : model.groupObjects) {
-            if (!WORLD_GROUPS.contains(group.name)) continue;
+            if (!groups.contains(group.name)) continue;
             for (var face : group.faces) {
                 for (var vertex : face.vertices) {
                     min.min(new Vector3f(vertex.x, vertex.y, vertex.z));
@@ -137,7 +165,65 @@ final class BladeStudioViewport {
         }
         float diameter = max.distance(min);
         if (!(diameter > 0) || !Float.isFinite(diameter)) throw new IOException("Invalid preview model bounds");
-        return new Frame(min.lerp(max, .5F), diameter);
+        return new Frame(new Vector3f(min).lerp(max, .5F), diameter, min, max);
+    }
+
+    private static boolean usableColor(int rgb) {
+        int r = rgb >> 16 & 255, g = rgb >> 8 & 255, b = rgb & 255;
+        return Math.max(r, Math.max(g, b)) > 65 && Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b)) > 18;
+    }
+
+    private static int soften(int rgb) {
+        return (int)((rgb >> 16 & 255) * .4f + 246 * .6f) << 16
+                | (int)((rgb >> 8 & 255) * .4f + 220 * .6f) << 8
+                | (int)((rgb & 255) * .4f + 177 * .6f);
+    }
+
+    /** Intersect the baked blade at fixed stations once, so the sweep follows curved named blades. */
+    private void prepareSpine(float mouth, Frame bounds) {
+        bladeSpine = new Vector3f[49]; screenSpine = new Vector3f[49];
+        for (int i = 0; i < bladeSpine.length; i++) {
+            float x = Mth.lerp(i / 48f, mouth, bounds.min.x);
+            float minY = Float.POSITIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY;
+            float minZ = Float.POSITIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
+            for (var group : model.groupObjects) if ("blade".equals(group.name)) for (var face : group.faces) {
+                for (int j = 0; j < face.vertices.length; j++) {
+                    var a = face.vertices[j]; var b = face.vertices[(j + 1) % face.vertices.length];
+                    if (x < Math.min(a.x, b.x) || x > Math.max(a.x, b.x)) continue;
+                    float p = Math.abs(a.x - b.x) < .00001f ? 0 : (x - a.x) / (b.x - a.x);
+                    float y = Mth.lerp(p, a.y, b.y), z = Mth.lerp(p, a.z, b.z);
+                    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                    minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+                }
+            }
+            bladeSpine[i] = Float.isFinite(minY) ? new Vector3f(x, (minY + maxY) / 2, (minZ + maxZ) / 2)
+                    : new Vector3f(x, bounds.center.y, bounds.center.z);
+            screenSpine[i] = new Vector3f();
+        }
+        bladeRoot = bladeSpine[0]; bladeTip = bladeSpine[48];
+    }
+
+    private static int sampleColor(NativeImage image) {
+        long r = 0, g = 0, b = 0, count = 0;
+        int step = Math.max(1, Math.min(image.getWidth(), image.getHeight()) / 64);
+        for (int y = 0; y < image.getHeight(); y += step) for (int x = 0; x < image.getWidth(); x += step) {
+            int c = image.getPixelRGBA(x, y);
+            int rgb = (c & 255) << 16 | c & 0xff00 | c >> 16 & 255;
+            if ((c >>> 24) < 128 || !usableColor(rgb)) continue;
+            r += rgb >> 16 & 255; g += rgb >> 8 & 255; b += rgb & 255; count++;
+        }
+        return count == 0 ? 0 : (int)(r / count) << 16 | (int)(g / count) << 8 | (int)(b / count);
+    }
+
+    int accent() { return accent; }
+    int secondary() { return secondary; }
+    Vector3f screenTip() { return screenTip; }
+    Vector3f screenRoot() { return screenRoot; }
+    Vector3f[] screenSpine() { return screenSpine; }
+
+    void present(float pitch, float yaw, float roll, float zoom, float separation) {
+        this.pitch = pitch; this.yaw = yaw; this.roll = roll; this.zoom = zoom;
+        sheathSeparation = separation;
     }
 
     boolean ready() {
@@ -195,14 +281,38 @@ final class BladeStudioViewport {
         pose.pushPose();
         try {
             pose.translate((left + right) / 2F, (top + bottom) / 2F, 110);
-            float scale = Math.max(1, Math.min(right - left - 12, bottom - top - 8)) * zoom / bounds.diameter();
+            var rotation = new Matrix4f().rotateX((float)Math.toRadians(pitch))
+                    .rotateY((float)Math.toRadians(yaw)).rotateZ((float)Math.toRadians(roll));
+            var lo = new Vector3f(Float.POSITIVE_INFINITY);
+            var hi = new Vector3f(Float.NEGATIVE_INFINITY);
+            // Fit all projected corners, including the withdrawn sheath, at this exact camera angle.
+            for (int i = 0; i < 8; i++) {
+                var p = new Vector3f((i & 1) == 0 ? bounds.min.x : bounds.max.x + bounds.diameter * sheathSeparation,
+                        (i & 2) == 0 ? bounds.min.y - bounds.diameter * sheathSeparation * .25f : bounds.max.y,
+                        (i & 4) == 0 ? bounds.min.z : bounds.max.z).sub(bounds.center);
+                rotation.transformPosition(p); lo.min(p); hi.max(p);
+            }
+            float scale = Math.max(1, Math.min((right - left - 24) / Math.max(.001f, hi.x - lo.x),
+                    (bottom - top - 16) / Math.max(.001f, hi.y - lo.y))) * zoom;
             pose.scale(scale, -scale, scale);
+            pose.translate(-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, 0);
             pose.mulPose(Axis.XP.rotationDegrees(pitch));
             pose.mulPose(Axis.YP.rotationDegrees(yaw));
+            pose.mulPose(Axis.ZP.rotationDegrees(roll));
             var center = bounds.center();
             pose.translate(-center.x, -center.y, -center.z);
+            if (source == null && bladeTip != null) {
+                pose.last().pose().transformPosition(bladeTip, screenTip);
+                pose.last().pose().transformPosition(bladeRoot, screenRoot);
+                for (int i = 0; i < bladeSpine.length; i++) pose.last().pose().transformPosition(bladeSpine[i], screenSpine[i]);
+            }
             renderGroup(graphics, damaged ? "blade_damaged" : "blade", source);
-            if (!drawn && !damaged) renderGroup(graphics, "sheath", source);
+            if (!drawn && !damaged) {
+                pose.pushPose();
+                pose.translate(bounds.diameter * sheathSeparation, -bounds.diameter * sheathSeparation * .25f, 0);
+                renderGroup(graphics, "sheath", source);
+                pose.popPose();
+            }
             graphics.flush();
         } finally {
             pose.popPose();

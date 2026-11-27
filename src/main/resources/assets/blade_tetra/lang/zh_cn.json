@@ -1724,5 +1724,9 @@
   "blade_tetra.export.inscription.0": "万千锻造，终成此刃。",
   "blade_tetra.export.inscription.1": "以形为骨，以意为魂。",
   "blade_tetra.export.inscription.2": "其名，铭于此世。",
-  "blade_tetra.export.inscription.3": "此刃之名，自此不朽。"
+  "blade_tetra.export.inscription.3": "锋芒归刃，其名初成。",
+  "blade_tetra.export.inscription.4": "此刃之名，自此不朽。",
+  "blade_tetra.export.inscription.replay": "重观铭刃",
+  "blade_tetra.export.inscription.scroll": "滚轮翻阅题铭",
+  "blade_tetra.export.inscription.preview_failed": "刀影暂不可见，名刀附属已生成。"
 }

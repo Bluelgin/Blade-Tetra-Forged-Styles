@@ -1713,5 +1713,9 @@
   "blade_tetra.export.inscription.0": "Countless forgings. One blade.",
   "blade_tetra.export.inscription.1": "Form as bone. Intent as soul.",
   "blade_tetra.export.inscription.2": "Its name, inscribed upon this world.",
-  "blade_tetra.export.inscription.3": "May this name endure."
+  "blade_tetra.export.inscription.3": "Light settles. A name takes form.",
+  "blade_tetra.export.inscription.4": "May this name endure.",
+  "blade_tetra.export.inscription.replay": "Replay ceremony",
+  "blade_tetra.export.inscription.scroll": "Scroll to read the inscription",
+  "blade_tetra.export.inscription.preview_failed": "Preview unavailable. Your blade add-on was created."
 }
