@@ -29,12 +29,12 @@ class TestSelection(unittest.TestCase):
             'src/main/java/dev/bladetetra/customstyle/CustomStyleSpec.java'))
         self.assertEqual(set(self.config['groups']['full']), self.chosen('future/removed-file.java'))
 
-    def test_tests_follow_package_and_mikage_is_not_universal(self):
+    def test_tests_follow_package_and_migration_has_targeted_paths(self):
         self.assertEqual({'raikiri'}, self.chosen('src/test/java/dev/bladetetra/easteregg/RaikiriChargeTest.java'))
         self.assertEqual({'raikiri'}, self.chosen('src/integrationTest/java/dev/bladetetra/easteregg/RaikiriCombatSmokeTest.java'))
         self.assertEqual({'tooltip'}, self.chosen('src/integrationTest/java/dev/bladetetra/client/SoulGuideReviewClient.java'))
-        self.assertNotIn('mikage', self.chosen('src/main/resources/assets/blade_tetra/lang/en_us.json'))
-        self.assertIn('mikage', self.chosen('src/main/java/dev/bladetetra/challenge/MikageEntity.java'))
+        self.assertNotIn('legacy_world_migration', self.chosen('src/main/resources/assets/blade_tetra/lang/en_us.json'))
+        self.assertIn('legacy_world_migration', self.chosen('src/main/java/dev/bladetetra/compat/LegacyMikageCompatibility.java'))
 
     def test_dependency_changes_and_manual_compat_include_addons(self):
         self.assertIn('addon_ingots', self.chosen('build.gradle'))

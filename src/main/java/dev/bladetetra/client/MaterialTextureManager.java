@@ -29,6 +29,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -107,7 +108,7 @@ public final class MaterialTextureManager {
         }
         if (DefaultResources.resourceDurabilityTexture.equals(
                 event.getOriginalTexture())) {
-            event.setGetRenderType(MikageBackplateRenderType::get);
+            event.setGetRenderType(BladeBackplateRenderType::get);
             event.setPackedLightIn(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
             if ("base".equals(event.getOriginalTarget())) {
                 ResourceLocation baseTexture = NamedBackplateArtwork.texture(
@@ -132,7 +133,7 @@ public final class MaterialTextureManager {
                                 BladeModelManager.getInstance().getModel(BACKPLATE_PORTRAIT_MODEL),
                                 "portrait", baseTexture, event.getPoseStack(), event.getBuffer(),
                                 net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
-                                MikageBackplateRenderType::get, false);
+                                BladeBackplateRenderType::get, false);
                     } finally {
                         RENDERING_INTERNAL_PASS.set(false);
                         BladeRenderState.resetCol();
@@ -516,6 +517,11 @@ public final class MaterialTextureManager {
         }
     }
 
+    public static synchronized NativeImage bakeMaterialBackplate(ItemStack blade, ResourceManager resources)
+            throws IOException {
+        return materialBackplate(resources, MaterialAppearance.fromStack(blade));
+    }
+
     private static NativeImage materialBackplate(
             ResourceManager resources, MaterialAppearance appearance) throws IOException {
         NativeImage atlas = MaterialTextureCache.rodaiAtlas(resources);
@@ -633,6 +639,39 @@ public final class MaterialTextureManager {
      * not model compatibility.
      */
 
+
+    /** Bakes the world and GUI atlases without uploading a GPU texture. */
+    static byte[] bakeCombinedAtlas(net.minecraft.world.item.ItemStack blade,
+            ResourceManager resources) throws IOException {
+        var appearance = MaterialAppearance.fromStack(blade);
+        var glow = GlowState.fromStack(blade);
+        try (NativeImage world = MaterialTextureCache.readAtlas(resources);
+                NativeImage item = MaterialTextureCache.readAtlas(resources);
+                NativeImage combined = new NativeImage(world.getWidth(), world.getHeight() * 2, false)) {
+            paintBaseAtlas(world, appearance, glow, TextureLayout.WORLD, resources);
+            paintBaseAtlas(item, appearance, glow, TextureLayout.ITEM, resources);
+            for (int y = 0; y < world.getHeight(); y++) {
+                for (int x = 0; x < world.getWidth(); x++) {
+                    combined.setPixelRGBA(x, y, world.getPixelRGBA(x, y));
+                    combined.setPixelRGBA(x, y + world.getHeight(), item.getPixelRGBA(x, y));
+                }
+            }
+            return combined.asByteArray();
+        }
+    }
+
+    private static void paintBaseAtlas(NativeImage image, MaterialAppearance appearance,
+            GlowState glow, TextureLayout layout, ResourceManager resources) {
+        prepareItemBladeTemplate(image, layout);
+        ForgedGuardPainter.prepareTexture(image);
+        MaterialTextureCompositor.recolor(image, appearance, resources, layout);
+        applyLegacyBaseArt(image, glow, layout);
+        if (glow.soul() == SoulGlow.AKATSUKI) {
+            AkatsukiArtPainter.apply(image, appearance, layout, glow.broken());
+        }
+        AwakenedWeaponArt.apply(image, appearance, layout, glow.broken(),
+                AwakenedWeaponArt.fromName(glow.soul().name()));
+    }
 
     private static String stableTextureHash(String signature) {
         long hash = 0xcbf29ce484222325L;
@@ -1035,11 +1074,6 @@ public final class MaterialTextureManager {
             boolean broken = stack.getCapability(ModularSlashBladeItem.BLADESTATE)
                     .map(state -> state.isBroken())
                     .orElse(false);
-            // Reuse Akatsuki's exact palette/pattern only inside the dedicated boss blade pass.
-            // No item mutation, ritual unlock or awakened combat ability is involved.
-            if (MikageBladeVisuals.isRendering()) {
-                return new GlowState(SoulGlow.AKATSUKI, broken);
-            }
             SoulGlow soul = SoulGlow.NONE;
             if (SoulLegacyState.isActive(stack, SoulLegacyState.Legacy.AKATSUKI)) {
                 soul = SoulGlow.AKATSUKI;

@@ -1,0 +1,19 @@
+{
+  "name": "Blade Studio",
+  "category": "blade_tetra:named",
+  "icon": "blade_tetra:blade_sealing_workbench",
+  "pages": [
+    {
+      "type": "patchouli:crafting",
+      "recipe": "blade_tetra:blade_sealing_workbench"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Steel may break; a name endures.$(br2)Inscribe your forged blade across worlds. Blade Studio writes its model, attributes and inherited arts to a standalone add-on JAR."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Put a modular blade in the working slot, then open Blade Studio. The bench holds the blade until you take it out.$(br2)Install the exported add-on and restart. Obtain the blade from the SlashBlade creative tab or with $(thing)/bladeseal give/$."
+    }
+  ]
+}

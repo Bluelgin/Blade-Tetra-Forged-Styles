@@ -1,5 +1,6 @@
 package dev.bladetetra.forging;
 
+import com.electronwill.nightconfig.core.CommentedConfig;
 import dev.bladetetra.combat.BladeStyle;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.StyleResolver;
@@ -25,6 +26,7 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.fml.config.ConfigTracker;
 import se.mickelus.tetra.blocks.scroll.ScrollData;
 import se.mickelus.tetra.blocks.scroll.ScrollItem;
 import se.mickelus.tetra.blocks.workbench.BasicWorkbenchBlock;
@@ -219,8 +221,14 @@ public final class SaltyFishSmoke {
                 .create(LootContextParamSets.FISHING);
         var scrollChance = GameplayConfig.SALTY_FISH_SCROLL_CHANCE;
         var bladeChance = GameplayConfig.SALTY_FISH_BLADE_CHANCE;
-        double previousScroll = scrollChance.get(), previousBlade = bladeChance.get();
+        var config = ConfigTracker.INSTANCE.fileMap().get("blade-tetra-server.toml");
+        var worldConfig = config.getConfigData();
+        var fishingConfig = CommentedConfig.inMemory();
+        // Keep test-only values off the watched world TOML. The two rolls run synchronously
+        // on the integrated server thread using the same loot table and a fixed seed.
+        GameplayConfig.SPEC.correct(fishingConfig);
         try {
+            GameplayConfig.SPEC.setConfig(fishingConfig);
             scrollChance.set(0.0);
             bladeChance.set(0.0);
             var baseline = table.getRandomItems(params, 151L);
@@ -229,7 +237,8 @@ public final class SaltyFishSmoke {
             var bonus = table.getRandomItems(params, 151L);
             check(bonus.size() == baseline.size() + 2
                     && bonus.stream().anyMatch(item -> ItemStack.isSameItemSameTags(item, scroll)),
-                    "Fishing should add exactly one identical scroll and one blade");
+                    "Fishing should add exactly one identical scroll and one blade. Baseline="
+                            + baseline + ", bonus=" + bonus);
             ItemStack caught = bonus.stream().filter(item -> item.is(ModItems.MODULAR_SLASHBLADE.get()))
                     .findFirst().orElseThrow();
             var reloaded = ItemStack.of(caught.save(new CompoundTag()));
@@ -244,8 +253,7 @@ public final class SaltyFishSmoke {
                     "No-source construction failed");
             return reloaded;
         } finally {
-            scrollChance.set(previousScroll);
-            bladeChance.set(previousBlade);
+            GameplayConfig.SPEC.setConfig(worldConfig);
         }
     }
 

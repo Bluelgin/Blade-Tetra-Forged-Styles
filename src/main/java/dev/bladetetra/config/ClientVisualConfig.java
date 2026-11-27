@@ -17,21 +17,8 @@ public final class ClientVisualConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_VOID_SCATTERING_SHADER;
     public static final ForgeConfigSpec.BooleanValue ENABLE_DEAD_THOUGHT_GRADING;
     public static final ForgeConfigSpec.DoubleValue VOID_SCATTERING_SHADER_INTENSITY;
-    public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_MUSIC;
-    public static final ForgeConfigSpec.DoubleValue MIKAGE_MUSIC_VOLUME;
-    public static final ForgeConfigSpec.BooleanValue ENABLE_AUDIO_PACK_REMINDER;
-    public static final ForgeConfigSpec.BooleanValue AUDIO_PACK_REMINDER_DISMISSED;
-    public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_BOUNDARY;
-    public static final ForgeConfigSpec.DoubleValue MIKAGE_BOUNDARY_BRIGHTNESS;
-    public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_BLOOD_MOON_DOMAIN;
-    public static final ForgeConfigSpec.DoubleValue MIKAGE_BLOOD_MOON_INTENSITY;
     public static final ForgeConfigSpec.BooleanValue ENABLE_AKATSUKI_EXECUTION_TINT;
     public static final ForgeConfigSpec.DoubleValue AKATSUKI_EXECUTION_TINT_INTENSITY;
-    public static final ForgeConfigSpec.BooleanValue ENABLE_MIKAGE_BOSS_BAR;
-    public static final ForgeConfigSpec.DoubleValue MIKAGE_BOSS_BAR_SCALE;
-    public static final ForgeConfigSpec.DoubleValue MIKAGE_BOSS_BAR_OPACITY;
-    public static final ForgeConfigSpec.BooleanValue SHOW_MIKAGE_TECHNIQUE_BAR;
-    public static final ForgeConfigSpec.BooleanValue REDUCE_MIKAGE_HUD_MOTION;
     public static final ForgeConfigSpec.BooleanValue ENABLE_BLADE_COMBAT_VFX;
     public static final ForgeConfigSpec.DoubleValue BLADE_COMBAT_VFX_INTENSITY;
     public static final ForgeConfigSpec.IntValue BLADE_COMBAT_VFX_QUALITY;
@@ -109,42 +96,7 @@ public final class ClientVisualConfig {
                 .defineInRange("voidScatteringShaderIntensity", 1.0D, 0.0D, 1.5D);
         builder.pop();
 
-        builder.push("audio");
-        ENABLE_MIKAGE_MUSIC = builder
-                .comment(
-                        "Play Mikage's optional battle track when an audio resource pack provides it.",
-                        "The music follows Minecraft's Jukebox/Note Blocks volume slider; missing audio stays silent.")
-                .define("enableMikageMusic", true);
-        MIKAGE_MUSIC_VOLUME = builder
-                .comment("Volume multiplier for Mikage's battle music.")
-                .defineInRange("mikageMusicVolume", 0.78D, 0.0D, 1.0D);
-        ENABLE_AUDIO_PACK_REMINDER = builder
-                .comment(
-                        "Check for the optional Forged Echoes music and voice pack after joining a world.",
-                        "The reminder is client-only, non-blocking and appears at most once per game session.")
-                .define("enableForgedEchoesReminder", true);
-        AUDIO_PACK_REMINDER_DISMISSED = builder
-                .comment("Set by the in-game 'do not remind me again' action.")
-                .define("forgedEchoesReminderDismissed", false);
-        builder.pop();
-
         builder.push("bossEffects");
-        ENABLE_MIKAGE_BOUNDARY = builder
-                .comment(
-                        "Render Mikage's geometric mirror-realm boundary.",
-                        "This effect uses client-side geometry and does not spawn particles.")
-                .define("enableMikageBoundary", true);
-        MIKAGE_BOUNDARY_BRIGHTNESS = builder
-                .comment("Brightness multiplier for the boundary seals, torii anchors and mirror walls.")
-                .defineInRange("mikageBoundaryBrightness", 1.0D, 0.0D, 1.5D);
-        ENABLE_MIKAGE_BLOOD_MOON_DOMAIN = builder
-                .comment(
-                        "Apply the warm crimson world grading during Mikage's third phase.",
-                        "Disable this if a shader pack conflicts with Minecraft post effects; world-space combat effects remain available.")
-                .define("enableMikageBloodMoonDomain", true);
-        MIKAGE_BLOOD_MOON_INTENSITY = builder
-                .comment("Strength of Mikage's third-phase crimson-orange world grading.")
-                .defineInRange("mikageBloodMoonIntensity", 0.82D, 0.0D, 1.0D);
         ENABLE_AKATSUKI_EXECUTION_TINT = builder
                 .comment(
                         "Apply a local crimson-orange world grade while your awakened Akatsuki executes a target.",
@@ -153,23 +105,6 @@ public final class ClientVisualConfig {
         AKATSUKI_EXECUTION_TINT_INTENSITY = builder
                 .comment("Strength of Akatsuki's Final Moon world grading.")
                 .defineInRange("akatsukiExecutionTintIntensity", 0.72D, 0.0D, 1.0D);
-        ENABLE_MIKAGE_BOSS_BAR = builder
-                .comment(
-                        "Replace only Mikage's vanilla boss bar with the torii-themed HUD.",
-                        "Disable this for compatibility with boss-bar overhaul mods.")
-                .define("enableMikageBossBar", true);
-        MIKAGE_BOSS_BAR_SCALE = builder
-                .comment("Scale of Mikage's custom boss bar.")
-                .defineInRange("mikageBossBarScale", 1.0D, 0.65D, 1.35D);
-        MIKAGE_BOSS_BAR_OPACITY = builder
-                .comment("Opacity of Mikage's custom boss bar.")
-                .defineInRange("mikageBossBarOpacity", 0.94D, 0.25D, 1.0D);
-        SHOW_MIKAGE_TECHNIQUE_BAR = builder
-                .comment("Show the cast/progress bar for Mikage's signature techniques.")
-                .define("showMikageTechniqueBar", true);
-        REDUCE_MIKAGE_HUD_MOTION = builder
-                .comment("Disable flowing highlights, impact shake and other HUD motion.")
-                .define("reduceMikageHudMotion", false);
         ENABLE_BLADE_COMBAT_VFX = builder
                 .comment(
                         "Render shader-light blade clashes, guard breaks and phase transitions.",

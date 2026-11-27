@@ -1,6 +1,7 @@
 package dev.bladetetra.network;
 
 import dev.bladetetra.BladeTetra;
+import dev.bladetetra.export.BladeSealPackets;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.NetworkDirection;
@@ -9,15 +10,21 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.Optional;
 
 public final class ModNetwork {
-    private static final String PROTOCOL = "awakened2-blood-threads-7";
+    private static final String PROTOCOL = "awakened2-blood-threads-16";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(BladeTetra.MOD_ID, "main"),
             () -> PROTOCOL,
             PROTOCOL::equals,
             PROTOCOL::equals);
 
-    // Retired wire IDs 22 (V2 HUD) and 23 (old pose replay) stay reserved.
+    // Retired wire IDs 1–7, 16, 22 and 23 stay reserved.
     public static void register() {
+        CHANNEL.registerMessage(31, BladeSealPackets.Preview.class, BladeSealPackets.Preview::encode,
+                BladeSealPackets.Preview::decode, BladeSealPackets.Preview::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(32, BladeSealPackets.Confirm.class, BladeSealPackets.Confirm::encode,
+                BladeSealPackets.Confirm::decode, BladeSealPackets.Confirm::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(33, BladeSealPackets.Result.class, BladeSealPackets.Result::encode,
+                BladeSealPackets.Result::decode, BladeSealPackets.Result::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(30, AkatsukiThreadPacket.class, AkatsukiThreadPacket::encode,
                 AkatsukiThreadPacket::decode, AkatsukiThreadPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(29, SakuraRecallPacket.class, SakuraRecallPacket::encode,
@@ -33,64 +40,12 @@ public final class ModNetwork {
         CHANNEL.registerMessage(24, AwakeningPresentationPacket.class,
                 AwakeningPresentationPacket::encode, AwakeningPresentationPacket::decode,
                 AwakeningPresentationPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(16, DivineSupportStatePacket.class, DivineSupportStatePacket::encode,
-                DivineSupportStatePacket::decode, DivineSupportStatePacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(
                 0,
                 IaidoImpactPacket.class,
                 IaidoImpactPacket::encode,
                 IaidoImpactPacket::decode,
                 IaidoImpactPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                1,
-                MikageMusicPacket.class,
-                MikageMusicPacket::encode,
-                MikageMusicPacket::decode,
-                MikageMusicPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                2,
-                MikageBoundaryPacket.class,
-                MikageBoundaryPacket::encode,
-                MikageBoundaryPacket::decode,
-                MikageBoundaryPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                3,
-                MikageHudPacket.class,
-                MikageHudPacket::encode,
-                MikageHudPacket::decode,
-                MikageHudPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                4,
-                MikageDialoguePacket.class,
-                MikageDialoguePacket::encode,
-                MikageDialoguePacket::decode,
-                MikageDialoguePacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                5,
-                MikageVisitorDialoguePacket.class,
-                MikageVisitorDialoguePacket::encode,
-                MikageVisitorDialoguePacket::decode,
-                MikageVisitorDialoguePacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(
-                6,
-                MikageVisitorChoicePacket.class,
-                MikageVisitorChoicePacket::encode,
-                MikageVisitorChoicePacket::decode,
-                MikageVisitorChoicePacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        CHANNEL.registerMessage(
-                7,
-                BladeCombatVfxPacket.class,
-                BladeCombatVfxPacket::encode,
-                BladeCombatVfxPacket::decode,
-                BladeCombatVfxPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(
                 8,

@@ -16,6 +16,9 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 // Forge-only smoke tests and visual reviews are a separate, non-published source set.
 sourceSets {
+    exportRuntime {
+        compileClasspath += sourceSets.main.compileClasspath
+    }
     integrationTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -34,9 +37,10 @@ def developmentProfiles = [
     'soulGuideReview', 'sakuraCombatSmoke', 'raikiriCombatSmoke', 'swordAuraHitSmoke',
     'lifengSmoke', 'customStyleInputReview', 'mirrorRitualReview', 'bloodBladeReview',
     'bloodThreadReview', 'artPreview', 'providerEffectSmoke', 'deadThoughtRemovalSmoke',
-    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'mikageNativeSmoke', 'customStyleSmoke',
+    'kyoukaMotionSmoke', 'kyoukaNativeSmoke', 'legacyWorldMigrationSmoke', 'legacyWorldMigrationClientSmoke', 'customStyleSmoke',
     'combatBalanceSmoke', 'styleBranchSmoke', 'styleBranchReview', 'attachmentSmoke',
-    'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'legacySmokeTest', 'saltyFishReview'
+    'speedEfficiencySmoke', 'forgingTreatiseSmoke', 'namedIngotSmoke', 'exportPackageSmoke',
+    'exportSealClientSmoke', 'legacySmokeTest', 'saltyFishReview'
 ]
 def developmentTools = developmentProfiles.any { project.hasProperty(it) }
 
@@ -129,9 +133,13 @@ minecraft {
                 workingDirectory project.file('build/kyouka-native-smoke')
                 property 'blade_tetra.kyoukaNativeSmoke', 'true'
             }
-            if (project.hasProperty('mikageNativeSmoke')) {
-                workingDirectory project.file('build/mikage-native-smoke')
-                property 'blade_tetra.mikageNativeSmoke', 'true'
+            if (project.hasProperty('legacyWorldMigrationSmoke') || project.hasProperty('legacyWorldMigrationClientSmoke')) {
+                boolean clientFixture = project.hasProperty('legacyWorldMigrationClientSmoke')
+                workingDirectory project.file(clientFixture ? 'build/legacy-world-migration-client-smoke'
+                        : 'build/legacy-world-migration-smoke')
+                property 'blade_tetra.legacyWorldMigrationSmoke', 'true'
+                property 'blade_tetra.legacyWorldMigrationClientSmoke', clientFixture.toString()
+                property 'blade_tetra.legacyWorldMigrationReopen', project.hasProperty('legacyWorldMigrationReopen').toString()
             }
             if (project.hasProperty('customStyleSmoke')) {
                 workingDirectory project.file('build/custom-style-smoke')
@@ -164,6 +172,17 @@ minecraft {
             if (project.hasProperty('namedIngotSmoke')) {
                 workingDirectory project.file('build/named-ingot-smoke')
                 property 'blade_tetra.namedIngotSmoke', 'true'
+            }
+            if (project.hasProperty('exportSealClientSmoke')) {
+                workingDirectory project.file('build/blade-export-client-smoke')
+                property 'blade_tetra.exportSealClientSmoke', 'true'
+            }
+            if (project.hasProperty('exportPackageSmoke')) {
+                workingDirectory project.file(project.hasProperty('slashblade1965')
+                        ? 'build/blade-export-package-smoke-1965' : 'build/blade-export-package-smoke')
+                property 'blade_tetra.exportPackageSmoke', 'true'
+                property 'blade_tetra.expectedSlashbladeVersion',
+                        project.hasProperty('slashblade1965') ? '1.9.65' : '1.9.63'
             }
             if (project.hasProperty('legacySmokeTest')) {
                 def addonSuffix = project.hasProperty('sjapTest') && project.hasProperty('yakumoTest')
@@ -231,9 +250,6 @@ minecraft {
 
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
-    // Keep archived dialogue artwork locally, but let a future story mod own
-    // the optional portraits. Core only ships the descriptor-reading interface.
-    exclude 'assets/blade_tetra/textures/gui/mikage_dialogue/**'
 }
 
 repositories {
@@ -299,8 +315,11 @@ dependencies {
             ? "local:tetra:1.20.1-6.9.0"
             : "curse.maven:tetra-289712:${tetra_file_id}")
     implementation fg.deobf("se.mickelus.mutil:mutil:${mutil_version}")
+    // Explicit compatibility fixture: SlashBlade: Resharped 1.9.65 (CurseForge file 8090912).
+    // The default stays on 1.9.63 until the independent matrix has passed.
+    def slashbladeFixtureFile = project.hasProperty('slashblade1965') ? '8090912' : slashblade_resharped_file_id
     implementation fg.deobf(
-            "curse.maven:slashblade-resharped-1022428:${slashblade_resharped_file_id}")
+            "curse.maven:slashblade-resharped-1022428:${slashbladeFixtureFile}")
     // Compile the optional public animation-map alias; no new runtime requirement.
     compileOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
     runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
@@ -436,11 +455,6 @@ tasks.named('test', Test).configure {
 }
 
 tasks.named('processResources', ProcessResources).configure {
-    // Keep the original artwork recoverable in source control, but ship only the player skin.
-    exclude 'assets/blade_tetra/models/entity/mikage_tailored.json'
-    exclude 'assets/blade_tetra/textures/entity/mikage_tailored.png'
-    exclude 'META-INF/notices/mikage-winefox.txt'
-    exclude 'META-INF/licenses/winefox-CC-BY-NC-SA-4.0.txt'
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
@@ -458,6 +472,84 @@ tasks.named('processResources', ProcessResources).configure {
     inputs.properties replaceProperties
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
+    }
+}
+
+def portableCombatSources = tasks.register('prepareExportCombatSources', Sync) {
+    // Forge can load the modular and sealed mods together. Keep their packages disjoint.
+    from('src/main/java/dev/bladetetra/combat') {
+        include 'StyleBranchRules.java', 'StyleCommonCommands.java', 'StyleTargeting.java',
+                'DangakuCircleSlashRules.java', 'DangakuSpinRules.java', 'DangakuCombatValues.java', 'SaltyFishHitFeedback.java',
+                'NativeFusionEngine.java', 'FusionSourceExecution.java', 'NativeFusionLifecycle.java',
+                'SealedFusionSources.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('import dev.bladetetra.compat.fusion.RecastingFusionCompatibility;', '')
+                .replace('dev.bladetetra.combat', 'dev.btsealed.runtime') }
+    }
+    from('src/main/java/dev/bladetetra/compat/fusion/RecastingFusionCompatibility.java') {
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.compat.fusion', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-combat')
+}
+sourceSets.exportRuntime.java.srcDir(portableCombatSources)
+
+// One pure Java capability contract is compiled once for the exporter and
+// rewritten into a disjoint namespace for the source-free runtime.
+def portableCapabilitySources = tasks.register('prepareExportCapabilitySources', Sync) {
+    from('src/main/java/dev/bladetetra/export') {
+        include 'PortableCapabilityCatalog.java'
+        into 'dev/btsealed/runtime'
+        filter { line -> line.replace('dev.bladetetra.export', 'dev.btsealed.runtime') }
+    }
+    into layout.buildDirectory.dir('generated/export-capabilities')
+}
+sourceSets.exportRuntime.java.srcDir(portableCapabilitySources)
+
+tasks.register('exportRuntimeJar', Jar) {
+    archiveFileName = 'bt-export-runtime-1.8.2.jar'
+    destinationDirectory = layout.buildDirectory.dir('export-runtime')
+    from sourceSets.exportRuntime.output
+    from('LICENSE')
+    manifest { attributes 'MixinConfigs': 'bt_export_runtime.mixins.json' }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+reobf {
+    exportRuntimeJar {
+        libraries.from(sourceSets.exportRuntime.compileClasspath)
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn 'reobfExportRuntimeJar'
+    from(tasks.named('exportRuntimeJar').flatMap { it.archiveFile }) {
+        into 'META-INF/blade-export'
+    }
+    from('LICENSE') {
+        into 'META-INF/blade-export'
+        rename { 'project-license.txt' }
+    }
+    from('THIRD_PARTY_NOTICES.md') {
+        into 'META-INF/blade-export'
+        rename { 'project-asset-notices.md' }
+    }
+}
+
+if (project.hasProperty('exportRuntimeProbe')) {
+    sourceSets.create('exportRuntimeTest') {
+        compileClasspath += sourceSets.exportRuntime.output + sourceSets.main.compileClasspath
+    }
+    tasks.register('exportRuntimeProbeJar', Jar) {
+        archiveFileName = 'bt-export-runtime-probe.jar'
+        destinationDirectory = layout.buildDirectory.dir('export-runtime')
+        from sourceSets.exportRuntimeTest.output
+    }
+    reobf {
+        exportRuntimeProbeJar {
+            libraries.from(sourceSets.exportRuntimeTest.compileClasspath)
+        }
     }
 }
 
@@ -527,6 +619,25 @@ tasks.register('verifyProductionJar') {
                 }
             }
             if (!leaked.isEmpty()) throw new GradleException("Development tools in production JAR: ${leaked}")
+            def retired = names.entries().findAll { entry ->
+                def path = entry.name
+                if (path == 'dev/bladetetra/compat/LegacyMikageCompatibility.class' ||
+                        path == 'dev/bladetetra/compat/LegacyMikageCompatibility$RetiredEntity.class') return false
+                path.toLowerCase(Locale.ROOT).contains('mikage') || path.contains('/challenge/') ||
+                        path.startsWith('assets/blade_tetra/textures/divine/') ||
+                        path.startsWith('assets/blade_tetra/models/divine/') ||
+                        path.startsWith('assets/blade_tetra/textures/item/karmic_mirror_') ||
+                        path.contains('winefox') || path.endsWith('.bta.gz')
+            }
+            if (!retired.isEmpty()) throw new GradleException("Retired challenge assets or classes in production JAR: ${retired}")
+            def mixinEntry = names.getEntry('blade_tetra.mixins.json')
+            if (mixinEntry == null) throw new GradleException('Missing production mixin config')
+            def mixins = names.getInputStream(mixinEntry).withCloseable { it.getText('UTF-8') }
+            if (mixins.contains('Mikage') || mixins.contains('MirrorIceMixin')) {
+                throw new GradleException('Retired challenge Mixin in production config')
+            }
+            logger.lifecycle("Retired Content Audit passed: ${archive.name} (${archive.length()} compressed bytes)")
+
         } finally { names.close() }
     }
 }

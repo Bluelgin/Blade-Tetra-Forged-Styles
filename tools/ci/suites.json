@@ -8,7 +8,8 @@
       "kyouka",
       "sakura",
       "raikiri",
-      "mikage",
+      "legacy_world_migration",
+      "legacy_world_migration_client",
       "custom_style",
       "lifeng",
       "storage",
@@ -19,7 +20,11 @@
     ],
     "compat": [
       "addon_ingots",
-      "addon_art"
+      "addon_art",
+      "export_package",
+      "export_package_1965",
+      "export_client",
+      "export_client_addons"
     ],
     "combat": [
       "aura",
@@ -45,8 +50,12 @@
       "kind": "client",
       "property": "starterBladeReview",
       "directory": "starter-blade-review",
-      "markers": ["BLADE_STARTER_REVIEW_PASS"],
-      "flags": ["jeiTest"]
+      "markers": [
+        "BLADE_STARTER_REVIEW_PASS"
+      ],
+      "flags": [
+        "jeiTest"
+      ]
     },
     "storage": {
       "kind": "server",
@@ -62,7 +71,9 @@
       "kind": "client",
       "property": "saltyFishReview",
       "directory": "salty-fish-review",
-      "markers": ["SALTY_FISH_REVIEW_PASS"],
+      "markers": [
+        "SALTY_FISH_REVIEW_PASS"
+      ],
       "flags": []
     },
     "tooltip": {
@@ -148,12 +159,21 @@
       ],
       "flags": []
     },
-    "mikage": {
+    "legacy_world_migration": {
       "kind": "server",
-      "property": "mikageNativeSmoke",
-      "directory": "mikage-native-smoke",
+      "property": "legacyWorldMigrationSmoke",
+      "directory": "legacy-world-migration-smoke",
       "markers": [
-        "MIKAGE_NATIVE_SMOKE_PASS"
+        "LEGACY_WORLD_MIGRATION_PASS"
+      ],
+      "flags": []
+    },
+    "legacy_world_migration_client": {
+      "kind": "client",
+      "property": "legacyWorldMigrationClientSmoke",
+      "directory": "legacy-world-migration-client-smoke",
+      "markers": [
+        "LEGACY_WORLD_MIGRATION_PASS"
       ],
       "flags": []
     },
@@ -202,6 +222,63 @@
         "sjapTest",
         "yakumoTest"
       ]
+    },
+    "export_package": {
+      "kind": "server",
+      "property": "exportPackageSmoke",
+      "directory": "blade-export-package-smoke",
+      "markers": [
+        "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.63",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS",
+        "BLADE_STUDIO_WORKBENCH_STORAGE_PASS"
+      ],
+      "flags": []
+    },
+    "export_package_1965": {
+      "kind": "server",
+      "property": "exportPackageSmoke",
+      "directory": "blade-export-package-smoke-1965",
+      "markers": [
+        "BLADE_EXPORT_PACKAGE_SMOKE_PASS",
+        "BLADE_EXPORT_RUNTIME_FIXTURE:",
+        "BLADE_EXPORT_SLASHBLADE_VERSION: 1.9.65",
+        "BLADE_EXPORT_SHARED_RUNTIME_PASS",
+        "BLADE_STUDIO_WORKBENCH_STORAGE_PASS"
+      ],
+      "flags": [
+        "slashblade1965"
+      ]
+    },
+    "export_client": {
+      "kind": "client",
+      "property": "exportSealClientSmoke",
+      "directory": "blade-export-client-smoke",
+      "markers": [
+        "BLADE_SEAL_NAMED_CLIENT_PASS",
+        "BLADE_STUDIO_PREVIEW_PASS",
+        "BLADE_STUDIO_SIMPLE_MODE_PASS",
+        "BLADE_STUDIO_SALTY_FISH_EXPORT_PASS",
+        "BLADE_STUDIO_RESOURCE_TERMS_PASS",
+        "BLADE_STUDIO_FUSION_EXPORT_PASS"
+      ],
+      "flags": []
+    },
+    "export_client_addons": {
+      "kind": "client",
+      "property": "exportSealClientSmoke",
+      "directory": "blade-export-client-smoke",
+      "markers": [
+        "BLADE_SEAL_NAMED_CLIENT_PASS",
+        "BLADE_STUDIO_PREVIEW_PASS",
+        "BLADE_STUDIO_SIMPLE_MODE_PASS",
+        "BLADE_STUDIO_SALTY_FISH_EXPORT_PASS",
+        "BLADE_STUDIO_RESOURCE_TERMS_PASS",
+        "BLADE_STUDIO_FUSION_EXPORT_PASS",
+        "BLADE_STUDIO_EXTERNAL_MODELS_PASS"
+      ],
+      "flags": ["sjapTest", "yakumoTest"]
     }
   },
   "docs": [
@@ -236,6 +313,19 @@
         "@full"
       ],
       "reason": "CI or development-test infrastructure"
+    },
+    {
+      "paths": [
+        "src/main/java/dev/bladetetra/export/**",
+        "src/integrationTest/java/dev/bladetetra/export/**",
+        "src/exportRuntime/**",
+        "src/exportRuntimeTest/**"
+      ],
+      "suites": [
+        "export_package",
+        "export_package_1965"
+      ],
+      "reason": "Sealed blade packaging, bundled runtime and native portability"
     },
     {
       "paths": [
@@ -351,12 +441,16 @@
     },
     {
       "paths": [
-        "src/main/java/dev/bladetetra/challenge/**"
+        "src/main/java/dev/bladetetra/compat/LegacyMikageCompatibility.java",
+        "src/integrationTest/java/dev/bladetetra/compat/LegacyWorldMigration*Smoke.java",
+        "src/main/resources/data/blade_tetra/dimension/**",
+        "src/main/resources/data/blade_tetra/dimension_type/**"
       ],
       "suites": [
-        "mikage"
+        "legacy_world_migration",
+        "legacy_world_migration_client"
       ],
-      "reason": "Archived Mikage behavior touched explicitly"
+      "reason": "Legacy dimension and entity migration in integrated and dedicated servers"
     },
     {
       "paths": [

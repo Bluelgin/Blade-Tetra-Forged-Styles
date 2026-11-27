@@ -16,6 +16,8 @@ from plan import ROOT, load_config
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('suite', choices=sorted(load_config()['suites']))
+    parser.add_argument('--slashblade', choices=('1.9.63', '1.9.65'),
+                        help='Select the provider build for the export client fixture')
     args = parser.parse_args()
     suite = load_config()['suites'][args.suite]
     directory = ROOT / 'build' / suite['directory']
@@ -36,6 +38,10 @@ def main():
     else:
         (directory / 'options.txt').write_text('lang:zh_cn\nguiScale:4\n')
     properties = [suite['property'], *suite['flags']]
+    if args.slashblade is not None and args.suite != 'export_client':
+        parser.error('--slashblade is only used by export_client')
+    if args.slashblade == '1.9.65':
+        properties.append('slashblade1965')
     if not all(re.fullmatch(r'[A-Za-z0-9_]+', prop) for prop in properties):
         raise ValueError('Invalid Gradle profile')
     if 'yakumoTest' in properties:
@@ -49,6 +55,15 @@ def main():
     if suite['kind'] == 'client':
         command = ['xvfb-run', '-a', *command]
     log = ROOT / 'build' / (suite['directory'] + '.log')
+    run(command, log, args.suite, suite['markers'])
+    if args.suite in ('legacy_world_migration', 'legacy_world_migration_client'):
+        reopen_log = log.with_name(log.stem + '-reopen.log')
+        run([*command, '-PlegacyWorldMigrationReopen'], reopen_log, args.suite + ' reopen',
+            ['LEGACY_WORLD_MIGRATION_REOPEN_PASS'])
+    print(f'SUITE_PASS: {args.suite}')
+
+
+def run(command, log, name, markers):
     with log.open('w') as target:
         process = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
         expired = threading.Event()
@@ -70,10 +85,9 @@ def main():
             watchdog.cancel()
         if expired.is_set():
             status = -1
-    missing = [marker for marker in suite['markers'] if marker not in log.read_text()]
+    missing = [marker for marker in markers if marker not in log.read_text()]
     if status or missing:
-        raise SystemExit(f'Suite {args.suite} failed: process={status}; missing markers={missing}')
-    print(f'SUITE_PASS: {args.suite}')
+        raise SystemExit(f'Suite {name} failed: process={status}; missing markers={missing}')
 
 
 if __name__ == '__main__':

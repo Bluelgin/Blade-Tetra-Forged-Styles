@@ -1,6 +1,6 @@
 package dev.bladetetra.item;
 
-import dev.bladetetra.challenge.BoundaryForging;
+import dev.bladetetra.forging.BoundaryForging;
 import dev.bladetetra.combat.PotatoBladeHandler;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.SoulLegacyState;

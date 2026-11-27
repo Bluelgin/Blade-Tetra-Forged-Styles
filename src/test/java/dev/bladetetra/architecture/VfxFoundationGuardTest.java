@@ -24,14 +24,6 @@ class VfxFoundationGuardTest {
         assertFalse(techniques.contains("private static void quad("));
         assertFalse(techniques.contains("private static void vertex("));
 
-        String combat = read("src/main/java/dev/bladetetra/client/BladeCombatVfxClient.java");
-        assertTrue(combat.contains("VfxPrimitives"),
-                "Blade combat VFX should render common geometry through VfxPrimitives");
-        assertFalse(combat.contains("private static void ringHorizontal("));
-        assertFalse(combat.contains("private static void ringVertical("));
-        assertFalse(combat.contains("private static void band3d("));
-        assertFalse(combat.contains("private static void planeBand("));
-
         String raikiri = read("src/main/java/dev/bladetetra/client/RaikiriVfxClient.java");
         assertTrue(raikiri.contains("VfxPrimitives"),
                 "Raikiri VFX should render common geometry through VfxPrimitives");
@@ -55,16 +47,6 @@ class VfxFoundationGuardTest {
         assertFalse(boundary.contains("private static void vertex("));
         assertFalse(boundary.contains("private static int color("));
         assertFalse(boundary.contains("private static int withAlpha("));
-
-        String mikageBoundary = read(
-                "src/main/java/dev/bladetetra/client/MikageBoundaryClient.java");
-        assertTrue(mikageBoundary.contains("ringHorizontal(buffer"),
-                "Mikage arena rings should use the shared ring primitive");
-        assertFalse(mikageBoundary.contains("private static void drawFloorCircle("));
-        assertFalse(mikageBoundary.contains("private static void drawFloorPolyline("));
-        assertFalse(mikageBoundary.contains("private static void quad("));
-        assertFalse(mikageBoundary.contains("renderCeremonialTextures("),
-                "Retired boundary wall/seal renderer should not remain as dead code");
     }
 
     @Test

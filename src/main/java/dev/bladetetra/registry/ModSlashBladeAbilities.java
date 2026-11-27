@@ -5,6 +5,7 @@ import dev.bladetetra.combat.ForgedSlashArtEntrypoint;
 import dev.bladetetra.combat.ForgedSlashArtPlan;
 import dev.bladetetra.combat.ModComboStates;
 import dev.bladetetra.combat.ProgrammaticFusionHandler;
+import dev.bladetetra.combat.SealedFusionSources;
 import dev.bladetetra.forging.LegacyFusion;
 import mods.flammpfeil.slashblade.registry.ComboStateRegistry;
 import mods.flammpfeil.slashblade.registry.specialeffects.SpecialEffect;
@@ -30,7 +31,7 @@ public final class ModSlashBladeAbilities {
                     .setComboStateJust(ProgrammaticFusionHandler::justCombo)
                     // The validated native releaseSSA hook owns Super's commit.
                     .setComboStateSuper(entity -> ComboStateRegistry.NONE.getId())
-                    .setProudSoulCost(45));
+                    .setProudSoulCost(SealedFusionSources.RELEASE_COST));
 
     /** One structural registry entry for every four-part Tetra-authored Slash Art. */
     public static final RegistryObject<SlashArts> FORGED_SLASH_ART =

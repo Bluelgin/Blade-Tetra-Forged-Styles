@@ -31,13 +31,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Select suites and explain coverage
         id: plan
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
           MODE: ${{ inputs.scope || 'auto' }}
         run: |
-          python3 tools/ci/plan.py --base "$BASE" --head "$GITHUB_SHA" --mode "$MODE" \
+          python3 tools/ci/plan.py --base "$BASE" --head "$(git rev-parse HEAD)" --mode "$MODE" \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" || \
           python3 tools/ci/plan.py --mode full --reason 'Planner failed; full fallback' \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
@@ -52,9 +53,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Test suite-selection boundaries
         run: |
           python3 -m unittest discover -s tools/ci -p 'test_*.py'
+          python3 tools/ci/check_export_runtime_isolation.py
           python3 tools/ci/check_resources.py
       - uses: actions/setup-java@v4
         if: needs.plan.outputs.quick == 'true'
@@ -65,7 +69,12 @@ jobs:
         if: needs.plan.outputs.quick == 'true'
       - name: Compile production and development tools; test; verify release JAR
         if: needs.plan.outputs.quick == 'true'
-        run: ./gradlew build integrationTestClasses verifyProductionJar kyoukaNativeApiAudit
+        run: ./gradlew -PexportRuntimeProbe build integrationTestClasses exportRuntimeTestClasses verifyProductionJar kyoukaNativeApiAudit
+      - name: Measure packaged JARs
+        if: needs.plan.outputs.quick == 'true'
+        run: |
+          python3 tools/ci/report_jar_sizes.py --commit "$(git rev-parse HEAD)" \
+            --output build/jar-sizes.json build/libs/*.jar build/export-runtime/bt-export-runtime-*.jar
       - uses: actions/upload-artifact@v4
         if: always() && needs.plan.outputs.quick == 'true'
         with:
@@ -74,6 +83,8 @@ jobs:
             build/libs/*.jar
             build/test-results/test/*.xml
             build/kyouka-native-api.txt
+            build/jar-sizes.json
+            build/export-runtime/bt-export-runtime-*.jar
           retention-days: 14
 
   native:
@@ -84,12 +95,14 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       LIBGL_ALWAYS_SOFTWARE: 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -106,6 +119,7 @@ jobs:
             build/*/logs/**
             build/*/*.png
             build/*/evidence/**
+            build/*/blade-exports/*.jar
           retention-days: 14
 
   gate:

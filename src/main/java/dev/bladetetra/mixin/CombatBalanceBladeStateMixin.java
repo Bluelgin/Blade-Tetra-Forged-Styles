@@ -18,7 +18,7 @@ import java.util.Map;
 /** Observe real charge/release and automatic combo continuations; never change native timings. */
 @Mixin(value = SlashBladeState.class, remap = false)
 public abstract class CombatBalanceBladeStateMixin implements ISlashBladeState,
-        ProgrammaticFusionHandler.MotionRevision {
+        dev.bladetetra.combat.NativeFusionEngine.MotionRevision {
     @Unique private long bladeTetra$motionRevision;
 
     @Override public long bladeTetra$motionRevision() {

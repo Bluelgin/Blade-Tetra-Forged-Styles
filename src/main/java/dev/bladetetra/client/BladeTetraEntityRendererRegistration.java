@@ -21,15 +21,9 @@ import net.minecraftforge.fml.common.Mod;
 public final class BladeTetraEntityRendererRegistration {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(ModEntities.MIKAGE.get(), MikageRenderer::new);
-        event.registerEntityRenderer(ModEntities.MIKAGE_PHANTOM_SWORD.get(),
-                MikagePhantomSwordRenderer::new);
-        event.registerEntityRenderer(ModEntities.MIKAGE_ECHO.get(), MikageEchoRenderer::new);
-        event.registerEntityRenderer(ModEntities.MIKAGE_GATE_CORE.get(), MikageGateCoreRenderer::new);
-        event.registerEntityRenderer(ModEntities.MIKAGE_GATE_SWORD.get(),
-                context -> new mods.flammpfeil.slashblade.client.renderer.entity.SummonedSwordRenderer<>(context));
-        event.registerEntityRenderer(ModEntities.MIKAGE_DIVINE_COMPANION.get(),
-                MikageDivineCompanionRenderer::new);
+        for (var retired : ModEntities.RETIRED_MIKAGE) {
+            event.registerEntityRenderer(retired.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
+        }
         event.registerEntityRenderer(ModEntities.KYOUKA_AFTERIMAGE.get(),
                 KyoukaAfterimageRenderer::new);
     }

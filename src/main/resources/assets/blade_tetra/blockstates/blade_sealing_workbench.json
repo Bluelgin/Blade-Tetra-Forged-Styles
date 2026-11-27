@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "blade_tetra:block/blade_sealing_workbench",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "blade_tetra:block/blade_sealing_workbench",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "blade_tetra:block/blade_sealing_workbench",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "blade_tetra:block/blade_sealing_workbench",
+      "y": 270
+    }
+  }
+}

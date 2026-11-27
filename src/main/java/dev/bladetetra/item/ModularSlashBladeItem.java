@@ -18,7 +18,7 @@ import dev.bladetetra.registry.ModEnchantments;
 import dev.bladetetra.easteregg.BladeLegacyEasterEggs;
 import dev.bladetetra.easteregg.NbtSageEasterEgg;
 import dev.bladetetra.easteregg.SenbonzakuraAwakening;
-import dev.bladetetra.challenge.BoundaryForging;
+import dev.bladetetra.forging.BoundaryForging;
 import dev.bladetetra.forging.FoxLegacyParts;
 import dev.bladetetra.forging.LegacyCalibration;
 import dev.bladetetra.forging.ImprintAffinity;

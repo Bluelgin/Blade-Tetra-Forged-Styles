@@ -17,7 +17,6 @@ import dev.bladetetra.registry.ModItems;
 import dev.bladetetra.registry.ModLootModifiers;
 import dev.bladetetra.registry.ModRecipes;
 import dev.bladetetra.registry.ModSlashBladeAbilities;
-import dev.bladetetra.registry.ModSounds;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -38,6 +37,7 @@ public final class BladeTetra {
 
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(BladeTetra::commonSetup);
+        modBus.addListener(dev.bladetetra.combat.ProgrammaticFusionHandler::processInterop);
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.SERVER,
                 GameplayConfig.SPEC,
@@ -46,6 +46,7 @@ public final class BladeTetra {
                 ModConfig.Type.CLIENT,
                 ClientVisualConfig.SPEC,
                 "blade-tetra-client.toml");
+        dev.bladetetra.export.BladeSealWorkbench.register(modBus);
         ModItems.ITEMS.register(modBus);
         dev.bladetetra.kyouka.WaterMirrorEffect.EFFECTS.register(modBus);
         dev.bladetetra.easteregg.RaikiriThunderArmorEffect.EFFECTS.register(modBus);
@@ -54,7 +55,6 @@ public final class BladeTetra {
         ModLootModifiers.CODECS.register(modBus);
         ModEnchantments.ENCHANTMENTS.register(modBus);
         ModRecipes.SERIALIZERS.register(modBus);
-        ModSounds.SOUND_EVENTS.register(modBus);
         ModComboStates.registerHeldDangaku();
         dev.bladetetra.easteregg.SakuraSixthCombo.register();
         dev.bladetetra.easteregg.SakuraDanceCombos.register();

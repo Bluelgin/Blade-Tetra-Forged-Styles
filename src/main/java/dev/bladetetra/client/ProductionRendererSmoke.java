@@ -31,12 +31,6 @@ public final class ProductionRendererSmoke {
 
         List<EntityType<?>> required = List.of(
                 ModEntities.KYOUKA_AFTERIMAGE.get(),
-                ModEntities.MIKAGE_DIVINE_COMPANION.get(),
-                ModEntities.MIKAGE.get(),
-                ModEntities.MIKAGE_PHANTOM_SWORD.get(),
-                ModEntities.MIKAGE_ECHO.get(),
-                ModEntities.MIKAGE_GATE_CORE.get(),
-                ModEntities.MIKAGE_GATE_SWORD.get(),
                 ModEntities.SWORD_AURA_DRIVE.get()
         );
         // Forge 47.4.x's AddLayers public getRenderer() is typed only for

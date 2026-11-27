@@ -1,7 +1,6 @@
 package dev.bladetetra.combat;
 
 import dev.bladetetra.aura.SwordAuraMotionFilter;
-import dev.bladetetra.challenge.MikageBladeAttackTrace;
 import dev.bladetetra.easteregg.SakuraInfiniteDanceSA;
 import dev.bladetetra.item.ModularSlashBladeItem;
 import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
@@ -40,7 +39,7 @@ public final class HabakiKnockback {
     }
 
     public static void melee(LivingEntity user, Entity target, Runnable attack) {
-        Entity effect = MikageBladeAttackTrace.projectile();
+        Entity effect = NativeSlashProvenance.projectile();
         boolean reinforced = !target.getPersistentData().contains(NATIVE_KNOCKBACK_FACTOR)
                 && (effect == null ? isReinforcedSlash(user)
                         : effect instanceof EntitySlashEffect slash && replacesNativeCallback(slash));

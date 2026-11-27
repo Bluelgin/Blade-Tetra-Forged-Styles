@@ -100,6 +100,9 @@ public final class SaltyFishReview {
                 LogUtils.getLogger().info("SALTY_FISH_REVIEW_GUARD: {}", guard.id());
             }
         }
+        // Multiple game ticks may fall in one render frame on a slow client.
+        // Hold this review step until the pending framebuffer capture is written.
+        if (screenshot != null) return;
         switch (++tick) {
             case 1 -> camera(mc, 0.5, -59.2, 6.2, 47, 180, 0);
             case 32 -> screenshot = "01-three-lengths";
@@ -215,9 +218,8 @@ public final class SaltyFishReview {
             // This disposable world has experimental dimensions. Skip only its backup
             // prompt so the same native loader can reopen it without a human click.
             try {
-                var load = WorldOpenFlows.class.getDeclaredMethod("doLoadLevel",
-                        Screen.class, String.class, boolean.class, boolean.class);
-                load.setAccessible(true);
+                var load = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findMethod(
+                        WorldOpenFlows.class, "m_233145_", Screen.class, String.class, boolean.class, boolean.class);
                 load.invoke(mc.createWorldOpenFlows(), mc.screen, id, false, false);
             } catch (ReflectiveOperationException failure) {
                 throw new IllegalStateException("Could not reopen the disposable review world", failure);

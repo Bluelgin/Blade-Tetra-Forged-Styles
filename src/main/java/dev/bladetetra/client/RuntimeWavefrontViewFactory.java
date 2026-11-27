@@ -49,7 +49,7 @@ final class RuntimeWavefrontViewFactory {
                 new ByteArrayInputStream(serialize(groups).getBytes(StandardCharsets.UTF_8)));
     }
 
-    private static String serialize(Map<String, List<Face>> groups) {
+    static String serialize(Map<String, List<Face>> groups) {
         var output = new ObjOutput();
         for (var group : groups.entrySet()) output.group(group.getKey(), group.getValue());
         if (output.triangles == 0) throw new IllegalArgumentException("runtime model has no renderable faces");

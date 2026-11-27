@@ -1,4 +1,6 @@
 {
   "parent": "minecraft:item/generated",
-  "textures": { "layer0": "blade_tetra:item/broken_oni_mask" }
+  "textures": {
+    "layer0": "minecraft:item/phantom_membrane"
+  }
 }
